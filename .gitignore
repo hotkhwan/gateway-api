@@ -1,0 +1,10 @@
+.env
+.env*
+
+main
+# air (local dev tool)
+air
+bin/air
+dahua/
+tmp/
+certs/

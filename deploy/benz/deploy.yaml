@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kapi
+  namespace: benz-demo
+  labels:
+    app: kapi
+spec:
+  selector:
+    matchLabels:
+      app: kapi
+  template:
+    metadata:
+      labels:
+        app: kapi
+    spec:
+      # nodeSelector:
+      #   kubernetes.io/hostname: k8sserver3
+      containers:
+        - name: kapi
+          image: regis.pointit.co.th/infra/go-benz-demo:0.0.1
+          command: ["sleep"]
+          args: ["infinity"]
+          # command: ["go", "run", ".", "--env=prod"]
+          # command: ["./main", "--env=prod"]
+          imagePullPolicy: IfNotPresent
+          # envFrom:
+          #   - configMapRef:
+          #       name: kapi-config
+          #   - secretRef:
+          #       name: kapi-secrets
+          ports:
+            - name: http
+              containerPort: 3001
+          volumeMounts:
+            - name: src-code
+              mountPath: /app
+            - name: rootca-volume
+              mountPath: /app/certs/tls.ca
+              subPath: tls.ca
+              readOnly: true
+            # - name: crimes
+            #   mountPath: /app/crimes
+            #   subPath: upload
+              # readOnly: true
+          securityContext:
+            privileged: true
+      volumes:
+        - name: src-code
+          hostPath:
+            path: /home/klynx/klynx-api
+            type: Directory
+        # - name: crimes
+        #   persistentVolumeClaim:
+        #     claimName: crimes-nfs-pvc
+        - name: rootca-volume
+          configMap:
+            name: rootca
+            items:
+              - key: ca.crt
+                path: tls.ca
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kapi
+  namespace: benz-demo
+spec:
+  selector:
+    app: kapi
+  ports:
+    - name: http
+      port: 3001
+      targetPort: http
+      protocol: TCP
+  type: ClusterIP

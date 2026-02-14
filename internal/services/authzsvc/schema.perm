@@ -1,0 +1,47 @@
+// User entity: authenticated users from Keycloak
+entity user {}
+
+// Role entity: role-based access control (Source: Keycloak)
+entity role {
+  // member = users who belong to this role
+  relation member @user
+  
+  // admin_access = role members have admin access
+  permission admin_access = member
+}
+
+// Group entity: hierarchical organization (Source: MongoDB / Go)
+entity group {
+  // member = users who belong to this group directly
+  relation member @user
+  
+  // parent = parent group (for explicit tuple-based hierarchy)
+  relation parent @group
+  
+  // access = group-level permission (no inheritance to child)
+  // Child groups WILL NOT automatically see parent’s resources
+  permission access = member
+}
+
+// Resource entity: protected objects (devices, cameras, menus, etc.)
+entity resource {
+  // viewer/editor/owner can be user, role, or group
+  relation viewer @user @role @group
+  relation editor @user @role @group
+  relation owner  @user @role @group
+  
+  // assigned_group = the main group this resource belongs to
+  // (used mainly for devices/cameras binding to org/group)
+  relation assigned_group @group
+  
+  // view permission:
+  // - direct tuple: resource#viewer@user/role/group
+  // - OR user is member of assigned_group
+  permission view = viewer or editor or owner or assigned_group.member
+  
+  // edit permission:
+  permission edit = editor or owner or assigned_group.member
+  
+  // delete permission:
+  permission delete = owner
+}

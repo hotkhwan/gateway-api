@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: golang
+  namespace: feature
+  labels:
+    app: golang
+spec:
+  selector:
+    matchLabels:
+      app: golang
+  template:
+    metadata:
+      labels:
+        app: golang
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: ai04
+      containers:
+        - name: app
+          image: regis.pointit.co.th/bma/kapi:1.0.1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KAFKA_BROKER
+              value: kafka.kafka.svc.cluster.local:9092           
+          ports:
+            - name: http
+              containerPort: 3000
+          volumeMounts:
+            - name: src-code
+              mountPath: /app
+          securityContext:
+            privileged: true

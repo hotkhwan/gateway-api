@@ -1,0 +1,7 @@
+# deploy/helm/Chart.yaml
+apiVersion: v2
+name: klynx-api
+description: A Helm chart for Core Klynx service
+type: application
+version: 1.0.0
+appVersion: 1.0.0

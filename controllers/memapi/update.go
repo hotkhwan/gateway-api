@@ -1,0 +1,56 @@
+package memapi
+
+import (
+	"klynx/internal/services/memsvc"
+	"klynx/models/gmod"
+	"klynx/models/memmod"
+	"klynx/utils/httputil"
+	"klynx/utils/traceutil"
+
+	"github.com/gofiber/fiber/v2"
+)
+
+// UpdateMember godoc
+// @Summary Update member by ID
+// @Description Update member detail by ID
+// @Tags members
+// @Produce  json
+// @Param id path string true "member ID"
+// @Success 200 {object} gmod.SuccessMessageResponse
+// @Failure 404 {object} gmod.ErrorMessageResponse
+// @Failure 500 {object} gmod.InternalErrorResponse
+// @Router /members/{id} [put]
+// @Security BearerAuth
+func UpdateMember(c *fiber.Ctx) error {
+	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/grpapi", "group.UpdateGroup", "grpapi", "UpdateGroup")
+	defer span.End()
+
+	id := c.Params("id")
+	if id == "" {
+		return httputil.FailBadRequest(c, "MISSING_ID", "Group id is required")
+	}
+
+	var req memmod.MemberRequest
+	if err := c.BodyParser(&req); err != nil {
+		log.Error().Err(err).Msg("❌ Invalid body")
+		return httputil.FailBadRequest(c, "INVALID_BODY", err.Error())
+	}
+
+	if err := memsvc.UpdateMember(ctx, id, req); err != nil {
+		log.Error().Err(err).Str("id", id).Msg("❌ Failed to update group")
+		switch gmod.ErrCodeOf(err) { // ✅ ตอนนี้มีแล้วจากข้อ (1)
+		case "GROUP_NOT_FOUND":
+			return httputil.FailNotFound(c, "GROUP_NOT_FOUND", "Group not found")
+		case "PARENT_NOT_FOUND":
+			return httputil.FailBadRequest(c, "PARENT_NOT_FOUND", "Parent group not found")
+		case "CIRCULAR_PARENT":
+			return httputil.FailConflict(c, "CIRCULAR_PARENT", "Circular parent assignment is not allowed")
+		default:
+			return httputil.FailInternalReason(c, "internal server error", "UPDATE_FAILED")
+		}
+	}
+
+	// ⬇️ เปลี่ยนจาก SendSuccessMessage -> SendMessageOK (ที่มีอยู่แล้ว)
+	return gmod.SendMessageOK(c, "GROUP_UPDATED", "Group updated successfully")
+
+}

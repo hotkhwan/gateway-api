@@ -1,0 +1,6311 @@
+basePath: /api/v1
+definitions:
+  aimodel.BlacklistItem:
+    properties:
+      cameraName:
+        type: string
+      channelId:
+        type: integer
+      dateTime:
+        description: เดิม
+        type: string
+      eventAttributeDetails:
+        description: ✅ ใหม่
+      featureImageUrl:
+        type: string
+      id:
+        type: string
+      idCard:
+        type: string
+      imageUrl:
+        description: ✅ เปลี่ยนเป็น string
+        type: string
+      lat:
+        description: ✅ ใหม่
+        type: string
+      listType: {}
+      lng:
+        description: ✅ ใหม่
+        type: string
+      name:
+        type: string
+      pictureCoordinates:
+        description: ✅ ใหม่
+        items: {}
+        type: array
+      similarity:
+        type: number
+      sn:
+        type: string
+      timestamp:
+        description: ✅ ใหม่ (RFC3339)
+        type: string
+      type:
+        type: string
+      zone:
+        type: string
+    type: object
+  aimodel.BlacklistSummary:
+    properties:
+      blacklist:
+        type: integer
+      other:
+        description: เผื่อมีค่าอื่น
+        type: integer
+      redlist:
+        type: integer
+      total:
+        type: integer
+      whitelist:
+        type: integer
+    type: object
+  aimodel.BlacklistSummaryResponse:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/aimodel.BlacklistItem'
+        type: array
+      message:
+        type: string
+      pagination:
+        $ref: '#/definitions/aimodel.Pagination'
+      status:
+        type: boolean
+      summary:
+        $ref: '#/definitions/aimodel.BlacklistSummary'
+    type: object
+  aimodel.Pagination:
+    properties:
+      page:
+        type: integer
+      perPages:
+        type: integer
+      sortField:
+        type: string
+      sortOrder:
+        type: string
+      totalPages:
+        type: integer
+      totalRecords:
+        type: integer
+    type: object
+  aimodel.PeopleCountingItem:
+    properties:
+      cameraName:
+        type: string
+      channelId:
+        type: integer
+      dateTime:
+        type: string
+      direction:
+        type: string
+      eventAttributeDetails: {}
+      id:
+        type: string
+      imageUrl:
+        type: string
+      lat:
+        description: Metadata
+        type: string
+      lng:
+        type: string
+      pictureCoordinates:
+        items: {}
+        type: array
+      regionNames:
+        items:
+          type: string
+        type: array
+      regionRois:
+        items: {}
+        type: array
+      sn:
+        type: string
+      timestamp:
+        description: ✅ ใช้ single image
+        type: string
+      type:
+        type: string
+      zone:
+        type: string
+    type: object
+  aimodel.PeopleCountingSummary:
+    properties:
+      in:
+        type: integer
+      out:
+        type: integer
+      total:
+        type: integer
+    type: object
+  aimodel.PeopleCountingSummaryResponse:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/aimodel.PeopleCountingItem'
+        type: array
+      pagination:
+        $ref: '#/definitions/aimodel.Pagination'
+      status:
+        type: boolean
+      summary:
+        $ref: '#/definitions/aimodel.PeopleCountingSummary'
+    type: object
+  aimodel.StandardResponse:
+    properties:
+      code:
+        type: string
+      details: {}
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+  atapi.ATASyncResponse:
+    properties:
+      code:
+        example: ATA_SYNC_OK
+        type: string
+      detail:
+        $ref: '#/definitions/atasvc.SyncResult'
+      message:
+        example: ATA devices/channels synced
+        type: string
+      status:
+        example: true
+        type: boolean
+    type: object
+  atapi.StreamDetails:
+    properties:
+      channelId:
+        example: 42
+        type: integer
+      name:
+        example: Entrance
+        type: string
+      rtspUrl:
+        example: rtsp://admin:***@172.16.10.151/axis-media/media.amp
+        type: string
+      sn:
+        example: 60038008431d6040
+        type: string
+      wssFlvUrl:
+        description: flv wss url
+        example: wss://atanywhere.ddns.net:8081/media-api/ws/flv?src=...
+        type: string
+      zone:
+        example: AT
+        type: string
+    type: object
+  atapi.StreamResponse:
+    properties:
+      code:
+        example: SUCCESS
+        type: string
+      details:
+        $ref: '#/definitions/atapi.StreamDetails'
+      message:
+        example: OK
+        type: string
+      status:
+        example: true
+        type: boolean
+    type: object
+  atapi.SyncRequest:
+    type: object
+  atasvc.SyncResult:
+    properties:
+      channels:
+        type: integer
+      channelsSample:
+        items:
+          additionalProperties: {}
+          type: object
+        type: array
+      devices:
+        type: integer
+      inserted:
+        type: integer
+      perDeviceCounts:
+        additionalProperties:
+          type: integer
+        type: object
+      updated:
+        type: integer
+    type: object
+  authmod.MenuGrant:
+    properties:
+      create:
+        type: boolean
+      id:
+        type: string
+      read:
+        description: flatten fields for FE
+        type: boolean
+    type: object
+  authmod.PermissionsBlock:
+    properties:
+      menus:
+        items:
+          $ref: '#/definitions/authmod.MenuGrant'
+        type: array
+    type: object
+  authmod.SigninRequest:
+    properties:
+      hwId:
+        example: ""
+        type: string
+      password:
+        example: admin
+        type: string
+      username:
+        example: admin
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  authmod.SigninResponse:
+    properties:
+      access_token:
+        type: string
+      email:
+        type: string
+      locale:
+        type: string
+      meta:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        type: string
+      permissions:
+        $ref: '#/definitions/authmod.PermissionsBlock'
+      plant: {}
+      refresh_token:
+        type: string
+      role:
+        type: string
+      stationAddress:
+        type: string
+      stationCameraUrl:
+        type: string
+      stationHwId:
+        type: string
+      stationId:
+        type: string
+      stationName:
+        type: string
+      stationType:
+        type: string
+      sub:
+        type: string
+      username:
+        type: string
+    type: object
+  authmod.SigninResponseWrapper:
+    properties:
+      detail:
+        $ref: '#/definitions/authmod.SigninResponse'
+      status:
+        type: boolean
+    type: object
+  authzmod.FactoryForceRequest:
+    properties:
+      force:
+        example: true
+        type: boolean
+    type: object
+  authzmod.GrantResourceRequest:
+    properties:
+      assignedGroupId:
+        description: '→ relation: assigned_group'
+        type: string
+      assignedRoleId:
+        description: '→ relation: assigned_role'
+        type: string
+      crud:
+        description: เช่น "c", "cru", "crd", ใช้ใน attribute:crud
+        type: string
+      editorUserIds:
+        description: '→ relation: editor'
+        items:
+          type: string
+        type: array
+      ownerUserId:
+        description: "\U0001F4A1 Relations"
+        type: string
+      resourceId:
+        type: string
+      type:
+        description: "\U0001F4A1 Attributes"
+        type: string
+      viewerUserIds:
+        description: '→ relation: viewer'
+        items:
+          type: string
+        type: array
+    type: object
+  authzmod.PermissionCheckRequest:
+    properties:
+      entity:
+        properties:
+          id:
+            type: string
+          type:
+            description: เช่น "resource"
+            type: string
+        required:
+        - id
+        - type
+        type: object
+      metadata:
+        properties:
+          depth:
+            type: integer
+          schema_version:
+            type: string
+          snap_token:
+            type: string
+        required:
+        - depth
+        type: object
+      permission:
+        type: string
+      subject:
+        properties:
+          id:
+            type: string
+          type:
+            description: เช่น "user", "group", "role"
+            type: string
+        required:
+        - id
+        - type
+        type: object
+    required:
+    - entity
+    - metadata
+    - permission
+    - subject
+    type: object
+  authzmod.PublishItem:
+    properties:
+      crud:
+        description: '["c","r","u","d"] หรือ ["read","update",...]'
+        items:
+          type: string
+        type: array
+      public:
+        type: boolean
+      relationship:
+        description: |-
+          รูปแบบ subject ตรง ๆ เช่น "role:PF_OFFICE" หรือ "group:g_inno"
+          (ใช้แทน subjectType+subjectId แบบใหม่)
+        type: string
+      resourceId:
+        description: รหัส resource เช่น "menu_dashboard_global", "device:xxx"
+        type: string
+      subjectId:
+        type: string
+      subjectType:
+        description: รองรับ legacy payload แบบเก่า
+        type: string
+    type: object
+  authzmod.PublishProfileRequest:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/authzmod.PublishItem'
+        type: array
+      note:
+        type: string
+    type: object
+  authzmod.RevokeResourceRequest:
+    properties:
+      entityIds:
+        items:
+          type: string
+        type: array
+      entityType:
+        type: string
+    type: object
+  dashmod.UpdateBlacklistReq:
+    properties:
+      acknowledged:
+        type: boolean
+      isDeleted:
+        type: boolean
+      sop:
+        additionalProperties: {}
+        type: object
+    type: object
+  devmod.Access:
+    properties:
+      allow:
+        $ref: '#/definitions/devmod.Allow'
+      source:
+        $ref: '#/definitions/devmod.Source'
+    type: object
+  devmod.Allow:
+    properties:
+      create:
+        type: boolean
+      delete:
+        type: boolean
+      read:
+        type: boolean
+      update:
+        type: boolean
+    type: object
+  devmod.Device:
+    properties:
+      access:
+        $ref: '#/definitions/devmod.Access'
+      ataWsFlvUrl:
+        type: string
+      brand:
+        type: string
+      dateTimeCreate:
+        type: string
+      dateTimeUpdate:
+        type: string
+      district:
+        type: string
+      groupIds:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      lat:
+        type: number
+      lng:
+        type: number
+      name:
+        type: string
+      password:
+        type: string
+      public:
+        type: boolean
+      roi:
+        items:
+          items:
+            additionalProperties:
+              type: string
+            type: object
+          type: array
+        type: array
+      state:
+        type: string
+      status:
+        type: boolean
+      url:
+        type: string
+      user:
+        type: string
+    type: object
+  devmod.DeviceDetailSwagger:
+    properties:
+      code:
+        example: SUCCESS
+        type: string
+      detail:
+        $ref: '#/definitions/devmod.Device'
+      message:
+        example: Device retrieved successfully
+        type: string
+      status:
+        example: true
+        type: boolean
+    type: object
+  devmod.DeviceListResponse:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/devmod.Device'
+        type: array
+      offline:
+        type: integer
+      online:
+        type: integer
+      pagination:
+        $ref: '#/definitions/devmod.Pagination'
+      status:
+        type: boolean
+    type: object
+  devmod.DeviceRequest:
+    properties:
+      brand:
+        description: 'required: true'
+        example: Dahua
+        type: string
+      district:
+        description: 'required: true'
+        example: Prawet
+        type: string
+      lat:
+        example: 13.6178196
+        type: number
+      lng:
+        example: 100.6956348
+        type: number
+      name:
+        description: 'required: true'
+        example: Camera-01
+        type: string
+      password:
+        description: 'required: true'
+        example: secret123
+        type: string
+      url:
+        description: 'required: true'
+        example: rtsp://192.168.1.100/stream
+        type: string
+      user:
+        description: 'required: true'
+        example: admin
+        type: string
+    type: object
+  devmod.Pagination:
+    properties:
+      page:
+        type: integer
+      perPages:
+        type: integer
+      sortField:
+        type: string
+      sortOrder:
+        type: string
+      totalPages:
+        type: integer
+      totalRecords:
+        type: integer
+    type: object
+  devmod.Source:
+    properties:
+      matchedGroupIds:
+        items:
+          type: string
+        type: array
+      mode:
+        type: string
+      subject:
+        $ref: '#/definitions/devmod.Subject'
+    type: object
+  devmod.Subject:
+    properties:
+      id:
+        type: string
+      type:
+        type: string
+    type: object
+  gmod.AcceptedResponse:
+    properties:
+      code:
+        type: string
+      detail:
+        $ref: '#/definitions/gmod.JobInfo'
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+  gmod.ApiErrorResponse:
+    properties:
+      code:
+        example: BAD_REQUEST
+        type: string
+      details: {}
+      message:
+        example: Invalid request
+        type: string
+      status:
+        example: false
+        type: boolean
+    type: object
+  gmod.BadRequestResponse:
+    properties:
+      code:
+        example: ERROR
+        type: string
+      message:
+        example: Invalid request
+        type: string
+      status:
+        example: false
+        type: boolean
+    type: object
+  gmod.BaseErrorResponse:
+    properties:
+      code:
+        description: SUCCESS / ERROR CODE
+        type: string
+      message:
+        description: human readable
+        type: string
+      status:
+        description: true / false
+        type: boolean
+    type: object
+  gmod.BaseResponse:
+    properties:
+      code:
+        description: SUCCESS / ERROR CODE
+        type: string
+      message:
+        description: human readable
+        type: string
+      status:
+        description: true / false
+        type: boolean
+    type: object
+  gmod.BulkError:
+    properties:
+      details:
+        type: string
+      index:
+        example: 3
+        type: integer
+      reason:
+        example: duplicate key
+        type: string
+    type: object
+  gmod.DeviceResponse:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/devmod.Device'
+        type: array
+      pagination:
+        $ref: '#/definitions/gmod.Pagination'
+      status:
+        type: boolean
+    type: object
+  gmod.ErrorMessageResponse:
+    properties:
+      code:
+        type: string
+      details:
+        type: string
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+  gmod.ErrorResponse:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+  gmod.GroupResponse:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/grpmod.Group'
+        type: array
+      pagination:
+        $ref: '#/definitions/gmod.Pagination'
+      status:
+        type: boolean
+    type: object
+  gmod.InternalErrorResponse:
+    properties:
+      message:
+        example: internal server error
+        type: string
+    type: object
+  gmod.IntrospectDetail:
+    properties:
+      active:
+        type: boolean
+      avatar:
+        type: string
+      email:
+        type: string
+      exp:
+        type: integer
+      family_name:
+        type: string
+      given_name:
+        type: string
+      locale:
+        type: string
+      permissions:
+        $ref: '#/definitions/authmod.PermissionsBlock'
+      preferred_username:
+        type: string
+      role:
+        type: string
+      scope:
+        type: string
+      sub:
+        type: string
+      username:
+        type: string
+    type: object
+  gmod.JobInfo:
+    properties:
+      jobId:
+        type: string
+      mqttTopic:
+        type: string
+      traceID:
+        type: string
+    type: object
+  gmod.Member:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      groupId:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+    type: object
+  gmod.MembersResponse:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/gmod.Member'
+        type: array
+      pagination:
+        $ref: '#/definitions/gmod.Pagination'
+      status:
+        type: boolean
+    type: object
+  gmod.Pagination:
+    properties:
+      page:
+        type: integer
+      perPages:
+        type: integer
+      sortField:
+        type: string
+      sortOrder:
+        type: string
+      totalPages:
+        type: integer
+      totalRecords:
+        type: integer
+    type: object
+  gmod.PaginationResponse:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/devmod.Device'
+        type: array
+      pagination:
+        $ref: '#/definitions/gmod.Pagination'
+      status:
+        example: true
+        type: boolean
+    type: object
+  gmod.Response:
+    properties:
+      code:
+        example: SUCCESS
+        type: string
+      data: {}
+      message:
+        example: Operation completed
+        type: string
+      status:
+        example: true
+        type: boolean
+    type: object
+  gmod.RolesResponse:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/grpmod.GroupRole'
+        type: array
+      pagination:
+        $ref: '#/definitions/gmod.Pagination'
+      status:
+        type: boolean
+    type: object
+  gmod.SuccessDataResponse:
+    properties:
+      code:
+        type: string
+      data: {}
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+  gmod.SuccessDetailResponseIntrospect:
+    properties:
+      detail:
+        $ref: '#/definitions/gmod.IntrospectDetail'
+      status:
+        type: boolean
+    type: object
+  gmod.SuccessDetailResponseWithMSG:
+    properties:
+      code:
+        type: string
+      detail: {}
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+  gmod.SuccessMessageBulkCreateResponse:
+    properties:
+      code:
+        example: SUCCESS
+        type: string
+      errors:
+        items:
+          $ref: '#/definitions/gmod.BulkError'
+        type: array
+      ids:
+        items:
+          type: string
+        type: array
+      inserted:
+        example: 5
+        type: integer
+      message:
+        example: Bulk operation completed
+        type: string
+      skipped:
+        example: 1
+        type: integer
+      status:
+        example: true
+        type: boolean
+    type: object
+  gmod.SuccessMessageCreateResponse:
+    properties:
+      code:
+        example: SUCCESS
+        type: string
+      id:
+        description: ใช้ string จะสะอาดกว่า
+        example: 6897202770888774909d2ff5
+        type: string
+      message:
+        example: Operation successful
+        type: string
+      status:
+        example: true
+        type: boolean
+    type: object
+  gmod.SuccessMessageResponse:
+    properties:
+      code:
+        example: SUCCESS
+        type: string
+      message:
+        example: Operation successful
+        type: string
+      status:
+        example: true
+        type: boolean
+    type: object
+  gmod.SuccessResponse:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+  gmod.UnauthorizedResponse:
+    properties:
+      code:
+        type: string
+      message:
+        example: Invalid or expired token
+        type: string
+      status:
+        type: boolean
+    type: object
+  grpmod.Group:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      icon:
+        type: string
+      id:
+        type: string
+      members:
+        items:
+          $ref: '#/definitions/grpmod.GroupMember'
+        type: array
+      name:
+        type: string
+      parentId:
+        type: string
+      public:
+        type: boolean
+    type: object
+  grpmod.GroupMember:
+    properties:
+      fullName:
+        type: string
+      userId:
+        type: string
+      username:
+        type: string
+    type: object
+  grpmod.GroupRequest:
+    properties:
+      description:
+        type: string
+      icon:
+        description: optional
+        type: string
+      name:
+        type: string
+      parentId:
+        description: optional
+        type: string
+      public:
+        description: optional
+        type: boolean
+    type: object
+  grpmod.GroupRole:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      groupId:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+    type: object
+  grpmod.GroupTree:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/grpmod.GroupTree'
+        type: array
+      description:
+        example: กลุ่มกล้องวิเคราะห์
+        type: string
+      icon:
+        type: string
+      id:
+        example: 685e34ee49e00a250204b8eb
+        type: string
+      members:
+        items:
+          $ref: '#/definitions/grpmod.GroupMember'
+        type: array
+      name:
+        example: analytic
+        type: string
+      public:
+        type: boolean
+    type: object
+  grpmod.GroupTreeResponse:
+    properties:
+      details:
+        description: เปลี่ยนตรงนี้
+        items:
+          $ref: '#/definitions/grpmod.GroupTree'
+        type: array
+      status:
+        example: true
+        type: boolean
+    type: object
+  ibocapi.IBOCSyncResponse:
+    properties:
+      code:
+        example: IBOC_SYNC_OK
+        type: string
+      detail:
+        $ref: '#/definitions/ibocsvc.SyncResult'
+      message:
+        example: IBOC devices/channels synced
+        type: string
+      status:
+        example: true
+        type: boolean
+    type: object
+  ibocsvc.SyncResult:
+    properties:
+      channels:
+        type: integer
+      channelsSample:
+        items:
+          additionalProperties: {}
+          type: object
+        type: array
+      devices:
+        type: integer
+      inserted:
+        type: integer
+      perDeviceCounts:
+        additionalProperties:
+          type: integer
+        type: object
+      updated:
+        type: integer
+    type: object
+  kctrlmod.AlarmResponseItem:
+    properties:
+      brand:
+        type: string
+      datetime:
+        type: string
+      district:
+        type: string
+      hwId:
+        type: string
+      id:
+        type: string
+      lat:
+        type: number
+      lng:
+        type: number
+      message:
+        type: string
+      name:
+        type: string
+    type: object
+  kctrlmod.ControlMessage:
+    properties:
+      clearConfig:
+        description: 'NEW: clear NVS'
+        type: boolean
+      host:
+        type: string
+      hwId:
+        description: '"all" | "AA:BB..." | []string'
+      interval_IN_1:
+        description: 'NEW: intervals per input'
+        type: integer
+      interval_IN_2:
+        type: integer
+      interval_IN_3:
+        type: integer
+      interval_IN_4:
+        type: integer
+      message:
+        type: string
+      pass:
+        type: string
+      pem:
+        type: string
+      persist:
+        description: ใช้ pointer เพื่อรู้ว่า client ส่งมาจริงไหม
+        type: boolean
+      port:
+        type: integer
+      setAlarmInterval:
+        type: integer
+      setHealthInterval:
+        type: integer
+      setMqtt:
+        description: 'NEW: MQTT endpoint + persist'
+        type: boolean
+      setOta:
+        type: boolean
+      setOutput:
+        description: 'NEW: switch output (ยังคงของเดิม)'
+        type: string
+      timestamp:
+        type: string
+      topic:
+        type: string
+      type:
+        description: ONCE | HIGH | LOW
+        type: string
+      url:
+        type: string
+      user:
+        type: string
+    type: object
+  kctrlmod.Device:
+    properties:
+      alarm:
+        type: boolean
+      approved:
+        type: boolean
+      brand:
+        type: string
+      dateTimeCreate:
+        type: string
+      dateTimeUpdate:
+        type: string
+      district:
+        type: string
+      firmwareURL:
+        type: string
+      fwBuild:
+        type: string
+      fwVersion:
+        description: runtime info from health
+        type: string
+      groupIds:
+        items:
+          type: string
+        type: array
+      healthInterval:
+        description: intervals & thresholds (ms)
+        type: integer
+      heapFree:
+        type: integer
+      heapMin:
+        type: integer
+      hwId:
+        type: string
+      id:
+        type: string
+      inactiveForMs:
+        description: watchdog info
+        type: integer
+      interval_IN_1:
+        allOf:
+        - $ref: '#/definitions/kctrlmod.IntervalSpec'
+        description: per-input intervals (object form)
+      interval_IN_2:
+        $ref: '#/definitions/kctrlmod.IntervalSpec'
+      interval_IN_3:
+        $ref: '#/definitions/kctrlmod.IntervalSpec'
+      interval_IN_4:
+        $ref: '#/definitions/kctrlmod.IntervalSpec'
+      ip:
+        type: string
+      lastSeen:
+        type: string
+      lastStatusChange:
+        type: string
+      lastTelemetry:
+        description: telemetry ล่าสุด (raw JSON)
+      lat:
+        type: number
+      lng:
+        type: number
+      metrics:
+        $ref: '#/definitions/kctrlmod.HealthMetrics'
+      mqtt:
+        allOf:
+        - $ref: '#/definitions/kctrlmod.MQTTConfig'
+        description: MQTT & OTA
+      name:
+        type: string
+      offThresholdMs:
+        type: integer
+      sensor:
+        description: 'สำหรับ Frontend: sensor[] ที่ map จาก interval_IN_* (id/name/values)'
+        items:
+          $ref: '#/definitions/kctrlmod.IntervalSpec'
+        type: array
+      source:
+        type: string
+      stats:
+        $ref: '#/definitions/kctrlmod.Stats'
+      status:
+        type: string
+      tempC:
+        type: number
+      warnThresholdMs:
+        type: integer
+    type: object
+  kctrlmod.DeviceResponse:
+    properties:
+      details:
+        $ref: '#/definitions/kctrlmod.Device'
+      status:
+        example: true
+        type: boolean
+    type: object
+  kctrlmod.EventMessage:
+    properties:
+      alarmInterval:
+        type: integer
+      healthInterval:
+        type: integer
+      hwId:
+        type: string
+      message:
+        type: string
+      timestamp:
+        type: string
+      topic:
+        type: string
+    type: object
+  kctrlmod.HealthMetrics:
+    properties:
+      alarms:
+        type: integer
+      detects:
+        type: integer
+    type: object
+  kctrlmod.IntervalSpec:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      values:
+        type: integer
+    type: object
+  kctrlmod.MQTTConfig:
+    properties:
+      certificated:
+        type: string
+      port:
+        type: integer
+      server:
+        type: string
+      username:
+        type: string
+    type: object
+  kctrlmod.PaginationAlarmsResponse:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/kctrlmod.AlarmResponseItem'
+        type: array
+      pagination:
+        $ref: '#/definitions/gmod.Pagination'
+      status:
+        example: true
+        type: boolean
+    type: object
+  kctrlmod.PaginationKctrlResponse:
+    properties:
+      details:
+        $ref: '#/definitions/kctrlmod.Device'
+      pagination:
+        $ref: '#/definitions/gmod.Pagination'
+      status:
+        example: true
+        type: boolean
+    type: object
+  kctrlmod.Stats:
+    properties:
+      alarmCount:
+        type: integer
+      offline:
+        type: integer
+      online:
+        type: integer
+      sensorDetectCount:
+        type: integer
+      warning:
+        type: integer
+    type: object
+  kschmod.Chat:
+    properties:
+      chatId:
+        type: string
+      createdAt:
+        type: string
+      name:
+        type: string
+      projectId:
+        type: string
+      userId:
+        description: "\U0001F448 เพิ่ม"
+        type: string
+    type: object
+  kschmod.ChatMessage:
+    properties:
+      caption:
+        type: string
+      chatId:
+        type: string
+      class:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      img:
+        type: string
+      meta: {}
+      projectId:
+        type: string
+      prompt:
+        type: string
+      role:
+        description: '"user" | "assistant"'
+        type: string
+      score:
+        type: number
+      summary:
+        type: string
+      userId:
+        description: "\U0001F448 เพิ่ม"
+        type: string
+    type: object
+  kschmod.ChatMessagePaginationResponse:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/kschmod.ChatMessage'
+        type: array
+      pagination:
+        $ref: '#/definitions/gmod.Pagination'
+      status:
+        type: boolean
+    type: object
+  kschmod.ChatsUpdateRequest:
+    properties:
+      name:
+        example: My Updated Project
+        type: string
+    type: object
+  kschmod.LLMRequest:
+    properties:
+      imagePath:
+        type: string
+      nameId:
+        type: string
+      page:
+        description: optional
+        type: integer
+      perPages:
+        description: optional
+        type: integer
+      prompt:
+        type: string
+      sortField:
+        type: string
+      sortOrder:
+        type: string
+    type: object
+  kschmod.MessageUpdateRequest:
+    properties:
+      caption:
+        type: string
+      class:
+        type: string
+      img:
+        type: string
+      prompt:
+        type: string
+    type: object
+  kschmod.Project:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      userId:
+        description: "\U0001F448 เพิ่ม"
+        type: string
+    type: object
+  kschmod.ProjectChatsResponse:
+    properties:
+      code:
+        description: SUCCESS / ERROR CODE
+        type: string
+      details:
+        properties:
+          chats:
+            items:
+              $ref: '#/definitions/kschmod.Chat'
+            type: array
+          pagination:
+            $ref: '#/definitions/gmod.Pagination'
+          project:
+            $ref: '#/definitions/kschmod.Project'
+        type: object
+      message:
+        description: human readable
+        type: string
+      status:
+        description: true / false
+        type: boolean
+    type: object
+  kschmod.ProjectUpdateRequest:
+    properties:
+      name:
+        example: My Updated Project
+        type: string
+    type: object
+  kschmod.VideoResponse:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      state:
+        type: string
+      status:
+        type: boolean
+      updatedAt:
+        type: string
+      video_url:
+        type: string
+      videoContentType:
+        type: string
+      videoKey:
+        type: string
+      videoSize:
+        type: integer
+    type: object
+  kwatapi.syncIdsRequest:
+    properties:
+      env:
+        description: 'โหมดปลายทาง: "prod" | "dev" | "both" (default="prod")'
+        type: string
+      ids:
+        description: รายการ _id (hex) ของเอกสาร watchlist ที่ต้องการ sync
+        items:
+          type: string
+        type: array
+      mode:
+        description: 'โหมดย่อย: "missing" | "backfill" | "all" (ไม่บังคับ; ถ้าไม่ระบุจะเป็น
+          "byIds")'
+        type: string
+    type: object
+  kwatmod.ExportJob:
+    properties:
+      createdAt:
+        type: string
+      endedAt:
+        type: string
+      error:
+        type: string
+      id:
+        type: string
+      kind:
+        $ref: '#/definitions/kwatmod.ExportKind'
+      meta:
+        additionalProperties:
+          type: string
+        type: object
+      params: {}
+      result:
+        $ref: '#/definitions/kwatmod.ExportResult'
+      startedAt:
+        type: string
+      status:
+        $ref: '#/definitions/kwatmod.ExportJobStatus'
+    type: object
+  kwatmod.ExportJobStatus:
+    enum:
+    - PENDING
+    - RUNNING
+    - SUCCEEDED
+    - FAILED
+    type: string
+    x-enum-varnames:
+    - ExportStatusPending
+    - ExportStatusRunning
+    - ExportStatusSucceeded
+    - ExportStatusFailed
+  kwatmod.ExportKind:
+    enum:
+    - watchlist
+    type: string
+    x-enum-varnames:
+    - ExportKindWatchlist
+  kwatmod.ExportResult:
+    properties:
+      bucket:
+        type: string
+      fileName:
+        type: string
+      key:
+        type: string
+      size:
+        type: integer
+      url:
+        type: string
+    type: object
+  kwatmod.WatchlistPagination:
+    properties:
+      page:
+        type: integer
+      perPages:
+        type: integer
+      sortField:
+        type: string
+      sortOrder:
+        type: string
+      totalFaceImages:
+        type: integer
+      totalPages:
+        type: integer
+      totalPersons:
+        type: integer
+      totalRecords:
+        type: integer
+      totalWarrants:
+        type: integer
+    type: object
+  kwatmod.WatchlistResponse:
+    properties:
+      age:
+        type: integer
+      alertDesc:
+        type: string
+      alertType:
+        type: string
+      birthday:
+        type: string
+      country:
+        type: string
+      createdAt:
+        type: string
+      crimesType:
+        type: integer
+      dateOfDeath:
+        type: string
+      deathStatus:
+        type: integer
+      external:
+        additionalProperties: {}
+        description: DeletedAt time.Time      `bson:"deletedAt,omitempty" json:"deletedAt,omitempty"`
+        type: object
+      fatherIdcard:
+        type: string
+      fatherName:
+        type: string
+      firstNameEn:
+        type: string
+      firstname:
+        type: string
+      fullName:
+        type: string
+      id:
+        type: string
+      idcard:
+        type: string
+      lastNameEn:
+        type: string
+      lastname:
+        type: string
+      maritalStatus:
+        type: string
+      motherIdcard:
+        type: string
+      motherName:
+        type: string
+      nation:
+        type: string
+      nickname:
+        type: string
+      passport:
+        type: string
+      personKey:
+        type: string
+      personalType:
+        type: integer
+      photoContentType:
+        type: string
+      photoFileName:
+        type: string
+      photoKey:
+        type: string
+      photoUrl:
+        type: string
+      policeProvincial:
+        type: integer
+      policeRegion:
+        type: integer
+      policeStation:
+        type: integer
+      rev:
+        description: ✅ เพิ่มตรงนี้
+        type: integer
+      sex:
+        type: string
+      source:
+        type: string
+      state:
+        description: เมตาเพิ่ม
+        type: string
+      subTitlename:
+        type: string
+      titleEn:
+        type: string
+      titlename:
+        type: string
+      traceID:
+        type: string
+      type:
+        type: integer
+      updatedAt:
+        type: string
+      userPosition:
+        type: string
+      userRecorder:
+        type: string
+      warrants: {}
+      warrantsPerson:
+        type: integer
+    type: object
+  memmod.Member:
+    properties:
+      createdAt:
+        type: string
+      group:
+        type: string
+      groupID:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+      userID:
+        type: string
+    type: object
+  models.APIResponse-models_Any:
+    properties:
+      code:
+        type: string
+      details:
+        $ref: '#/definitions/models.Any'
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+  models.Any:
+    additionalProperties: {}
+    type: object
+  models.CreateStreamRequest:
+    properties:
+      app:
+        example: live
+        type: string
+      enable_fmp4:
+        example: 0
+        type: integer
+      enable_hls:
+        example: 1
+        type: integer
+      enable_hls_fmp4:
+        example: 0
+        type: integer
+      enable_mp4:
+        example: 0
+        type: integer
+      enable_rtmp:
+        example: 0
+        type: integer
+      enable_rtsp:
+        example: 1
+        type: integer
+      enable_ts:
+        example: 0
+        type: integer
+      stream:
+        example: test
+        type: string
+      url:
+        example: rtsp://admin:P@ssw0rd@192.168.110.102:554
+        type: string
+      vhost:
+        example: __defaultVhost__
+        type: string
+    type: object
+  optmod.StationRaw:
+    properties:
+      address:
+        type: string
+      code:
+        description: ไม่ได้ใช้ทำ relation แล้ว แต่เก็บได้เผื่อ debug
+        type: integer
+      id:
+        type: string
+      level:
+        description: 1=Region, 2=Provincial, 3=Station
+        type: integer
+      location_id:
+        type: string
+      name:
+        description: จะ map ไปเป็น title
+        type: string
+      parent_id:
+        description: รองรับ input เดิม
+        type: string
+      parentId:
+        description: รองรับ input ใหม่
+        type: string
+      status:
+        type: integer
+    type: object
+  rscmod.Pagination:
+    properties:
+      page:
+        type: integer
+      perPages:
+        type: integer
+      sortField:
+        type: string
+      sortOrder:
+        type: string
+      totalPages:
+        type: integer
+      totalRecords:
+        type: integer
+    type: object
+  rscmod.Resource:
+    properties:
+      canonicalId:
+        type: string
+      createdAt:
+        type: string
+      displayName:
+        type: string
+      externalId:
+        type: string
+      icon:
+        type: string
+      id:
+        type: string
+      idAlias:
+        type: string
+      path:
+        type: string
+      provider:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      type:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  rscmod.ResourcePaginationResponse:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/rscmod.Resource'
+        type: array
+      pagination:
+        $ref: '#/definitions/rscmod.Pagination'
+      status:
+        type: boolean
+    type: object
+  rscmod.ResourceUpsert:
+    properties:
+      canonicalId:
+        type: string
+      displayName:
+        type: string
+      externalId:
+        type: string
+      icon:
+        type: string
+      id:
+        type: string
+      path:
+        type: string
+      provider:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      type:
+        type: string
+    type: object
+  systemmod.EdgeCreateReq:
+    properties:
+      apiKey:
+        description: ATA only
+      apiSecret:
+        description: ATA only
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      tls:
+        type: boolean
+      url:
+        type: string
+      username:
+        type: string
+    type: object
+  systemmod.EdgeCreateSuccessResponse:
+    properties:
+      code:
+        example: SUCCESS
+        type: string
+      id:
+        example: 694a5ebe44cdee341c2f687a
+        type: string
+      message:
+        example: edge created
+        type: string
+      status:
+        example: true
+        type: boolean
+    type: object
+  systemmod.EdgeDeleteSuccessResponse:
+    properties:
+      code:
+        example: SUCCESS
+        type: string
+      message:
+        example: edge deleted
+        type: string
+      status:
+        example: true
+        type: boolean
+    type: object
+  systemmod.EdgeUpdateReq:
+    properties:
+      apiKey: {}
+      apiSecret:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      tls:
+        type: boolean
+      url:
+        type: string
+      username:
+        type: string
+    type: object
+  systemmod.EdgeUpdateSuccessResponse:
+    properties:
+      code:
+        example: SUCCESS
+        type: string
+      message:
+        example: edge updated
+        type: string
+      status:
+        example: true
+        type: boolean
+    type: object
+  thirdmod.ClientCredentialsReq:
+    properties:
+      client_id:
+        type: string
+      client_secret:
+        type: string
+      scope:
+        description: optional
+        type: string
+    type: object
+  thirdmod.CreateServiceAccountReq:
+    properties:
+      description:
+        type: string
+    type: object
+  usrmod.ChangePasswordRequest:
+    properties:
+      password:
+        example: P@ssw0rd123
+        type: string
+    type: object
+  usrmod.CreateUserRequest:
+    properties:
+      avatar:
+        type: string
+      department:
+        type: string
+      email:
+        type: string
+      enabled:
+        type: boolean
+      firstName:
+        type: string
+      lastName:
+        type: string
+      locale:
+        type: string
+      mapLocation:
+        $ref: '#/definitions/usrmod.MapLocation'
+      password:
+        type: string
+      perPages:
+        type: integer
+      permission:
+        items:
+          type: string
+        type: array
+      refId:
+        type: string
+      role:
+        type: string
+      username:
+        type: string
+      zoomLevel:
+        type: integer
+    type: object
+  usrmod.KeycloakUser:
+    properties:
+      avatar:
+        type: string
+      createdAt:
+        type: string
+      department:
+        type: string
+      email:
+        type: string
+      enabled:
+        type: boolean
+      firstName:
+        type: string
+      id:
+        type: string
+      lastName:
+        type: string
+      locale:
+        type: string
+      mapLocation:
+        $ref: '#/definitions/usrmod.MapLocation'
+      perPages:
+        type: integer
+      plant:
+        type: string
+      realmRoles:
+        items:
+          type: string
+        type: array
+      refId:
+        type: string
+      role:
+        type: string
+      username:
+        type: string
+      zoomLevel:
+        type: integer
+    type: object
+  usrmod.MapLocation:
+    properties:
+      lat:
+        type: string
+      lng:
+        type: string
+    type: object
+  usrmod.MapSetting:
+    properties:
+      mapLocation:
+        $ref: '#/definitions/usrmod.MapLocation'
+      zoomLevel:
+        type: integer
+    type: object
+  usrmod.PaginationSuccessUsers:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/usrmod.KeycloakUser'
+        type: array
+      pagination:
+        properties:
+          currentPage:
+            type: integer
+          perPages:
+            type: integer
+          sortField:
+            type: string
+          sortOrder:
+            type: string
+          totalPages:
+            type: integer
+          totalRecords:
+            type: integer
+        type: object
+      status:
+        type: boolean
+    type: object
+info:
+  contact: {}
+  description: REST API for Klynx system
+  title: Klynx API v2
+  version: "1.0"
+paths:
+  /ata/stream/{channelId}:
+    get:
+      consumes:
+      - application/json
+      description: Return WSS FLV URL for given ATA channelId so frontend can play
+        FLV over WebSocket.
+      parameters:
+      - description: ATA channel ID
+        in: path
+        name: channelId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Stream URL info
+          schema:
+            $ref: '#/definitions/atapi.StreamResponse'
+        "400":
+          description: Bad Request – invalid or missing channelId
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error – config or build failed
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "502":
+          description: Bad Gateway – ATA upstream error
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Get ATA FLV WebSocket stream URL
+      tags:
+      - ATA
+  /ata/svms/sync:
+    post:
+      consumes:
+      - application/json
+      description: Calls ATA Edge AI API to fetch devices and channels then upsert
+        into `camera` collection.
+      parameters:
+      - description: Optional sync options
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/atapi.SyncRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sync result
+          schema:
+            $ref: '#/definitions/atapi.ATASyncResponse'
+        "500":
+          description: Internal Server Error – config or DB error
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "502":
+          description: Bad Gateway – ATA upstream error
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Sync ATA devices & channels from Edge AI to Klynx
+      tags:
+      - ATA
+  /atapi/blacklist/notification:
+    get:
+      consumes:
+      - application/json
+      description: List events with pagination. Filter by dateTime/sn/channelId and
+        search by camera name(zone/address). No type filter. No isDeleted filter.
+      parameters:
+      - description: 'Date range: YYYY-MM-DD,YYYY-MM-DD'
+        in: query
+        name: dateTime
+        required: true
+        type: string
+      - description: Filter by device SN
+        in: query
+        name: sn
+        type: string
+      - description: Filter by channelId
+        in: query
+        name: channelId
+        type: integer
+      - description: Regex search by camera name (address/zone) OR person name
+        in: query
+        name: search
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (max 200)
+        in: query
+        name: perPages
+        type: integer
+      - description: asc or desc
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/aimodel.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Notification list (ALL events)
+      tags:
+      - ATA
+  /atapi/blacklist/summary:
+    get:
+      consumes:
+      - application/json
+      description: Summary + list events with pagination. Filter by dateTime/sn/channelId/listType
+        and search by camera name (address).
+      parameters:
+      - description: 'Date range: YYYY-MM-DD,YYYY-MM-DD'
+        in: query
+        name: dateTime
+        required: true
+        type: string
+      - description: Filter by device SN
+        in: query
+        name: sn
+        type: string
+      - description: Filter by channelId
+        in: query
+        name: channelId
+        type: integer
+      - description: Regex search by camera name (address)
+        in: query
+        name: search
+        type: string
+      - description: eventAttribute.listType (omit = all; if provided filters exact
+          int, including 0)
+        in: query
+        name: listType
+        type: integer
+      - description: 'list name: blacklist|whitelist|redlist|strangers (omit = all).
+          If both listType and listName provided, listType wins.'
+        in: query
+        name: listName
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (max 200)
+        in: query
+        name: perPages
+        type: integer
+      - description: asc or desc
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/aimodel.BlacklistSummaryResponse'
+      security:
+      - BearerAuth: []
+      summary: Blacklist summary + list
+      tags:
+      - ATA
+  /atapi/peopleCounting/summary:
+    get:
+      consumes:
+      - application/json
+      description: Summary (in/out/total) + list events with pagination. Filter by
+        camera/dateTime/direction.
+      parameters:
+      - description: 'Date range: RFC3339,RFC3339 or YYYY-MM-DD,YYYY-MM-DD (if omitted:
+          today 00:00:00 (Asia/Bangkok) to now)'
+        in: query
+        name: dateTime
+        type: string
+      - description: 'CSV only: camera=cam1,cam2'
+        in: query
+        name: camera
+        type: string
+      - description: 'CSV only: direction=in,out'
+        in: query
+        name: direction
+        type: string
+      - description: Filter by device SN
+        in: query
+        name: sn
+        type: string
+      - description: Filter by channelId
+        in: query
+        name: channelId
+        type: integer
+      - description: Regex search by camera name (address) / zone
+        in: query
+        name: search
+        type: string
+      - description: Filter by directionCode 1=in 2=out (overrides direction)
+        in: query
+        name: directionCode
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (max 200)
+        in: query
+        name: perPages
+        type: integer
+      - description: asc or desc
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/aimodel.PeopleCountingSummaryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: PeopleCounting summary + list
+      tags:
+      - ATA
+  /auth/introspect:
+    get:
+      consumes:
+      - application/json
+      description: ตรวจสอบความถูกต้องของ JWT จาก Authorization Header
+      parameters:
+      - description: Bearer <JWT>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseIntrospect'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.UnauthorizedResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Introspect JWT Token (Local JWKS Verify)
+      tags:
+      - Auth
+  /auth/refreshToken:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Refresh Token
+        in: body
+        name: data
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authmod.SigninResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.UnauthorizedResponse'
+      security:
+      - BearerAuth: []
+      summary: Refresh Token
+      tags:
+      - Auth
+  /auth/resetPassword:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: New Password
+        in: body
+        name: data
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authmod.SigninResponseWrapper'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.UnauthorizedResponse'
+      security:
+      - BearerAuth: []
+      summary: Reset Password
+      tags:
+      - Auth
+  /auth/signin:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User credentials
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/authmod.SigninRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authmod.SigninResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.UnauthorizedResponse'
+      summary: Signin
+      tags:
+      - Auth
+  /auth/signout:
+    post:
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authmod.SigninResponseWrapper'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.UnauthorizedResponse'
+      security:
+      - BearerAuth: []
+      summary: Signout
+      tags:
+      - Auth
+  /authz/healthz:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Health check for Permify
+      tags:
+      - Authz
+  /authz/permission/check:
+    post:
+      consumes:
+      - application/json
+      description: Check if the user has permission to perform an action on a resource
+      parameters:
+      - description: Permission check request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzmod.PermissionCheckRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Permission check result
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Check User Permission
+      tags:
+      - Authz
+  /authz/permission/check/batch:
+    post:
+      consumes:
+      - application/json
+      description: Check multiple permissions in a single request
+      parameters:
+      - description: Batch permission check requests
+        in: body
+        name: body
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/authzmod.PermissionCheckRequest'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Batch permission check results
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Batch permission check
+      tags:
+      - Authz
+  /authz/profiles/{code}/publish:
+    post:
+      consumes:
+      - application/json
+      description: Replace profile items and create new version for given code
+      parameters:
+      - description: Profile code
+        in: path
+        name: code
+        required: true
+        type: string
+      - description: Publish profile payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzmod.PublishProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Publish profile as new version
+      tags:
+      - Authz
+  /authz/relationships:
+    get:
+      responses:
+        "400":
+          description: Bad Request – invalid query
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error – failed to call Permify
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+      security:
+      - BearerAuth: []
+  /authz/resource/grant:
+    post:
+      consumes:
+      - application/json
+      description: Grant owner, editor, viewer, assigned group/role, and attributes
+        (type, crud) to a resource entity
+      parameters:
+      - description: Grant resource permission payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/authzmod.GrantResourceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Resource granted successfully
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Invalid input or missing fields
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal error from Permify
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Grant permission relationships to resource
+      tags:
+      - Authz
+  /authz/resource/revoke:
+    post:
+      consumes:
+      - application/json
+      description: Revoke grant owner, editor, viewer, assigned group/role, and attributes
+        (type, crud) from a resource entity
+      parameters:
+      - description: Revoke grant resource permission payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/authzmod.RevokeResourceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Resource revoke granted successfully
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Invalid input or missing fields
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal error from Permify
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke grant permission relationships to resource
+      tags:
+      - Authz
+  /authz/schema/apply:
+    post:
+      consumes:
+      - application/json
+      description: Apply schema.perm to Permify and sync relationships from MongoDB
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Schema applied & relationships synced successfully
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Apply Permify Schema & Sync Relationships
+      tags:
+      - Authz
+  /authz/tuples/factoryResetTenant:
+    post:
+      consumes:
+      - application/json
+      description: 'Danger: delete ALL relationships (tuples) in this tenant. Intended
+        for dev/staging only.'
+      parameters:
+      - description: Require {\
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzmod.FactoryForceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Factory reset all Permify tuples for current tenant (DEV ONLY)
+      tags:
+      - Authz
+  /bi/signUrl:
+    get:
+      consumes:
+      - application/json
+      description: Return signed iframe URL (base URL only, no hash) for embedding
+        Metabase dashboard
+      parameters:
+      - description: Dashboard ID
+        in: query
+        name: dashboardId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.BaseErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Generate signed Metabase embed URL
+      tags:
+      - BI
+  /dashboard/blacklist/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: Patch blacklist event by id
+      parameters:
+      - description: Blacklist Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dashmod.UpdateBlacklistReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update blacklist event (acknowledged / isDeleted / sop)
+      tags:
+      - Dashboard
+  /devices:
+    get:
+      consumes:
+      - application/json
+      description: Get devices with pagination and optional search
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: perPages
+        type: integer
+      - description: Sort field name
+        in: query
+        name: sortField
+        type: string
+      - description: asc or desc
+        in: query
+        name: sortOrder
+        type: string
+      - description: Filter by ID
+        in: query
+        name: id
+        type: string
+      - description: Filter by code
+        in: query
+        name: code
+        type: integer
+      - description: Search by name or code
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/devmod.DeviceListResponse'
+      security:
+      - BearerAuth: []
+      summary: List all devices
+      tags:
+      - Devices
+    post:
+      consumes:
+      - application/json
+      description: Insert a new camera device to the database
+      parameters:
+      - description: Device object
+        in: body
+        name: device
+        required: true
+        schema:
+          $ref: '#/definitions/devmod.DeviceRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.UnauthorizedResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new device
+      tags:
+      - Devices
+  /devices/{id}:
+    delete:
+      description: Mark a device as deleted by setting state = "delete"
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.UnauthorizedResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Soft delete a device
+      tags:
+      - Devices
+    get:
+      description: Return device detail by ID
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/devmod.DeviceDetailSwagger'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Get device by ID
+      tags:
+      - Devices
+    patch:
+      consumes:
+      - application/json
+      description: Update fields of a device and set state to "update"
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Device object
+        in: body
+        name: device
+        required: true
+        schema:
+          $ref: '#/definitions/devmod.Device'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.UnauthorizedResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a device
+      tags:
+      - Devices
+  /devices/import:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload and import device list from CSV or XLSX file
+      parameters:
+      - description: Device Template File (.csv or .xlsx)
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - BearerAuth: []
+      summary: Upload device template
+      tags:
+      - Devices
+  /groups:
+    get:
+      consumes:
+      - application/json
+      description: Returns a paginated list of groups or subgroups under a parent
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: perPages
+        type: integer
+      - description: asc or desc
+        in: query
+        name: sortOrder
+        type: string
+      - description: Field to sort by
+        in: query
+        name: sortField
+        type: string
+      - description: subgroups (list children)
+        in: query
+        name: select
+        type: string
+      - description: Parent group ID
+        in: query
+        name: filter
+        type: string
+      - description: Search by name or ID
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.Pagination'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List groups
+      tags:
+      - Groups
+    post:
+      consumes:
+      - application/json
+      description: Create a group, optionally as a child of another group
+      parameters:
+      - description: Group data
+        in: body
+        name: group
+        required: true
+        schema:
+          $ref: '#/definitions/grpmod.GroupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new group
+      tags:
+      - Groups
+  /groups/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a group by id. Use ?cascade=detach to detach children to
+        root (parentId=null). Default blocks if children exist.
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: detach | delete (delete is not implemented and will be rejected)
+        in: query
+        name: cascade
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "409":
+          description: Has children
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete group
+      tags:
+      - Groups
+    patch:
+      consumes:
+      - application/json
+      description: Partially update a group by id (name, parentId, description, icon)
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Group data to update (partial)
+        in: body
+        name: group
+        required: true
+        schema:
+          $ref: '#/definitions/grpmod.GroupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "409":
+          description: Conflict (e.g., circular parent)
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update group
+      tags:
+      - Groups
+  /groups/devices:
+    get:
+      consumes:
+      - application/json
+      description: Returns a paginated list of devices under a parent group
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: perPages
+        type: integer
+      - description: asc or desc
+        in: query
+        name: sortOrder
+        type: string
+      - description: Field to sort by
+        in: query
+        name: sortField
+        type: string
+      - description: Parent group ID
+        in: query
+        name: filter
+        type: string
+      - description: Search by name or ID
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.DeviceResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List devices under a group with pagination
+      tags:
+      - Groups
+  /groups/members:
+    get:
+      consumes:
+      - application/json
+      description: Returns a paginated list of members under a group
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: perPages
+        type: integer
+      - description: asc or desc
+        in: query
+        name: sortOrder
+        type: string
+      - description: Field to sort by
+        in: query
+        name: sortField
+        type: string
+      - description: Group ID
+        in: query
+        name: filter
+        type: string
+      - description: Search by username, email, name or ID
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.MembersResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List members in group with pagination
+      tags:
+      - Groups
+  /groups/roles:
+    get:
+      consumes:
+      - application/json
+      description: Returns a paginated list of roles under a group
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: perPages
+        type: integer
+      - description: asc or desc
+        in: query
+        name: sortOrder
+        type: string
+      - description: Field to sort by
+        in: query
+        name: sortField
+        type: string
+      - description: Group ID
+        in: query
+        name: filter
+        type: string
+      - description: Search by role name or ID
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.RolesResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List roles in group with pagination
+      tags:
+      - Groups
+  /groups/search:
+    get:
+      consumes:
+      - application/json
+      description: Returns flat list of matching group nodes for tree highlight
+      parameters:
+      - description: Name to search
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/grpmod.GroupTreeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Search group tree by name
+      tags:
+      - Groups
+  /groups/subgroups:
+    get:
+      consumes:
+      - application/json
+      description: Return a paginated list of subgroups under the given parentId
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: perPages
+        type: integer
+      - description: asc or desc
+        in: query
+        name: sortOrder
+        type: string
+      - description: 'Field to sort by (default: createdAt)'
+        in: query
+        name: sortField
+        type: string
+      - description: 'Parent group ID (alias: parentId)'
+        in: query
+        name: filter
+        required: true
+        type: string
+      - description: Parent group ID (alias of filter)
+        in: query
+        name: parentId
+        type: string
+      - description: Search by name or _id
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.GroupResponse'
+        "400":
+          description: PARENT_ID_REQUIRED
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List subgroups with pagination
+      tags:
+      - Groups
+  /groups/tree:
+    get:
+      consumes:
+      - application/json
+      description: Returns the full nested group hierarchy with each group's child
+        and member users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/grpmod.GroupTreeResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Group tree with hierarchy and members
+      tags:
+      - Groups
+  /image/{key}:
+    get:
+      description: Proxy private image from S3/MinIO โดย key จะเป็น path (ต้อง URL-encode
+        ถ้ามี / หรือ space)
+      parameters:
+      - description: Object key (URL-encoded, can contain /)
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Proxy image from S3/MinIO
+      tags:
+      - Files
+  /kcontrol:
+    get:
+      consumes:
+      - application/json
+      description: Returns paginated Kcontrol device list
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: perPages
+        type: integer
+      - description: asc or desc
+        in: query
+        name: sortOrder
+        type: string
+      - description: Device ID
+        in: query
+        name: id
+        type: string
+      - description: Device HWID
+        in: query
+        name: hwid
+        type: string
+      - description: Device Code
+        in: query
+        name: code
+        type: string
+      - description: Search by name or Devices
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/kctrlmod.PaginationKctrlResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Receive list of Kcontrol devices
+      tags:
+      - Kcontrol
+    post:
+      consumes:
+      - application/json
+      description: Accepts an EventMessage and publishes it as JSON to MQTT
+      parameters:
+      - description: Message Payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/kctrlmod.ControlMessage'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      summary: Send message to Kcontrol device
+      tags:
+      - Kcontrol
+  /kcontrol/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Returns a single Kcontrol device by its ID
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/kctrlmod.DeviceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Kcontrol device by ID
+      tags:
+      - Kcontrol
+    patch:
+      consumes:
+      - application/json
+      description: Sends update instructions to a device
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/kctrlmod.EventMessage'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      summary: Update a Kcontrol device
+      tags:
+      - Kcontrol
+  /kcontrol/{id}/ack:
+    patch:
+      consumes:
+      - application/json
+      description: Updates MongoDB by device ID and publishes ACK to MQTT using hwId
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      summary: Acknowledge Kcontrol alarm
+      tags:
+      - Kcontrol
+  /kcontrol/{id}/reset-stats:
+    patch:
+      consumes:
+      - application/json
+      description: Reset stats (online, offline, warning, alarm) by device ID
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      summary: Reset stats of a Kcontrol device
+      tags:
+      - Kcontrol
+  /kcontrol/alarms:
+    get:
+      consumes:
+      - application/json
+      description: Returns paginated alarm events (kind=alarms) with device details,
+        backed by kcontrol_events
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: perPages
+        type: integer
+      - description: asc or desc
+        in: query
+        name: sortOrder
+        type: string
+      - description: Search by message or name
+        in: query
+        name: search
+        type: string
+      - description: Filter by hardware id
+        in: query
+        name: hwid
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/kctrlmod.PaginationAlarmsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+      summary: Receive list of Kcontrol alarms (from events store)
+      tags:
+      - Kcontrol
+  /kcontrol/alarms/{id}:
+    delete:
+      description: Delete from events store (kcontrol_events) by _id
+      parameters:
+      - description: Alarm Event ID (_id)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.UnauthorizedResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an alarm event (hard delete)
+      tags:
+      - Kcontrol
+  /kcontrol/alarms/bulk-delete:
+    post:
+      consumes:
+      - application/json
+      description: Delete many from events store (kcontrol_events) by _id list
+      parameters:
+      - description: List of Alarm Event IDs (_id) to delete
+        in: body
+        name: ids
+        required: true
+        schema:
+          items:
+            type: string
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.UnauthorizedResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete multiple alarm events (hard delete)
+      tags:
+      - Kcontrol
+  /kcontrol/alarms/export:
+    get:
+      description: Download filtered alarm list as a CSV file from kcontrol_events
+        (kind=alarms)
+      parameters:
+      - description: 'Datetime range: start,end in RFC3339 format, e.g. 2025-06-13T03:14:54.660Z,2025-06-20T03:14:54.660Z'
+        in: query
+        name: dateTime
+        type: string
+      - description: Device ID
+        in: query
+        name: deviceId
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+      security:
+      - BearerAuth: []
+      summary: Export Kcontrol alarms as CSV (events store)
+      tags:
+      - Kcontrol
+  /kcontrol/dashboard:
+    get:
+      consumes:
+      - application/json
+      description: Return dashboard summary from ata_events (event stats, peopleCountingArea,
+        notification, backlist)
+      parameters:
+      - description: 'Date range in format YYYY-MM-DD,YYYY-MM-DD (start,end). Default:
+          today 00:00 to now (Asia/Bangkok)'
+        in: query
+        name: dateTime
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Kcontrol dashboard summary (events + peopleCountingArea)
+      tags:
+      - Kcontrol
+  /kcontrol/events:
+    get:
+      consumes:
+      - application/json
+      description: Returns paginated events with kind filter (from kcontrol_events)
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: perPages
+        type: integer
+      - description: asc or desc
+        in: query
+        name: sortOrder
+        type: string
+      - description: sensor|alarms (optional)
+        in: query
+        name: kind
+        type: string
+      - description: Filter by hardware id
+        in: query
+        name: hwid
+        type: string
+      - description: Search by name/message
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/kctrlmod.PaginationAlarmsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+      summary: List Kcontrol events (alarms + sensor)
+      tags:
+      - Kcontrol
+  /kschapi/video/{id}:
+    get:
+      description: Get a single video document by ID
+      parameters:
+      - description: video ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              detail:
+                $ref: '#/definitions/kschmod.VideoResponse'
+              status:
+                type: boolean
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Get video by ID
+      tags:
+      - Ksearch/Video
+  /ksearch/chat:
+    post:
+      consumes:
+      - application/json
+      description: Call internal LLM and ChatGPT, stream results
+      parameters:
+      - description: Prompt request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/kschmod.LLMRequest'
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: event-stream
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Search with LLM + summarize
+      tags:
+      - Ksearch/Chats
+  /ksearch/chats:
+    post:
+      consumes:
+      - application/json
+      description: สร้าง Chat ใหม่ภายใน Project
+      parameters:
+      - description: Chat info
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/kschmod.Chat'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageCreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new chat in a project
+      tags:
+      - Ksearch/Chats
+  /ksearch/chats/{chatId}:
+    delete:
+      description: ลบ Chat ตาม ID
+      parameters:
+      - description: Chat ID
+        in: path
+        name: chatId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid chat ID format
+          schema:
+            $ref: '#/definitions/gmod.BaseResponse'
+        "404":
+          description: chat not found
+          schema:
+            $ref: '#/definitions/gmod.BaseResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/gmod.BaseResponse'
+      summary: Delete a chat
+      tags:
+      - Ksearch/Chats
+    put:
+      consumes:
+      - application/json
+      description: อัปเดตข้อมูล Chat
+      parameters:
+      - description: Chat ID
+        in: path
+        name: chatId
+        required: true
+        type: string
+      - description: Chat update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/kschmod.ChatsUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "400":
+          description: Invalid chat ID format
+          schema:
+            $ref: '#/definitions/gmod.BaseResponse'
+        "404":
+          description: chat not found
+          schema:
+            $ref: '#/definitions/gmod.BaseResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/gmod.BaseResponse'
+      summary: Update a chat
+      tags:
+      - Ksearch/Chats
+  /ksearch/chats/{chatId}/messages:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Chat ID
+        in: path
+        name: chatId
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: perPage
+        type: integer
+      - default: createdAt
+        description: Sort field
+        in: query
+        name: sortField
+        type: string
+      - default: desc
+        description: Sort order (asc/desc)
+        in: query
+        name: sortOrder
+        type: string
+      - description: Search text
+        in: query
+        name: search
+        type: string
+      - description: Filter by state
+        in: query
+        name: state
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/kschmod.ChatMessagePaginationResponse'
+      security:
+      - BearerAuth: []
+      summary: List messages in a chat with pagination
+      tags:
+      - Ksearch/Chats
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Chat ID
+        in: path
+        name: chatId
+        type: string
+      - description: Prompt request
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            prompt:
+              type: string
+          type: object
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: event-stream
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Create new message in a chat and stream assistant replies
+      tags:
+      - Ksearch/Chats
+  /ksearch/chats/{chatId}/messages/{messageId}:
+    patch:
+      consumes:
+      - application/json
+      description: อัปเดตข้อความใน Chat
+      parameters:
+      - description: Chat ID
+        in: path
+        name: chatId
+        required: true
+        type: string
+      - description: Message ID
+        in: path
+        name: messageId
+        required: true
+        type: string
+      - description: Message update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/kschmod.MessageUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "400":
+          description: Invalid ID format
+          schema:
+            $ref: '#/definitions/gmod.BaseResponse'
+        "404":
+          description: Message not found
+          schema:
+            $ref: '#/definitions/gmod.BaseResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/gmod.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a message
+      tags:
+      - Ksearch/Chats
+  /ksearch/chats/messages:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Prompt request
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            prompt:
+              type: string
+          type: object
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: event-stream
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Create new message in a chat and stream assistant replies
+      tags:
+      - Ksearch/Chats
+  /ksearch/projects:
+    get:
+      consumes:
+      - application/json
+      description: ดึงรายการ Project ทั้งหมดแบบแบ่งหน้า
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: perPage
+        type: integer
+      - default: '"createdAt"'
+        description: Sort field
+        in: query
+        name: sortField
+        type: string
+      - default: desc
+        description: Sort order
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PaginationResponse'
+      security:
+      - BearerAuth: []
+      summary: List all projects (paginated)
+      tags:
+      - Ksearch/Chats
+    post:
+      consumes:
+      - application/json
+      description: สร้าง Project ใหม่ (ใช้สำหรับจัดกลุ่ม Chat)
+      parameters:
+      - description: Project info
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/kschmod.Project'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageCreateResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new project
+      tags:
+      - Ksearch/Chats
+  /ksearch/projects/{id}:
+    delete:
+      description: ลบ Project พร้อมกับ Chats ทั้งหมดที่อยู่ใน Project
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a project
+      tags:
+      - Ksearch/Chats
+    put:
+      consumes:
+      - application/json
+      description: อัปเดตข้อมูล Project
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Project update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/kschmod.ProjectUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a project
+      tags:
+      - Ksearch/Chats
+  /ksearch/projects/{projectId}:
+    get:
+      consumes:
+      - application/json
+      description: ดึง Project ตาม ID พร้อม chats ที่อยู่ใน project นั้น
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/kschmod.ProjectChatsResponse'
+        "400":
+          description: Invalid project ID format
+          schema:
+            $ref: '#/definitions/gmod.BaseResponse'
+        "404":
+          description: Project not found
+          schema:
+            $ref: '#/definitions/gmod.BaseResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/gmod.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Get project by ID with chats
+      tags:
+      - Ksearch/Chats
+  /ksearch/projects/{projectId}/chats:
+    get:
+      consumes:
+      - application/json
+      description: ดึงรายการ Chat ทั้งหมดใน Project ที่เลือก
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List chats in a project
+      tags:
+      - Ksearch/Chats
+  /ksearch/video:
+    get:
+      description: List videos with pagination (default state=created) and signed
+        S3 URL
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: perPages
+        type: integer
+      - description: Search by name
+        in: query
+        name: search
+        type: string
+      - default: '"created"'
+        description: Filter by state
+        in: query
+        name: state
+        type: string
+      - description: Filter by status true/false
+        in: query
+        name: status
+        type: string
+      - default: '"createdAt"'
+        description: Sort field
+        in: query
+        name: sortField
+        type: string
+      - default: desc
+        description: Sort order
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PaginationResponse'
+      security:
+      - BearerAuth: []
+      summary: List videos
+      tags:
+      - Ksearch/Video
+    post:
+      consumes:
+      - multipart/form-data
+      description: 'Upload a video file (<= 10GB). Supported types: mp4, avi, mov,
+        mkv'
+      parameters:
+      - description: Video name
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Description
+        in: formData
+        name: description
+        type: string
+      - description: 'true/false (default: true)'
+        in: formData
+        name: status
+        type: string
+      - description: 'Initial state (default: created)'
+        in: formData
+        name: state
+        type: string
+      - description: Video file (mp4/avi/mov/mkv)
+        in: formData
+        name: video
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageCreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload a Video
+      tags:
+      - Ksearch/Video
+  /ksearch/video/{id}:
+    delete:
+      description: Delete video document and its object in S3 by MongoDB _id
+      parameters:
+      - description: Video MongoDB _id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Invalid ObjectID
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "404":
+          description: Video not found
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a Video by ID
+      tags:
+      - Ksearch/Video
+  /kwatch/syncIboc:
+    post:
+      description: Enqueue a batch sync task and return 202 immediately (fire-and-forget).
+        Progress is pushed via MQTT/Kafka events.
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          headers:
+            Location:
+              description: Polling URL e.g. /kwatch/jobs/{jobId}
+              type: string
+            Retry-After:
+              description: Client may poll the Location after N seconds
+              type: integer
+            X-Trace-Id:
+              description: Trace ID for correlating logs/traces
+              type: string
+          schema:
+            $ref: '#/definitions/gmod.AcceptedResponse'
+      security:
+      - BearerAuth: []
+      summary: Sync IBOC images (enqueue tasks)
+      tags:
+      - kwatch
+  /kwatch/syncIboc/ids:
+    post:
+      consumes:
+      - application/json
+      description: Enqueue sync tasks for specific _id list (fire-and-forget). Progress
+        via MQTT/Kafka.
+      parameters:
+      - description: IDs and env
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/kwatapi.syncIdsRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          headers:
+            Location:
+              description: Polling URL e.g. /kwatch/jobs/{jobId}
+              type: string
+            Retry-After:
+              description: Client may poll the Location after N seconds
+              type: integer
+            X-Trace-Id:
+              description: Trace ID for correlating logs/traces
+              type: string
+          schema:
+            $ref: '#/definitions/gmod.AcceptedResponse'
+      security:
+      - BearerAuth: []
+      summary: Sync IBOC by IDs (enqueue tasks)
+      tags:
+      - kwatch
+  /kwatch/syncIbocDev:
+    post:
+      description: Enqueue a batch sync task for IBOCDEV and return 202 immediately
+        (fire-and-forget). Progress is pushed via MQTT/Kafka events.
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          headers:
+            Location:
+              description: Polling URL e.g. /kwatch/jobs/{jobId}
+              type: string
+            Retry-After:
+              description: Client may poll the Location after N seconds
+              type: integer
+            X-Trace-Id:
+              description: Trace ID for correlating logs/traces
+              type: string
+          schema:
+            $ref: '#/definitions/gmod.AcceptedResponse'
+      security:
+      - BearerAuth: []
+      summary: Sync IBOCDEV ids (enqueue tasks)
+      tags:
+      - kwatch
+  /kwatch/watchlist:
+    get:
+      description: Return only documents with **isDeleted=false**. Supports pagination,
+        search, state, and warrant-level filters.
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: perPages
+        type: integer
+      - description: Free-text search in personKey/firstname/lastname/nickname
+        in: query
+        name: search
+        type: string
+      - description: Filter by person type (number)
+        in: query
+        name: type
+        type: integer
+      - description: Filter by _id (hex ObjectID)
+        in: query
+        name: id
+        type: string
+      - description: Filter by ID card
+        in: query
+        name: idcard
+        type: string
+      - description: Filter by passport
+        in: query
+        name: passport
+        type: string
+      - description: Comma-separated states (e.g. active,queued,suspended)
+        in: query
+        name: state
+        type: string
+      - description: Comma-separated regions found in warrants[].policeRegion (match
+          within the same warrant item)
+        in: query
+        name: policeRegion
+        type: string
+      - description: Comma-separated provincials found in warrants[].policeProvincial
+        in: query
+        name: policeProvincial
+        type: string
+      - description: Comma-separated stations found in warrants[].policeStation
+        in: query
+        name: policeStation
+        type: string
+      - default: updatedAt
+        description: 'Sort field (allowed: updatedAt,createdAt,firstname,lastname,nickname,idcard,personalType,type,rev)'
+        in: query
+        name: sortField
+        type: string
+      - default: desc
+        description: Sort order
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/kwatmod.WatchlistPagination'
+      security:
+      - BearerAuth: []
+      summary: List watchlists
+      tags:
+      - Kwatch/Watchlist
+  /kwatch/watchlist/{id}:
+    delete:
+      description: Soft delete + downstream (external/S3) via event. รับเป็น **_id
+        หรือ idcard** ผ่าน path param เดียวกัน
+      parameters:
+      - description: Watchlist _id หรือ idcard
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "404":
+          description: Watchlist not found
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a Watchlist by ID or ID Card
+      tags:
+      - Kwatch/Watchlist
+    get:
+      description: Return a watchlist document by ID (soft-delete aware)
+      parameters:
+      - description: Watchlist ID (ID or IDCard)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              detail:
+                $ref: '#/definitions/kwatmod.WatchlistResponse'
+              status:
+                type: boolean
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Get watchlist by ID
+      tags:
+      - Kwatch/Watchlist
+    patch:
+      consumes:
+      - application/json
+      - multipart/form-data
+      description: อัปเดตรายการเฝ้าระวังตาม ID **หรือ** ID Card สามารถส่งข้อมูลเป็น
+        JSON หรือ multipart/form-data พร้อมไฟล์รูปภาพได้
+      parameters:
+      - description: Watchlist _id หรือ idcard
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ประเภทบุคคล
+        in: formData
+        name: type
+        type: string
+      - description: ประเภทบุคคลส่วนตัว
+        in: formData
+        name: personalType
+        type: string
+      - description: ประเภทคดี
+        in: formData
+        name: crimesType
+        type: string
+      - description: บัตรประชาชน
+        in: formData
+        name: idcard
+        type: string
+      - description: พาสปอร์ต
+        in: formData
+        name: passport
+        type: string
+      - description: คำนำหน้า
+        in: formData
+        name: titlename
+        type: string
+      - description: คำนำหน้ารอง
+        in: formData
+        name: subTitlename
+        type: string
+      - description: ชื่อจริง
+        in: formData
+        name: firstname
+        type: string
+      - description: นามสกุล
+        in: formData
+        name: lastname
+        type: string
+      - description: ชื่อเล่น
+        in: formData
+        name: nickname
+        type: string
+      - description: เพศ
+        in: formData
+        name: sex
+        type: string
+      - description: วันเกิด
+        in: formData
+        name: birthday
+        type: string
+      - description: อายุ
+        in: formData
+        name: age
+        type: string
+      - description: ชื่อบิดา
+        in: formData
+        name: fatherName
+        type: string
+      - description: บัตรประชาชนบิดา
+        in: formData
+        name: fatherIdcard
+        type: string
+      - description: ชื่อมารดา
+        in: formData
+        name: motherName
+        type: string
+      - description: บัตรประชาชนมารดา
+        in: formData
+        name: motherIdcard
+        type: string
+      - description: สถานภาพสมรส
+        in: formData
+        name: maritalStatus
+        type: string
+      - description: สถานะการเสียชีวิต
+        in: formData
+        name: deathStatus
+        type: string
+      - description: วันที่เสียชีวิต
+        in: formData
+        name: dateOfDeath
+        type: string
+      - description: ภาคตำรวจ
+        in: formData
+        name: policeRegion
+        type: string
+      - description: ตำรวจภูธรจังหวัด
+        in: formData
+        name: policeProvincial
+        type: string
+      - description: สถานีตำรวจ
+        in: formData
+        name: policeStation
+        type: string
+      - description: ผู้บันทึกข้อมูล
+        in: formData
+        name: userRecorder
+        type: string
+      - description: ตำแหน่งผู้บันทึก
+        in: formData
+        name: userPosition
+        type: string
+      - description: สถานะ
+        in: formData
+        name: status
+        type: string
+      - description: State
+        in: formData
+        name: state
+        type: string
+      - description: ไฟล์รูปภาพ
+        in: formData
+        name: photo
+        type: file
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageCreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an existing watchlist
+      tags:
+      - Kwatch/Watchlist
+  /map/camera:
+    get:
+      consumes:
+      - application/json
+      description: Return device locations for map by viewport (minLat, maxLat, minLong,
+        maxLong, zoom)
+      parameters:
+      - description: Minimum latitude
+        in: query
+        name: minLat
+        type: number
+      - description: Maximum latitude
+        in: query
+        name: maxLat
+        type: number
+      - description: Minimum longitude
+        in: query
+        name: minLong
+        type: number
+      - description: Maximum longitude
+        in: query
+        name: maxLong
+        type: number
+      - description: Map zoom level
+        in: query
+        name: zoom
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Device locations for map (clusters + devices)
+      tags:
+      - Maps
+  /maps/kml:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: perPages
+        type: integer
+      - description: asc or desc
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get KML files from S3 with pagination and metadata
+      tags:
+      - Maps
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Description of the KML
+        in: formData
+        name: description
+        type: string
+      - description: KML file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PaginationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload and validate KML file
+      tags:
+      - Maps
+  /maps/kml/file:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: File name
+        in: query
+        name: filename
+        required: true
+        type: string
+      - description: Expire time in seconds
+        in: query
+        name: expiresIn
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PaginationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get presigned KML file URL
+      tags:
+      - Maps
+  /media/stream:
+    get:
+      description: 'Proxy ไป ZLMediaKit: /getMediaList'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse-models_Any'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List media/proxies
+      tags:
+      - Media
+    post:
+      consumes:
+      - application/json
+      description: 'Proxy ไป ZLMediaKit: /addStreamProxy (x-www-form-urlencoded)'
+      parameters:
+      - description: Create stream proxy payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateStreamRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse-models_Any'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create stream proxy
+      tags:
+      - Media
+  /media/stream/{streamId}:
+    delete:
+      description: 'Proxy ไป ZLMediaKit: /delStreamProxy'
+      parameters:
+      - description: Stream ID
+        in: path
+        name: streamId
+        required: true
+        type: string
+      - description: __defaultVhost__
+        in: query
+        name: vhost
+        type: string
+      - description: live
+        in: query
+        name: app
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse-models_Any'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete stream proxy
+      tags:
+      - Media
+  /members:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a member from a specified group by UserID and GroupID
+      parameters:
+      - description: User ID of the member to delete
+        in: query
+        name: userID
+        required: true
+        type: string
+      - description: Group ID from which to delete the member
+        in: query
+        name: groupID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a member from a group
+      tags:
+      - Members
+    post:
+      consumes:
+      - application/json
+      description: Add a new member to a specified group
+      parameters:
+      - description: Member data
+        in: body
+        name: member
+        required: true
+        schema:
+          $ref: '#/definitions/memmod.Member'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new member in a group
+      tags:
+      - Members
+  /members/{id}:
+    get:
+      description: Return member detail by ID
+      parameters:
+      - description: member ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get member by ID
+      tags:
+      - members
+    put:
+      description: Update member detail by ID
+      parameters:
+      - description: member ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update member by ID
+      tags:
+      - members
+  /members/{userId}:
+    get:
+      description: Return member detail by ID
+      parameters:
+      - description: member ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get member by ID
+      tags:
+      - members
+  /options:
+    get:
+      consumes:
+      - application/json
+      description: options for selected with optional filters
+      parameters:
+      - description: namespace เช่น kwatch
+        in: query
+        name: ns
+        type: string
+      - description: field name ภายใต้ ns
+        in: query
+        name: name
+        type: string
+      - description: เช่น 1
+        in: query
+        name: policeRegion
+        type: string
+      - description: เช่น 12
+        in: query
+        name: policeProvincial
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Options
+      tags:
+      - Options
+  /options/seed/policeStation:
+    post:
+      consumes:
+      - application/json
+      description: options for policeStation {<parent>:[{id,title}]}; if write=true
+        for upsert into _id="list.<ns>"
+      parameters:
+      - description: 'namespace (default: kwatch)'
+        in: query
+        name: ns
+        type: string
+      - description: 'เขียนเข้า Mongo หรือไม่ (default: false)'
+        in: query
+        name: write
+        type: boolean
+      - description: raw stations array
+        in: body
+        name: payload
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/optmod.StationRaw'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.Response'
+      security:
+      - BearerAuth: []
+      summary: Seed policeStation options
+      tags:
+      - Options
+  /resources:
+    get:
+      description: List resources with pagination, search and filters.
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: perPages
+        type: integer
+      - description: Filter by provider (e.g. klynx, watchman)
+        in: query
+        name: provider
+        type: string
+      - description: Filter by resource type (e.g. menu, camera, warrant)
+        in: query
+        name: type
+        type: string
+      - description: Free text search in displayName
+        in: query
+        name: search
+        type: string
+      - default: updatedAt
+        description: Sort field
+        enum:
+        - updatedAt
+        - createdAt
+        - displayName
+        in: query
+        name: sortField
+        type: string
+      - default: desc
+        description: Sort order
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/rscmod.ResourcePaginationResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List resources
+      tags:
+      - Resource
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Resource payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/rscmod.ResourceUpsert'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageCreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageCreateResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageCreateResponse'
+      security:
+      - BearerAuth: []
+      summary: Create resource
+      tags:
+      - Resource
+  /resources/{id}:
+    delete:
+      parameters:
+      - description: Resource id (canonicalId or id — you choose key in service)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete resource (soft-delete)
+      tags:
+      - Resource
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Resource id (canonicalId or id — you choose key in service)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Resource payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/rscmod.ResourceUpsert'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/rscmod.Resource'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update resource
+      tags:
+      - Resource
+  /rsc/v1/resources/bulk:
+    post:
+      consumes:
+      - application/json
+      description: Create multiple resources in one request. The service validates
+        required fields, removes in-payload duplicates by (provider,type,canonicalId),
+        skips existing duplicates in DB, then inserts the rest.
+      parameters:
+      - description: Array of resources to create
+        in: body
+        name: body
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/rscmod.ResourceUpsert'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Bulk resources created
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageBulkCreateResponse'
+        "400":
+          description: Bad request / invalid body
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageBulkCreateResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageBulkCreateResponse'
+      summary: Bulk create resources
+      tags:
+      - Resources
+  /system/edge/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: edge id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/systemmod.EdgeDeleteSuccessResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.UnauthorizedResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Soft delete edge by id
+      tags:
+      - System Edge
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: edge id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/systemmod.EdgeUpdateReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/systemmod.EdgeUpdateSuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update edge by id (encrypt secrets if provided)
+      tags:
+      - System Edge
+  /system/edge/type/{edgeType}:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: edge type
+        enum:
+        - ata
+        - svms
+        - iboc
+        in: path
+        name: edgeType
+        required: true
+        type: string
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/systemmod.EdgeCreateReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/systemmod.EdgeCreateSuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.UnauthorizedResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create edge by type (encrypt secrets)
+      tags:
+      - System Edge
+  /system/setting/mapLocation:
+    get:
+      description: Get map center lat/lng + zoomLevel from system setting
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseWithMSG'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get map location center
+      tags:
+      - System
+  /system/setting/mapLocation/{id}:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Config ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/usrmod.MapSetting'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update map location center
+      tags:
+      - System
+  /system/stream:
+    get:
+      description: Get stream session timeout configs
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List stream session configs
+      tags:
+      - Media
+  /system/stream/{id}:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Config ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update payload
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update stream config
+      tags:
+      - Media
+  /token/api/clientCredentials:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: client_id & client_secret
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/thirdmod.ClientCredentialsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.UnauthorizedResponse'
+      summary: Get access token via client_credentials
+      tags:
+      - Third-Party
+  /token/api/serviceAccount:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Admin API Key
+        in: header
+        name: X-Admin-Secret
+        required: true
+        type: string
+      - description: Create client for service account
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/thirdmod.CreateServiceAccountReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      summary: Create Service Account Client (Public, with Admin API Key)
+      tags:
+      - Third-Party
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Get list of users from Keycloak
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: perPages
+        type: integer
+      - description: Items per page (alias of perPages)
+        in: query
+        name: perPage
+        type: integer
+      - description: Search term
+        in: query
+        name: search
+        type: string
+      - default: username
+        description: 'Sort field: username|email|firstName|lastName'
+        in: query
+        name: sortField
+        type: string
+      - default: desc
+        description: 'Sort order: asc|desc'
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usrmod.PaginationSuccessUsers'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - BearerAuth: []
+      summary: List Keycloak users
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      description: Create new user in Keycloak
+      parameters:
+      - description: Create user payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/usrmod.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create new user
+      tags:
+      - Users
+  /users/{id}:
+    delete:
+      description: Delete user from Keycloak
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete user
+      tags:
+      - Users
+    patch:
+      consumes:
+      - application/json
+      description: Update user attributes in Keycloak
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User attributes (attributes only)
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user attributes
+      tags:
+      - Users
+  /users/{id}/disable:
+    patch:
+      consumes:
+      - application/json
+      description: Disable user in Keycloak (enabled = false)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Disable user
+      tags:
+      - Users
+  /users/{id}/enable:
+    patch:
+      consumes:
+      - application/json
+      description: Enable user in Keycloak (enabled = true)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Enable user
+      tags:
+      - Users
+  /users/{id}/password:
+    patch:
+      consumes:
+      - application/json
+      description: Change user password in Keycloak
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/usrmod.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change user password
+      tags:
+      - Users
+  /watchlist:
+    post:
+      consumes:
+      - multipart/form-data
+      description: สร้างรายการเฝ้าระวัง (watchlist) พร้อมภาพจาก **ไฟล์อัปโหลด** หรือ
+        **ลิงก์ URL** (ต้องมีอย่างใดอย่างหนึ่ง)
+      parameters:
+      - description: ประเภทบุคคล
+        in: formData
+        name: type
+        required: true
+        type: string
+      - description: ประเภทบุคคลส่วนตัว
+        in: formData
+        name: personalType
+        type: string
+      - description: ประเภทคดี
+        in: formData
+        name: crimesType
+        type: string
+      - description: บัตรประชาชน
+        in: formData
+        name: idcard
+        type: string
+      - description: พาสปอร์ต
+        in: formData
+        name: passport
+        type: string
+      - description: คำนำหน้า
+        in: formData
+        name: titlename
+        type: string
+      - description: คำนำหน้ารอง
+        in: formData
+        name: subTitlename
+        type: string
+      - description: ชื่อจริง
+        in: formData
+        name: firstname
+        required: true
+        type: string
+      - description: นามสกุล
+        in: formData
+        name: lastname
+        required: true
+        type: string
+      - description: ชื่อเล่น
+        in: formData
+        name: nickname
+        type: string
+      - description: เพศ
+        in: formData
+        name: sex
+        type: string
+      - description: วันเกิด
+        in: formData
+        name: birthday
+        type: string
+      - description: อายุ
+        in: formData
+        name: age
+        type: string
+      - description: ชื่อบิดา
+        in: formData
+        name: fatherName
+        type: string
+      - description: บัตรประชาชนบิดา
+        in: formData
+        name: fatherIdcard
+        type: string
+      - description: ชื่อมารดา
+        in: formData
+        name: motherName
+        type: string
+      - description: บัตรประชาชนมารดา
+        in: formData
+        name: motherIdcard
+        type: string
+      - description: สถานภาพสมรส
+        in: formData
+        name: maritalStatus
+        type: string
+      - description: สถานะการเสียชีวิต
+        in: formData
+        name: deathStatus
+        type: string
+      - description: วันที่เสียชีวิต
+        in: formData
+        name: dateOfDeath
+        type: string
+      - description: ภาคตำรวจ
+        in: formData
+        name: policeRegion
+        type: string
+      - description: ตำรวจภูธรจังหวัด
+        in: formData
+        name: policeProvincial
+        type: string
+      - description: สถานีตำรวจ
+        in: formData
+        name: policeStation
+        type: string
+      - description: ผู้บันทึกข้อมูล
+        in: formData
+        name: userRecorder
+        type: string
+      - description: ตำแหน่งผู้บันทึก
+        in: formData
+        name: userPosition
+        type: string
+      - description: สถานะ
+        in: formData
+        name: status
+        type: string
+      - description: State
+        in: formData
+        name: state
+        type: string
+      - description: ประเภทการแจ้งเตือน
+        in: formData
+        name: alertType
+        type: string
+      - description: รายละเอียดการแจ้งเตือน
+        in: formData
+        name: alertDesc
+        type: string
+      - description: ไฟล์รูปภาพ (ถ้ามี photoUrl ไม่จำเป็นต้องส่ง)
+        in: formData
+        name: photo
+        type: file
+      - description: ลิงก์รูปภาพ (ถ้ามี photo ไม่จำเป็นต้องส่ง)
+        in: formData
+        name: photoUrl
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageCreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new watchlist
+      tags:
+      - Kwatch/Watchlist
+  /watchlist/exports/{id}:
+    get:
+      parameters:
+      - description: jobId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/zip
+      responses:
+        "302":
+          description: redirect to S3 URL
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Download exported watchlist zip
+      tags:
+      - Kwatch/Watchlist
+  /watchlist/exports/jobs/{id}:
+    get:
+      parameters:
+      - description: jobId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/kwatmod.ExportJob'
+      security:
+      - BearerAuth: []
+      summary: Get export job status
+      tags:
+      - Kwatch/Watchlist
+  /watchlists/exports:
+    post:
+      parameters:
+      - description: search by idcard/fullName/personKey
+        in: query
+        name: search
+        type: string
+      - description: YYYY-MM-DD
+        in: query
+        name: from
+        type: string
+      - description: YYYY-MM-DD
+        in: query
+        name: to
+        type: string
+      - description: max 20000 (default 5000)
+        in: query
+        name: limit
+        type: integer
+      - description: comma separated _id
+        in: query
+        name: onlyIds
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create watchlist export job
+      tags:
+      - Kwatch/Watchlist
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
