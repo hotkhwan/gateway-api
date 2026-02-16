@@ -322,12 +322,12 @@ func main() {
 	} else {
 		idxLog.Info().Msg("✅ Crimes indexes ensured")
 	}
-	watchLog := logger.Boot("crimes", "watcher")
-	go func() {
-		if err := crimes.WatchCrimesDir(ctx, "/app/crimes", coll); err != nil {
-			watchLog.Error().Err(err).Msg("watcher exited")
-		}
-	}()
+	// watchLog := logger.Boot("crimes", "watcher")
+	// go func() {
+	// 	if err := crimes.WatchCrimesDir(ctx, "/app/crimes", coll); err != nil {
+	// 		watchLog.Error().Err(err).Msg("watcher exited")
+	// 	}
+	// }()
 
 	log.Info().Msg("✅ Service is already started")
 	// Start serverCurrentSchemaVersion

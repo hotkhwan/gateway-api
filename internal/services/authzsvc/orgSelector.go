@@ -26,7 +26,7 @@ func ListUserOrganizations(
 
 	client := authzgw.NewClient()
 
-	log.Info().
+	log.Debug().
 		Str("tenantId", tenantId).
 		Str("userId", userId).
 		Msg("🔎 looking up organizations from permify")
@@ -41,7 +41,7 @@ func ListUserOrganizations(
 		return nil, err
 	}
 
-	log.Info().
+	log.Debug().
 		Int("orgCount", len(orgIds)).
 		Msg("✅ permify lookup success")
 
@@ -51,7 +51,7 @@ func ListUserOrganizations(
 
 	orgRepo := authzrepo.NewOrgRepo(config.DB)
 
-	log.Info().
+	log.Debug().
 		Msg("🔎 fetching org details from mongo")
 
 	orgs, err := orgRepo.FindByIds(ctx, tenantId, orgIds)
@@ -62,7 +62,7 @@ func ListUserOrganizations(
 		return nil, err
 	}
 
-	log.Info().
+	log.Debug().
 		Int("mongoCount", len(orgs)).
 		Msg("✅ mongo fetch success")
 

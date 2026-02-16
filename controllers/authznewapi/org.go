@@ -137,3 +137,70 @@ func CreateOrg(c *fiber.Ctx) error {
 		"message": "organization created",
 	})
 }
+
+// UpdateOrg godoc
+// @Summary Update organization
+// @Tags 2.authorization
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Org ID"
+// @Param body body map[string]string true "name"
+// @Success 200 {object} gmod.SuccessMessageResponse
+// @Failure 400 {object} gmod.ApiErrorResponse
+// @Failure 404 {object} gmod.ApiErrorResponse
+// @Router /orgs/{id} [patch]
+func UpdateOrg(c *fiber.Ctx) error {
+	orgID := c.Params("id")
+
+	var body struct {
+		Name string `json:"name"`
+	}
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: "Invalid request body",
+			Status:  false,
+		})
+	}
+
+	if err := authzsvc.UpdateOrg(c.Context(), orgID, body.Name); err != nil {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: err.Error(),
+			Status:  false,
+		})
+	}
+
+	return c.JSON(gmod.SuccessMessageResponse{
+		Code:    gmod.CodeSuccess,
+		Message: "Organization updated successfully",
+		Status:  true,
+	})
+}
+
+// DeleteOrg godoc
+// @Summary Delete organization
+// @Tags 2.authorization
+// @Security BearerAuth
+// @Param id path string true "Org ID"
+// @Success 200 {object} gmod.SuccessMessageResponse
+// @Router /orgs/{id} [delete]
+func DeleteOrg(c *fiber.Ctx) error {
+	orgID := c.Params("id")
+
+	if err := authzsvc.DeleteOrg(c.Context(), orgID); err != nil {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: err.Error(),
+			Status:  false,
+		})
+	}
+
+	return c.JSON(gmod.SuccessMessageResponse{
+		Code:    gmod.CodeSuccess,
+		Message: "Organization deleted successfully",
+		Status:  true,
+	})
+}

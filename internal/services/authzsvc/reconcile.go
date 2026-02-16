@@ -29,7 +29,11 @@ func StartReconcileWorker() {
 
 			for _, org := range orgs {
 
-				root, err := unitRepo.FindRootByOrg(ctx, org.OrgId)
+				root, err := unitRepo.FindRootByOrg(
+					ctx,
+					org.TenantId, // ✅ FIX
+					org.OrgId,
+				)
 				if err != nil {
 					continue
 				}
@@ -41,6 +45,7 @@ func StartReconcileWorker() {
 				)
 
 				client := authzgw.NewClient()
+
 				err = client.WriteTuples(ctx, org.TenantId, tuples)
 				if err == nil {
 					_ = orgRepo.MarkSyncOK(ctx, org.OrgId)

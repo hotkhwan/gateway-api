@@ -39,6 +39,13 @@ func RegisterAuthzNewRoutes(router fiber.Router) {
 		// Create org (ยังไม่ต้อง ActiveOrg)
 		protected.Post("/", authznewapi.CreateOrg)
 		protected.Post("", authznewapi.CreateOrg)
+		protected.Patch("/:id", authznewapi.UpdateOrg)
+		protected.Delete("/:id", authznewapi.DeleteOrg)
+
+		orgScoped := protected.Group("", middleware.ActiveOrg())
+
+		orgScoped.Post("/units", authznewapi.CreateOrgUnit)
+		orgScoped.Get("/units/tree", authznewapi.GetOrgUnitTree)
 
 		// ------------------------------------------------
 		// 2️⃣ Org-scoped routes (ต้องมี ActiveOrg)

@@ -24,21 +24,27 @@ entity deviceGroup {
     relation editor @orgUnit
     relation deleter @orgUnit
 
-    permission view = viewer.view or editor.view or deleter.view or parentOrg.manage
-    permission edit = editor.view or parentOrg.manage
-    permission delete = deleter.view or parentOrg.manage
-    permission createDevice = editor.view or parentOrg.manage
+    permission view = viewer or editor or deleter or parentOrg.manage
+
+    permission edit = editor or parentOrg.manage
+
+    permission delete = deleter or parentOrg.manage
 }
+
 
 entity device {
     relation parentOrg @organization
     relation parentGroup @deviceGroup
+    relation directViewer @orgUnit
     relation creator @user
 
-    permission view = parentGroup.view or creator or parentOrg.manage
+    permission view = parentGroup.view or directViewer or creator or parentOrg.manage
+
     permission edit = parentGroup.edit or parentOrg.manage
+
     permission delete = parentGroup.delete or parentOrg.manage
 }
+
 
 entity menu {
     relation parentOrg @organization

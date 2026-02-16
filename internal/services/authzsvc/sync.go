@@ -23,7 +23,7 @@ func InitialSyncRelationships(ctx context.Context, tenantId string) error {
 
 	for _, org := range orgs {
 
-		root, err := unitRepo.FindRootByOrg(ctx, org.OrgId)
+		root, err := unitRepo.FindRootByOrg(ctx, tenantId, org.OrgId)
 		if err != nil {
 			continue
 		}

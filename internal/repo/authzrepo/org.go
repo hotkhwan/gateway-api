@@ -127,3 +127,57 @@ func (r *OrgRepo) FindByIds(
 
 	return result, err
 }
+
+func (r *OrgRepo) Update(
+	ctx context.Context,
+	orgId string,
+	update bson.M,
+) error {
+
+	_, err := r.col.UpdateOne(
+		ctx,
+		bson.M{"orgId": orgId},
+		update,
+	)
+
+	return err
+}
+
+func (r *OrgRepo) Delete(
+	ctx context.Context,
+	orgId string,
+) error {
+
+	_, err := r.col.DeleteOne(
+		ctx,
+		bson.M{"orgId": orgId},
+	)
+
+	return err
+}
+
+func (r *OrgUnitRepo) FindRootByOrg(
+	ctx context.Context,
+	tenantId string,
+	orgId string,
+) (*authzmod.OrgUnit, error) {
+
+	var result authzmod.OrgUnit
+
+	err := stomongo.FindOne(
+		ctx,
+		r.collection,
+		bson.M{
+			"tenantId": tenantId,
+			"orgId":    orgId,
+			"isRoot":   true,
+		},
+		&result,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}

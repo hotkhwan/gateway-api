@@ -24,26 +24,54 @@ func (r *OrgUnitRepo) Insert(ctx context.Context, unit *authzmod.OrgUnit) error 
 	return err
 }
 
-func (r *OrgUnitRepo) FindRootByOrg(
+func (r *OrgUnitRepo) ListByOrg(
 	ctx context.Context,
+	tenantId string,
 	orgId string,
-) (*authzmod.OrgUnit, error) {
+) ([]authzmod.OrgUnit, error) {
 
-	var result authzmod.OrgUnit
+	var result []authzmod.OrgUnit
 
-	err := stomongo.FindOne(
+	err := stomongo.Find(
 		ctx,
 		r.collection,
 		bson.M{
-			"orgId":  orgId,
-			"isRoot": true,
+			"tenantId": tenantId,
+			"orgId":    orgId,
 		},
+		nil,
 		&result,
 	)
 
-	if err != nil {
-		return nil, err
-	}
+	return result, err
+}
 
-	return &result, nil
+func (r *OrgUnitRepo) UpdateName(
+	ctx context.Context,
+	unitId string,
+	name string,
+) error {
+
+	_, err := stomongo.UpdateOne(
+		ctx,
+		r.collection,
+		bson.M{"unitId": unitId},
+		bson.M{"name": name},
+	)
+
+	return err
+}
+
+func (r *OrgUnitRepo) Delete(
+	ctx context.Context,
+	unitId string,
+) error {
+
+	_, err := stomongo.DeleteOne(
+		ctx,
+		r.collection,
+		bson.M{"unitId": unitId},
+	)
+
+	return err
 }
