@@ -85,6 +85,7 @@ func main() {
 	config.InitKafka()
 	config.InitMongo()
 	config.InitPermifyRest()
+	config.InitPermifygRPC()
 	config.InitRedis()
 	config.InitS3()
 	// config.InitLLMConfig()
@@ -327,8 +328,9 @@ func main() {
 			watchLog.Error().Err(err).Msg("watcher exited")
 		}
 	}()
+
 	log.Info().Msg("✅ Service is already started")
-	// Start server
+	// Start serverCurrentSchemaVersion
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000" // fallback default

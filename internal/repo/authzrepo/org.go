@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
 	"github.com/hotkhwan/gateway-api/models/authzmod"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -57,4 +58,72 @@ func (r *OrgRepo) MarkSyncError(ctx context.Context, orgId string) error {
 		"$set": bson.M{"syncStatus": "errorSync"},
 	})
 	return err
+}
+
+func (r *OrgRepo) MarkSyncOK(ctx context.Context, orgId string) error {
+	_, err := r.col.UpdateOne(
+		ctx,
+		bson.M{"orgId": orgId},
+		bson.M{
+			"$set": bson.M{"syncStatus": "ok"},
+		},
+	)
+	return err
+}
+
+func (r *OrgRepo) ListAll(ctx context.Context, tenantId string) ([]authzmod.Organization, error) {
+
+	var result []authzmod.Organization
+
+	err := stomongo.Find(
+		ctx,
+		"organizations",
+		bson.M{"tenantId": tenantId},
+		nil,
+		&result,
+	)
+
+	return result, err
+}
+
+func (r *OrgRepo) ListBySyncStatus(
+	ctx context.Context,
+	status string,
+) ([]authzmod.Organization, error) {
+
+	var result []authzmod.Organization
+
+	err := stomongo.Find(
+		ctx,
+		"organizations",
+		bson.M{"syncStatus": status},
+		nil,
+		&result,
+	)
+
+	return result, err
+}
+
+func (r *OrgRepo) FindByIds(
+	ctx context.Context,
+	tenantId string,
+	orgIds []string,
+) ([]authzmod.Organization, error) {
+
+	var result []authzmod.Organization
+
+	err := stomongo.Find(
+		ctx,
+		"organizations",
+		bson.M{
+			"tenantId": tenantId,
+			"orgId": bson.M{
+				"$in": orgIds,
+			},
+		},
+		nil,
+		&result,
+	)
+
+	return result, err
 }

@@ -2,10 +2,11 @@
 package gmod
 
 import (
+	"time"
+
 	"github.com/hotkhwan/gateway-api/models/authmod"
 	"github.com/hotkhwan/gateway-api/models/devmod"
 	"github.com/hotkhwan/gateway-api/models/grpmod"
-	"time"
 )
 
 // Error codes (normalized, stable contract)
@@ -41,6 +42,14 @@ type AcceptedResponse struct {
 	Code    string  `json:"code"`
 	Message string  `json:"message"`
 	Detail  JobInfo `json:"detail"`
+}
+
+type OrgListResponse struct {
+	Code       string      `json:"code"`
+	Message    string      `json:"message"`
+	Status     bool        `json:"status"`
+	Details    interface{} `json:"details"`
+	Pagination Pagination  `json:"pagination"`
 }
 
 type BadRequestResponse struct {

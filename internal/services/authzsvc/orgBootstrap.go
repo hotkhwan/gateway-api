@@ -3,9 +3,7 @@ package authzsvc
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/hotkhwan/gateway-api/config"
@@ -13,7 +11,6 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/models/authzmod"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
 
@@ -24,33 +21,9 @@ func BootstrapOrganization(
 	name string,
 ) (*authzmod.Organization, error) {
 
-	tenantId = strings.TrimSpace(tenantId)
-	userId = strings.TrimSpace(userId)
-	name = strings.TrimSpace(name)
-
-	if tenantId == "" {
-		return nil, fiber.NewError(fiber.StatusBadRequest, "tenantId required")
-	}
-	if userId == "" {
-		return nil, fiber.NewError(fiber.StatusUnauthorized, "userId required")
-	}
-	if name == "" {
-		return nil, fiber.NewError(fiber.StatusBadRequest, "name required")
-	}
-
-	repo := authzrepo.NewOrgRepo(config.DB)
-
-	// optional pre-check (ช่วย UX) แต่ไม่ rely on it
-	exists, err := repo.ExistsByName(ctx, tenantId, name)
-	if err != nil {
-		return nil, err
-	}
-	if exists {
-		return nil, fiber.NewError(fiber.StatusConflict, "organization name already exists")
-	}
-
 	now := time.Now().UnixMilli()
 	orgId := uuid.NewString()
+	rootUnitId := uuid.NewString()
 
 	org := &authzmod.Organization{
 		OrgId:      orgId,
@@ -58,26 +31,41 @@ func BootstrapOrganization(
 		Name:       name,
 		CreatedBy:  userId,
 		CreatedAt:  now,
-		SyncStatus: "ok",
+		SyncStatus: "pending",
 	}
 
-	// Mongo insert (DB unique index will enforce race condition)
-	if err := repo.Insert(ctx, org); err != nil {
-		if errors.Is(err, authzrepo.ErrOrgNameAlreadyExists) {
-			return nil, fiber.NewError(fiber.StatusConflict, "organization name already exists")
-		}
+	rootUnit := &authzmod.OrgUnit{
+		UnitId:    rootUnitId,
+		OrgId:     orgId,
+		TenantId:  tenantId,
+		Name:      "root",
+		IsRoot:    true,
+		CreatedBy: userId,
+		CreatedAt: now,
+	}
+
+	orgRepo := authzrepo.NewOrgRepo(config.DB)
+	unitRepo := authzrepo.NewOrgUnitRepo()
+
+	// 1️⃣ Insert Mongo first
+	if err := orgRepo.Insert(ctx, org); err != nil {
 		return nil, err
 	}
 
-	// tuples batch
-	client := authzgw.NewClient()
-
-	tuples := TupleFactoryOrgBootstrap(orgId, userId) // []map[string]interface{}
-	if err := client.WriteTuples(ctx, tenantId, tuples); err != nil {
-	_ = repo.MarkSyncError(ctx, orgId)
-	return nil, fmt.Errorf("authz sync failed")
+	if err := unitRepo.Insert(ctx, rootUnit); err != nil {
+		return nil, err
 	}
+
+	// 2️⃣ Write tuples
+	client := authzgw.NewClient()
+	tuples := TupleFactoryOrgBootstrap(orgId, rootUnitId, userId)
+
+	if err := client.WriteTuples(ctx, tenantId, tuples); err != nil {
+		_ = orgRepo.MarkSyncError(ctx, orgId)
+		return nil, fmt.Errorf("authz sync failed: %w", err)
+	}
+
+	_ = orgRepo.MarkSyncOK(ctx, orgId)
 
 	return org, nil
 }
-

@@ -17,11 +17,15 @@ var (
 )
 
 func InitPermifyRest() {
-	uri := os.Getenv("PERMIFY_URI")
-	if uri == "" {
-		uri = "authz-permify.iam.svc.cluster.local:3476" // ✅ fallback
+	endpoint := os.Getenv("PERMIFY_URI")
+	if endpoint == "" {
+		endpoint = "authz-permify.iam.svc.cluster.local:3478"
 	}
-	PermifyBaseURL = fmt.Sprintf("http://%s", uri)
+
+	if endpoint == "" {
+		endpoint = "authz-permify.iam.svc.cluster.local:3476" // ✅ fallback
+	}
+	PermifyBaseURL = fmt.Sprintf("http://%s", endpoint)
 
 	if t := os.Getenv("KEYCLOAK_REALM"); t != "" {
 		PermifyTenantID = t

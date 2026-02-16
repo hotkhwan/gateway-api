@@ -4,7 +4,6 @@ package config
 import (
 	"context"
 	"os"
-	"sort"
 	"time"
 
 	permify_payload "buf.build/gen/go/permifyco/permify/protocolbuffers/go/base/v1"
@@ -45,7 +44,11 @@ func InitPermifygRPC() {
 		PermifyTenantID = "klynx"
 	}
 
-	endpoint := os.Getenv("PERMIFY_URI")
+	endpoint := os.Getenv("PERMIFY_GRPC_URI")
+	if endpoint == "" {
+		endpoint = "authz-permify.iam.svc.cluster.local:3478"
+	}
+
 	client, err := permify_grpc.NewClient(
 		permify_grpc.Config{Endpoint: endpoint},
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -58,30 +61,20 @@ func InitPermifygRPC() {
 	log.Info().Str("endpoint", endpoint).Msg("✅ Permify client initialized")
 
 	// ✅ ดึง Schema Version ล่าสุด (Async เพื่อ HA/High TPS)
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-		resp, err := PermifyClient.Schema.List(ctx, &permify_payload.SchemaListRequest{
-			TenantId: PermifyTenantID,
-			PageSize: 10,
-		})
-		if err != nil || resp == nil || len(resp.Schemas) == 0 {
-			log.Warn().Err(err).Msg("⚠️ Failed to list schema versions, fallback to latest")
-			CurrentSchemaVersion = "" // fallback ใช้ latest
-			return
-		}
-
-		// ✅ แปลง CreatedAt (string → time.Time) แล้ว sort
-		sort.Slice(resp.Schemas, func(i, j int) bool {
-			t1, _ := time.Parse(time.RFC3339, resp.Schemas[i].CreatedAt)
-			t2, _ := time.Parse(time.RFC3339, resp.Schemas[j].CreatedAt)
-			return t1.After(t2)
-		})
-
+	resp, err := PermifyClient.Schema.List(ctx, &permify_payload.SchemaListRequest{
+		TenantId: PermifyTenantID,
+		PageSize: 1,
+	})
+	if err != nil || len(resp.Schemas) == 0 {
+		log.Warn().Err(err).Msg("⚠️ Failed to fetch schema version")
+		CurrentSchemaVersion = "latest"
+	} else {
 		CurrentSchemaVersion = resp.Schemas[0].Version
 		log.Info().
 			Str("schema_version", CurrentSchemaVersion).
-			Msg("✅ Latest schema version fetched successfully")
-	}()
+			Msg("✅ Schema version initialized")
+	}
 }

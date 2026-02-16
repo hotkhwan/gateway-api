@@ -4,6 +4,7 @@ package authzgw
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/hotkhwan/gateway-api/config"
 
@@ -29,4 +30,83 @@ func (g *GrpcClient) WriteSchema(ctx context.Context, tenantId string, schema st
 	}
 
 	return resp.SchemaVersion, nil
+}
+
+func (g *GrpcClient) LookupOrganizations(
+	ctx context.Context,
+	tenantId string,
+	userId string,
+) ([]string, error) {
+
+	stream, err := config.PermifyClient.Permission.LookupEntityStream(
+		ctx,
+		&permify_payload.PermissionLookupEntityRequest{
+			TenantId: tenantId,
+			Metadata: &permify_payload.PermissionLookupEntityRequestMetadata{
+				SchemaVersion: config.CurrentSchemaVersion,
+				Depth:         50,
+			},
+			EntityType: "organization",
+			Permission: "view",
+			Subject: &permify_payload.Subject{
+				Type: "user",
+				Id:   userId,
+			},
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+
+	for {
+		res, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, res.EntityId)
+	}
+
+	return ids, nil
+}
+
+func (g *GrpcClient) CheckPermission(
+	ctx context.Context,
+	tenantId string,
+	entityType string,
+	entityId string,
+	permission string,
+	subjectType string,
+	subjectId string,
+) (bool, error) {
+
+	resp, err := config.PermifyClient.Permission.Check(
+		ctx,
+		&permify_payload.PermissionCheckRequest{
+			TenantId: tenantId,
+			Metadata: &permify_payload.PermissionCheckRequestMetadata{
+				SchemaVersion: config.CurrentSchemaVersion,
+				Depth:         50,
+			},
+			Entity: &permify_payload.Entity{
+				Type: entityType,
+				Id:   entityId,
+			},
+			Permission: permission,
+			Subject: &permify_payload.Subject{
+				Type: subjectType,
+				Id:   subjectId,
+			},
+		},
+	)
+
+	if err != nil {
+		return false, err
+	}
+
+	return resp.Can == permify_payload.CheckResult_CHECK_RESULT_ALLOWED, nil
 }
