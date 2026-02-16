@@ -2,7 +2,7 @@
 package router
 
 import (
-	"klynx/controllers/webhooks/iot/iwownapi"
+	"github.com/hotkhwan/gateway-api/controllers/webhooks/iot/iwownapi"
 
 	"github.com/gofiber/fiber/v2"
 )

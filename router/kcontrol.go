@@ -2,10 +2,10 @@
 package router
 
 import (
-	"klynx/config"
-	"klynx/controllers/kctrlapi"
-	"klynx/internal/middleware"
-	"klynx/internal/repo/authzrepo"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/controllers/kctrlapi"
+	"github.com/hotkhwan/gateway-api/internal/middleware"
+	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"os"
 
 	"github.com/gofiber/fiber/v2"

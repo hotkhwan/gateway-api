@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"klynx/internal/services/rscsvc"
-	"klynx/models/gmod"
-	"klynx/models/rscmod"
+	"github.com/hotkhwan/gateway-api/internal/services/rscsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/rscmod"
 
 	"github.com/gofiber/fiber/v2"
 )

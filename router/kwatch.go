@@ -2,8 +2,8 @@
 package router
 
 import (
-	"klynx/controllers/kwatapi"
-	"klynx/internal/middleware"
+	"github.com/hotkhwan/gateway-api/controllers/kwatapi"
+	"github.com/hotkhwan/gateway-api/internal/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )

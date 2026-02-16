@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/logger"
-	"klynx/models/thirdmod"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/models/thirdmod"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
@@ -27,7 +27,7 @@ var httpClient = &http.Client{
 // CreateServiceAccountClient สร้าง Keycloak client แบบ service-account เปิดใช้ client-secret + ปิด web flows
 // หมายเหตุ: ใช้สิทธิ admin ของระบบ (KEYCLOAK_ADMIN_* env) เพื่อเรียก Admin API
 func CreateServiceAccountClient(ctx context.Context, in thirdmod.CreateServiceAccountInput) (thirdmod.CreateServiceAccountOutput, error) {
-	tracer := otel.Tracer("klynx/thirdsvc")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/thirdsvc")
 	ctx, span := tracer.Start(ctx, "ThirdSVC.CreateServiceAccountClient")
 	defer span.End()
 
@@ -98,7 +98,7 @@ func CreateServiceAccountClient(ctx context.Context, in thirdmod.CreateServiceAc
 
 // GetClientCredentialsToken เรียก token endpoint แบบ client_credentials
 func GetClientCredentialsToken(ctx context.Context, clientID, clientSecret, scope string) (thirdmod.ClientCredentialsToken, error) {
-	tracer := otel.Tracer("klynx/thirdsvc")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/thirdsvc")
 	ctx, span := tracer.Start(ctx, "ThirdSVC.GetClientCredentialsToken")
 	defer span.End()
 

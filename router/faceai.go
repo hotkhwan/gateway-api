@@ -2,7 +2,7 @@
 package router
 
 import (
-	"klynx/controllers/webhooks/analytic/camDahuaapi"
+	"github.com/hotkhwan/gateway-api/controllers/webhooks/analytic/camDahuaapi"
 
 	"github.com/gofiber/fiber/v2"
 )

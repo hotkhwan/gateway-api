@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	intlog "klynx/internal/logger"
-	"klynx/utils/traceutil"
+	intlog "github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/fsnotify/fsnotify"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -134,7 +134,7 @@ func cleanupTmpCSVs(ctx context.Context, pattern string) int {
 
 func WatchCrimesDir(ctx context.Context, dir string, coll *mongo.Collection) error {
 	ctx, end, _ := traceutil.StartLite(
-		ctx, "klynx/crimes", "crimes.WatchCrimesDir", "crimes", "WatchCrimesDir",
+		ctx, "github.com/hotkhwan/gateway-api/crimes", "crimes.WatchCrimesDir", "crimes", "WatchCrimesDir",
 	)
 	defer end()
 	log := intlog.FromCtx(ctx, "crimes", "WatchCrimesDir")
@@ -170,7 +170,7 @@ func WatchCrimesDir(ctx context.Context, dir string, coll *mongo.Collection) err
 
 		go func(parentCtx context.Context, path string) {
 			childCtx, childEnd, _ := traceutil.StartLite(
-				parentCtx, "klynx/crimes", "crimes.HandleNewFile",
+				parentCtx, "github.com/hotkhwan/gateway-api/crimes", "crimes.HandleNewFile",
 				"crimes", "HandleNewFile",
 			)
 			defer childEnd()

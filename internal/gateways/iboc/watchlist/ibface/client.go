@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/gateways/gwcom"
+	"github.com/hotkhwan/gateway-api/internal/gateways/gwcom"
 )
 
 // NOTE: ถ้า Client/Errors ประกาศใน types.go แล้ว ให้ลบบล็อกนี้ทิ้ง

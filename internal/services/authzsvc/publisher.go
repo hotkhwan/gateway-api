@@ -7,16 +7,16 @@ import (
 	"os"
 	"time"
 
-	"klynx/internal/kafka"
-	"klynx/models/authzmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // PublishAddUserToGroup → ใช้ Kafka Event (REST Compatible)
 func PublishAddUserToGroup(ctx context.Context, userID, groupID string) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.PublishAddUserToGroup",
 		"authzsvc", "PublishAddUserToGroup",
 	)
@@ -53,7 +53,7 @@ func PublishAddUserToGroup(ctx context.Context, userID, groupID string) error {
 func PublishResourceRelocated(ctx context.Context, resourceID, newGroupID string) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.PublishResourceRelocated",
 		"authzsvc", "PublishResourceRelocated",
 	)

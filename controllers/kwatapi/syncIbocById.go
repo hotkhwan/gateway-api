@@ -12,9 +12,9 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 
-	"klynx/internal/services/kwatsvc"
-	"klynx/models/gmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 type syncIdsRequest struct {
@@ -64,7 +64,7 @@ func SyncIbocByIDs(c *fiber.Ctx) error {
 	reqCtx, cancel := context.WithTimeout(c.Context(), 60*time.Second)
 	defer cancel()
 
-	tr := otel.Tracer("klynx/kwatch")
+	tr := otel.Tracer("github.com/hotkhwan/gateway-api/kwatch")
 	reqCtx, span := tr.Start(reqCtx, "kwatapi.SyncIbocByIDs", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 

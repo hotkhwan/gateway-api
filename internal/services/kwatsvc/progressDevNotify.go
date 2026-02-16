@@ -4,7 +4,7 @@ package kwatsvc
 import (
 	"time"
 
-	"klynx/internal/mqtt/kwatchmsg"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/kwatchmsg"
 )
 
 func NotifyIbocDevProgressStarted(jobID string) {

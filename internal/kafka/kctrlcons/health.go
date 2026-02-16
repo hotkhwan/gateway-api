@@ -4,17 +4,17 @@ package kctrlcons
 import (
 	"context"
 	"fmt"
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/internal/services/kctrlsvc"
-	"klynx/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/kctrlsvc"
+	"github.com/hotkhwan/gateway-api/models/kctrlmod"
 	"os"
 	"strings"
 )
 
 func StartKafkaHealthConsumer(broker, topic string) {
 	ctx := context.Background()
-	// tracer := otel.Tracer("klynx/kctrlhcons")
+	// tracer := otel.Tracer("github.com/hotkhwan/gateway-api/kctrlhcons")
 	log := logger.FromCtx(ctx, "kctrlcons", "StartKctrlHealthConsumer")
 	log.Info().Msg("consumer_boot")
 

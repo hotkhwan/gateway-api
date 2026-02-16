@@ -4,15 +4,15 @@ import (
 	"context"
 	"time"
 
-	"klynx/models/authzmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // GrantResource creates relationships + attributes for a resource in Permify (REST).
 func GrantResource(ctx context.Context, req authzmod.GrantResourceRequest) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.GrantResource",
 		"authzsvc", "GrantResource",
 	)

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/models/authzmod"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
 )
 
 // ---- Permify REST client ----

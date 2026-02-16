@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"klynx/internal/logger"
-	"klynx/internal/mqtt/inframsg"
-	"klynx/models/aimodel"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/inframsg"
+	"github.com/hotkhwan/gateway-api/models/aimodel"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -43,7 +43,7 @@ func getAtaEventsPub(topic string) *Publisher {
 func HandleEvent(parent context.Context, msg aimodel.PusherEvent) error {
 	ctx, end, log := traceutil.StartLite(
 		parent,
-		"klynx/atasvc",
+		"github.com/hotkhwan/gateway-api/atasvc",
 		"atasvc.HandleEvent",
 		"atasvc", "HandleEvent",
 	)

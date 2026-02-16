@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"klynx/config"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	minioSDK "github.com/minio/minio-go/v7"
 )
@@ -16,7 +16,7 @@ import (
 func Upload(ctx context.Context, bucketKey string, isPublic bool, objectKey string, fileBytes []byte, contentType string) (string, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/stos3minio",
+		"github.com/hotkhwan/gateway-api/stos3minio",
 		"files.Upload",
 		"stos3minio", "Upload",
 	)
@@ -54,7 +54,7 @@ func Upload(ctx context.Context, bucketKey string, isPublic bool, objectKey stri
 func UploadWithMeta(ctx context.Context, bucketKey string, isPublic bool, objectKey string, fileBytes []byte, contentType string, metadata map[string]string) (string, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/stos3minio",
+		"github.com/hotkhwan/gateway-api/stos3minio",
 		"files.UploadWithMeta",
 		"stos3minio", "UploadWithMeta",
 	)

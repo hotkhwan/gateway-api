@@ -2,13 +2,13 @@
 package devapi
 
 import (
-	"klynx/internal/services/devsvc"
-	"klynx/models/devmod"
-	"klynx/models/gmod"
-	"klynx/utils"
-	"klynx/utils/authutil"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/devsvc"
+	"github.com/hotkhwan/gateway-api/models/devmod"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils"
+	"github.com/hotkhwan/gateway-api/utils/authutil"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -27,7 +27,7 @@ import (
 // @Router /devices [post]
 // @Security BearerAuth
 func DeviceCreate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/devapi", "devices.DeviceCreate", "devapi", "DeviceCreate")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/devapi", "devices.DeviceCreate", "devapi", "DeviceCreate")
 	defer span.End()
 	var req devmod.DeviceRequest
 

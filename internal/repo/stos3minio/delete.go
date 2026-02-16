@@ -3,7 +3,7 @@ package stos3minio
 
 import (
 	"context"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"os"
 	"time"
 )
@@ -14,7 +14,7 @@ import (
 func DeleteFile(ctx context.Context, target string) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/stos3minio",
+		"github.com/hotkhwan/gateway-api/stos3minio",
 		"s3.DownloadByKey",
 		"stos3minio", "DownloadByKey",
 	)
@@ -47,7 +47,7 @@ func DeleteFile(ctx context.Context, target string) error {
 func DeleteByURL(ctx context.Context, fullURL string) error {
 	ctx, end, _ := traceutil.StartLite(
 		ctx,
-		"klynx/stos3minio",
+		"github.com/hotkhwan/gateway-api/stos3minio",
 		"files.DownloadByKey",
 		"stos3minio", "DownloadByKey",
 	)

@@ -10,7 +10,7 @@ import (
 	"path"
 	"strings"
 
-	"klynx/internal/gateways/gwcom"
+	"github.com/hotkhwan/gateway-api/internal/gateways/gwcom"
 )
 
 // NOTE:

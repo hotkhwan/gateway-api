@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/mqtt/kwatchmsg"
-	"klynx/internal/repo/stomongo"
-	"klynx/internal/repo/stos3minio"
-	"klynx/models/kwatmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/kwatchmsg"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/internal/repo/stos3minio"
+	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/minio/minio-go/v7"
 	"go.mongodb.org/mongo-driver/bson"
@@ -77,7 +77,7 @@ func runBounded(parent context.Context, timeout time.Duration, fn func(context.C
 func HandleWatchlistDelete(parent context.Context, evt kwatmod.WatchlistEvent, g Gateways) error {
 	ctx, end, log := traceutil.StartLite(
 		parent,
-		"klynx/kwatsvc",
+		"github.com/hotkhwan/gateway-api/kwatsvc",
 		"watchlist.HandleWatchlistDelete",
 		"kwatsvc", "HandleWatchlistDelete",
 	)

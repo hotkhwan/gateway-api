@@ -4,9 +4,9 @@ package kwatsvc
 import (
 	"os"
 
-	"klynx/internal/gateways/iboc/watchlist/ibface"
-	"klynx/internal/gateways/watchman/watchgw"
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/gateways/iboc/watchlist/ibface"
+	"github.com/hotkhwan/gateway-api/internal/gateways/watchman/watchgw"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 )
 
 type Gateways struct {

@@ -4,9 +4,9 @@ package atapi
 import (
 	"net/http"
 
-	"klynx/internal/services/devsync"
-	"klynx/models/devsyncmod"
-	"klynx/models/gmod"
+	"github.com/hotkhwan/gateway-api/internal/services/devsync"
+	"github.com/hotkhwan/gateway-api/models/devsyncmod"
+	"github.com/hotkhwan/gateway-api/models/gmod"
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
@@ -32,7 +32,7 @@ type SyncRequest struct {
 // @Security     BearerAuth
 func DeviceSyncFromSVMS(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/atapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/atapi")
 	ctx, span := tracer.Start(ctx, "ATA.DeviceSyncFromSVMS")
 	defer span.End()
 

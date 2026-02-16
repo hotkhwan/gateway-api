@@ -7,12 +7,12 @@ import (
 	"sort"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/repo/stos3minio"
-	"klynx/models/gmod"
-	"klynx/models/mapmod"
-	"klynx/utils"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/repo/stos3minio"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/mapmod"
+	"github.com/hotkhwan/gateway-api/utils"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/minio/minio-go/v7"
 )
@@ -20,7 +20,7 @@ import (
 func ListMAPPosition(ctx context.Context, page int, perPages int, filters map[string]string, sortOrder string) ([]mapmod.KMLFile, gmod.Pagination, error) {
 	ctx, endSpan, log := traceutil.StartLite(
 		ctx,
-		"klynx/mapsvc",
+		"github.com/hotkhwan/gateway-api/mapsvc",
 		"maps.ListMAPPosition",
 		"mapsvc", "ListMAPPosition",
 	)

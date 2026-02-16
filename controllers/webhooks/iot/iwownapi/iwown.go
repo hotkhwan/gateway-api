@@ -13,15 +13,15 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/models/iwownmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/models/iwownmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 func HandleIwownPbUpload(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/iwownapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/iwownapi")
 	ctx, span := tracer.Start(ctx, "webhook.IwownPbUpload")
 	defer span.End()
 
@@ -142,7 +142,7 @@ func HandleIwownPbUpload(c *fiber.Ctx) error {
 
 func HandleIwownAlarmUpload(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/iwown")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/iwown")
 	ctx, span := tracer.Start(ctx, "webhook.IwownAlarmUpload")
 	defer span.End()
 
@@ -262,7 +262,7 @@ func HandleIwownAlarmUpload(c *fiber.Ctx) error {
 
 func HandleIwownCallLogUpload(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/iwown")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/iwown")
 	ctx, span := tracer.Start(ctx, "webhook.IwownCallLogUpload")
 	defer span.End()
 
@@ -310,7 +310,7 @@ func HandleIwownCallLogUpload(c *fiber.Ctx) error {
 
 func HandleIwownDeviceInfoUpload(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/iwown")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/iwown")
 	ctx, span := tracer.Start(ctx, "webhook.IwownDeviceInfoUpload")
 	defer span.End()
 
@@ -358,7 +358,7 @@ func HandleIwownDeviceInfoUpload(c *fiber.Ctx) error {
 
 func HandleIwownStatusNotify(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/iwown")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/iwown")
 	ctx, span := tracer.Start(ctx, "webhook.IwownStatusNotify")
 	defer span.End()
 
@@ -406,7 +406,7 @@ func HandleIwownStatusNotify(c *fiber.Ctx) error {
 
 func HandleIwownHealthSleep(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/iwown")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/iwown")
 	ctx, span := tracer.Start(ctx, "webhook.IwownHealthSleep")
 	defer span.End()
 

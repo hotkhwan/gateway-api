@@ -6,8 +6,8 @@ import (
 	"os"
 	"sync"
 
-	"klynx/internal/logger"
-	"klynx/models/kschmod"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/models/kschmod"
 )
 
 var (

@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/internal/services/kctrlsvc"
-	"klynx/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/kctrlsvc"
+	"github.com/hotkhwan/gateway-api/models/kctrlmod"
 )
 
 func StartKafkaEventConsumer(broker, topic string) {

@@ -3,9 +3,10 @@ package config
 
 import (
 	"context"
-	"klynx/internal/logger"
 	"os"
 	"time"
+
+	"github.com/hotkhwan/gateway-api/internal/logger"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"

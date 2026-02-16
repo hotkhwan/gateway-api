@@ -15,11 +15,11 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/repo/stomongo"
-	"klynx/models/gmod"
-	"klynx/models/kschmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kschmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -36,7 +36,7 @@ func ChatMessage(parent context.Context, req kschmod.LLMRequest) (<-chan kschmod
 
 		_, span, log := traceutil.Start(
 			parent,
-			"klynx/kschsvc",
+			"github.com/hotkhwan/gateway-api/kschsvc",
 			"search.ChatMessage",
 			"kschsvc",
 			"ChatMessage",
@@ -101,7 +101,7 @@ func MessageCreateOrStream(ctx context.Context, userId, chatId, prompt string) <
 	go func() {
 		defer close(out)
 
-		ctx, end, log := traceutil.StartLite(ctx, "klynx/kschsvc", "MessageCreateOrStream", "kschsvc", "MessageCreateOrStream")
+		ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kschsvc", "MessageCreateOrStream", "kschsvc", "MessageCreateOrStream")
 		defer end()
 
 		var oid primitive.ObjectID
@@ -214,7 +214,7 @@ func MessageCreateStream(ctx context.Context, chatId, prompt string) <-chan ksch
 	go func() {
 		defer close(out)
 
-		ctx, end, log := traceutil.StartLite(ctx, "klynx/kschsvc", "MessageCreateStream", "kschsvc", "MessageCreateStream")
+		ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kschsvc", "MessageCreateStream", "kschsvc", "MessageCreateStream")
 		defer end()
 
 		// แปลง chatId → ObjectID
@@ -272,7 +272,7 @@ func MessageList(
 	filters map[string]string,
 	sortField, sortOrder string,
 ) ([]kschmod.ChatMessage, gmod.Pagination, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kschsvc", "MessageList", "kschsvc", "MessageList")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kschsvc", "MessageList", "kschsvc", "MessageList")
 	defer end()
 
 	oid, err := primitive.ObjectIDFromHex(chatId)
@@ -317,7 +317,7 @@ func MessageList(
 // ---- LLM / GPT Helpers ----
 func callMyLLM(parent context.Context, req kschmod.LLMRequest) (*kschmod.LLMResponse, error) {
 	_, span, log := traceutil.Start(parent,
-		"klynx/kschsvc",
+		"github.com/hotkhwan/gateway-api/kschsvc",
 		"search.callMyLLM",
 		"kschsvc",
 		"callMyLLM",
@@ -386,7 +386,7 @@ func callMyLLM(parent context.Context, req kschmod.LLMRequest) (*kschmod.LLMResp
 
 func callChatGPT(parent context.Context, text string) (string, error) {
 	_, span, log := traceutil.Start(parent,
-		"klynx/kschsvc",
+		"github.com/hotkhwan/gateway-api/kschsvc",
 		"search.callChatGPT",
 		"kschsvc",
 		"callChatGPT",
@@ -439,7 +439,7 @@ func callChatGPT(parent context.Context, text string) (string, error) {
 }
 
 func MessageUpdate(ctx context.Context, chatId string, messageId string, update kschmod.MessageUpdateRequest) (*kschmod.Message, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kschsvc", "MessageUpdate", "kschsvc", "MessageUpdate")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kschsvc", "MessageUpdate", "kschsvc", "MessageUpdate")
 	defer end()
 
 	chatOid, err := primitive.ObjectIDFromHex(chatId)

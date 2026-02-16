@@ -2,7 +2,7 @@
 package middleware
 
 import (
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"

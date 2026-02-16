@@ -2,9 +2,9 @@
 package kctrlapi
 
 import (
-	"klynx/internal/services/kctrlsvc"
-	"klynx/models/gmod"
-	"klynx/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/internal/services/kctrlsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kctrlmod"
 
 	"github.com/gofiber/fiber/v2"
 )

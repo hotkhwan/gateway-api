@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/internal/services/atasvc"
-	"klynx/models/aimodel"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/atasvc"
+	"github.com/hotkhwan/gateway-api/models/aimodel"
 )
 
 // StartKafkaATAConsumer: consume ATA events จาก Kafka แล้วส่งต่อไป ATA service

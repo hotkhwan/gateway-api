@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"time"
 
-	"klynx/internal/iwown/iwownParser"
-	pb "klynx/internal/iwown/protobuf"
-	"klynx/internal/repo/stomongo"
-	"klynx/models/iwownmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/iwown/iwownParser"
+	pb "github.com/hotkhwan/gateway-api/internal/iwown/protobuf"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models/iwownmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/proto"
@@ -47,7 +47,7 @@ type EventDoc struct {
 func HandlePBFrame(parent context.Context, frame any) error {
 	ctx, end, log := traceutil.StartLite(
 		parent,
-		"klynx/iwownsvc",
+		"github.com/hotkhwan/gateway-api/iwownsvc",
 		"iwownsvc.HandlePBFrame",
 		"iwownsvc", "HandlePBFrame",
 	)
@@ -63,7 +63,7 @@ func HandlePBFrame(parent context.Context, frame any) error {
 func HandleAlarmFrame(parent context.Context, frame any) error {
 	ctx, end, log := traceutil.StartLite(
 		parent,
-		"klynx/iwownsvc",
+		"github.com/hotkhwan/gateway-api/iwownsvc",
 		"iwownsvc.HandleAlarmFrame",
 		"iwownsvc", "HandleAlarmFrame",
 	)

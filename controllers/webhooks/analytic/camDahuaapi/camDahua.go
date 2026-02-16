@@ -10,13 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/internal/repo/stos3minio"
-	"klynx/models/aimodel"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/repo/stos3minio"
+	"github.com/hotkhwan/gateway-api/models/aimodel"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
@@ -25,7 +25,7 @@ import (
 
 func HandleDahua(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/camDahuaapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/camDahuaapi")
 	ctx, span := tracer.Start(ctx, "webhook.HandleDahua")
 	defer span.End()
 
@@ -277,7 +277,7 @@ func HandleDahua(c *fiber.Ctx) error {
 
 // func HandleDahua(c *fiber.Ctx) error {
 // 	ctx := c.UserContext()
-// 	tracer := otel.Tracer("klynx/camDahuaapi")
+// 	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/camDahuaapi")
 // 	ctx, span := tracer.Start(ctx, "webhook.HandleDahua")
 // 	defer span.End()
 

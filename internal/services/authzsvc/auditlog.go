@@ -3,7 +3,7 @@ package authzsvc
 
 import (
 	"context"
-	"klynx/models/authzmod"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
 	"sync"
 	"time"
 )

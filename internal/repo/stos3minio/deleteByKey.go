@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	minio "github.com/minio/minio-go/v7"
 )
@@ -37,7 +37,7 @@ func DeleteByKey(ctx context.Context, bucket, objectKey string) error {
 	}
 
 	ctx, endSpan, log := traceutil.StartLite(
-		ctx, "klynx/stos3minio", "files.DeleteByKey",
+		ctx, "github.com/hotkhwan/gateway-api/stos3minio", "files.DeleteByKey",
 		"stos3minio", "DeleteByKey",
 	)
 	defer endSpan()

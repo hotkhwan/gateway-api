@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"klynx/internal/gateways/svms"
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/gateways/svms"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

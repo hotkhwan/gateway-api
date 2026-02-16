@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/models/klivemod"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/klivemod"
 )
 
 const (

@@ -9,33 +9,35 @@ import (
 	"syscall"
 	"time"
 
-	"klynx/controllers/authzapi"
-	"klynx/internal/configruntime"
-	"klynx/internal/repo/authzrepo"
-	"klynx/internal/repo/optionsrepo"
-	"klynx/internal/services/authzsvc"
-	"klynx/internal/services/klivesvc"
-	"klynx/models/systemmod"
+	"github.com/hotkhwan/gateway-api/internal/configruntime"
+	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/optionsrepo"
+	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/klivesvc"
+	"github.com/hotkhwan/gateway-api/models/systemmod"
 
-	"klynx/internal/kafka/atacons"
-	"klynx/internal/kafka/authzcons"
-	"klynx/internal/kafka/iwowncons"
-	"klynx/internal/kafka/kaicons"
-	"klynx/internal/kafka/kctrlcons"
-	"klynx/internal/kafka/klivecorns"
-	"klynx/internal/kafka/kschcorns"
-	"klynx/internal/kafka/kwatchcons"
-	"klynx/internal/logger"
-	"klynx/internal/middleware"
-	"klynx/utils"
-	"klynx/utils/authutil"
+	"github.com/hotkhwan/gateway-api/controllers/authzapi"
 
-	"klynx/config"
-	_ "klynx/docs"
-	"klynx/internal/mqtt/kcontrolmsg"
-	"klynx/internal/mqtt/kwatchmsg"
-	"klynx/internal/services/crimes"
-	"klynx/router"
+	"github.com/hotkhwan/gateway-api/internal/kafka/kctrlcons"
+	"github.com/hotkhwan/gateway-api/internal/kafka/klivecorns"
+	"github.com/hotkhwan/gateway-api/internal/kafka/kschcorns"
+	"github.com/hotkhwan/gateway-api/internal/kafka/kwatchcons"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/middleware"
+	"github.com/hotkhwan/gateway-api/utils"
+	"github.com/hotkhwan/gateway-api/utils/authutil"
+
+	"github.com/hotkhwan/gateway-api/internal/kafka/atacons"
+	"github.com/hotkhwan/gateway-api/internal/kafka/authzcons"
+	"github.com/hotkhwan/gateway-api/internal/kafka/iwowncons"
+	"github.com/hotkhwan/gateway-api/internal/kafka/kaicons"
+
+	"github.com/hotkhwan/gateway-api/config"
+	_ "github.com/hotkhwan/gateway-api/docs"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/kcontrolmsg"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/kwatchmsg"
+	"github.com/hotkhwan/gateway-api/internal/services/crimes"
+	"github.com/hotkhwan/gateway-api/router"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/contrib/otelfiber/v2"
@@ -85,10 +87,10 @@ func main() {
 	config.InitPermifyRest()
 	config.InitRedis()
 	config.InitS3()
-	config.InitLLMConfig()
+	// config.InitLLMConfig()
 	// config.InitTelemetry()
-	kcontrolmsg.InitMQTT()
-	kwatchmsg.InitMQTT()
+	// kcontrolmsg.InitMQTT()
+	// kwatchmsg.InitMQTT()
 	log := logger.Boot("bootstrap", "main")
 	log.Info().Str("sub", envFile).Msg("📂 Loading env file")
 
@@ -226,6 +228,7 @@ func main() {
 	router.RegisterAPIATA(api)
 	router.RegisterAuthRoutes(api)
 	router.RegisterAuthzRoutes(api)
+	router.RegisterAuthzNewRoutes(api)
 	router.RegisterBIRoutes(api)
 	router.RegisterKcontrolDashboard(api)
 	router.RegisterDeviceRoutes(api)

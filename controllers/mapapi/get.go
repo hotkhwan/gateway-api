@@ -2,10 +2,10 @@
 package mapapi
 
 import (
-	"klynx/internal/services/mapsvc"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/mapsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -25,7 +25,7 @@ import (
 // @Router /maps/kml [get]
 // @Security BearerAuth
 func GetMAPPosition(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/mapapi", "maps.GetMAPPosition", "mapapi", "GetMAPPosition")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/mapapi", "maps.GetMAPPosition", "mapapi", "GetMAPPosition")
 	defer span.End()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))

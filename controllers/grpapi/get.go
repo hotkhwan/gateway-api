@@ -2,11 +2,11 @@
 package grpapi
 
 import (
-	"klynx/internal/services/grpsvc"
-	"klynx/models/gmod"
-	"klynx/models/grpmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/grpsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/grpmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"strconv"
 	"strings"
 
@@ -31,10 +31,10 @@ import (
 // @Router       /groups [get]
 // @Security     BearerAuth
 func ListGroups(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/grpapi", "group.ListGroups", "grpapi", "ListGroups")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/grpapi", "group.ListGroups", "grpapi", "ListGroups")
 	defer span.End()
 	// ctx := c.UserContext()
-	// tracer := otel.Tracer("klynx/grpapi")
+	// tracer := otel.Tracer("github.com/hotkhwan/gateway-api/grpapi")
 	// ctx, span := tracer.Start(ctx, "groups.ListGroups")
 	// defer span.End()
 
@@ -90,7 +90,7 @@ func ListGroups(c *fiber.Ctx) error {
 // @Router       /groups/tree [get]
 // @Security     BearerAuth
 func GetGroupTree(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/grpapi", "group.GetGroupTree", "grpapi", "GetGroupTree")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/grpapi", "group.GetGroupTree", "grpapi", "GetGroupTree")
 	defer span.End()
 
 	// ดึงทั้งหมด

@@ -4,9 +4,9 @@ package mapapi
 import (
 	"strconv"
 
-	"klynx/internal/services/mapsvc"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/mapsvc"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -30,7 +30,7 @@ import (
 func DeviceMap(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(
 		c.UserContext(),
-		"klynx/mapapi",
+		"github.com/hotkhwan/gateway-api/mapapi",
 		"mapapi.DeviceMap",
 		"mapapi",
 		"DeviceMap",

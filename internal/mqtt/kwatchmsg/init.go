@@ -2,8 +2,8 @@
 package kwatchmsg
 
 import (
-	"klynx/internal/logger"
-	"klynx/internal/mqtt/inframsg"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/inframsg"
 )
 
 // InitMQTT: backward-compatible wrapper → ใช้ MQTT client กลางจาก inframsg

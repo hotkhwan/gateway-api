@@ -2,16 +2,17 @@
 package router
 
 import (
-	"klynx/config"
-	"klynx/controllers/authznewapi"
-	"klynx/internal/middleware"
-	"klynx/internal/repo/authzrepo"
 	"os"
+
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/controllers/authznewapi"
+	"github.com/hotkhwan/gateway-api/internal/middleware"
+	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func RegisterAuthzNew(router fiber.Router) {
+func RegisterAuthzNewRoutes(router fiber.Router) {
 	router.Route("/orgs", func(r fiber.Router) {
 
 		r.Use(middleware.AuthBearer())
@@ -24,5 +25,6 @@ func RegisterAuthzNew(router fiber.Router) {
 		}))
 
 		r.Post("/", authznewapi.CreateOrg)
+		r.Post("", authznewapi.CreateOrg)
 	})
 }

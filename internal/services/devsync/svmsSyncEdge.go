@@ -5,10 +5,10 @@ import (
 	"context"
 	"fmt"
 
-	"klynx/config"
-	"klynx/models/devsyncmod"
-	"klynx/models/systemmod"
-	"klynx/utils"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/devsyncmod"
+	"github.com/hotkhwan/gateway-api/models/systemmod"
+	"github.com/hotkhwan/gateway-api/utils"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

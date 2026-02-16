@@ -2,10 +2,10 @@
 package grpapi
 
 import (
-	"klynx/internal/services/grpsvc"
-	"klynx/models/grpmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/grpsvc"
+	"github.com/hotkhwan/gateway-api/models/grpmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -23,7 +23,7 @@ import (
 // @Router       /groups/search [get]
 // @Security     BearerAuth
 func SearchGroupsTree(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/grpapi", "group.SearchGroupsTree", "grpapi", "SearchGroupsTree")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/grpapi", "group.SearchGroupsTree", "grpapi", "SearchGroupsTree")
 	defer span.End()
 
 	search := c.Query("name")

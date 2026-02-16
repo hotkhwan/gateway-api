@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 	"mime/multipart"
 	"net/http"
 	"net/url"

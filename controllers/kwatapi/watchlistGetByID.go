@@ -2,9 +2,9 @@
 package kwatapi
 
 import (
-	"klynx/internal/services/kwatsvc"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
+	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
@@ -22,7 +22,7 @@ import (
 // @Security BearerAuth
 func WatchlistGetByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/kwatapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/kwatapi")
 	ctx, span := tracer.Start(ctx, "Kwatch.WatchlistGetByID")
 	defer span.End()
 

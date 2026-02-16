@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"

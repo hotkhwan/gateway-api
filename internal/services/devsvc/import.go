@@ -18,8 +18,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"klynx/config"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 /* =========================
@@ -144,7 +144,7 @@ func extractIPFromItem(item map[string]interface{}) string {
  * CSV
  * ========================= */
 func ParseCSVFile(ctx context.Context, file io.Reader) ([]map[string]interface{}, []string, []string, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/devsvc", "devices.ParseCSVFile", "devsvc", "ParseCSVFile")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/devsvc", "devices.ParseCSVFile", "devsvc", "ParseCSVFile")
 	defer end()
 
 	_, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -237,7 +237,7 @@ func ParseCSVFile(ctx context.Context, file io.Reader) ([]map[string]interface{}
  * XLSX
  * ========================= */
 func ParseXLSXFile(ctx context.Context, file io.Reader) ([]map[string]interface{}, []string, []string, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/devsvc", "devices.ParseXLSXFile", "devsvc", "ParseXLSXFile")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/devsvc", "devices.ParseXLSXFile", "devsvc", "ParseXLSXFile")
 	defer end()
 
 	_, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -335,7 +335,7 @@ func ParseXLSXFile(ctx context.Context, file io.Reader) ([]map[string]interface{
  * Duplicate check in DB
  * ========================= */
 func FindDuplicateIPs(ctx context.Context, devices []map[string]interface{}) ([]string, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/devsvc", "devices.FindDuplicateIPs", "devsvc", "FindDuplicateIPs")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/devsvc", "devices.FindDuplicateIPs", "devsvc", "FindDuplicateIPs")
 	defer end()
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -380,7 +380,7 @@ func FindDuplicateIPs(ctx context.Context, devices []map[string]interface{}) ([]
  * Insert
  * ========================= */
 func InsertDevices(ctx context.Context, devices []map[string]interface{}) (int, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/devsvc", "devices.InsertDevices", "devsvc", "InsertDevices")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/devsvc", "devices.InsertDevices", "devsvc", "InsertDevices")
 	defer end()
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)

@@ -1,7 +1,7 @@
 // models/authzmod/relationship.go
 package authzmod
 
-import "klynx/models/gmod"
+import "github.com/hotkhwan/gateway-api/models/gmod"
 
 // RelationshipQuery สำหรับรับค่าจาก Query Parameter (Fiber)
 type RelationshipQuery struct {

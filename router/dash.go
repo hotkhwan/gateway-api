@@ -2,8 +2,8 @@
 package router
 
 import (
-	"klynx/controllers/dashapi"
-	"klynx/internal/middleware"
+	"github.com/hotkhwan/gateway-api/controllers/dashapi"
+	"github.com/hotkhwan/gateway-api/internal/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )

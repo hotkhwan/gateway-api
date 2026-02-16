@@ -6,8 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"klynx/internal/logger"
-	"klynx/utils/authutil"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/utils/authutil"
 	"net/http"
 	"os"
 	"time"
@@ -17,7 +17,7 @@ import (
 )
 
 func ResetPassword(ctx context.Context, _ string, accessToken string, newPassword string) (map[string]interface{}, error) {
-	tracer := otel.Tracer("klynx/authsvc")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/authsvc")
 	ctx, span := tracer.Start(ctx, "Auth.ResetPassword")
 	defer span.End()
 

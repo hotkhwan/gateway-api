@@ -2,9 +2,9 @@ package memsvc
 
 import (
 	"context"
-	"klynx/config"
-	"klynx/models/memmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/memmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"os"
 	"time"
 
@@ -14,7 +14,7 @@ import (
 func CreateMember(ctx context.Context, reqs []memmod.MemberRequest) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/memsvc",        // tracerName
+		"github.com/hotkhwan/gateway-api/memsvc",        // tracerName
 		"memsvc.CreateMember", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"memsvc", "CreateMember",
 	)
@@ -52,7 +52,7 @@ func CreateMember(ctx context.Context, reqs []memmod.MemberRequest) error {
 func CreateMember2(ctx context.Context, groupID string, userIds []string) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/memsvc",
+		"github.com/hotkhwan/gateway-api/memsvc",
 		"memsvc.CreateMember2",
 		"memsvc", "CreateMember2",
 	)

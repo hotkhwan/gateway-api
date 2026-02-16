@@ -12,14 +12,14 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"klynx/internal/gateways/mediagw"
-	"klynx/internal/repo/cachego/cacheklive"
-	"klynx/internal/services/klivesvc"
-	"klynx/models"
-	"klynx/models/cachemod"
-	"klynx/models/klivemod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/gateways/mediagw"
+	"github.com/hotkhwan/gateway-api/internal/repo/cachego/cacheklive"
+	"github.com/hotkhwan/gateway-api/internal/services/klivesvc"
+	"github.com/hotkhwan/gateway-api/models"
+	"github.com/hotkhwan/gateway-api/models/cachemod"
+	"github.com/hotkhwan/gateway-api/models/klivemod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // ===== lazy init client =====
@@ -59,7 +59,7 @@ func d01p(p *int, def int) int {
 // @Router       /media/stream [get]
 // @Security     BearerAuth
 func ListStream(c *fiber.Ctx) error {
-	ctx, span, _ := traceutil.Start(c.UserContext(), "klynx/mediapi", "ListStream", "mediapi", "ListStream")
+	ctx, span, _ := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/mediapi", "ListStream", "mediapi", "ListStream")
 	defer span.End()
 
 	out, status, err := getClient().GetMediaList(ctx)
@@ -89,7 +89,7 @@ func ListStream(c *fiber.Ctx) error {
 func CreateStream(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(
 		c.UserContext(),
-		"klynx/mediapi",
+		"github.com/hotkhwan/gateway-api/mediapi",
 		"CreateStream",
 		"mediapi", "CreateStream",
 	)
@@ -316,7 +316,7 @@ func CreateStream(c *fiber.Ctx) error {
 // @Router       /media/stream/{streamId} [delete]
 // @Security     BearerAuth
 func DeleteStream(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/mediapi", "DeleteStream", "mediapi", "DeleteStream")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/mediapi", "DeleteStream", "mediapi", "DeleteStream")
 	defer span.End()
 
 	streamID := c.Params("streamId")

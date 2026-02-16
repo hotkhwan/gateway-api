@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/repo/stomongo"
-	"klynx/models/gmod"
-	"klynx/models/kschmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kschmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -22,7 +22,7 @@ var projectColl = "ksearch_projects"
 
 // internal/services/kschsvc/chatProject.go
 func ProjectCreate(ctx context.Context, userId string, req kschmod.Project) (*kschmod.Project, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kschsvc", "ProjectCreate", "kschsvc", "ProjectCreate")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kschsvc", "ProjectCreate", "kschsvc", "ProjectCreate")
 	defer end()
 
 	now := time.Now().UTC()
@@ -46,7 +46,7 @@ func ProjectList(ctx context.Context, userId string, page, perPage int, sortFiel
 	filter := bson.M{"userId": userId}
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/kschsvc",
+		"github.com/hotkhwan/gateway-api/kschsvc",
 		"ProjectList",
 		"kschsvc",
 		"ProjectList",
@@ -85,7 +85,7 @@ func ProjectList(ctx context.Context, userId string, page, perPage int, sortFiel
 }
 
 func ProjectGetByID(ctx context.Context, projectId string, page, perPage int) (*kschmod.Project, []kschmod.Chat, gmod.Pagination, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kschsvc", "ProjectGetByID", "kschsvc", "ProjectGetByID")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kschsvc", "ProjectGetByID", "kschsvc", "ProjectGetByID")
 	defer end()
 
 	oid, err := primitive.ObjectIDFromHex(projectId)
@@ -124,7 +124,7 @@ func ProjectGetByID(ctx context.Context, projectId string, page, perPage int) (*
 }
 
 func ProjectUpdate(ctx context.Context, id string, update kschmod.Project) (*kschmod.Project, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kschsvc", "ProjectUpdate", "kschsvc", "ProjectUpdate")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kschsvc", "ProjectUpdate", "kschsvc", "ProjectUpdate")
 	defer end()
 
 	oid, err := primitive.ObjectIDFromHex(id)
@@ -157,7 +157,7 @@ func ProjectUpdate(ctx context.Context, id string, update kschmod.Project) (*ksc
 }
 
 func ProjectDelete(ctx context.Context, id string) error {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kschsvc", "ProjectDelete", "kschsvc", "ProjectDelete")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kschsvc", "ProjectDelete", "kschsvc", "ProjectDelete")
 	defer end()
 
 	oid, err := primitive.ObjectIDFromHex(id)

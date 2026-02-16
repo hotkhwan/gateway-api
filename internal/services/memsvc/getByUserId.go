@@ -2,9 +2,9 @@ package memsvc
 
 import (
 	"context"
-	"klynx/config"
-	"klynx/models/memmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/memmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"os"
 	"time"
 
@@ -15,7 +15,7 @@ import (
 func MembersGetByUserID(ctx context.Context, userID string) ([]memmod.Member, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/memsvc",
+		"github.com/hotkhwan/gateway-api/memsvc",
 		"memsvc.MembersGetByUserID",
 		"memsvc", "MembersGetByUserID",
 	)
@@ -55,7 +55,7 @@ func MembersGetByUserID(ctx context.Context, userID string) ([]memmod.Member, er
 func GetGroupByUserID(ctx context.Context, userID string) ([]string, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/memsvc",
+		"github.com/hotkhwan/gateway-api/memsvc",
 		"memsvc.GetGroupByUserID",
 		"memsvc", "GetGroupByUserID",
 	)

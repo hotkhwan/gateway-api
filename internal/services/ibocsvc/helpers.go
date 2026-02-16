@@ -18,8 +18,8 @@ import (
 	"sync"
 	"time"
 
-	"klynx/models/aimodel"
-	"klynx/utils"
+	"github.com/hotkhwan/gateway-api/models/aimodel"
+	"github.com/hotkhwan/gateway-api/utils"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

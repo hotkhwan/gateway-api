@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"klynx/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 )
 
 func PostJSON(ctx context.Context, url string, headers map[string]string, body io.Reader) ([]byte, int, error) {

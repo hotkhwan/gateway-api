@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"time"
 
-	pb "klynx/internal/iwown/protobuf"
+	pb "github.com/hotkhwan/gateway-api/internal/iwown/protobuf"
 )
 
 // ---- DateTime helpers ----

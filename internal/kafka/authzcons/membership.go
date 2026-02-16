@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"sync"
 
-	"klynx/internal/services/authzsvc"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
@@ -47,7 +47,7 @@ func SubscribeMembershipEvents(ctx context.Context, svc *authzsvc.MembershipServ
 				go func(m []byte) {
 					defer func() { <-sem; wg.Done() }()
 					ctx := context.Background()
-					tracer := otel.Tracer("klynx/authzcons/membership")
+					tracer := otel.Tracer("github.com/hotkhwan/gateway-api/authzcons/membership")
 					ctx, span := tracer.Start(ctx, "MembershipEvent")
 					defer span.End()
 

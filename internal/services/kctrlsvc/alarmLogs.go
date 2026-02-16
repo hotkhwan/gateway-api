@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/models/gmod"
-	"klynx/models/kctrlmod"
-	"klynx/utils/traceutil"
-	"klynx/utils/typeutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/utils/typeutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -23,7 +23,7 @@ func ListAlarmsLogs(
 	filters map[string]string,
 	sortOrder string,
 ) ([]kctrlmod.AlarmAuditLogItem, gmod.Pagination, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kctrlsvc", "alarms.ListAlarmsLogs", "kctrlsvc", "ListAlarmsLogs")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kctrlsvc", "alarms.ListAlarmsLogs", "kctrlsvc", "ListAlarmsLogs")
 	defer end()
 
 	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)

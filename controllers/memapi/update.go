@@ -1,11 +1,11 @@
 package memapi
 
 import (
-	"klynx/internal/services/memsvc"
-	"klynx/models/gmod"
-	"klynx/models/memmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/memsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/memmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -22,7 +22,7 @@ import (
 // @Router /members/{id} [put]
 // @Security BearerAuth
 func UpdateMember(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/grpapi", "group.UpdateGroup", "grpapi", "UpdateGroup")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/grpapi", "group.UpdateGroup", "grpapi", "UpdateGroup")
 	defer span.End()
 
 	id := c.Params("id")

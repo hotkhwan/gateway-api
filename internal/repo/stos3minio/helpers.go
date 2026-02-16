@@ -4,7 +4,7 @@ package stos3minio
 import (
 	"bytes"
 	"context"
-	"klynx/config"
+	"github.com/hotkhwan/gateway-api/config"
 
 	minio "github.com/minio/minio-go/v7"
 )

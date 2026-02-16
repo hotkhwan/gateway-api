@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"klynx/utils"
+	"github.com/hotkhwan/gateway-api/utils"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

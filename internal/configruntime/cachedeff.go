@@ -6,8 +6,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"klynx/internal/repo/optionsrepo"
-	"klynx/models/systemmod"
+	"github.com/hotkhwan/gateway-api/internal/repo/optionsrepo"
+	"github.com/hotkhwan/gateway-api/models/systemmod"
 )
 
 type CachedEffectiveLoader struct {

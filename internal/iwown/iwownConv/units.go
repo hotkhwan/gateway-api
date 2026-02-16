@@ -4,7 +4,7 @@ package iwownConv
 import (
 	"math"
 
-	"klynx/internal/iwown"
+	"github.com/hotkhwan/gateway-api/internal/iwown"
 )
 
 func ScaleInt(v int64, factor float64) (float64, error) {

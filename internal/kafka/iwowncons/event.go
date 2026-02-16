@@ -5,9 +5,9 @@ import (
 	"context"
 	"encoding/json"
 
-	"klynx/internal/logger"
-	"klynx/internal/services/iwownsvc"
-	"klynx/models/iwownmod"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/iwownsvc"
+	"github.com/hotkhwan/gateway-api/models/iwownmod"
 )
 
 func HandleIwownEvent(ctx context.Context, key string, value []byte, headers map[string]string) error {

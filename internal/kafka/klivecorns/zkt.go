@@ -9,10 +9,10 @@ import (
 
 	"go.opentelemetry.io/otel"
 
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/internal/services/klivesvc"
-	"klynx/models/klivemod"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/klivesvc"
+	"github.com/hotkhwan/gateway-api/models/klivemod"
 )
 
 // ใช้ carrier สำหรับ Extract W3C trace context จาก Kafka headers

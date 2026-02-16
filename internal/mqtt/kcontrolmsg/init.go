@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 	"os"
 	"strings"
 	"sync"

@@ -10,15 +10,15 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/gateways/iboc/watchlist/ibface"
-	"klynx/internal/mqtt/kwatchmsg"
-	"klynx/internal/repo/stomongo"
-	"klynx/internal/repo/stos3minio"
-	"klynx/models/kwatmod"
-	"klynx/utils"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/gateways/iboc/watchlist/ibface"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/kwatchmsg"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/internal/repo/stos3minio"
+	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	minio "github.com/minio/minio-go/v7"
 	"go.mongodb.org/mongo-driver/bson"
@@ -29,7 +29,7 @@ import (
 func HandleWatchlistCreate(parent context.Context, evt kwatmod.WatchlistEvent, g Gateways) error {
 	ctx, end, log := traceutil.StartLite(
 		parent,
-		"klynx/kwatsvc",                   // tracerName
+		"github.com/hotkhwan/gateway-api/kwatsvc",                   // tracerName
 		"watchlist.HandleWatchlistCreate", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kwatsvc", "HandleWatchlistCreate",
 	)

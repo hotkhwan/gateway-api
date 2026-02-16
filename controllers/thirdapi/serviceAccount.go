@@ -5,10 +5,10 @@ import (
 	"os"
 	"strings"
 
-	"klynx/internal/logger"
-	"klynx/internal/services/thirdsvc"
-	"klynx/models/thirdmod"
-	"klynx/utils/httputil"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/thirdsvc"
+	"github.com/hotkhwan/gateway-api/models/thirdmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
@@ -27,7 +27,7 @@ import (
 // @Router /token/api/serviceAccount [post]
 func CreateServiceAccountClient(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/thirdapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/thirdapi")
 	ctx, span := tracer.Start(ctx, "ThirdAPI.CreateServiceAccountClient")
 	defer span.End()
 

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"klynx/config"
-	"klynx/models/authmod"
-	"klynx/models/authzmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/authmod"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/rs/zerolog/log"
 )
@@ -20,7 +20,7 @@ func buildMenusAndPermissions(
 	role string,
 	preferredUsername string,
 ) (menuIDs []string, coreMenuIDs []string, perms map[string]authzmod.PermissionSubjectCheckItem, meta map[string]string, err error) {
-	ctx, end, _ := traceutil.StartLite(ctx, "klynx/authsvc", "permissions.build", "authsvc", "buildMenusAndPermissions")
+	ctx, end, _ := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/authsvc", "permissions.build", "authsvc", "buildMenusAndPermissions")
 	defer end()
 
 	// 1) menu options

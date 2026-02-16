@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"klynx/models/systemmod"
+	"github.com/hotkhwan/gateway-api/models/systemmod"
 )
 
 func normalizeEdgeType(t string) (systemmod.EdgeType, error) {

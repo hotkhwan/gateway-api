@@ -6,7 +6,7 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"klynx/internal/mqtt/kcontrolmsg"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/kcontrolmsg"
 )
 
 type gateways struct {

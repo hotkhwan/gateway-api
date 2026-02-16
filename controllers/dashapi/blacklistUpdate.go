@@ -2,9 +2,9 @@
 package dashapi
 
 import (
-	"klynx/internal/services/dashsvc"
-	"klynx/models/dashmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/dashsvc"
+	"github.com/hotkhwan/gateway-api/models/dashmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -23,7 +23,7 @@ import (
 func UpdateBlacklist(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(
 		c.UserContext(),
-		"klynx/dashapi",
+		"github.com/hotkhwan/gateway-api/dashapi",
 		"dashboard.UpdateBlacklist",
 		"dashapi", "UpdateBlacklist",
 	)

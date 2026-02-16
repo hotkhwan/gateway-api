@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/services/authzsvc"
-	"klynx/models/authzmod"
-	"klynx/models/gmod"
+	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/models/gmod"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -258,7 +258,7 @@ func UpdateProfileHandler(c *fiber.Ctx) error {
 // @Security     BearerAuth
 func PublishProfileHandler(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/authzapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/authzapi")
 	ctx, span := tracer.Start(ctx, "Authz.PublishProfileHandler")
 	defer span.End()
 

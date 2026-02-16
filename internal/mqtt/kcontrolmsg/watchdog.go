@@ -10,10 +10,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"klynx/config"
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/models/kctrlmod"
 )
 
 func CheckDeviceStatus() {

@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 )
 
 var (
@@ -44,7 +44,7 @@ func getTenantID() string {
 	if t := os.Getenv("PERMIFY_TENANT_ID"); t != "" {
 		return t
 	}
-	return "klynx"
+	return "aliza"
 }
 
 // ✅ ใช้ตรวจสอบ Health (REST)

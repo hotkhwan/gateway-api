@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/crypto/secretbox"
-	"klynx/internal/logger"
-	"klynx/internal/repo/stomongo"
-	"klynx/models/systemmod"
+	"github.com/hotkhwan/gateway-api/internal/crypto/secretbox"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models/systemmod"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )

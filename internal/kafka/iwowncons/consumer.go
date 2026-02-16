@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 )
 
 type kindOnly struct {

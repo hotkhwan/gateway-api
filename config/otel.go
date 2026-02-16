@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"

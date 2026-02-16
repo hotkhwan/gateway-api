@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -22,7 +22,7 @@ func Watchlist3partyWatchmanUpdate(
 ) (string, int, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/watchgw",
+		"github.com/hotkhwan/gateway-api/watchgw",
 		"watchman.Watchlist3partyWatchmanUpdate",
 		"watchgw", "Watchlist3partyWatchmanUpdate",
 	)

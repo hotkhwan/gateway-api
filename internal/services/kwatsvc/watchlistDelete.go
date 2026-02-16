@@ -6,10 +6,10 @@ import (
 	"errors"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/kafka"
-	"klynx/models/kwatmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -19,7 +19,7 @@ import (
 func WatchlistDelete(ctx context.Context, idOrIdCard string) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/kwatsvc",             // tracerName
+		"github.com/hotkhwan/gateway-api/kwatsvc",             // tracerName
 		"watchlist.WatchlistDelete", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kwatsvc", "WatchlistDelete",
 	)

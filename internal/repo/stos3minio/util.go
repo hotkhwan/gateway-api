@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"klynx/config"
+	"github.com/hotkhwan/gateway-api/config"
 )
 
 // parseS3URL รองรับ:

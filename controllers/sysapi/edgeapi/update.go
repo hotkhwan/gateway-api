@@ -4,11 +4,11 @@ package edgeapi
 import (
 	"strings"
 
-	"klynx/internal/services/systemsvc/edgesvc"
-	"klynx/models/gmod"
-	"klynx/models/systemmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/systemsvc/edgesvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/systemmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -28,7 +28,7 @@ import (
 // @Router /system/edge/{id} [patch]
 // @Security BearerAuth
 func UpdateEdge(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/edgeapi", "system.edge.Update", "edgeapi", "UpdateEdge")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/edgeapi", "system.edge.Update", "edgeapi", "UpdateEdge")
 	defer span.End()
 
 	id := strings.TrimSpace(c.Params("id"))

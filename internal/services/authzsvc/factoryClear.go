@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 )
 
 // ใช้ร่วมกับทั้ง factory-clear และ factory-reset

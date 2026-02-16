@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/logger"
-	"klynx/internal/services/atasvc"
-	"klynx/models/devsyncmod"
-	"klynx/utils"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/atasvc"
+	"github.com/hotkhwan/gateway-api/models/devsyncmod"
+	"github.com/hotkhwan/gateway-api/utils"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -23,7 +23,7 @@ import (
 )
 
 func SyncDevicesAndChannelsByEdgeIDATA(ctx context.Context, edgeID string) (*devsyncmod.SyncResult, error) {
-	tracer := otel.Tracer("klynx/devsync")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/devsync")
 	ctx, span := tracer.Start(ctx, "DevSync.ATA")
 	defer span.End()
 

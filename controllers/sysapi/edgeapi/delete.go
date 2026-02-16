@@ -4,11 +4,11 @@ package edgeapi
 import (
 	"strings"
 
-	"klynx/internal/logger"
-	"klynx/internal/services/systemsvc/edgesvc"
-	"klynx/models/systemmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/systemsvc/edgesvc"
+	"github.com/hotkhwan/gateway-api/models/systemmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -26,7 +26,7 @@ import (
 // @Router /system/edge/{id} [delete]
 // @Security BearerAuth
 func DeleteEdge(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/edgeapi", "system.edge.Delete", "edgeapi", "DeleteEdge")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/edgeapi", "system.edge.Delete", "edgeapi", "DeleteEdge")
 	defer span.End()
 	_ = logger.FromCtx(ctx, "edgeapi", "DeleteEdge")
 

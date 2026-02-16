@@ -14,18 +14,18 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/models/aimodel"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/models/aimodel"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // -------------------- ATA (JSON ตรง) --------------------
 
 func HandleATA(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/atapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/atapi")
 	ctx, span := tracer.Start(ctx, "webhook.HandleATA")
 	defer span.End()
 
@@ -95,7 +95,7 @@ func HandleATA(c *fiber.Ctx) error {
 
 func HandlePusherEvent(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/atapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/atapi")
 	ctx, span := tracer.Start(ctx, "webhook.HandlePusherEvent")
 	defer span.End()
 

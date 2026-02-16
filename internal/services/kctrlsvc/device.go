@@ -8,10 +8,10 @@ import (
 	"os"
 	"time"
 
-	"klynx/config"
-	"klynx/models/gmod"
-	"klynx/models/kctrlmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -21,7 +21,7 @@ import (
 func ListDevices(ctx context.Context, page, perPages int, filters map[string]string, sortField, sortOrder string) ([]kctrlmod.Device, gmod.Pagination, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/kctrlsvc",     // tracerName
+		"github.com/hotkhwan/gateway-api/kctrlsvc",     // tracerName
 		"alarms.ListDevices", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kctrlsvc", "ListDevices",
 	)
@@ -103,7 +103,7 @@ func ListDevices(ctx context.Context, page, perPages int, filters map[string]str
 func UpdateDevice(ctx context.Context, id primitive.ObjectID, payload kctrlmod.UpdatePayload) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/kctrlsvc",      // tracerName
+		"github.com/hotkhwan/gateway-api/kctrlsvc",      // tracerName
 		"alarms.UpdateDevice", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kctrlsvc", "UpdateDevice",
 	)
@@ -168,7 +168,7 @@ func UpdateDevice(ctx context.Context, id primitive.ObjectID, payload kctrlmod.U
 func ResetStats(ctx context.Context, deviceId string) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/kctrlsvc",    // tracerName
+		"github.com/hotkhwan/gateway-api/kctrlsvc",    // tracerName
 		"alarms.ResetStats", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kctrlsvc", "ResetStats",
 	)

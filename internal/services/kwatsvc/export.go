@@ -17,11 +17,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"klynx/config"
-	"klynx/internal/repo/stomongo"
-	"klynx/internal/repo/stos3minio"
-	"klynx/models/kwatmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/internal/repo/stos3minio"
+	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 const (
@@ -31,7 +31,7 @@ const (
 // ======================= Public API =======================
 
 func StartWatchlistExport(ctx context.Context, p kwatmod.ExportWatchlistParams) (string, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kwatsvc", "StartWatchlistExport", "kwatsvc", "export-start")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kwatsvc", "StartWatchlistExport", "kwatsvc", "export-start")
 	defer end()
 
 	now := time.Now()
@@ -50,7 +50,7 @@ func StartWatchlistExport(ctx context.Context, p kwatmod.ExportWatchlistParams) 
 
 	// run async
 	go func(parent context.Context, id string, params kwatmod.ExportWatchlistParams) {
-		ctx2, end2, lg := traceutil.StartLite(parent, "klynx/kwatsvc", "RunExport", "kwatsvc", "export-run")
+		ctx2, end2, lg := traceutil.StartLite(parent, "github.com/hotkhwan/gateway-api/kwatsvc", "RunExport", "kwatsvc", "export-run")
 		defer end2()
 
 		objID, _ := primitive.ObjectIDFromHex(id)
@@ -101,7 +101,7 @@ type imgTask struct {
 }
 
 func runWatchlist(ctx context.Context, jobID string, p kwatmod.ExportWatchlistParams) (*kwatmod.ExportResult, error) {
-	ctx, end, _ := traceutil.StartLite(ctx, "klynx/kwatsvc", "BuildWatchlist", "kwatsvc", "export-build")
+	ctx, end, _ := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kwatsvc", "BuildWatchlist", "kwatsvc", "export-build")
 	defer end()
 
 	// limit: 0 = ไม่จำกัด (stream ทั้งหมด)
@@ -355,7 +355,7 @@ func buildExcel(ctx context.Context, cur Cursor, out string) ([]imgTask, error) 
 
 // ทำ ZIP + แนบรูปตาม tasks
 func makeZipWithImages(ctx context.Context, xlsxPath, zipPath string, tasks []imgTask) error {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kwatsvc", "Zip", "kwatsvc", "zip")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kwatsvc", "Zip", "kwatsvc", "zip")
 	defer end()
 
 	bucketKwatch := os.Getenv("S3_BUCKET_KWATCH")

@@ -2,9 +2,9 @@
 package kctrlapi
 
 import (
-	"klynx/internal/services/kctrlsvc"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/kctrlsvc"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -21,7 +21,7 @@ import (
 // @Router       /kcontrol/alarms/export [get]
 // @Security     BearerAuth
 func ExportAlarms(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kctrlapi", "alarms.ExportAlarms", "kctrlapi", "ExportAlarms")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "alarms.ExportAlarms", "kctrlapi", "ExportAlarms")
 	defer span.End()
 
 	format := c.Query("format", "csv")

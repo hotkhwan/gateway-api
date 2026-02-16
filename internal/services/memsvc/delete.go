@@ -2,10 +2,10 @@ package memsvc
 
 import (
 	"context"
-	"klynx/config"
+	"github.com/hotkhwan/gateway-api/config"
 
-	//"klynx/models/memmod"
-	"klynx/utils/traceutil"
+	//"github.com/hotkhwan/gateway-api/models/memmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"os"
 	"time"
 
@@ -17,7 +17,7 @@ import (
 func DeleteMember(ctx context.Context, memberId string) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/memsvc",        // tracerName
+		"github.com/hotkhwan/gateway-api/memsvc",        // tracerName
 		"memsvc.DeleteMember", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"memsvc", "DeleteMember",
 	)

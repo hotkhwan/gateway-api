@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"klynx/internal/services/devsvc"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/devsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -28,7 +28,7 @@ import (
 // @Router       /devices/import [post]
 // @Security BearerAuth
 func DeviceTemplate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/devapi", "devices.DeviceTemplate", "devapi", "DeviceTemplate")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/devapi", "devices.DeviceTemplate", "devapi", "DeviceTemplate")
 	defer span.End()
 	log.Info().
 		Msg("📥 [DeviceTemplate] Incoming request")

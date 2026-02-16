@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/crypto/secretbox"
-	"klynx/internal/logger"
-	"klynx/models/systemmod"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/crypto/secretbox"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/models/systemmod"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

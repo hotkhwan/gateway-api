@@ -5,8 +5,8 @@ import (
 	"context"
 	"time"
 
-	"klynx/models/authzmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // helper แปลง CRUD → permify permission name (ตาม schema resource)
@@ -42,7 +42,7 @@ func GetGlobalPermissionsForSubject(
 ) (map[string][]string, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.GetGlobalPermissionsForSubject",
 		"authzsvc", "GetGlobalPermissionsForSubject",
 	)
@@ -122,7 +122,7 @@ func GetUserGlobalPermissions(
 ) (map[string][]string, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.GetUserGlobalPermissions",
 		"authzsvc", "GetUserGlobalPermissions",
 	)

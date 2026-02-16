@@ -12,16 +12,17 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"klynx/config"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 func ApplySchema(ctx context.Context) (string, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.ApplySchema",
 		"authzsvc", "ApplySchema",
 	)
@@ -84,7 +85,7 @@ func ApplySchema(ctx context.Context) (string, error) {
 func InitialSyncRelationships(ctx context.Context, schemaVersion string) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.InitialSyncRelationships",
 		"authzsvc", "InitialSyncRelationships",
 	)
@@ -168,4 +169,19 @@ func InitialSyncRelationships(ctx context.Context, schemaVersion string) error {
 
 	log.Info().Msg("✅ Relationships Synced Successfully (REST)")
 	return nil
+}
+
+func EnsureAuthzIndexes(ctx context.Context) error {
+	col := config.DB.Collection("organizations")
+
+	_, err := col.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "tenantId", Value: 1},
+			{Key: "name", Value: 1},
+		},
+		Options: options.Index().
+			SetName("ux_org_tenant_name").
+			SetUnique(true),
+	})
+	return err
 }

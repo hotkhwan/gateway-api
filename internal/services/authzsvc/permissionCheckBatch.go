@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"klynx/models/authzmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // CheckPermissionsBatch ทำ batch แบบ simple: สรุปเป็น map[entityID]bool
@@ -37,7 +37,7 @@ func CheckPermissionsBatch(ctx context.Context, inputs []authzmod.PermissionChec
 func CheckPermissionsBatchMatrix(ctx context.Context, inputs []authzmod.PermissionCheckInput) (map[string]map[string]bool, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.CheckPermissionsBatchMatrix",
 		"authzsvc", "CheckPermissionsBatchMatrix",
 	)

@@ -10,12 +10,12 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/internal/repo/stomongo"
-	"klynx/models/kwatmod"
-	"klynx/utils"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -102,7 +102,7 @@ func merge(m bson.M, with bson.M) bson.M {
 
 // mode: "missing" (default) | "backfill" | "all"
 func EmitSyncIbocTask(ctx context.Context, jobID, mode string) error {
-	tr := otel.Tracer("klynx/kwatch")
+	tr := otel.Tracer("github.com/hotkhwan/gateway-api/kwatch")
 	ctx, span := tr.Start(ctx, "kwatsvc.EmitSyncIbocTask", trace.WithSpanKind(trace.SpanKindProducer))
 	defer span.End()
 
@@ -189,7 +189,7 @@ func EmitSyncIbocTask(ctx context.Context, jobID, mode string) error {
 
 // mode: "missing" (default) | "backfill" | "all"
 func EmitSyncIbocDevTask(ctx context.Context, jobID, mode string) error {
-	tr := otel.Tracer("klynx/kwatch")
+	tr := otel.Tracer("github.com/hotkhwan/gateway-api/kwatch")
 	ctx, span := tr.Start(ctx, "kwatsvc.EmitSyncIbocDevTask", trace.WithSpanKind(trace.SpanKindProducer))
 	defer span.End()
 

@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"klynx/config"
-	"klynx/models/repomod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/repomod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // getExpiryFromEnv อ่าน S3_EXPIRY แล้วคืนค่า time.Duration
@@ -44,7 +44,7 @@ func resolveExpiry(expiry time.Duration) time.Duration {
 func PresignOnce(ctx context.Context, bucket, key string, expiry time.Duration) (string, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/stos3minio",
+		"github.com/hotkhwan/gateway-api/stos3minio",
 		"files.PresignOnce",
 		"stos3minio", "PresignOnce",
 	)

@@ -2,12 +2,12 @@ package memsvc
 
 import (
 	"context"
-	"klynx/config"
-	"klynx/internal/services/usrsvc"
-	"klynx/models/grpmod"
-	"klynx/models/memmod"
-	"klynx/models/usrmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/services/usrsvc"
+	"github.com/hotkhwan/gateway-api/models/grpmod"
+	"github.com/hotkhwan/gateway-api/models/memmod"
+	"github.com/hotkhwan/gateway-api/models/usrmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"os"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,7 +16,7 @@ import (
 func MembersGetByGroupID(ctx context.Context, groupTree *grpmod.GroupTree) ([]memmod.GroupDetails, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/memsvc",
+		"github.com/hotkhwan/gateway-api/memsvc",
 		"memsvc.GetByGroupID",
 		"memsvc", "GetByGroupID",
 	)
@@ -103,7 +103,7 @@ func CollectUniqueGroupIDs(tree *grpmod.GroupTree) []string {
 func GetUserList(ctx context.Context, page, perPage int, search string) ([]usrmod.KeycloakUser, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/memsvc",
+		"github.com/hotkhwan/gateway-api/memsvc",
 		"memsvc.GetUserList",
 		"memsvc", "GetUserList",
 	)

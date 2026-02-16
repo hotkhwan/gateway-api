@@ -7,11 +7,11 @@ import (
 	"os"
 	"strings"
 
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/internal/services/kwatsvc"
-	"klynx/models/kwatmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
+	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -20,7 +20,7 @@ import (
 
 func StartWatchlistConsumer(broker, topic string) {
 	ctx := context.Background()
-	tracer := otel.Tracer("klynx/kwatchcons")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/kwatchcons")
 	log := logger.FromCtx(ctx, "kwatchcons", "StartWatchlistConsumer")
 	log.Info().Str("topic", topic).Msg("consumer_boot")
 

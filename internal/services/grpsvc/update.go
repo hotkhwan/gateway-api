@@ -3,10 +3,10 @@ package grpsvc
 
 import (
 	"context"
-	"klynx/config"
-	"klynx/models/gmod"
-	"klynx/models/grpmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/grpmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"os"
 	"time"
 
@@ -16,7 +16,7 @@ import (
 )
 
 func UpdateGroup(ctx context.Context, id string, req grpmod.GroupRequest) error {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/grpsvc", "grpsvc.UpdateGroup", "grpsvc", "UpdateGroup")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/grpsvc", "grpsvc.UpdateGroup", "grpsvc", "UpdateGroup")
 	defer end()
 
 	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)

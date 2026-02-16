@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/repo/cachego/cacheklive"
-	"klynx/internal/repo/stomongo"
-	"klynx/models/klivemod"
+	"github.com/hotkhwan/gateway-api/internal/repo/cachego/cacheklive"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models/klivemod"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"

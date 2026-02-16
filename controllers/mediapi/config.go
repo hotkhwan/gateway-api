@@ -2,9 +2,9 @@
 package mediapi
 
 import (
-	"klynx/config"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"time"
 
 	"github.com/gofiber/fiber/v2"

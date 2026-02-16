@@ -5,10 +5,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"klynx/internal/services/optsvc"
-	"klynx/models/gmod"
-	"klynx/models/optmod"
-	"klynx/utils/httputil"
+	"github.com/hotkhwan/gateway-api/internal/services/optsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/optmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 )
 
 // POST /options/seed/policeStation

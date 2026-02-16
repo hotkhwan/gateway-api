@@ -2,11 +2,11 @@
 package setapi
 
 import (
-	"klynx/config"
-	"klynx/internal/services/systemsvc/setsvc"
-	"klynx/models/gmod"
-	"klynx/models/usrmod"
-	"klynx/utils/httputil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/services/systemsvc/setsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/usrmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 
 	"github.com/gofiber/fiber/v2"
 )

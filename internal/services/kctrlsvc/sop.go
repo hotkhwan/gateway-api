@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/models/kctrlmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,7 +19,7 @@ import (
 
 
 func AppendAlarmSop(ctx context.Context, alarmId string, req kctrlmod.SopStepRequest, c *fiber.Ctx) error {
-	traceCtx, end, _ := traceutil.StartLite(ctx, "klynx/kctrlsvc", "alarms.AppendAlarmSop", "kctrlsvc", "AppendAlarmSop")
+	traceCtx, end, _ := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kctrlsvc", "alarms.AppendAlarmSop", "kctrlsvc", "AppendAlarmSop")
 	defer end()
 
 	cctx, cancel := context.WithTimeout(traceCtx, 5*time.Second)

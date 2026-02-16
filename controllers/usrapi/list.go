@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	"klynx/internal/services/usrsvc"
-	"klynx/models/gmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/usrsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -74,7 +74,7 @@ func parseUserIds(c *fiber.Ctx) []string {
 // @Router       /users [get]
 func ListUsers(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(c.UserContext(),
-		"klynx/usrapi", "users.ListUsers", "usrapi", "ListUsers")
+		"github.com/hotkhwan/gateway-api/usrapi", "users.ListUsers", "usrapi", "ListUsers")
 	defer span.End()
 
 	authHeader := c.Get("Authorization")

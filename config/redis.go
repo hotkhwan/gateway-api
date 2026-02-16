@@ -2,9 +2,10 @@
 package config
 
 import (
-	"klynx/internal/logger"
 	"os"
 	"strconv"
+
+	"github.com/hotkhwan/gateway-api/internal/logger"
 
 	"github.com/redis/go-redis/v9"
 )

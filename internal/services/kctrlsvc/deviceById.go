@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/repo/stomongo"
-	"klynx/models/kctrlmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -18,7 +18,7 @@ import (
 func DeviceGetByID(ctx context.Context, id string) (kctrlmod.Device, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/kctrlsvc",
+		"github.com/hotkhwan/gateway-api/kctrlsvc",
 		"kctrlsvc.DeviceGetByID",
 		"kctrlsvc", "DeviceGetByID",
 	)

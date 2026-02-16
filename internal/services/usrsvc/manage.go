@@ -4,7 +4,7 @@ package usrsvc
 import (
 	"context"
 	"fmt"
-	"klynx/internal/gateways/authgw"
+	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 )
 
 func UpdateUser(ctx context.Context, userID string, attrs map[string]any) error {

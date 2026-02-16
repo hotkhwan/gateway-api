@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 )
 
 var ErrNotConnected = errors.New("mqtt client not connected (inframsg)")

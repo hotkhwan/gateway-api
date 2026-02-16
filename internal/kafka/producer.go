@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/logger"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -132,7 +132,7 @@ func standardHeadersFrom(ctx context.Context, event any, _ map[string]string) ma
 	}
 	schema := os.Getenv("EVENT_SCHEMA") // e.g. "kwatch/watchlist/1"
 	if schema == "" {
-		schema = "klynx/default/1"
+		schema = "github.com/hotkhwan/gateway-api/default/1"
 	}
 	idem := ""
 	if ev.Event != "" && ev.ID != "" {

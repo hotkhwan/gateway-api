@@ -3,14 +3,14 @@ package authzsvc
 
 import (
 	"context"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"time"
 )
 
 func EventUpdateResourceRelationship(ctx context.Context, ResourceID, groupID string) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.EventUpdateResourceRelationship",
 		"authzsvc", "EventUpdateResourceRelationship",
 	)

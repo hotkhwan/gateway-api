@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/repo/stos3minio"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/repo/stos3minio"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -30,7 +30,7 @@ import (
 func ProxyFiles(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(
 		c.UserContext(),
-		"klynx/fileapi",
+		"github.com/hotkhwan/gateway-api/fileapi",
 		"file.ProxyFiles",
 		"fileapi",
 		"ProxyFiles",

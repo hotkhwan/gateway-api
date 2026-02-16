@@ -8,16 +8,16 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/gateways/authgw"
-	"klynx/models/authmod"
-	"klynx/models/authzmod"
-	"klynx/utils/authutil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
+	"github.com/hotkhwan/gateway-api/models/authmod"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/utils/authutil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 func AuthenticateOAuthCode(ctx context.Context, req authmod.OAuthCallbackRequest) (authmod.SigninResponse, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/authsvc", "authenticate.oauthCode", "authsvc", "AuthenticateOAuthCode")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/authsvc", "authenticate.oauthCode", "authsvc", "AuthenticateOAuthCode")
 	defer end()
 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)

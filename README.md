@@ -289,6 +289,11 @@ http://localhost:3001/docs/index.html
 
 ---
 
+## Rename Packet
+find . -name '*.go' -print0 | xargs -0 sed -i 's#github.com/hotkhwan/aliza/#github.com/hotkhwan/gateway-api/#g'
+find . -name '*.go' -print0 | xargs -0 sed -i 's#"xxx/#"github.com/hotkhwan/gateway-api/#g'
+
+
 ## 📜 License
 
 MIT © 2025 KLYNX Dev Team

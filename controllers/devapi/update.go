@@ -2,11 +2,11 @@
 package devapi
 
 import (
-	"klynx/internal/services/devsvc"
-	"klynx/models/devmod"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/devsvc"
+	"github.com/hotkhwan/gateway-api/models/devmod"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -26,7 +26,7 @@ import (
 // @Router /devices/{id} [patch]
 // @Security BearerAuth
 func DeviceUpdate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/devapi", "devices.DeviceUpdate", "devapi", "DeviceUpdate")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/devapi", "devices.DeviceUpdate", "devapi", "DeviceUpdate")
 	defer span.End()
 	id := c.Params("id")
 	if id == "" {

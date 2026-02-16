@@ -1,12 +1,12 @@
 package memapi
 
 import (
-	"klynx/internal/services/memsvc"
-	"klynx/models/gmod"
-	"klynx/models/memmod"
-	"klynx/utils/authutil"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/memsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/memmod"
+	"github.com/hotkhwan/gateway-api/utils/authutil"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -24,7 +24,7 @@ import (
 // @Router /members [post]
 // @Security BearerAuth
 func CreateMember(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/memapi", "memapi.CreateMember", "memapi", "CreateMember")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/memapi", "memapi.CreateMember", "memapi", "CreateMember")
 	defer span.End()
 
 	var req []memmod.MemberRequest
@@ -57,7 +57,7 @@ func CreateMember(c *fiber.Ctx) error {
 }
 
 func CreateMember2(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/memapi", "memapi.CreateMember2", "memapi", "CreateMember2")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/memapi", "memapi.CreateMember2", "memapi", "CreateMember2")
 	defer span.End()
 
 	// ดึง groupID จาก URL: /member/:groupID

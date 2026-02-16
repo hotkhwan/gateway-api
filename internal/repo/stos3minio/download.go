@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"klynx/config"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/minio/minio-go/v7"
 )
@@ -16,7 +16,7 @@ import (
 func DownloadByKey(ctx context.Context, bucket, key string) ([]byte, string, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/stos3minio",
+		"github.com/hotkhwan/gateway-api/stos3minio",
 		"files.DownloadByKey",
 		"stos3minio", "DownloadByKey",
 	)

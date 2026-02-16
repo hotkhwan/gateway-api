@@ -6,8 +6,8 @@ import (
 	"errors"
 	"strings"
 
-	"klynx/internal/logger"
-	"klynx/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

@@ -4,17 +4,17 @@ package kaicons
 import (
 	"context"
 	"fmt"
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/internal/services/kaisvc"
-	"klynx/models/kaimod"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/kaisvc"
+	"github.com/hotkhwan/gateway-api/models/kaimod"
 	"os"
 	"strings"
 )
 
 func StartKafkaDetectConsumer(broker, topic string) {
 	ctx := context.Background()
-	// tracer := otel.Tracer("klynx/kwatchcons")
+	// tracer := otel.Tracer("github.com/hotkhwan/gateway-api/kwatchcons")
 	log := logger.FromCtx(ctx, "kwatchcons", "StartWatchlistConsumer")
 	log.Info().Msg("🧠 Starting Kafka Detection Consumer")
 

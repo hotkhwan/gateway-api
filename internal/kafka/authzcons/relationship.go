@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/models/authzmod"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -21,7 +21,7 @@ import (
 
 func StartKafkaAuthzRelationshipConsumer(broker, topic string) {
 	base := context.Background()
-	tracer := otel.Tracer("klynx/authzcons")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/authzcons")
 	boot := logger.FromCtx(base, "authzcons", "StartKafkaAuthzRelationshipConsumer")
 	boot.Info().Str("topic", topic).Msg("consumer_boot")
 	boot.Info().Msg("🟢 Starting Kafka AuthZ Relationship Consumer")

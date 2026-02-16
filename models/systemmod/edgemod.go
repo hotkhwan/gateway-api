@@ -4,7 +4,7 @@ package systemmod
 import (
 	"time"
 
-	"klynx/internal/crypto/secretbox"
+	"github.com/hotkhwan/gateway-api/internal/crypto/secretbox"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

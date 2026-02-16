@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"klynx/internal/repo/stomongo"
-	"klynx/models/rscmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models/rscmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -30,7 +30,7 @@ func makeKey(provider, typ, canonicalId string) string {
 
 func ResourceBulkCreate(ctx context.Context, payloads []rscmod.ResourceUpsert) (BulkCreateResult, error) {
 	ctx, end, log := traceutil.StartLite(
-		ctx, "klynx/rscsvc", "ResourceBulkCreate", "rscsvc", "ResourceBulkCreate",
+		ctx, "github.com/hotkhwan/gateway-api/rscsvc", "ResourceBulkCreate", "rscsvc", "ResourceBulkCreate",
 	)
 	defer end()
 

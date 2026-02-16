@@ -6,10 +6,10 @@ import (
 	"os"
 	"time"
 
-	"klynx/config"
-	"klynx/models/gmod"
-	"klynx/models/kctrlmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -17,7 +17,7 @@ import (
 )
 
 func ListEvents(ctx context.Context, page, perPages int, filters map[string]string, sortField, sortOrder string) ([]kctrlmod.EventResponseItem, gmod.Pagination, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kctrlsvc", "events.ListEvents", "kctrlsvc", "ListEvents")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kctrlsvc", "events.ListEvents", "kctrlsvc", "ListEvents")
 	defer end()
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()

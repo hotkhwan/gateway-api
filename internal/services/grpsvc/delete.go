@@ -3,9 +3,9 @@ package grpsvc
 
 import (
 	"context"
-	"klynx/config"
-	"klynx/models/gmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"os"
 	"time"
 
@@ -13,7 +13,7 @@ import (
 )
 
 func DeleteGroup(ctx context.Context, id string, cascade string) error {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/grpsvc", "grpsvc.DeleteGroup", "grpsvc", "DeleteGroup")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/grpsvc", "grpsvc.DeleteGroup", "grpsvc", "DeleteGroup")
 	defer end()
 
 	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)

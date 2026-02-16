@@ -2,11 +2,11 @@
 package grpapi
 
 import (
-	"klynx/internal/services/grpsvc"
-	"klynx/models/gmod"
-	"klynx/models/grpmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/grpsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/grpmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -27,7 +27,7 @@ import (
 // @Router       /groups/{id} [patch]
 // @Security     BearerAuth
 func UpdateGroup(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/grpapi", "group.UpdateGroup", "grpapi", "UpdateGroup")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/grpapi", "group.UpdateGroup", "grpapi", "UpdateGroup")
 	defer span.End()
 
 	id := c.Params("id")

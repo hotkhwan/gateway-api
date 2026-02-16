@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"strings"
 
-	"klynx/internal/logger"
-	"klynx/internal/services/kwatsvc"
-	"klynx/models/kwatmod"
-	"klynx/utils/httputil"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
+	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
@@ -37,7 +37,7 @@ import (
 // @Security BearerAuth
 func WatchlistList(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/kwatapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/kwatapi")
 	ctx, span := tracer.Start(ctx, "Kwatch.WatchlistList")
 	defer span.End()
 

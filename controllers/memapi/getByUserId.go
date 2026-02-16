@@ -5,9 +5,9 @@ import (
 	"errors"
 	"strings"
 
-	"klynx/internal/services/memsvc"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/memsvc"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -25,7 +25,7 @@ import (
 // @Router /members/{userId} [get]
 // @Security BearerAuth
 func MemberGetByUserID(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "klynx/devapi", "devapi.memberGetByID", "devapi", "memberGetByID")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "github.com/hotkhwan/gateway-api/devapi", "devapi.memberGetByID", "devapi", "memberGetByID")
 	defer end()
 
 	userId := strings.TrimSpace(c.Params("Id"))

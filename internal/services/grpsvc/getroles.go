@@ -2,10 +2,10 @@ package grpsvc
 
 import (
 	"context"
-	"klynx/config"
-	"klynx/models/gmod"
-	"klynx/models/grpmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/grpmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"os"
 	"time"
 
@@ -17,7 +17,7 @@ import (
 func ListGroupRoles(ctx context.Context, page, perPages int, filters map[string]string, sortField, sortOrder string) ([]grpmod.GroupRole, gmod.Pagination, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/grpsvc",
+		"github.com/hotkhwan/gateway-api/grpsvc",
 		"groups.ListGroupRoles",
 		"grpsvc", "ListGroupRoles",
 	)

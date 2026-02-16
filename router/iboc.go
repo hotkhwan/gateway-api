@@ -2,7 +2,7 @@
 package router
 
 import (
-	"klynx/controllers/webhooks/analytic/ibocapi"
+	"github.com/hotkhwan/gateway-api/controllers/webhooks/analytic/ibocapi"
 
 	"github.com/gofiber/fiber/v2"
 )

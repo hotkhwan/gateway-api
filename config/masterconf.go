@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"klynx/internal/crypto/secretbox"
+	"github.com/hotkhwan/gateway-api/internal/crypto/secretbox"
 )
 
 var (

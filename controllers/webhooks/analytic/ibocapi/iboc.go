@@ -14,17 +14,17 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/models/aimodel"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/models/aimodel"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 func HandleIboc(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/ibocapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/ibocapi")
 	ctx, span := tracer.Start(ctx, "webhook.HandleIboc")
 	defer span.End()
 

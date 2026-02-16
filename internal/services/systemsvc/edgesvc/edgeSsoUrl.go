@@ -10,8 +10,8 @@ import (
 	"os"
 	"strings"
 
-	"klynx/internal/repo/stomongo"
-	"klynx/utils"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/utils"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

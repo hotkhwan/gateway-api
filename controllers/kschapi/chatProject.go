@@ -6,13 +6,13 @@ import (
 	"strconv"
 	"strings"
 
-	"klynx/internal/middleware"
-	"klynx/internal/services/kschsvc"
-	"klynx/models/gmod"
-	"klynx/models/kschmod"
-	"klynx/utils"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/middleware"
+	"github.com/hotkhwan/gateway-api/internal/services/kschsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kschmod"
+	"github.com/hotkhwan/gateway-api/utils"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -29,7 +29,7 @@ import (
 // @Router /ksearch/projects [post]
 // @Security BearerAuth
 func ProjectCreate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kschapi", "ProjectCreate", "kschapi", "ProjectCreate")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ProjectCreate", "kschapi", "ProjectCreate")
 	defer span.End()
 
 	var req kschmod.ProjectRequest
@@ -73,7 +73,7 @@ func ProjectCreate(c *fiber.Ctx) error {
 // @Router /ksearch/projects [get]
 // @Security BearerAuth
 func ProjectList(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kschapi", "ProjectList", "kschapi", "ProjectList")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ProjectList", "kschapi", "ProjectList")
 	defer span.End()
 
 	userId, err := middleware.CurrentUserID(c)
@@ -119,7 +119,7 @@ func ProjectList(c *fiber.Ctx) error {
 // @Router /ksearch/projects/{projectId} [get]
 // @Security BearerAuth
 func ProjectGetByID(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kschapi", "ProjectGetByID", "kschapi", "ProjectGetByID")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ProjectGetByID", "kschapi", "ProjectGetByID")
 	defer span.End()
 
 	projectId := c.Params("projectId")
@@ -171,7 +171,7 @@ func ProjectGetByID(c *fiber.Ctx) error {
 // @Router /ksearch/projects/{id} [put]
 // @Security BearerAuth
 func ProjectUpdate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kschapi", "ProjectGetByID", "kschapi", "ProjectGetByID")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ProjectGetByID", "kschapi", "ProjectGetByID")
 	defer span.End()
 	id := c.Params("id")
 	var req kschmod.ProjectRequest
@@ -211,7 +211,7 @@ func ProjectUpdate(c *fiber.Ctx) error {
 func ProjectDelete(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(
 		c.UserContext(),
-		"klynx/kschapi",
+		"github.com/hotkhwan/gateway-api/kschapi",
 		"ProjectDelete",
 		"kschapi",
 		"ProjectDelete",

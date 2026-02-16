@@ -3,8 +3,8 @@ package stomongo
 
 import (
 	"context"
-	"klynx/config"
-	"klynx/models/gmod"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/gmod"
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 )

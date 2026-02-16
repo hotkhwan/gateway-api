@@ -4,10 +4,10 @@ package kwatapi
 import (
 	"errors"
 
-	"klynx/internal/logger"
-	"klynx/internal/services/kwatsvc"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
@@ -28,7 +28,7 @@ import (
 func WatchlistDelete(c *fiber.Ctx) error {
 	// ---- tracing (เหมือน resetPassword.go) ----
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/kwatapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/kwatapi")
 	ctx, span := tracer.Start(ctx, "Kwatch.WatchlistDelete")
 	defer span.End()
 

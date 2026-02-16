@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
+	"github.com/hotkhwan/gateway-api/config"
 
 	"github.com/redis/go-redis/v9"
 )

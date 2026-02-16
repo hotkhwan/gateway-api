@@ -4,7 +4,7 @@ package stomongo
 import (
 	"context"
 
-	"klynx/config"
+	"github.com/hotkhwan/gateway-api/config"
 
 	"go.mongodb.org/mongo-driver/mongo"
 )

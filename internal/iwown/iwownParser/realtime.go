@@ -4,8 +4,8 @@ package iwownParser
 import (
 	"google.golang.org/protobuf/proto"
 
-	"klynx/internal/iwown"
-	pb "klynx/internal/iwown/protobuf"
+	"github.com/hotkhwan/gateway-api/internal/iwown"
+	pb "github.com/hotkhwan/gateway-api/internal/iwown/protobuf"
 )
 
 // Parse realtime payload -> RtNotification (ตรงกับ proto ที่ generate)

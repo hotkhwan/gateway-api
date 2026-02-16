@@ -4,8 +4,8 @@ package iwownParser
 import (
 	"fmt"
 
-	"klynx/internal/iwown/iwownConv"
-	pb "klynx/internal/iwown/protobuf"
+	"github.com/hotkhwan/gateway-api/internal/iwown/iwownConv"
+	pb "github.com/hotkhwan/gateway-api/internal/iwown/protobuf"
 
 	"google.golang.org/protobuf/proto"
 )

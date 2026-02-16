@@ -14,14 +14,14 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/gateways/iboc/watchlist/ibface"
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/internal/mqtt/kwatchmsg"
-	"klynx/internal/repo/stomongo"
-	"klynx/models/kwatmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/gateways/iboc/watchlist/ibface"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/kwatchmsg"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	minioSDK "github.com/minio/minio-go/v7"
 	"go.mongodb.org/mongo-driver/bson"
@@ -51,7 +51,7 @@ var pooledHTTP = &http.Client{
 
 // HandleSyncIbocTask: consume batch task & process loop (PROD: IBOC_6)
 func HandleSyncIbocTask(parent context.Context, evt kwatmod.WatchlistEvent) error {
-	ctx, end, log := traceutil.StartLite(parent, "klynx/kwatsvc", "kwatsvc.HandleSyncIbocTask", "kwatsvc", "HandleSyncIbocTask")
+	ctx, end, log := traceutil.StartLite(parent, "github.com/hotkhwan/gateway-api/kwatsvc", "kwatsvc.HandleSyncIbocTask", "kwatsvc", "HandleSyncIbocTask")
 	defer end()
 
 	traceID := strings.TrimSpace(evt.TraceID)
@@ -297,7 +297,7 @@ func HandleSyncIbocTask(parent context.Context, evt kwatmod.WatchlistEvent) erro
 
 // HandleSyncIbocDevTask: IBOC_DEV — ค้นหา face → ดาวน์โหลดรูป → อัปโหลด S3 → อัปเดต DB (bulk) → ยิง event
 func HandleSyncIbocDevTask(parent context.Context, evt kwatmod.WatchlistEvent) error {
-	ctx, end, log := traceutil.StartLite(parent, "klynx/kwatsvc", "kwatsvc.HandleSyncIbocDevTask", "kwatsvc", "HandleSyncIbocDevTask")
+	ctx, end, log := traceutil.StartLite(parent, "github.com/hotkhwan/gateway-api/kwatsvc", "kwatsvc.HandleSyncIbocDevTask", "kwatsvc", "HandleSyncIbocDevTask")
 	defer end()
 
 	traceID := strings.TrimSpace(evt.TraceID)

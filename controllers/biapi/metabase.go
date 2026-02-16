@@ -7,8 +7,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
 
-	"klynx/internal/services/bisvc"
-	"klynx/models/gmod"
+	"github.com/hotkhwan/gateway-api/internal/services/bisvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
 )
 
 // SignBIUrl godoc
@@ -25,7 +25,7 @@ import (
 // @Security BearerAuth
 func SignBIUrl(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tr := otel.Tracer("klynx/biapi")
+	tr := otel.Tracer("github.com/hotkhwan/gateway-api/biapi")
 	ctx, span := tr.Start(ctx, "BI.SignBIUrl")
 	defer span.End()
 

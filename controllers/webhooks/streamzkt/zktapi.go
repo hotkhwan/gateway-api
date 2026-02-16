@@ -12,20 +12,20 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 
-	"klynx/internal/gateways/mediagw"
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/internal/repo/cachego/cacheklive"
-	"klynx/internal/services/klivesvc"
-	"klynx/models/hookmod/zktmod"
-	"klynx/models/klivemod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/gateways/mediagw"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/repo/cachego/cacheklive"
+	"github.com/hotkhwan/gateway-api/internal/services/klivesvc"
+	"github.com/hotkhwan/gateway-api/models/hookmod/zktmod"
+	"github.com/hotkhwan/gateway-api/models/klivemod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // ---------- onPlay ----------
 func OnPlay(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/streamzkt")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/streamzkt")
 	ctx, span := tracer.Start(ctx, "webhook.OnPlay")
 	defer span.End()
 
@@ -85,7 +85,7 @@ func OnPlay(c *fiber.Ctx) error {
 // ---------- onPublish ----------
 func OnPublish(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/streamzkt")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/streamzkt")
 	ctx, span := tracer.Start(ctx, "webhook.OnPublish")
 	defer span.End()
 
@@ -159,7 +159,7 @@ func getMediaClient() *mediagw.Client {
 
 func OnStreamNoneReader(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/streamzkt")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/streamzkt")
 	ctx, span := tracer.Start(ctx, "webhook.OnStreamNoneReader")
 	defer span.End()
 
@@ -252,7 +252,7 @@ func OnStreamNoneReader(c *fiber.Ctx) error {
 // ---------- onStreamNotFound ----------
 func OnStreamNotFound(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/streamzkt")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/streamzkt")
 	ctx, span := tracer.Start(ctx, "webhook.OnStreamNotFound")
 	defer span.End()
 

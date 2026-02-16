@@ -2,8 +2,8 @@
 package devsyncapi
 
 import (
-	"klynx/models/devsyncmod"
-	"klynx/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/devsyncmod"
+	"github.com/hotkhwan/gateway-api/models/gmod"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -21,7 +21,7 @@ import (
 // @Security BearerAuth
 func EdgeIBOC(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/ibocapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/ibocapi")
 	ctx, span := tracer.Start(ctx, "IBOC.EdgeIBOC")
 	defer span.End()
 

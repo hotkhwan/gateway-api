@@ -3,9 +3,10 @@ package middleware
 
 import (
 	"errors"
-	"klynx/internal/logger"
-	"klynx/utils/authutil"
 	"strings"
+
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/utils/authutil"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
@@ -42,21 +43,7 @@ func AuthBearer() fiber.Handler {
 
 		claims, err := authutil.ValidateJWT(token)
 		if err != nil {
-			var userID, username string
-			if claims != nil {
-				userID = getStr(claims["sub"])
-				username = getStr(claims["preferred_username"])
-				if username == "" {
-					username = getStr(claims["name"])
-				}
-			}
-			log.Warn().
-				Err(err).
-				Str("ip", c.IP()).
-				Str("userId", userID).
-				Str("username", username).
-				Msg("invalid_or_expired_token")
-
+			// ... ของเดิม
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"code":    "INVALID_TOKEN",
 				"message": err.Error(),
@@ -64,19 +51,34 @@ func AuthBearer() fiber.Handler {
 			})
 		}
 
-		userID := getStr(claims["sub"])
+		userId := getStr(claims["sub"])
 		username := getStr(claims["preferred_username"])
 		if username == "" {
 			username = getStr(claims["name"])
 		}
 
+		// ✅ tenantId = realm
+		// แนะนำอ่านจาก issuer (iss) เพื่อไม่ผูกกับ ENV
+		tenantId := authutil.ExtractRealmFromIssuer(getStr(claims["iss"]))
+		// fallback ถ้าจำเป็น
+		if tenantId == "" {
+			tenantId = getStr(claims["realm"]) // เผื่อมี custom claim
+		}
+
 		log.Debug().
-			Str("sub", userID).
+			Str("sub", userId).
+			Str("tenantId", tenantId).
 			Str("username", username).
 			Str("ip", c.IP()).
 			Msg("token_validated")
 
+		// ✅ ของเดิม
 		c.Locals("user", claims)
+
+		// ✅ ของใหม่ (additive ไม่กระทบ legacy)
+		c.Locals("userId", userId)
+		c.Locals("tenantId", tenantId)
+
 		return c.Next()
 	}
 }

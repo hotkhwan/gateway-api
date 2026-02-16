@@ -2,11 +2,11 @@
 package authapi
 
 import (
-	"klynx/internal/services/authsvc"
-	"klynx/models/authmod"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/authsvc"
+	"github.com/hotkhwan/gateway-api/models/authmod"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -21,7 +21,7 @@ import (
 // @Failure 401 {object} gmod.UnauthorizedResponse
 // @Router /auth/signin [post]
 func Signin(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/authapi", "authentication.Signin", "authapi", "Signin")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/authapi", "authentication.Signin", "authapi", "Signin")
 	defer span.End()
 	var req authmod.SigninRequest
 	if err := c.BodyParser(&req); err != nil {

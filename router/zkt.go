@@ -2,9 +2,9 @@
 package router
 
 import (
-	"klynx/controllers/mediapi"
-	"klynx/controllers/webhooks/streamzkt"
-	"klynx/internal/middleware"
+	"github.com/hotkhwan/gateway-api/controllers/mediapi"
+	"github.com/hotkhwan/gateway-api/controllers/webhooks/streamzkt"
+	"github.com/hotkhwan/gateway-api/internal/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )

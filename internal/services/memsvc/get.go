@@ -2,11 +2,11 @@ package memsvc
 
 import (
 	"context"
-	"klynx/config"
-	"klynx/models/gmod"
-	"klynx/models/memmod"
-	"klynx/utils"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/memmod"
+	"github.com/hotkhwan/gateway-api/utils"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"os"
 	"time"
 
@@ -17,7 +17,7 @@ import (
 func ListMembers(ctx context.Context, page, perPages int, filters map[string]string, sortField, sortOrder string) ([]memmod.Member, gmod.Pagination, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/memsvc",
+		"github.com/hotkhwan/gateway-api/memsvc",
 		"memsvc.ListMembers",
 		"memsvc", "ListMembers",
 	)

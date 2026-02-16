@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"klynx/internal/gateways/gwcom"
-	"klynx/models/aimodel"
+	"github.com/hotkhwan/gateway-api/internal/gateways/gwcom"
+	"github.com/hotkhwan/gateway-api/models/aimodel"
 )
 
 type Client struct {

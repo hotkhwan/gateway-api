@@ -4,7 +4,7 @@ package klivesvc
 import (
 	"strings"
 
-	"klynx/models/klivemod"
+	"github.com/hotkhwan/gateway-api/models/klivemod"
 
 	"github.com/gofiber/fiber/v2"
 )

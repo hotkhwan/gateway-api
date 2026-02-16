@@ -4,10 +4,10 @@ package kwatapi
 import (
 	"errors"
 	"io"
-	"klynx/internal/services/kwatsvc"
-	"klynx/models/gmod"
-	"klynx/models/kwatmod"
-	"klynx/utils/httputil"
+	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
@@ -63,7 +63,7 @@ func toPtr(v string) *string {
 // @Security BearerAuth
 func WatchlistUpdate(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/kwatapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/kwatapi")
 	ctx, span := tracer.Start(ctx, "Kwatch.WatchlistUpdate")
 	defer span.End()
 	id := c.Params("id")

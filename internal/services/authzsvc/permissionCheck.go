@@ -10,15 +10,15 @@ import (
 	"net/http"
 	"time"
 
-	"klynx/config"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // PermissionCheck ตรวจสอบ permission จาก Permify REST API
 func PermissionCheck(ctx context.Context, depth int, entityType, entityID, permission, subjectType, subjectID string) (bool, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.PermissionCheck",
 		"authzsvc", "PermissionCheck",
 	)

@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"strings"
 
-	"klynx/internal/middleware"
-	"klynx/internal/services/kschsvc"
-	"klynx/models/gmod"
-	"klynx/models/kschmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/middleware"
+	"github.com/hotkhwan/gateway-api/internal/services/kschsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kschmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -33,7 +33,7 @@ import (
 func ChatMessage(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(
 		c.UserContext(),
-		"klynx/kschapi",
+		"github.com/hotkhwan/gateway-api/kschapi",
 		"search.ChatMessage",
 		"kschapi",
 		"ChatMessage",
@@ -91,7 +91,7 @@ func ChatMessage(c *fiber.Ctx) error {
 func MessageCreateStream(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(
 		c.UserContext(),
-		"klynx/kschapi",
+		"github.com/hotkhwan/gateway-api/kschapi",
 		"MessageCreateStream",
 		"kschapi",
 		"MessageCreateStream",
@@ -149,7 +149,7 @@ func MessageCreateStream(c *fiber.Ctx) error {
 // @Router /ksearch/chats/{chatId}/messages [get]
 // @Security BearerAuth
 func MessageList(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kschapi", "message.List", "kschapi", "MessageList")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "message.List", "kschapi", "MessageList")
 	defer span.End()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -188,7 +188,7 @@ func MessageList(c *fiber.Ctx) error {
 // @Router /ksearch/chats/{chatId}/messages/{messageId} [patch]
 // @Security BearerAuth
 func MessageUpdate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kschapi", "MessageUpdate", "kschapi", "MessageUpdate")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "MessageUpdate", "kschapi", "MessageUpdate")
 	defer span.End()
 
 	chatId := c.Params("chatId")

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"klynx/models/kwatmod"
-	"klynx/utils"
+	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils"
 )
 
 type IBOCBuildCfg struct {

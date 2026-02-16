@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"net/http"
 	"os"
 	"time"
@@ -14,7 +14,7 @@ import (
 func Watchlist3partyWatchmanDelete(ctx context.Context, id string) (string, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/watchgw",
+		"github.com/hotkhwan/gateway-api/watchgw",
 		"watchman.Watchlist3partyWatchmanDelete",
 		"watchgw", "Watchlist3partyWatchmanDelete",
 	)

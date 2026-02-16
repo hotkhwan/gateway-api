@@ -6,9 +6,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"klynx/config"
-	"klynx/utils/authutil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/utils/authutil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"net/http"
 	"os"
 	"time"
@@ -18,7 +18,7 @@ import (
 func Signout(ctx context.Context, accessToken string) (map[string]interface{}, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authsvc",
+		"github.com/hotkhwan/gateway-api/authsvc",
 		"authenticate.signout",
 		"authsvc", "Signout",
 	)

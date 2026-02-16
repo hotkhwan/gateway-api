@@ -6,13 +6,13 @@ import (
 	"os"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/repo/stomongo"
-	"klynx/internal/repo/stos3minio"
-	"klynx/models/gmod"
-	"klynx/models/kschmod"
-	"klynx/models/repomod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/internal/repo/stos3minio"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kschmod"
+	"github.com/hotkhwan/gateway-api/models/repomod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -25,7 +25,7 @@ import (
 func VideoList(ctx context.Context, page, perPages int, filters map[string]string, sortField, sortOrder string) ([]kschmod.VideoResponse, gmod.Pagination, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/kschsvc",    // tracerName
+		"github.com/hotkhwan/gateway-api/kschsvc",    // tracerName
 		"search.VideoList", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kschsvc", "VideoList",
 	)

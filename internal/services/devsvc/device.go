@@ -7,15 +7,15 @@ import (
 	"os"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/services/authzsvc"
-	"klynx/internal/services/memsvc"
-	"klynx/models/authzmod"
-	"klynx/models/devmod"
-	"klynx/models/gmod"
-	"klynx/utils"
-	"klynx/utils/authutil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/memsvc"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/models/devmod"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils"
+	"github.com/hotkhwan/gateway-api/utils/authutil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -27,7 +27,7 @@ import (
 func DevicesList(ctx context.Context, page, perPages int, filters map[string]string, sortField, sortOrder string) ([]devmod.Device, gmod.Pagination, int, int, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/devsvc",
+		"github.com/hotkhwan/gateway-api/devsvc",
 		"devices.DevicesList",
 		"devsvc", "DevicesList",
 	)
@@ -236,7 +236,7 @@ func DevicesList(ctx context.Context, page, perPages int, filters map[string]str
 func DevicesListCheckPermission(ctx context.Context, token string, page, perPages int, filters map[string]string, sortField, sortOrder string) ([]devmod.Device, gmod.Pagination, int, int, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/devsvc",
+		"github.com/hotkhwan/gateway-api/devsvc",
 		"devices.DevicesList",
 		"devsvc", "DevicesList",
 	)
@@ -522,7 +522,7 @@ func DevicesListCheckPermission(ctx context.Context, token string, page, perPage
 func DeviceGetByID(ctx context.Context, id string) (*devmod.Device, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/devsvc",
+		"github.com/hotkhwan/gateway-api/devsvc",
 		"devices.DeviceGetByID",
 		"devsvc", "DeviceGetByID",
 	)
@@ -582,7 +582,7 @@ func DeviceGetByID(ctx context.Context, id string) (*devmod.Device, error) {
 func DeviceCreate(ctx context.Context, device devmod.Device) (map[string]interface{}, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/devsvc",
+		"github.com/hotkhwan/gateway-api/devsvc",
 		"devices.DeviceCreate",
 		"devsvc", "DeviceCreate",
 	)
@@ -634,7 +634,7 @@ func DeviceCreate(ctx context.Context, device devmod.Device) (map[string]interfa
 func DeviceUpdate(ctx context.Context, id string, data devmod.Device) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/devsvc",
+		"github.com/hotkhwan/gateway-api/devsvc",
 		"devices.DeviceUpdate",
 		"devsvc", "DeviceUpdate",
 	)
@@ -685,7 +685,7 @@ func DeviceUpdate(ctx context.Context, id string, data devmod.Device) error {
 func DeviceDelete(ctx context.Context, id string) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/devsvc",
+		"github.com/hotkhwan/gateway-api/devsvc",
 		"devices.DeviceDelete",
 		"devsvc", "DeviceDelete",
 	)

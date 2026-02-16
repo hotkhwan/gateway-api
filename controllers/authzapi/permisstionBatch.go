@@ -2,11 +2,11 @@
 package authzapi
 
 import (
-	"klynx/internal/logger"
-	"klynx/internal/services/authzsvc"
-	"klynx/models/authzmod"
-	"klynx/models/gmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
@@ -27,7 +27,7 @@ import (
 // @Security     BearerAuth
 func PermissionCheckBatchHandler(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/authzapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/authzapi")
 	ctx, span := tracer.Start(ctx, "Authz.PermissionCheckBatchHandler")
 	defer span.End()
 

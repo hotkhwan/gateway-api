@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"klynx/config"
-	"klynx/models/memmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/memmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"os"
 	"time"
 
@@ -19,7 +19,7 @@ import (
 func MemberGetByID(ctx context.Context, id string) (*memmod.Member, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/memsvc",
+		"github.com/hotkhwan/gateway-api/memsvc",
 		"memsvc.MemberGetByID",
 		"memsvc", "MemberGetByID",
 	)

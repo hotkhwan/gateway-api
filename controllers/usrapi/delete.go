@@ -2,9 +2,9 @@
 package usrapi
 
 import (
-	"klynx/internal/services/usrsvc"
-	"klynx/models/gmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/usrsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -23,7 +23,7 @@ import (
 func DeleteUser(c *fiber.Ctx) error {
 	ctx, span, _ := traceutil.Start(
 		c.UserContext(),
-		"klynx/usrapi", "users.DeleteUser",
+		"github.com/hotkhwan/gateway-api/usrapi", "users.DeleteUser",
 		"usrapi", "DeleteUser",
 	)
 	defer span.End()

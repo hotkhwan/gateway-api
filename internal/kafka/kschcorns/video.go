@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/models/kschmod"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/models/kschmod"
 )
 
 func StartKsearchConsumer(broker, topic string) {

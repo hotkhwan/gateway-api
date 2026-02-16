@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/mqtt/inframsg"
-	"klynx/internal/services/dashsvc"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/inframsg"
+	"github.com/hotkhwan/gateway-api/internal/services/dashsvc"
 )
 
 func NewAtaEventsPublisher(topic string) *Publisher {

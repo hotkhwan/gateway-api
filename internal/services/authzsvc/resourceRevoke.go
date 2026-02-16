@@ -10,15 +10,15 @@ import (
     "net/http"
     "time"
 
-    "klynx/config"
-    "klynx/utils/traceutil"
+    "github.com/hotkhwan/gateway-api/config"
+    "github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // RevokeResource deletes all tuples and attributes related to a resource.
 func RevokeResource(ctx context.Context, entityType string, entityIDs []string) error {
     ctx, end, log := traceutil.StartLite(
         ctx,
-        "klynx/authzsvc",
+        "github.com/hotkhwan/gateway-api/authzsvc",
         "authorization.RevokeResource",
         "authzsvc", "RevokeResource",
     )

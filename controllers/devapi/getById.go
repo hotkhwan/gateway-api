@@ -5,10 +5,10 @@ import (
 	"errors"
 	"strings"
 
-	"klynx/internal/services/devsvc"
-	"klynx/models/devmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/devsvc"
+	"github.com/hotkhwan/gateway-api/models/devmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -25,7 +25,7 @@ import (
 // @Router /devices/{id} [get]
 // @Security BearerAuth
 func DeviceGetByID(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "klynx/devapi", "devapi.DeviceGetByID", "devapi", "DeviceGetByID")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "github.com/hotkhwan/gateway-api/devapi", "devapi.DeviceGetByID", "devapi", "DeviceGetByID")
 	defer end()
 
 	deviceId := strings.TrimSpace(c.Params("deviceId"))

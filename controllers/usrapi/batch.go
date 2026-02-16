@@ -4,10 +4,10 @@ package usrapi
 import (
 	"strings"
 
-	"klynx/internal/services/usrsvc"
-	"klynx/models/gmod"
-	"klynx/models/usrmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/usrsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/usrmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -28,7 +28,7 @@ import (
 func BatchGetUsers(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(
 		c.UserContext(),
-		"klynx/usrapi",
+		"github.com/hotkhwan/gateway-api/usrapi",
 		"users.BatchGetUsers",
 		"usrapi",
 		"BatchGetUsers",

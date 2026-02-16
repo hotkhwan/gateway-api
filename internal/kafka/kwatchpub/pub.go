@@ -4,8 +4,8 @@ package kwatchpub
 import (
 	"context"
 	"fmt"
-	"klynx/internal/kafka"
-	"klynx/utils"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/utils"
 	"os"
 	"strconv"
 	"time"

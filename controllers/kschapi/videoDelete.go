@@ -4,9 +4,9 @@ package kschapi
 import (
 	"errors"
 
-	"klynx/internal/services/kschsvc"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
+	"github.com/hotkhwan/gateway-api/internal/services/kschsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"

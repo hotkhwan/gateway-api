@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"klynx/models/systemmod"
+	"github.com/hotkhwan/gateway-api/models/systemmod"
 
 	"github.com/gofiber/fiber/v2"
 )

@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/logger"
-	"klynx/internal/services/kwatsvc"
-	"klynx/models/gmod"
-	"klynx/models/kwatmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -70,7 +70,7 @@ var validate = validator.New()
 // @Security BearerAuth
 func WatchlistCreate(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/kwatapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/kwatapi")
 	ctx, span := tracer.Start(ctx, "Kwatch.WatchlistCreate")
 	defer span.End()
 
@@ -279,11 +279,11 @@ func filenameFromURL(u string, contentType string) string {
 // import (
 // 	"errors"
 // 	"io"
-// 	"klynx/internal/logger"
-// 	"klynx/internal/services/kwatsvc"
-// 	"klynx/models/gmod"
-// 	"klynx/models/kwatmod"
-// 	"klynx/utils/traceutil"
+// 	"github.com/hotkhwan/gateway-api/internal/logger"
+// 	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
+// 	"github.com/hotkhwan/gateway-api/models/gmod"
+// 	"github.com/hotkhwan/gateway-api/models/kwatmod"
+// 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 // 	"github.com/go-playground/validator/v10"
 // 	"github.com/gofiber/fiber/v2"
@@ -334,7 +334,7 @@ func filenameFromURL(u string, contentType string) string {
 // // @Security BearerAuth
 // func WatchlistCreate(c *fiber.Ctx) error {
 // 	ctx := c.UserContext()
-// 	tracer := otel.Tracer("klynx/kwatapi")
+// 	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/kwatapi")
 // 	ctx, span := tracer.Start(ctx, "Kwatch.WatchlistCreate")
 // 	defer span.End()
 

@@ -2,9 +2,9 @@
 package gmod
 
 import (
-	"klynx/models/authmod"
-	"klynx/models/devmod"
-	"klynx/models/grpmod"
+	"github.com/hotkhwan/gateway-api/models/authmod"
+	"github.com/hotkhwan/gateway-api/models/devmod"
+	"github.com/hotkhwan/gateway-api/models/grpmod"
 	"time"
 )
 

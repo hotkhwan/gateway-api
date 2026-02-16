@@ -4,8 +4,8 @@ package aiutil
 import (
 	"bytes"
 	"io"
-	"klynx/internal/logger"
-	"klynx/models/kaimod"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/models/kaimod"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"

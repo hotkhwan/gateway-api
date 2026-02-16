@@ -4,8 +4,8 @@ package atapi
 import (
 	"strconv"
 
-	"klynx/internal/services/atasvc"
-	"klynx/utils/httputil"
+	"github.com/hotkhwan/gateway-api/internal/services/atasvc"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
@@ -44,7 +44,7 @@ type StreamResponse struct {
 // @Security     BearerAuth
 func GetStreamWSS(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/atapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/atapi")
 	ctx, span := tracer.Start(ctx, "ATA.GetStreamWSS")
 	defer span.End()
 

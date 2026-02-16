@@ -4,8 +4,8 @@ package iwownParser
 import (
 	"google.golang.org/protobuf/proto"
 
-	"klynx/internal/iwown"
-	pb "klynx/internal/iwown/protobuf"
+	"github.com/hotkhwan/gateway-api/internal/iwown"
+	pb "github.com/hotkhwan/gateway-api/internal/iwown/protobuf"
 )
 
 // const minHistoryPayloadLen = 23 // จาก log ของคุณ

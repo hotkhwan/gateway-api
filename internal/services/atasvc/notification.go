@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/logger"
-	"klynx/internal/repo/stomongo"
-	"klynx/models/aimodel"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models/aimodel"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

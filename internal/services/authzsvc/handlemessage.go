@@ -6,14 +6,14 @@ import (
 	"encoding/json"
 	"time"
 
-	"klynx/models/authzmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 func HandleRelationshipEvent(ctx context.Context, evt authzmod.RelationshipEvent) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.HandleRelationshipEvent",
 		"authzsvc", "HandleRelationshipEvent",
 	)

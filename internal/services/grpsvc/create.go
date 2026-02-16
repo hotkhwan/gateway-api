@@ -3,9 +3,9 @@ package grpsvc
 
 import (
 	"context"
-	"klynx/config"
-	"klynx/models/grpmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/grpmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"os"
 	"time"
 
@@ -15,7 +15,7 @@ import (
 func CreateGroup(ctx context.Context, req grpmod.GroupRequest) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/grpsvc",       // tracerName
+		"github.com/hotkhwan/gateway-api/grpsvc",       // tracerName
 		"grpsvc.CreateGroup", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"grpsvc", "CreateGroup",
 	)

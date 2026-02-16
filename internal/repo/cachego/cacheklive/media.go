@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"time"
 
-	"klynx/config"
-	"klynx/models/cachemod"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/cachemod"
 )
 
 const (

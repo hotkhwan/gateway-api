@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )

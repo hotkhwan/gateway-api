@@ -5,15 +5,15 @@ import (
 	"errors"
 	"strings"
 
-	"klynx/internal/services/grpsvc"
-	"klynx/internal/services/memsvc"
-	"klynx/internal/services/usrsvc"
-	"klynx/models/gmod"
-	"klynx/models/memmod"
-	"klynx/models/usrmod"
-	"klynx/utils/authutil"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/grpsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/memsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/usrsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/memmod"
+	"github.com/hotkhwan/gateway-api/models/usrmod"
+	"github.com/hotkhwan/gateway-api/utils/authutil"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -31,7 +31,7 @@ import (
 // @Router /members/{groupId} [get]
 // @Security BearerAuth
 func MemberGetByGroupID(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "klynx/memapi", "memapi.MemberGetByGroupID", "memapi", "MemberGetByGroupID")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "github.com/hotkhwan/gateway-api/memapi", "memapi.MemberGetByGroupID", "memapi", "MemberGetByGroupID")
 	defer end()
 
 	groupId := strings.TrimSpace(c.Params("groupId"))

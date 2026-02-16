@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/kafka/kwatchpub"
-	"klynx/internal/repo/stomongo"
-	"klynx/models"
-	"klynx/utils"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/kafka/kwatchpub"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models"
+	"github.com/hotkhwan/gateway-api/utils"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -29,7 +29,7 @@ func SyncCrimesToWatchlist(
 	coll *mongo.Collection,
 ) (*models.ImportSummary, error) {
 
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/crimes", "crimes.SyncCrimesToWatchlist", "crimes", "SyncCrimesToWatchlist")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/crimes", "crimes.SyncCrimesToWatchlist", "crimes", "SyncCrimesToWatchlist")
 	defer end()
 
 	emitUpsert := utils.GetenvBool("KWATCH_EMIT_UPSERT", false)

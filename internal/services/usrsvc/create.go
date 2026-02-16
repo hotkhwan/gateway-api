@@ -4,15 +4,15 @@ package usrsvc
 import (
 	"context"
 	"fmt"
-	"klynx/internal/gateways/authgw"
-	"klynx/models/usrmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
+	"github.com/hotkhwan/gateway-api/models/usrmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"strings"
 )
 
 func CreateUser(ctx context.Context, req usrmod.CreateUserRequest) error {
 	ctx, end, _ := traceutil.StartLite(
-		ctx, "klynx/usrsvc", "users.CreateUser",
+		ctx, "github.com/hotkhwan/gateway-api/usrsvc", "users.CreateUser",
 		"usrsvc", "CreateUser",
 	)
 	defer end()

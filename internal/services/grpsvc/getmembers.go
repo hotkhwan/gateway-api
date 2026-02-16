@@ -2,9 +2,9 @@ package grpsvc
 
 import (
 	"context"
-	"klynx/config"
-	"klynx/models/gmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"os"
 	"time"
 
@@ -16,7 +16,7 @@ import (
 func ListGroupMembers(ctx context.Context, page, perPages int, filters map[string]string, sortField, sortOrder string) ([]gmod.Member, gmod.Pagination, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/grpsvc",
+		"github.com/hotkhwan/gateway-api/grpsvc",
 		"groups.ListGroupMembers",
 		"grpsvc", "ListGroupMembers",
 	)

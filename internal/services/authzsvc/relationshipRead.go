@@ -10,16 +10,16 @@ import (
 	"net/http"
 	"time"
 
-	"klynx/config"
-	"klynx/models/authzmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // ReadRelationships ใช้ Permify REST API เพื่อดึงข้อมูลความสัมพันธ์ (raw map)
 func ReadRelationships(ctx context.Context, req authzmod.RelationshipReadRequest) (map[string]interface{}, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.ReadRelationships",
 		"authzsvc", "ReadRelationships",
 	)
@@ -67,7 +67,7 @@ func ReadRelationships(ctx context.Context, req authzmod.RelationshipReadRequest
 func GetRelationships(ctx context.Context, req *authzmod.RelationshipReadRequest) (*authzmod.RelationshipReadResponse, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.GetRelationships",
 		"authzsvc", "GetRelationships",
 	)

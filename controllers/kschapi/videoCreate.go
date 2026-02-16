@@ -9,10 +9,10 @@ import (
 	"io"
 	"time"
 
-	"klynx/internal/services/kschsvc"
-	"klynx/models/gmod"
-	"klynx/models/kschmod"
-	"klynx/utils/httputil"
+	"github.com/hotkhwan/gateway-api/internal/services/kschsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kschmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 
 	"github.com/gofiber/fiber/v2"
 )

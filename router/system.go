@@ -5,14 +5,14 @@ import (
 	"context"
 	"os"
 
-	"klynx/config"
-	"klynx/controllers/mediapi"
-	"klynx/controllers/sysapi"
-	"klynx/controllers/sysapi/edgeapi"
-	"klynx/controllers/sysapi/setapi"
-	"klynx/internal/middleware"
-	"klynx/internal/repo/authzrepo"
-	"klynx/internal/repo/optionsrepo"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/controllers/mediapi"
+	"github.com/hotkhwan/gateway-api/controllers/sysapi"
+	"github.com/hotkhwan/gateway-api/controllers/sysapi/edgeapi"
+	"github.com/hotkhwan/gateway-api/controllers/sysapi/setapi"
+	"github.com/hotkhwan/gateway-api/internal/middleware"
+	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/optionsrepo"
 
 	"github.com/gofiber/fiber/v2"
 )

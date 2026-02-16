@@ -2,11 +2,11 @@
 package kctrlapi
 
 import (
-	"klynx/internal/services/kctrlsvc"
-	"klynx/models/gmod"
-	"klynx/models/kctrlmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/kctrlsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -23,7 +23,7 @@ import (
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /kcontrol [post]
 func SendMessage(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kctrlapi", "messages.SendMessage", "kctrlapi", "SendMessage")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "messages.SendMessage", "kctrlapi", "SendMessage")
 	defer span.End()
 
 	var msg kctrlmod.ControlMessage

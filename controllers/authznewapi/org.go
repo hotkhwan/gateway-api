@@ -2,7 +2,9 @@
 package authznewapi
 
 import (
-	"klynx/internal/services/authzsvc"
+	"strings"
+
+	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
@@ -17,17 +19,17 @@ import (
 func CreateOrg(c *fiber.Ctx) error {
 
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/authznewapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/authznewapi")
 	ctx, span := tracer.Start(ctx, "AuthzNew.CreateOrg")
 	defer span.End()
 
 	userId, ok := c.Locals("userId").(string)
-	if !ok {
+	if !ok || strings.TrimSpace(userId) == "" {
 		return fiber.ErrUnauthorized
 	}
 
 	tenantId, ok := c.Locals("tenantId").(string)
-	if !ok {
+	if !ok || strings.TrimSpace(tenantId) == "" {
 		return fiber.ErrUnauthorized
 	}
 

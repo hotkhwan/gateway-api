@@ -2,10 +2,10 @@
 package grpapi
 
 import (
-	"klynx/internal/services/grpsvc"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/grpsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"strconv"
 	"strings"
 
@@ -31,7 +31,7 @@ import (
 // @Router       /groups/subgroups [get]
 // @Security     BearerAuth
 func ListSubGroups(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/grpapi", "group.ListSubGroups", "grpapi", "ListSubGroups")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/grpapi", "group.ListSubGroups", "grpapi", "ListSubGroups")
 	defer span.End()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))

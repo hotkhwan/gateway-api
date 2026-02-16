@@ -5,10 +5,11 @@ import (
 	"strconv"
 	"strings"
 
-	"klynx/internal/services/atasvc"
-	"klynx/models/aimodel"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/models/aimodel"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
+
+	"github.com/hotkhwan/gateway-api/internal/services/atasvc"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -34,7 +35,7 @@ import (
 func BlacklistSummary(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(
 		c.UserContext(),
-		"klynx/atapi",
+		"github.com/hotkhwan/gateway-api/atapi",
 		"ata.BlacklistSummary",
 		"atapi", "BlacklistSummary",
 	)

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/logger"
-	"klynx/internal/repo/authzrepo"
-	"klynx/models/authzmod"
-	"klynx/models/systemmod"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/models/systemmod"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
@@ -139,7 +139,7 @@ func Audit(cfg AuditConfig) fiber.Handler {
 
 		// tracing
 		ctx := c.UserContext()
-		tracer := otel.Tracer("klynx/mw/audit")
+		tracer := otel.Tracer("github.com/hotkhwan/gateway-api/mw/audit")
 		ctx, span := tracer.Start(ctx, "Audit")
 		defer span.End()
 		traceId := currentTraceID(ctx)

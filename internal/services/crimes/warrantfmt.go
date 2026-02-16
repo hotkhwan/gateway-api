@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"klynx/models"
+	"github.com/hotkhwan/gateway-api/models"
 )
 
 func nz(v any) string {

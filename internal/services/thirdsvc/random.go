@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"klynx/models/thirdmod"
+	"github.com/hotkhwan/gateway-api/models/thirdmod"
 
 	"github.com/google/uuid"
 )

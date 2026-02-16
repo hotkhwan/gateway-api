@@ -11,18 +11,18 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
-	"klynx/internal/logger"
-	"klynx/internal/repo/stos3minio"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/repo/stos3minio"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 func HandleKMLUpload(c *fiber.Ctx, token string) error {
 	baseCtx := c.UserContext()
 	ctx, end, log := traceutil.StartLite(
 		baseCtx,
-		"klynx/mapsvc",
+		"github.com/hotkhwan/gateway-api/mapsvc",
 		"maps.HandleKMLUpload",
 		"mapsvc", "HandleKMLUpload",
 	)

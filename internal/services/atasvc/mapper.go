@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/logger"
-	"klynx/internal/repo/stomongo"
-	"klynx/internal/repo/stos3minio"
-	"klynx/models/aimodel"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/internal/repo/stos3minio"
+	"github.com/hotkhwan/gateway-api/models/aimodel"
 
 	"github.com/rs/zerolog"
 	"go.mongodb.org/mongo-driver/bson"

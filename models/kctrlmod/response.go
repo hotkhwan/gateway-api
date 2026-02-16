@@ -2,7 +2,7 @@
 package kctrlmod
 
 import (
-	"klynx/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/gmod"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"

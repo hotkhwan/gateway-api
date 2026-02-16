@@ -4,8 +4,8 @@ import (
 	"context"
 	"sort"
 
-	"klynx/config"
-	"klynx/models/optmod"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/optmod"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"

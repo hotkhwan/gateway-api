@@ -2,9 +2,9 @@
 package authzapi
 
 import (
-	"klynx/internal/services/authzsvc"
-	"klynx/models/authzmod"
-	"klynx/models/gmod"
+	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/models/gmod"
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
@@ -24,7 +24,7 @@ import (
 // @Security     BearerAuth
 func RevokeResourceHandler(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/authzapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/authzapi")
 	ctx, span := tracer.Start(ctx, "Authz.RevokeResourceHandler")
 	defer span.End()
 

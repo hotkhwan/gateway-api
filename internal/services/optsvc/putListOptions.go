@@ -5,9 +5,9 @@ import (
 	"context"
 	"time"
 
-	"klynx/config"
-	"klynx/models/optmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/optmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -23,7 +23,7 @@ func docID(kind, ns string) string { return kind + "." + ns }
 func UpsertOptions(ctx context.Context, kind string, p optmod.NamespacedOptionsPayload) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/optsvc",          // tracerName
+		"github.com/hotkhwan/gateway-api/optsvc",          // tracerName
 		"options.UpsertOptions", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"optsvc", "UpsertOptions",
 	)

@@ -2,8 +2,8 @@
 package mapapi
 
 import (
-	"klynx/internal/services/mapsvc"
-	"klynx/utils/httputil"
+	"github.com/hotkhwan/gateway-api/internal/services/mapsvc"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"

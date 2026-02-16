@@ -7,7 +7,7 @@ import (
 	"io"
 	"path/filepath"
 
-	"klynx/config"
+	"github.com/hotkhwan/gateway-api/config"
 )
 
 func GetFileExt(filename string) string {

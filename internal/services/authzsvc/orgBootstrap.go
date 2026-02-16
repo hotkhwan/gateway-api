@@ -3,13 +3,17 @@ package authzsvc
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/repo/authzrepo"
-	"klynx/models/authzmod"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
+	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
 
@@ -20,15 +24,29 @@ func BootstrapOrganization(
 	name string,
 ) (*authzmod.Organization, error) {
 
+	tenantId = strings.TrimSpace(tenantId)
+	userId = strings.TrimSpace(userId)
+	name = strings.TrimSpace(name)
+
+	if tenantId == "" {
+		return nil, fiber.NewError(fiber.StatusBadRequest, "tenantId required")
+	}
+	if userId == "" {
+		return nil, fiber.NewError(fiber.StatusUnauthorized, "userId required")
+	}
+	if name == "" {
+		return nil, fiber.NewError(fiber.StatusBadRequest, "name required")
+	}
+
 	repo := authzrepo.NewOrgRepo(config.DB)
 
-	// 1️⃣ unique check
+	// optional pre-check (ช่วย UX) แต่ไม่ rely on it
 	exists, err := repo.ExistsByName(ctx, tenantId, name)
 	if err != nil {
 		return nil, err
 	}
 	if exists {
-		return nil, fmt.Errorf("organization name already exists")
+		return nil, fiber.NewError(fiber.StatusConflict, "organization name already exists")
 	}
 
 	now := time.Now().UnixMilli()
@@ -43,21 +61,23 @@ func BootstrapOrganization(
 		SyncStatus: "ok",
 	}
 
-	// 2️⃣ Mongo insert
+	// Mongo insert (DB unique index will enforce race condition)
 	if err := repo.Insert(ctx, org); err != nil {
+		if errors.Is(err, authzrepo.ErrOrgNameAlreadyExists) {
+			return nil, fiber.NewError(fiber.StatusConflict, "organization name already exists")
+		}
 		return nil, err
 	}
 
-	// 3️⃣ Prepare tuples
-	tuples := TupleFactoryOrgBootstrap(orgId, userId)
+	// tuples batch
+	client := authzgw.NewClient()
 
-	// 4️⃣ Write permify (batch)
-	if err := WriteTuples(ctx, tenantId, tuples); err != nil {
-
-		repo.MarkSyncError(ctx, orgId)
-
-		return nil, fmt.Errorf("permify sync failed")
+	tuples := TupleFactoryOrgBootstrap(orgId, userId) // []map[string]interface{}
+	if err := client.WriteTuples(ctx, tenantId, tuples); err != nil {
+	_ = repo.MarkSyncError(ctx, orgId)
+	return nil, fmt.Errorf("authz sync failed")
 	}
 
 	return org, nil
 }
+

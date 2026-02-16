@@ -1,4 +1,4 @@
-ß// models/authzmod/org.go
+// models/authzmod/org.go
 package authzmod
 
 type Organization struct {

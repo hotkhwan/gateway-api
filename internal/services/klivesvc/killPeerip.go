@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"klynx/internal/gateways/mediagw"
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/gateways/mediagw"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 )
 
 // -------- lazy init mediagw client (อยู่ใน klivesvc) --------

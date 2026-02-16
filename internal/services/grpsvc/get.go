@@ -3,10 +3,10 @@ package grpsvc
 
 import (
 	"context"
-	"klynx/config"
-	"klynx/models/gmod"
-	"klynx/models/grpmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/grpmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"os"
 	"time"
 
@@ -18,7 +18,7 @@ import (
 func ListGroups(ctx context.Context, page, perPages int, filters map[string]string, sortField, sortOrder string) ([]grpmod.Group, gmod.Pagination, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/grpsvc",
+		"github.com/hotkhwan/gateway-api/grpsvc",
 		"grpsvc.ListGroups",
 		"grpsvc", "ListGroups",
 	)
@@ -118,7 +118,7 @@ func BuildGroupTree(ctx context.Context, groups []grpmod.Group, parentId *string
 func GetAllGroups(ctx context.Context) ([]grpmod.Group, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/grpsvc",        // tracerName
+		"github.com/hotkhwan/gateway-api/grpsvc",        // tracerName
 		"grpsvc.GetAllGroups", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"grpsvc", "GetAllGroups",
 	)

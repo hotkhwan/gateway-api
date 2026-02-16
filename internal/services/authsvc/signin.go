@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"klynx/config"
-	"klynx/internal/services/authzsvc"
-	"klynx/models/authmod"
-	"klynx/models/authzmod"
-	"klynx/utils/authutil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
+	"github.com/hotkhwan/gateway-api/models/authmod"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/utils/authutil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -25,7 +25,7 @@ import (
 )
 
 func Authenticate(ctx context.Context, req authmod.SigninRequest) (authmod.SigninResponse, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/authsvc", "authenticate.singin", "authsvc", "Authenticate")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/authsvc", "authenticate.singin", "authsvc", "Authenticate")
 	defer end()
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)

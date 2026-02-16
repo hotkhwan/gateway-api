@@ -2,7 +2,7 @@
 package authzapi
 
 import (
-	"klynx/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/gmod"
 
 	"github.com/gofiber/fiber/v2"
 )

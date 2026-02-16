@@ -2,11 +2,11 @@
 package kctrlapi
 
 import (
-	"klynx/internal/services/kctrlsvc"
-	"klynx/models/gmod"
-	"klynx/models/kctrlmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/kctrlsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -26,7 +26,7 @@ import (
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /kcontrol/{id} [patch]
 func UpdateDevice(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kctrlapi", "devices.UpdateDevice", "kctrlapi", "UpdateDevice")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "devices.UpdateDevice", "kctrlapi", "UpdateDevice")
 	defer span.End()
 
 	idStr := c.Params("id")
@@ -80,7 +80,7 @@ func UpdateDevice(c *fiber.Ctx) error {
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /kcontrol/{id}/ack [patch]
 func AckDeviceAlarm(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kctrlapi", "alarms.AckDeviceAlarm", "kctrlapi", "AckAlarmAckDeviceAlarm")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "alarms.AckDeviceAlarm", "kctrlapi", "AckAlarmAckDeviceAlarm")
 	defer span.End()
 
 	deviceId := c.Params("id")
@@ -128,7 +128,7 @@ func AckDeviceAlarm(c *fiber.Ctx) error {
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /kcontrol/{id}/ack [patch]
 func AckAlarm(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kctrlapi", "alarms.AckAlarm", "kctrlapi", "AckAlarm")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "alarms.AckAlarm", "kctrlapi", "AckAlarm")
 	defer span.End()
 
 	alarmId := c.Params("id")
@@ -174,7 +174,7 @@ func AckAlarm(c *fiber.Ctx) error {
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /kcontrol/{id}/reset-stats [patch]
 func ResetStats(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kctrlapi", "alarms.ResetStats", "kctrlapi", "ResetStats")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "alarms.ResetStats", "kctrlapi", "ResetStats")
 	defer span.End()
 
 	deviceId := c.Params("id")

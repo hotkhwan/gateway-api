@@ -2,7 +2,7 @@
 package usrmod
 
 import (
-	"klynx/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/gmod"
 	"time"
 )
 

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/models/aimodel"
-	"klynx/models/devsyncmod"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/aimodel"
+	"github.com/hotkhwan/gateway-api/models/devsyncmod"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"

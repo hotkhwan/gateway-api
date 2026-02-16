@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/mqtt/kcontrolmsg"
-	"klynx/internal/repo/stomongo"
-	"klynx/models/gmod"
-	"klynx/models/kctrlmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/kcontrolmsg"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
@@ -25,7 +25,7 @@ import (
 func ListAlarms(ctx context.Context, page, perPages int, filters map[string]string, sortField, sortOrder string) ([]kctrlmod.AlarmResponseItem, gmod.Pagination, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/kctrlsvc",
+		"github.com/hotkhwan/gateway-api/kctrlsvc",
 		"alarms.ListAlarms",
 		"kctrlsvc", "ListAlarms",
 	)
@@ -57,13 +57,13 @@ func ListAlarms(ctx context.Context, page, perPages int, filters map[string]stri
 		"isDeleted": bson.M{"$ne": true},
 	}
 	if filters["unacked"] == "true" {
-	// ❌ ตัด acknowledged:true
-	// ✅ เอา false + null + missing
-	baseFilter["acknowledged"] = bson.M{"$ne": true}
+		// ❌ ตัด acknowledged:true
+		// ✅ เอา false + null + missing
+		baseFilter["acknowledged"] = bson.M{"$ne": true}
 	} else {
-	// default behavior
-	// ✅ เอาเฉพาะ acknowledged:true
-	baseFilter["acknowledged"] = true
+		// default behavior
+		// ✅ เอาเฉพาะ acknowledged:true
+		baseFilter["acknowledged"] = true
 	}
 	// (ออปชัน) รองรับตัวกรองเพิ่มเติมที่อาจส่งมาผ่าน filters เช่น hwId, brand, topic, district ฯลฯ
 	// ✅ hwId filter (รองรับทั้ง hwId/hwid กันพลาด)
@@ -335,7 +335,7 @@ func ListAlarms(ctx context.Context, page, perPages int, filters map[string]stri
 }
 
 func GetAlarmById(ctx context.Context, id string) (kctrlmod.AlarmResponseItem, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kctrlsvc", "alarms.GetAlarmById", "kctrlsvc", "GetAlarmById")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kctrlsvc", "alarms.GetAlarmById", "kctrlsvc", "GetAlarmById")
 	defer end()
 
 	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -547,9 +547,8 @@ func GetAlarmById(ctx context.Context, id string) (kctrlmod.AlarmResponseItem, e
 	return item, nil
 }
 
-
 func DeleteAlarm(ctx context.Context, id string) error {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kctrlsvc", "alarms.DeleteAlarm", "kctrlsvc", "DeleteAlarm")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kctrlsvc", "alarms.DeleteAlarm", "kctrlsvc", "DeleteAlarm")
 	defer end()
 
 	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -601,7 +600,7 @@ func DeleteAlarm(ctx context.Context, id string) error {
 // func DeleteAlarm(ctx context.Context, id string) error {
 // 	ctx, end, log := traceutil.StartLite(
 // 		ctx,
-// 		"klynx/kctrlsvc",     // tracerName
+// 		"github.com/hotkhwan/gateway-api/kctrlsvc",     // tracerName
 // 		"alarms.DeleteAlarm", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 // 		"kctrlsvc", "LiDeleteAlarmtAlarms",
 // 	)
@@ -635,7 +634,7 @@ func DeleteAlarm(ctx context.Context, id string) error {
 // }
 
 func DeleteAlarmBulk(ctx context.Context, ids []string) error {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kctrlsvc", "alarms.DeleteAlarmBulk", "kctrlsvc", "DeleteAlarmBulk")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kctrlsvc", "alarms.DeleteAlarmBulk", "kctrlsvc", "DeleteAlarmBulk")
 	defer end()
 
 	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -690,7 +689,7 @@ func DeleteAlarmBulk(ctx context.Context, ids []string) error {
 }
 
 func AckAlarm(ctx context.Context, alarmId string, req kctrlmod.AckAlarmRequest, c *fiber.Ctx) error {
-	traceCtx, end, log := traceutil.StartLite(ctx, "klynx/kctrlsvc", "alarms.AckAlarm", "kctrlsvc", "AckAlarm")
+	traceCtx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kctrlsvc", "alarms.AckAlarm", "kctrlsvc", "AckAlarm")
 	defer end()
 
 	cctx, cancel := context.WithTimeout(traceCtx, 5*time.Second)

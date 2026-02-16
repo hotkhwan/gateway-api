@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"klynx/models/aimodel"
+	"github.com/hotkhwan/gateway-api/models/aimodel"
 )
 
 // Config อ่านจาก config.ATA (ซึ่ง load จาก .env อีกที)

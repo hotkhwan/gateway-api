@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/gateways/atagw"
-	"klynx/models/aimodel"
-	"klynx/models/systemmod"
-	"klynx/utils"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/gateways/atagw"
+	"github.com/hotkhwan/gateway-api/models/aimodel"
+	"github.com/hotkhwan/gateway-api/models/systemmod"
+	"github.com/hotkhwan/gateway-api/utils"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

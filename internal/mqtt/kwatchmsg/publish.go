@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"klynx/internal/logger"
-	"klynx/internal/mqtt/inframsg"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/inframsg"
 )
 
 func TopicMsg() string           { return "ui/msg" }

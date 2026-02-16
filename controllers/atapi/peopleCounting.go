@@ -11,10 +11,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 
-	"klynx/internal/services/atasvc"
-	"klynx/models/aimodel"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/atasvc"
+	"github.com/hotkhwan/gateway-api/models/aimodel"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // ✅ CSV-only: รองรับแค่ camera=cam1,cam2 และ direction=in,out
@@ -85,7 +85,7 @@ func defaultDateTimeRangeBangkokToNowUTC() string {
 func PeopleCountingSummary(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(
 		c.UserContext(),
-		"klynx/atapi",
+		"github.com/hotkhwan/gateway-api/atapi",
 		"ata.PeopleCountingSummary",
 		"atapi", "PeopleCountingSummary",
 	)

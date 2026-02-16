@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/services/devsync"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/services/devsync"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -21,7 +21,7 @@ type svmsSyncReq struct {
 }
 
 func DeviceSyncFromSVMS(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/devapi", "devices.DeviceSyncFromSVMS", "devapi", "DeviceSyncFromSVMS")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/devapi", "devices.DeviceSyncFromSVMS", "devapi", "DeviceSyncFromSVMS")
 	defer span.End()
 
 	var req svmsSyncReq

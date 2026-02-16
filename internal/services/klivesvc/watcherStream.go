@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/logger"
-	"klynx/internal/repo/cachego/cacheklive"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/repo/cachego/cacheklive"
 )
 
 const (

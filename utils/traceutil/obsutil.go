@@ -9,7 +9,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 )
 
 // Start: สร้าง span + คืน ctx และ logger ที่ผูก traceId/spanId ให้เรียบร้อย

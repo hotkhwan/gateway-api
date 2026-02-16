@@ -8,9 +8,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 
-	"klynx/internal/services/devsvc"
-	"klynx/models/devmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/devsvc"
+	"github.com/hotkhwan/gateway-api/models/devmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // DevicesList godoc
@@ -32,7 +32,7 @@ import (
 func DevicesList(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(
 		c.UserContext(),
-		"klynx/devapi",
+		"github.com/hotkhwan/gateway-api/devapi",
 		"devices.DevicesList",
 		"devapi", "DevicesList",
 	)
@@ -150,7 +150,7 @@ func DevicesList(c *fiber.Ctx) error {
 func DevicesListWithPermission(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(
 		c.UserContext(),
-		"klynx/devapi",
+		"github.com/hotkhwan/gateway-api/devapi",
 		"devices.DevicesList",
 		"devapi", "DevicesList",
 	)

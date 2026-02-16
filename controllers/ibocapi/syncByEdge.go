@@ -4,8 +4,8 @@ package ibocapi
 import (
 	"net/http"
 
-	"klynx/internal/services/ibocsvc"
-	"klynx/models/gmod"
+	"github.com/hotkhwan/gateway-api/internal/services/ibocsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
@@ -29,7 +29,7 @@ type IBOCSyncResponse struct {
 // @Security BearerAuth
 func DeviceSyncFromEdgeID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/ibocapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/ibocapi")
 	ctx, span := tracer.Start(ctx, "IBOC.DeviceSyncFromEdgeID")
 	defer span.End()
 

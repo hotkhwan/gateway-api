@@ -1,8 +1,6 @@
-module klynx
+module github.com/hotkhwan/gateway-api
 
-go 1.24.0
-
-toolchain go1.24.5
+go 1.26.0
 
 require (
 	buf.build/gen/go/permifyco/permify/protocolbuffers/go v1.36.11-20251103093708-d86d36fe3266.1
@@ -86,7 +84,7 @@ require (
 	github.com/richardlehane/mscfb v1.0.6 // indirect
 	github.com/richardlehane/msoleps v1.0.6 // indirect
 	github.com/rs/xid v1.6.0 // indirect
-	github.com/swaggo/files v1.0.1 // indirect
+	github.com/swaggo/files v0.0.0-20220610200504-28940afbdbfe // indirect
 	github.com/tiendc/go-deepcopy v1.7.2 // indirect
 	github.com/tinylib/msgp v1.6.3 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
@@ -98,7 +96,7 @@ require (
 	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/contrib v1.40.0 // indirect
+	go.opentelemetry.io/contrib v1.20.0 // indirect
 	go.opentelemetry.io/otel/metric v1.40.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect

@@ -1,7 +1,7 @@
 // internal/services/kwatsvc/progress_notify.go
 package kwatsvc
 
-import "klynx/internal/mqtt/kwatchmsg"
+import "github.com/hotkhwan/gateway-api/internal/mqtt/kwatchmsg"
 
 func NotifyIbocProgressStarted(jobID string) {
 	_ = kwatchmsg.PubTopicToMsg("ui/msg", "watchlist.iboc.started", map[string]any{

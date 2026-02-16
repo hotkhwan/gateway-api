@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"time"
 
-	"klynx/internal/iwown"
+	"github.com/hotkhwan/gateway-api/internal/iwown"
 )
 
 // ใช้ ICT เป็น default (ถ้าไม่ได้ส่ง loc มา)

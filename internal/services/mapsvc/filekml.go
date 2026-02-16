@@ -9,10 +9,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"klynx/config"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // GenerateKmlSignedURL handles presigned KML file link generation
@@ -22,7 +22,7 @@ func GenerateKmlSignedURL(c *fiber.Ctx, token string) error {
 
 	ctx, end, log := traceutil.StartLite(
 		baseCtx,
-		"klynx/mapsvc",
+		"github.com/hotkhwan/gateway-api/mapsvc",
 		"maps.GenerateKmlSignedURL",
 		"mapsvc", "GenerateKmlSignedURL",
 	)

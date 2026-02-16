@@ -13,13 +13,13 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/kafka"
-	"klynx/internal/repo/stomongo"
-	"klynx/models/kwatmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"klynx/internal/gateways/iboc/watchlist/ibface"
+	"github.com/hotkhwan/gateway-api/internal/gateways/iboc/watchlist/ibface"
 
 	minioSDK "github.com/minio/minio-go/v7"
 	"go.mongodb.org/mongo-driver/bson"
@@ -53,7 +53,7 @@ func parseBoolStr(s string, def bool) bool {
 func WatchlistCreate(ctx context.Context, req kwatmod.WatchlistCreateRequest) (primitive.ObjectID, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/kwatsvc",             // tracerName
+		"github.com/hotkhwan/gateway-api/kwatsvc",             // tracerName
 		"watchlist.WatchlistCreate", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kwatsvc", "WatchlistCreate",
 	)

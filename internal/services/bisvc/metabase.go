@@ -21,7 +21,7 @@ var ErrConfigNotSet = fmt.Errorf("metabase env not configured")
 
 // GenerateSignedURL: เซ็น JWT และคืน base URL เท่านั้น
 func GenerateSignedURL(ctx context.Context, dashboardIdStr string) (*MetabaseResponse, error) {
-	tr := otel.Tracer("klynx/bisvc")
+	tr := otel.Tracer("github.com/hotkhwan/gateway-api/bisvc")
 	ctx, span := tr.Start(ctx, "BI.GenerateSignedURL")
 	defer span.End()
 

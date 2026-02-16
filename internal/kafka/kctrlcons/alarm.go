@@ -4,17 +4,17 @@ package kctrlcons
 import (
 	"context"
 	"fmt"
-	"klynx/internal/kafka"
-	"klynx/internal/logger"
-	"klynx/internal/services/kctrlsvc"
-	"klynx/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/kctrlsvc"
+	"github.com/hotkhwan/gateway-api/models/kctrlmod"
 	"os"
 	"strings"
 )
 
 func StartKafkaAlarmConsumer(broker, topic string) {
 	ctx := context.Background()
-	// tracer := otel.Tracer("klynx/Kctrlcons")
+	// tracer := otel.Tracer("github.com/hotkhwan/gateway-api/Kctrlcons")
 	log := logger.FromCtx(ctx, "kctrlcons", "StartKctrlAlarmConsumer")
 	log.Debug().Msg("consumer_boot")
 

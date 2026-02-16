@@ -7,7 +7,7 @@ import (
 	"errors"
 	"time"
 
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 
 	"github.com/segmentio/kafka-go"
 )

@@ -2,10 +2,10 @@
 package authapi
 
 import (
-	"klynx/internal/logger"
-	"klynx/internal/services/authsvc"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/authsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
@@ -24,7 +24,7 @@ import (
 // @Security BearerAuth
 func RefreshToken(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/authapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/authapi")
 	ctx, span := tracer.Start(ctx, "Auth.RefreshToken")
 	defer span.End()
 

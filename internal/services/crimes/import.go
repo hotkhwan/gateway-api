@@ -10,8 +10,8 @@ import (
 	"sort"
 	"strings"
 
-	"klynx/models"
-	"klynx/utils/traceutil" // ✅ ใช้ StartLite
+	"github.com/hotkhwan/gateway-api/models"
+	"github.com/hotkhwan/gateway-api/utils/traceutil" // ✅ ใช้ StartLite
 
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -29,7 +29,7 @@ func ImportCrimesFile(ctx context.Context, path string, coll *mongo.Collection) 
 	// ✅ start span + logger
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/crimes",            // tracerName
+		"github.com/hotkhwan/gateway-api/crimes",            // tracerName
 		"crimes.ImportCrimesFile", // spanName
 		"crimes", "ImportCrimesFile",
 	)

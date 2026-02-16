@@ -4,10 +4,10 @@ package kschapi
 import (
 	"strconv"
 
-	"klynx/internal/services/kschsvc"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/kschsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -28,7 +28,7 @@ import (
 // @Router /ksearch/video [get]
 // @Security BearerAuth
 func VideoList(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kschapi", "search.VideoList", "kschapi", "VideoList")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "search.VideoList", "kschapi", "VideoList")
 	defer span.End()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))

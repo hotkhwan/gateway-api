@@ -6,9 +6,9 @@ import (
 	"errors"
 	"time"
 
-	"klynx/internal/repo/stomongo"
-	"klynx/models/kschmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models/kschmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -18,7 +18,7 @@ var chatColl = "ksearch_chats"
 
 // Create Chat
 func ChatCreate(ctx context.Context, req kschmod.ChatRequest, userId string) (*kschmod.Chat, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kschsvc", "ChatCreate", "kschsvc", "ChatCreate")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kschsvc", "ChatCreate", "kschsvc", "ChatCreate")
 	defer end()
 
 	var projectOID *primitive.ObjectID
@@ -55,7 +55,7 @@ func ChatCreate(ctx context.Context, req kschmod.ChatRequest, userId string) (*k
 }
 
 func ChatList(ctx context.Context, projectId, userId string) ([]kschmod.Chat, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kschsvc", "ChatList", "kschsvc", "ChatList")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kschsvc", "ChatList", "kschsvc", "ChatList")
 	defer end()
 
 	filter := bson.M{"userId": userId}
@@ -76,7 +76,7 @@ func ChatList(ctx context.Context, projectId, userId string) ([]kschmod.Chat, er
 }
 
 func ChatUpdate(ctx context.Context, id string, update kschmod.Chat) (*kschmod.Chat, error) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kschsvc", "ChatUpdate", "kschsvc", "ChatUpdate")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kschsvc", "ChatUpdate", "kschsvc", "ChatUpdate")
 	defer end()
 
 	oid, err := primitive.ObjectIDFromHex(id)
@@ -108,7 +108,7 @@ func ChatUpdate(ctx context.Context, id string, update kschmod.Chat) (*kschmod.C
 }
 
 func ChatDelete(ctx context.Context, id string) error {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kschsvc", "ChatDelete", "kschsvc", "ChatDelete")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kschsvc", "ChatDelete", "kschsvc", "ChatDelete")
 	defer end()
 
 	oid, err := primitive.ObjectIDFromHex(id)

@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/repo/stomongo"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	minioSDK "github.com/minio/minio-go/v7"
 	"go.mongodb.org/mongo-driver/bson"
@@ -20,7 +20,7 @@ import (
 func VideoDelete(ctx context.Context, id primitive.ObjectID) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/kschsvc",      // tracerName
+		"github.com/hotkhwan/gateway-api/kschsvc",      // tracerName
 		"search.VideoDelete", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kschsvc", "VideoDelete",
 	)

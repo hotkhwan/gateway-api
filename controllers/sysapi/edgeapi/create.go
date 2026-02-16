@@ -3,11 +3,11 @@ package edgeapi
 import (
 	"strings"
 
-	"klynx/internal/logger"
-	"klynx/internal/services/systemsvc/edgesvc"
-	"klynx/models/systemmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/systemsvc/edgesvc"
+	"github.com/hotkhwan/gateway-api/models/systemmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -26,7 +26,7 @@ import (
 // @Router /system/edge/type/{edgeType} [post]
 // @Security BearerAuth
 func CreateEdge(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/edgeapi", "system.edge.Create", "edgeapi", "CreateEdge")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/edgeapi", "system.edge.Create", "edgeapi", "CreateEdge")
 	defer span.End()
 	_ = logger.FromCtx(ctx, "edgeapi", "CreateEdge")
 

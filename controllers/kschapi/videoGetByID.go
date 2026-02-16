@@ -2,10 +2,10 @@
 package kschapi
 
 import (
-	"klynx/internal/services/kschsvc"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/kschsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -21,7 +21,7 @@ import (
 // @Router /kschapi/video/{id} [get]
 // @Security BearerAuth
 func VideoGetByID(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kschapi", "search.VideoGetByID", "kschapi", "VideoGetByID")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "search.VideoGetByID", "kschapi", "VideoGetByID")
 	defer span.End()
 
 	videoId := c.Params("videoId")

@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"klynx/internal/logger"
-	"klynx/internal/services/authzsvc"
-	"klynx/models/authmod"
-	"klynx/utils/authutil"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
+	"github.com/hotkhwan/gateway-api/models/authmod"
+	"github.com/hotkhwan/gateway-api/utils/authutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -22,7 +22,7 @@ import (
 
 func RefreshToken(ctx context.Context, refreshToken string) (authmod.SigninResponse, error) {
 	// ⬇️ สร้าง child span ของชั้น controller
-	tracer := otel.Tracer("klynx/authsvc")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/authsvc")
 	ctx, span := tracer.Start(ctx, "Auth.RefreshToken")
 	defer span.End()
 

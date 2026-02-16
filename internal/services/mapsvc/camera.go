@@ -8,9 +8,9 @@ import (
 	"os"
 	"time"
 
-	"klynx/config"
-	"klynx/models/mapmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/mapmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -47,7 +47,7 @@ func GetDevicesMap(
 ) (mapmod.MapDetails, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/mapsvc",
+		"github.com/hotkhwan/gateway-api/mapsvc",
 		"maps.GetDevicesMap",
 		"mapsvc", "GetDevicesMap",
 	)

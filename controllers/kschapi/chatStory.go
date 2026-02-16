@@ -3,13 +3,13 @@ package kschapi
 
 import (
 	"errors"
-	"klynx/internal/middleware"
-	"klynx/internal/services/kschsvc"
-	"klynx/models/gmod"
-	"klynx/models/kschmod"
-	"klynx/utils"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/middleware"
+	"github.com/hotkhwan/gateway-api/internal/services/kschsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/kschmod"
+	"github.com/hotkhwan/gateway-api/utils"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -29,7 +29,7 @@ import (
 // @Router /ksearch/chats [post]
 // @Security BearerAuth
 func ChatCreate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kschapi", "ChatCreate", "kschapi", "ChatCreate")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ChatCreate", "kschapi", "ChatCreate")
 	defer span.End()
 
 	var req kschmod.ChatRequest
@@ -73,7 +73,7 @@ func ChatCreate(c *fiber.Ctx) error {
 // @Router /ksearch/projects/{projectId}/chats [get]
 // @Security BearerAuth
 func ChatList(c *fiber.Ctx) error {
-	ctx, span, _ := traceutil.Start(c.UserContext(), "klynx/kschapi", "ChatList", "kschapi", "ChatList")
+	ctx, span, _ := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ChatList", "kschapi", "ChatList")
 	defer span.End()
 
 	projectId := c.Params("id") // ถ้ามี param id จาก /projects/:id/chats
@@ -124,7 +124,7 @@ func ChatList(c *fiber.Ctx) error {
 // @Failure 500 {object} gmod.BaseResponse "Internal server error"
 // @Router /ksearch/chats/{chatId} [put]
 func ChatUpdate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kschapi", "ChatUpdate", "kschapi", "ChatUpdate")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ChatUpdate", "kschapi", "ChatUpdate")
 	defer span.End()
 	chatId := c.Params("chatId")
 	var req kschmod.ChatRequest
@@ -165,7 +165,7 @@ func ChatUpdate(c *fiber.Ctx) error {
 // @Failure 500 {object} gmod.BaseResponse "Internal server error"
 // @Router /ksearch/chats/{chatId} [delete]
 func ChatDelete(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kschapi", "ChatUpdate", "kschapi", "ChatUpdate")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ChatUpdate", "kschapi", "ChatUpdate")
 	defer span.End()
 	chatId := c.Params("chatId")
 	if err := kschsvc.ChatDelete(ctx, chatId); err != nil {

@@ -4,9 +4,9 @@ package iwownParser
 import (
 	"time"
 
-	"klynx/internal/iwown/iwownConv"
-	pb "klynx/internal/iwown/protobuf"
-	"klynx/models/iwownmod"
+	"github.com/hotkhwan/gateway-api/internal/iwown/iwownConv"
+	pb "github.com/hotkhwan/gateway-api/internal/iwown/protobuf"
+	"github.com/hotkhwan/gateway-api/models/iwownmod"
 )
 
 type MapOptions struct {

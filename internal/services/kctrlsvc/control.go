@@ -9,17 +9,17 @@ import (
 	"os"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/mqtt/kcontrolmsg"
-	"klynx/models/kctrlmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/kcontrolmsg"
+	"github.com/hotkhwan/gateway-api/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func SendMessage(ctx context.Context, msg kctrlmod.ControlMessage) error {
-	_, end, log := traceutil.StartLite(ctx, "klynx/kctrlsvc", "alarms.SendMessage", "kctrlsvc", "SendMessage")
+	_, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kctrlsvc", "alarms.SendMessage", "kctrlsvc", "SendMessage")
 	defer end()
 
 	if msg.Topic == "" || msg.HwID == nil {
@@ -123,7 +123,7 @@ func SendMessage(ctx context.Context, msg kctrlmod.ControlMessage) error {
 }
 
 func AckDeviceAlarm(ctx context.Context, id string, payload kctrlmod.EventMessage) error {
-	traceCtx, end, log := traceutil.StartLite(ctx, "klynx/kctrlsvc", "alarms.AckDeviceAlarm", "kctrlsvc", "AckDeviceAlarm")
+	traceCtx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kctrlsvc", "alarms.AckDeviceAlarm", "kctrlsvc", "AckDeviceAlarm")
 	defer end()
 	cctx, cancel := context.WithTimeout(traceCtx, 5*time.Second)
 	defer cancel()

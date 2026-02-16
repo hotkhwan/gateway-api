@@ -5,11 +5,11 @@ import (
 	"strconv"
 	"strings"
 
-	"klynx/internal/services/kctrlsvc"
-	"klynx/models/gmod"
-	"klynx/utils"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/kctrlsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -33,7 +33,7 @@ import (
 // @Security     BearerAuth
 // @Router       /kcontrol [get]
 func ListDevices(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kctrlapi", "devices.ListDevices", "kctrlapi", "ListDevices")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "devices.ListDevices", "kctrlapi", "ListDevices")
 	defer span.End()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -94,7 +94,7 @@ func ListDevices(c *fiber.Ctx) error {
 // @Security     BearerAuth
 // @Router       /kcontrol/{id} [get]
 func DeviceGetByID(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kctrlapi", "devices.DeviceGetByID", "kctrlapi", "DeviceGetByID")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "devices.DeviceGetByID", "kctrlapi", "DeviceGetByID")
 	defer span.End()
 
 	id := c.Params("id")
@@ -131,7 +131,7 @@ func DeviceGetByID(c *fiber.Ctx) error {
 // @Failure      400   {object}  gmod.BadRequestResponse
 // @Router       /kcontrol/alarms [get]
 func ListAlarms(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kctrlapi", "alarms.ListAlarms", "kctrlapi", "ListAlarms")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "alarms.ListAlarms", "kctrlapi", "ListAlarms")
 	defer span.End()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -191,7 +191,7 @@ func ListAlarms(c *fiber.Ctx) error {
 // @Security     BearerAuth
 // @Router       /kcontrol/alarms/{id} [get]
 func ListAlarmById(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kctrlapi", "alarms.ListAlarmById", "kctrlapi", "ListAlarmById")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "alarms.ListAlarmById", "kctrlapi", "ListAlarmById")
 	defer span.End()
 
 	id := strings.TrimSpace(c.Params("id"))
@@ -234,7 +234,7 @@ func ListAlarmById(c *fiber.Ctx) error {
 // @Failure      400   {object}  gmod.BadRequestResponse
 // @Router       /kcontrol/events [get]
 func ListEvents(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kctrlapi", "events.ListEvents", "kctrlapi", "ListEvents")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "events.ListEvents", "kctrlapi", "ListEvents")
 	defer span.End()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))

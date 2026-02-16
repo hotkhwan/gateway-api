@@ -6,8 +6,8 @@ import (
 	"errors"
 	"time"
 
-	"klynx/internal/repo/stomongo"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -20,7 +20,7 @@ const watchlistsColl = "watchlists"
 func SaveWatchmanID(ctx context.Context, watchlistID primitive.ObjectID, watchmanID int64) (int64, int64, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/watchgw",
+		"github.com/hotkhwan/gateway-api/watchgw",
 		"watchman.SaveWatchmanID",
 		"watchgw", "SaveWatchmanID",
 	)

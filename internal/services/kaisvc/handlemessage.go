@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/kafka"
-	"klynx/internal/repo/stos3minio"
-	"klynx/models/kaimod"
-	"klynx/utils/aiutil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/kafka"
+	"github.com/hotkhwan/gateway-api/internal/repo/stos3minio"
+	"github.com/hotkhwan/gateway-api/models/kaimod"
+	"github.com/hotkhwan/gateway-api/utils/aiutil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/google/uuid"
 )
@@ -22,7 +22,7 @@ import (
 func HandleDetect(parent context.Context, msg kaimod.Detection) {
 	ctx, end, log := traceutil.StartLite(
 		parent,
-		"klynx/kaisvc",        // tracerName
+		"github.com/hotkhwan/gateway-api/kaisvc",        // tracerName
 		"grpsvc.HandleDetect", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kaisvc", "HandleDetect",
 	)

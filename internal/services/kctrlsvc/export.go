@@ -6,8 +6,8 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
-	"klynx/config"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"os"
 	"strings"
 	"time"
@@ -21,7 +21,7 @@ import (
 func ExportAlarms(ctx context.Context, c *fiber.Ctx) error {
 	ctx, endSpan, log := traceutil.StartLite(
 		ctx,
-		"klynx/kctrlsvc",
+		"github.com/hotkhwan/gateway-api/kctrlsvc",
 		"alarms.ExportAlarms",
 		"kctrlsvc", "ExportAlarms",
 	)

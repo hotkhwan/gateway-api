@@ -1,10 +1,10 @@
 package memapi
 
 import (
-	"klynx/internal/services/memsvc"
-	"klynx/models/memmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/memsvc"
+	"github.com/hotkhwan/gateway-api/models/memmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"strconv"
 	"strings"
 
@@ -30,7 +30,7 @@ import (
 // @Security BearerAuth
 
 func ListMembers(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/memapi", "memapi.ListMembers", "memapi", "ListMembers")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/memapi", "memapi.ListMembers", "memapi", "ListMembers")
 	defer span.End()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))

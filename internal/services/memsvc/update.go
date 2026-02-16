@@ -2,9 +2,9 @@ package memsvc
 
 import (
 	"context"
-	"klynx/config"
-	"klynx/models/memmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/memmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"os"
 	"time"
 
@@ -15,7 +15,7 @@ import (
 func UpdateMember(ctx context.Context, memberID string, req memmod.MemberRequest) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/memsvc",
+		"github.com/hotkhwan/gateway-api/memsvc",
 		"memsvc.UpdateMember",
 		"memsvc", "UpdateMember",
 	)

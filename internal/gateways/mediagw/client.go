@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 	"net/http"
 	"net/url"
 	"os"

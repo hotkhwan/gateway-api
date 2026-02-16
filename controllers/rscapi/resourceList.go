@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/logger"
-	"klynx/internal/services/rscsvc"
-	"klynx/models/gmod"
-	"klynx/models/rscmod"
-	"klynx/utils/httputil"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/rscsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/rscmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
@@ -34,7 +34,7 @@ import (
 // @Security BearerAuth
 func ResourceList(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/rscapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/rscapi")
 	ctx, span := tracer.Start(ctx, "ResourceList")
 	defer span.End()
 
@@ -151,7 +151,7 @@ func ResourceCreate(c *fiber.Ctx) error {
 // @Security BearerAuth
 func ResourceUpdate(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/rscapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/rscapi")
 	ctx, span := tracer.Start(ctx, "ResourceUpdate")
 	defer span.End()
 
@@ -193,7 +193,7 @@ func ResourceUpdate(c *fiber.Ctx) error {
 // @Security BearerAuth
 func ResourceDelete(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	tracer := otel.Tracer("klynx/rscapi")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/rscapi")
 	ctx, span := tracer.Start(ctx, "ResourceDelete")
 	defer span.End()
 

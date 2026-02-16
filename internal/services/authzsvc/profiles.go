@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"klynx/internal/logger"
-	"klynx/internal/repo/authzrepo"
-	"klynx/models/authzmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -67,7 +67,7 @@ func NewProfileService(
 func (s *ProfileService) CreateProfile(ctx context.Context, p *authzmod.Profile) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.CreateProfile",
 		"authzsvc", "CreateProfile",
 	)
@@ -91,7 +91,7 @@ func (s *ProfileService) CreateProfile(ctx context.Context, p *authzmod.Profile)
 func (s *ProfileService) DeleteProfile(ctx context.Context, code string) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.DeleteProfile",
 		"authzsvc", "DeleteProfile",
 	)
@@ -117,7 +117,7 @@ func (s *ProfileService) ListProfiles(
 ) ([]*authzmod.Profile, error) {
 	ctx, end, _ := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.ListProfiles",
 		"authzsvc", "ListProfiles",
 	)
@@ -140,7 +140,7 @@ func (s *ProfileService) CountProfiles(
 ) (int64, error) {
 	ctx, end, _ := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.CountProfiles",
 		"authzsvc", "CountProfiles",
 	)
@@ -160,7 +160,7 @@ func (s *ProfileService) UpdateProfile(
 ) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.UpdateProfile",
 		"authzsvc", "UpdateProfile",
 	)
@@ -193,7 +193,7 @@ func (s *ProfileService) PublishVersion(
 ) (*authzmod.ProfileVersion, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.PublishVersion",
 		"authzsvc", "PublishVersion",
 	)
@@ -250,7 +250,7 @@ func (s *ProfileService) AddVersionNote(
 ) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.AddVersionNote",
 		"authzsvc", "AddVersionNote",
 	)
@@ -301,7 +301,7 @@ func (s *ProfileService) PlanChanges(
 ) (*TuplePlan, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.PlanChanges",
 		"authzsvc", "PlanChanges",
 	)
@@ -473,7 +473,7 @@ func (s *ProfileService) ApplyChanges(
 ) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.ApplyChanges",
 		"authzsvc", "ApplyChanges",
 	)

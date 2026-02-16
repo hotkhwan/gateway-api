@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/services/dashsvc"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/dashsvc"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -26,7 +26,7 @@ import (
 func DashboardSummary(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(
 		c.UserContext(),
-		"klynx/kctrlapi",
+		"github.com/hotkhwan/gateway-api/kctrlapi",
 		"dashboard.DashboardSummary",
 		"kctrlapi",
 		"DashboardSummary",

@@ -2,8 +2,8 @@
 package router
 
 import (
-	"klynx/controllers/fileapi"
-	"klynx/internal/middleware"
+	"github.com/hotkhwan/gateway-api/controllers/fileapi"
+	"github.com/hotkhwan/gateway-api/internal/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )

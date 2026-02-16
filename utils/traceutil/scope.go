@@ -9,7 +9,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 
-	"klynx/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 )
 
 // Scope: เก็บ ctx, span, logger สำหรับหนึ่งงาน (service/handler/consumer)
@@ -26,8 +26,8 @@ type Scope struct {
 // StartScope: ระบุได้หมด — tracerName, spanName, component, source
 // ตัวอย่าง:
 //
-//	s := obs.StartScope(parent, "klynx/kwatsvc", "kwatsvc.WatchlistCreate", "kwatsvc", "WatchlistCreate")
-//	s := obs.StartScope(parent, "klynx/kxx",     "kxx.Xx",                 "kxx",     "Xx")
+//	s := obs.StartScope(parent, "github.com/hotkhwan/gateway-api/kwatsvc", "kwatsvc.WatchlistCreate", "kwatsvc", "WatchlistCreate")
+//	s := obs.StartScope(parent, "github.com/hotkhwan/gateway-api/kxx",     "kxx.Xx",                 "kxx",     "Xx")
 func StartScope(parent context.Context, tracerName, spanName, component, source string) *Scope {
 	ctx, span := otel.Tracer(tracerName).Start(parent, spanName)
 	log := logger.FromCtx(ctx, component, source)

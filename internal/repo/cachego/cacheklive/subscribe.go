@@ -4,7 +4,7 @@ package cacheklive
 import (
 	"context"
 
-	"klynx/config"
+	"github.com/hotkhwan/gateway-api/config"
 
 	"github.com/redis/go-redis/v9"
 )

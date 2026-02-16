@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"klynx/internal/repo/stomongo"
-	"klynx/models/gmod"
-	"klynx/models/rscmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/rscmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -35,7 +35,7 @@ func sanitizeSortField(in string) string {
 func ResourceList(ctx context.Context, page, perPages int, filters map[string]string, sortField, sortOrder string) ([]rscmod.Resource, gmod.Pagination, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/rscsvc", // tracer name
+		"github.com/hotkhwan/gateway-api/rscsvc", // tracer name
 		"ResourceList", // span name
 		"rscsvc",       // service tag
 		"ResourceList", // operation tag
@@ -102,7 +102,7 @@ func ResourceList(ctx context.Context, page, perPages int, filters map[string]st
 func ResourceCreate(ctx context.Context, doc *rscmod.Resource) (string, error) {
 	ctx, end, _ := traceutil.StartLite(
 		ctx,
-		"klynx/rscsvc",
+		"github.com/hotkhwan/gateway-api/rscsvc",
 		"ResourceCreate",
 		"rscsvc",
 		"ResourceCreate",
@@ -144,7 +144,7 @@ func ResourceCreate(ctx context.Context, doc *rscmod.Resource) (string, error) {
 func ResourceUpdate(ctx context.Context, id string, doc *rscmod.Resource) error {
 	ctx, end, _ := traceutil.StartLite(
 		ctx,
-		"klynx/rscsvc",
+		"github.com/hotkhwan/gateway-api/rscsvc",
 		"ResourceUpdate",
 		"rscsvc",
 		"ResourceUpdate",
@@ -177,7 +177,7 @@ func ResourceUpdate(ctx context.Context, id string, doc *rscmod.Resource) error 
 func ResourceDelete(ctx context.Context, id string) error {
 	ctx, end, _ := traceutil.StartLite(
 		ctx,
-		"klynx/rscsvc",
+		"github.com/hotkhwan/gateway-api/rscsvc",
 		"ResourceDelete",
 		"rscsvc",
 		"ResourceDelete",

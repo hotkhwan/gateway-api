@@ -2,7 +2,7 @@
 package mapapi
 
 import (
-	"klynx/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/gmod"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"

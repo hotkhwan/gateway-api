@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"klynx/models/systemmod"
+	"github.com/hotkhwan/gateway-api/models/systemmod"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

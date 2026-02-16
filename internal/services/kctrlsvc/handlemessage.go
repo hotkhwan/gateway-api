@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"klynx/config"
-	"klynx/internal/logger"
-	"klynx/internal/mqtt/kcontrolmsg"
-	"klynx/models/kctrlmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/kcontrolmsg"
+	"github.com/hotkhwan/gateway-api/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -22,7 +22,7 @@ import (
 )
 
 func HandleHealth(ctx context.Context, msg kctrlmod.HealthMessage) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kctrlsvc", "status.HandleHealth", "kctrlsvc", "HandleHealth")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kctrlsvc", "status.HandleHealth", "kctrlsvc", "HandleHealth")
 	defer end()
 
 	// health ทั่วไปไม่ต้องเขียน Mongo แล้ว (ทำไปแล้วใน MQTT handler)
@@ -96,7 +96,7 @@ func HandleHealth(ctx context.Context, msg kctrlmod.HealthMessage) {
 /* ===== Alarm & Sensor ===== */
 
 func HandleAlarm(ctx context.Context, msg kctrlmod.AlarmMessage) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kctrlsvc", "status.HandleAlarm", "kctrlsvc", "HandleAlarm")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kctrlsvc", "status.HandleAlarm", "kctrlsvc", "HandleAlarm")
 	defer end()
 	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -323,7 +323,7 @@ func HandleAlarm(ctx context.Context, msg kctrlmod.AlarmMessage) {
 }
 
 func HandleSensor(ctx context.Context, msg kctrlmod.SensorMessage) {
-	ctx, end, log := traceutil.StartLite(ctx, "klynx/kctrlsvc", "status.HandleSensor", "kctrlsvc", "HandleSensor")
+	ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kctrlsvc", "status.HandleSensor", "kctrlsvc", "HandleSensor")
 	defer end()
 	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()

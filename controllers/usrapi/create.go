@@ -2,10 +2,10 @@
 package usrapi
 
 import (
-	"klynx/internal/services/usrsvc"
-	"klynx/models/gmod"
-	"klynx/models/usrmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/usrsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/usrmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -25,7 +25,7 @@ import (
 func CreateUser(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(
 		c.UserContext(),
-		"klynx/usrapi", "users.CreateUser",
+		"github.com/hotkhwan/gateway-api/usrapi", "users.CreateUser",
 		"usrapi", "CreateUser",
 	)
 	defer span.End()

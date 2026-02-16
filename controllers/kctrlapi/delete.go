@@ -2,10 +2,10 @@
 package kctrlapi
 
 import (
-	"klynx/internal/services/kctrlsvc"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/kctrlsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -23,7 +23,7 @@ import (
 // @Router /kcontrol/alarms/{id} [delete]
 // @Security BearerAuth
 func DeleteAlarm(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kctrlapi", "alarms.DeleteAlarm", "kctrlapi", "DeleteAlarm")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "alarms.DeleteAlarm", "kctrlapi", "DeleteAlarm")
 	defer span.End()
 
 	id := c.Params("id")
@@ -57,7 +57,7 @@ func DeleteAlarm(c *fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /kcontrol/alarms/bulk-delete [post]
 func DeleteAlarmBulk(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "klynx/kctrlapi", "alarms.DeleteAlarmBulk", "kctrlapi", "DeleteAlarmBulk")
+	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "alarms.DeleteAlarmBulk", "kctrlapi", "DeleteAlarmBulk")
 	defer span.End()
 
 	var ids []string

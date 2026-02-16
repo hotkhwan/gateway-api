@@ -11,15 +11,15 @@ import (
 	"os"
 	"time"
 
-	"klynx/models/kwatmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 func CreateWatchlist3partyWatchman(ctx context.Context, req kwatmod.WatchlistCreateRequest) (string, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/watchgw",
+		"github.com/hotkhwan/gateway-api/watchgw",
 		"watchman.CreateWatchlist3partyWatchman",
 		"watchgw", "CreateWatchlist3partyWatchman",
 	)

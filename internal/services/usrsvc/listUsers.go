@@ -7,10 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"klynx/models/gmod"
-	"klynx/models/usrmod"
-	"klynx/utils/authutil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/usrmod"
+	"github.com/hotkhwan/gateway-api/utils/authutil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -35,7 +35,7 @@ type kcRealmRole struct {
 
 func ListUsers(ctx context.Context, authHeader string, page, perPages int, search, sortField, sortOrder string) (ListUsersResult, error) {
 	ctx, end, log := traceutil.StartLite(
-		ctx, "klynx/usrsvc", "users.ListUsers", "usrsvc", "ListUsers",
+		ctx, "github.com/hotkhwan/gateway-api/usrsvc", "users.ListUsers", "usrsvc", "ListUsers",
 	)
 	defer end()
 
@@ -301,7 +301,7 @@ func ListUsers(ctx context.Context, authHeader string, page, perPages int, searc
 
 func GetUsersByIds(ctx context.Context, authHeader string, userIds []string) (ListUsersResult, error) {
 	ctx, end, log := traceutil.StartLite(
-		ctx, "klynx/usrsvc", "users.GetUsersByIds", "usrsvc", "GetUsersByIds",
+		ctx, "github.com/hotkhwan/gateway-api/usrsvc", "users.GetUsersByIds", "usrsvc", "GetUsersByIds",
 	)
 	defer end()
 

@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"klynx/models/usrmod"
+	"github.com/hotkhwan/gateway-api/models/usrmod"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

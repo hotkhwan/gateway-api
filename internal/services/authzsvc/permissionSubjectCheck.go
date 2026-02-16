@@ -9,15 +9,15 @@ import (
 	"io"
 	"net/http"
 
-	"klynx/config"
-	"klynx/models/authzmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 func PermissionSubjectCheck(ctx context.Context, permRequest authzmod.PermissionSubjectCheckRequest) ([]authzmod.PermissionSubjectCheckItem, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"klynx/authzsvc",
+		"github.com/hotkhwan/gateway-api/authzsvc",
 		"authorization.PermissionSubjectCheck",
 		"authzsvc", "PermissionSubjectCheck",
 	)

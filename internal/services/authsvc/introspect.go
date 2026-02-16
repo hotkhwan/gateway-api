@@ -4,12 +4,12 @@ package authsvc
 import (
 	"context"
 	"fmt"
-	"klynx/config"
-	"klynx/internal/logger"
-	"klynx/internal/services/authzsvc"
-	"klynx/models/authmod"
-	"klynx/models/authzmod"
-	"klynx/utils/authutil"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
+	"github.com/hotkhwan/gateway-api/models/authmod"
+	"github.com/hotkhwan/gateway-api/models/authzmod"
+	"github.com/hotkhwan/gateway-api/utils/authutil"
 	"strings"
 	"time"
 
@@ -24,7 +24,7 @@ var relationToAllow = map[string]authmod.Allow{
 }
 
 func Introspect(ctx context.Context, token string) (*authmod.IntrospectResult, error) {
-	tracer := otel.Tracer("klynx/authsvc")
+	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/authsvc")
 	ctx, span := tracer.Start(ctx, "Auth.Introspect")
 	defer span.End()
 

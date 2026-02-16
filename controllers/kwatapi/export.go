@@ -6,9 +6,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"klynx/internal/services/kwatsvc"
-	"klynx/models/kwatmod"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
+	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // @Summary  Create watchlist export job
@@ -23,7 +23,7 @@ import (
 // @Router   /watchlists/exports [post]
 // @Security BearerAuth
 func CreateWatchlistExport(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.Context(), "klynx/kwatapi", "CreateExport", "kwatapi", "export-create")
+	ctx, end, _ := traceutil.StartLite(c.Context(), "github.com/hotkhwan/gateway-api/kwatapi", "CreateExport", "kwatapi", "export-create")
 	defer end()
 
 	var p kwatmod.ExportWatchlistParams
@@ -52,7 +52,7 @@ func CreateWatchlistExport(c *fiber.Ctx) error {
 // @Router   /watchlist/exports/jobs/{id} [get]
 // @Security BearerAuth
 func GetExportJob(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.Context(), "klynx/kwatapi", "GetJob", "kwatapi", "export-get")
+	ctx, end, _ := traceutil.StartLite(c.Context(), "github.com/hotkhwan/gateway-api/kwatapi", "GetJob", "kwatapi", "export-get")
 	defer end()
 
 	id := c.Params("id")
@@ -71,7 +71,7 @@ func GetExportJob(c *fiber.Ctx) error {
 // @Router   /watchlist/exports/{id} [get]
 // @Security BearerAuth
 func DownloadExport(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.Context(), "klynx/kwatapi", "Download", "kwatapi", "export-download")
+	ctx, end, _ := traceutil.StartLite(c.Context(), "github.com/hotkhwan/gateway-api/kwatapi", "Download", "kwatapi", "export-download")
 	defer end()
 
 	id := c.Params("id")

@@ -2,9 +2,9 @@
 package router
 
 import (
-	"klynx/controllers/atapi"
-	ataWebhook "klynx/controllers/webhooks/analytic/atapi"
-	"klynx/internal/middleware"
+	"github.com/hotkhwan/gateway-api/controllers/atapi"
+	ataWebhook "github.com/hotkhwan/gateway-api/controllers/webhooks/analytic/atapi"
+	"github.com/hotkhwan/gateway-api/internal/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )

@@ -5,7 +5,7 @@ import (
     "context"
     "time"
 
-    "klynx/models/authzmod"
+    "github.com/hotkhwan/gateway-api/models/authzmod"
 
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/mongo"

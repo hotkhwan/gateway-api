@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"strings"
 
-	"klynx/internal/logger"
-	"klynx/internal/services/systemsvc/edgesvc"
-	"klynx/models/gmod"
-	"klynx/utils/httputil"
-	"klynx/utils/traceutil"
+	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/systemsvc/edgesvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -18,7 +18,7 @@ import (
 func ListEdges(c *fiber.Ctx) error {
 	ctx, span, log := traceutil.Start(
 		c.UserContext(),
-		"klynx/edgeapi",
+		"github.com/hotkhwan/gateway-api/edgeapi",
 		"system.edge.List",
 		"edgeapi",
 		"ListEdges",
