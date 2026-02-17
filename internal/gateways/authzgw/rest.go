@@ -21,18 +21,25 @@ type RestClient struct {
 
 func NewRestClient() *RestClient {
 	base := strings.TrimRight(config.PermifyBaseURL, "/")
-	if base == "" {
-		return nil
-	}
 	return &RestClient{
 		baseURL: base,
 		httpc:   &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
-func (r *RestClient) WriteTuples(ctx context.Context, tenantId string, tuples []map[string]interface{}) error {
+func (r *RestClient) ensure() error {
 	if r == nil {
 		return fmt.Errorf("authzgw rest client is nil")
+	}
+	if r.baseURL == "" {
+		return fmt.Errorf("permify baseURL is empty")
+	}
+	return nil
+}
+
+func (r *RestClient) WriteTuples(ctx context.Context, tenantId string, tuples []map[string]any) error {
+	if err := r.ensure(); err != nil {
+		return err
 	}
 	if tenantId == "" {
 		return fmt.Errorf("tenantId required")
@@ -41,14 +48,14 @@ func (r *RestClient) WriteTuples(ctx context.Context, tenantId string, tuples []
 		return nil
 	}
 
-	meta := map[string]interface{}{}
+	meta := map[string]any{}
 	if config.CurrentSchemaVersion != "" {
 		meta["schema_version"] = config.CurrentSchemaVersion
 	}
 
-	payload := map[string]interface{}{
-		"metadata": meta,   // ✅ ต้องมีแม้ว่าง
-		"tuples":   tuples, // ✅ batch
+	payload := map[string]any{
+		"metadata": meta,
+		"tuples":   tuples,
 	}
 
 	data, _ := json.Marshal(payload)
@@ -71,22 +78,76 @@ func (r *RestClient) WriteTuples(ctx context.Context, tenantId string, tuples []
 	return nil
 }
 
-func (r *RestClient) LookupOrganizations(
-	ctx context.Context,
-	tenantId string,
-	userId string,
-) ([]string, error) {
+// DeleteOrgTuples ลบทุก tuple ที่ผูกกับ org นี้ (entity=organization:id=orgId)
+// NOTE: Permify REST requires attribute_filter even if empty
+func (r *RestClient) DeleteOrgTuples(ctx context.Context, tenantId string, orgId string) error {
+	if err := r.ensure(); err != nil {
+		return err
+	}
+	if tenantId == "" {
+		return fmt.Errorf("tenantId required")
+	}
+	if orgId == "" {
+		return fmt.Errorf("orgId required")
+	}
 
-	url := fmt.Sprintf(
-		"%s/v1/tenants/%s/permissions/lookup-entity",
-		r.baseURL,
-		tenantId,
-	)
+	schemaVersion := config.CurrentSchemaVersion
+	if schemaVersion == "" {
+		schemaVersion = "latest"
+	}
 
-	payload := map[string]interface{}{
+	url := fmt.Sprintf("%s/v1/tenants/%s/data/delete", r.baseURL, tenantId)
+
+	payload := map[string]any{
+		"metadata": map[string]any{
+			"schema_version": schemaVersion,
+			"depth":          50,
+		},
+		"tuple_filter": map[string]any{
+			"entity": map[string]any{
+				"type": "organization",
+				"id":   orgId,
+			},
+		},
+		"attribute_filter": map[string]any{},
+	}
+
+	data, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := r.httpc.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	body, _ := io.ReadAll(res.Body)
+	if res.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("authzgw delete org tuples failed: status=%d resp=%s", res.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+func (r *RestClient) LookupOrganizations(ctx context.Context, tenantId string, userId string) ([]string, error) {
+	if err := r.ensure(); err != nil {
+		return nil, err
+	}
+	if tenantId == "" {
+		return nil, fmt.Errorf("tenantId required")
+	}
+	if userId == "" {
+		return nil, fmt.Errorf("userId required")
+	}
+
+	url := fmt.Sprintf("%s/v1/tenants/%s/permissions/lookup-entity", r.baseURL, tenantId)
+
+	payload := map[string]any{
 		"entity_type": "organization",
 		"permission":  "view",
-		"subject": map[string]string{
+		"subject": map[string]any{
 			"type": "user",
 			"id":   userId,
 		},
@@ -94,13 +155,7 @@ func (r *RestClient) LookupOrganizations(
 
 	data, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		url,
-		bytes.NewReader(data),
-	)
-
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := r.httpc.Do(req)
@@ -124,7 +179,7 @@ func (r *RestClient) LookupOrganizations(
 		return nil, err
 	}
 
-	var ids []string
+	ids := make([]string, 0, len(resp.Entities))
 	for _, e := range resp.Entities {
 		ids = append(ids, e.Id)
 	}
@@ -142,19 +197,19 @@ func (r *RestClient) CheckPermission(
 	subjectId string,
 ) (bool, error) {
 
-	url := fmt.Sprintf(
-		"%s/v1/tenants/%s/permissions/check",
-		r.baseURL,
-		tenantId,
-	)
+	if err := r.ensure(); err != nil {
+		return false, err
+	}
 
-	payload := map[string]interface{}{
-		"entity": map[string]string{
+	url := fmt.Sprintf("%s/v1/tenants/%s/permissions/check", r.baseURL, tenantId)
+
+	payload := map[string]any{
+		"entity": map[string]any{
 			"type": entityType,
 			"id":   entityId,
 		},
 		"permission": permission,
-		"subject": map[string]string{
+		"subject": map[string]any{
 			"type": subjectType,
 			"id":   subjectId,
 		},
@@ -162,13 +217,7 @@ func (r *RestClient) CheckPermission(
 
 	data, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		url,
-		bytes.NewReader(data),
-	)
-
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := r.httpc.Do(req)
@@ -178,7 +227,8 @@ func (r *RestClient) CheckPermission(
 	defer res.Body.Close()
 
 	if res.StatusCode >= 400 {
-		return false, fmt.Errorf("authz check failed")
+		body, _ := io.ReadAll(res.Body)
+		return false, fmt.Errorf("authz check failed: %s", string(body))
 	}
 
 	var resp struct {

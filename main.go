@@ -230,6 +230,7 @@ func main() {
 	router.RegisterAuthRoutes(api)
 	router.RegisterAuthzRoutes(api)
 	router.RegisterAuthzNewRoutes(api)
+	router.RegisterAuthzDebugRoutes(api)
 	router.RegisterBIRoutes(api)
 	router.RegisterKcontrolDashboard(api)
 	router.RegisterDeviceRoutes(api)

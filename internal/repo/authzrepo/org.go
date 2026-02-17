@@ -4,14 +4,15 @@ package authzrepo
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
 	"github.com/hotkhwan/gateway-api/models/authzmod"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
 var ErrOrgNameAlreadyExists = errors.New("organization name already exists")
 
 type OrgRepo struct {
@@ -32,6 +33,43 @@ func isDuplicateKeyErr(err error) bool {
 		}
 	}
 	return false
+}
+
+// ✅ Call once at bootstrap
+func (r *OrgRepo) EnsureIndexes(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	models := []mongo.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "tenantId", Value: 1},
+				{Key: "name", Value: 1},
+			},
+			Options: options.Index().
+				SetName("uniq_tenantId_name").
+				SetUnique(true),
+		},
+		{
+			Keys: bson.D{
+				{Key: "tenantId", Value: 1},
+				{Key: "orgId", Value: 1},
+			},
+			Options: options.Index().
+				SetName("uniq_tenantId_orgId").
+				SetUnique(true),
+		},
+		{
+			Keys: bson.D{
+				{Key: "syncStatus", Value: 1},
+			},
+			Options: options.Index().
+				SetName("idx_syncStatus"),
+		},
+	}
+
+	_, err := r.col.Indexes().CreateMany(ctx, models)
+	return err
 }
 
 func (r *OrgRepo) Insert(ctx context.Context, org *authzmod.Organization) error {
@@ -72,9 +110,7 @@ func (r *OrgRepo) MarkSyncOK(ctx context.Context, orgId string) error {
 }
 
 func (r *OrgRepo) ListAll(ctx context.Context, tenantId string) ([]authzmod.Organization, error) {
-
 	var result []authzmod.Organization
-
 	err := stomongo.Find(
 		ctx,
 		"organizations",
@@ -82,17 +118,11 @@ func (r *OrgRepo) ListAll(ctx context.Context, tenantId string) ([]authzmod.Orga
 		nil,
 		&result,
 	)
-
 	return result, err
 }
 
-func (r *OrgRepo) ListBySyncStatus(
-	ctx context.Context,
-	status string,
-) ([]authzmod.Organization, error) {
-
+func (r *OrgRepo) ListBySyncStatus(ctx context.Context, status string) ([]authzmod.Organization, error) {
 	var result []authzmod.Organization
-
 	err := stomongo.Find(
 		ctx,
 		"organizations",
@@ -100,59 +130,40 @@ func (r *OrgRepo) ListBySyncStatus(
 		nil,
 		&result,
 	)
-
 	return result, err
 }
 
-func (r *OrgRepo) FindByIds(
-	ctx context.Context,
-	tenantId string,
-	orgIds []string,
-) ([]authzmod.Organization, error) {
+func (r *OrgRepo) FindById(ctx context.Context, orgId string) (*authzmod.Organization, error) {
+    var org authzmod.Organization
+    err := r.col.FindOne(ctx, bson.M{"orgId": orgId}).Decode(&org)
+    if err != nil {
+        return nil, err
+    }
+    return &org, nil
+}
 
+func (r *OrgRepo) FindByIds(ctx context.Context, tenantId string, orgIds []string) ([]authzmod.Organization, error) {
 	var result []authzmod.Organization
-
 	err := stomongo.Find(
 		ctx,
 		"organizations",
 		bson.M{
 			"tenantId": tenantId,
-			"orgId": bson.M{
-				"$in": orgIds,
-			},
+			"orgId": bson.M{"$in": orgIds},
 		},
 		nil,
 		&result,
 	)
-
 	return result, err
 }
 
-func (r *OrgRepo) Update(
-	ctx context.Context,
-	orgId string,
-	update bson.M,
-) error {
-
-	_, err := r.col.UpdateOne(
-		ctx,
-		bson.M{"orgId": orgId},
-		update,
-	)
-
+func (r *OrgRepo) Update(ctx context.Context, orgId string, update bson.M) error {
+	_, err := r.col.UpdateOne(ctx, bson.M{"orgId": orgId}, update)
 	return err
 }
 
-func (r *OrgRepo) Delete(
-	ctx context.Context,
-	orgId string,
-) error {
-
-	_, err := r.col.DeleteOne(
-		ctx,
-		bson.M{"orgId": orgId},
-	)
-
+func (r *OrgRepo) Delete(ctx context.Context, orgId string) error {
+	_, err := r.col.DeleteOne(ctx, bson.M{"orgId": orgId})
 	return err
 }
 
