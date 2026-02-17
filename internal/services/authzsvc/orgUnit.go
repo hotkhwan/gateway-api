@@ -3,6 +3,8 @@ package authzsvc
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,36 +12,45 @@ import (
 	"github.com/hotkhwan/gateway-api/models/authzmod"
 )
 
-func CreateOrgUnit(
-	ctx context.Context,
-	tenantId string,
-	orgId string,
-	name string,
-	parentId *string,
-	createdBy string,
-) (string, error) {
+func CreateOrgUnit(ctx context.Context, tenantId string, orgId string, name string, parentId *string, createdBy string) (string, error) {
+  name = strings.TrimSpace(name)
+  if name == "" {
+    return "", fmt.Errorf("name is required")
+  }
 
-	repo := authzrepo.NewOrgUnitRepo()
+  if parentId == nil || strings.TrimSpace(*parentId) == "" {
+    return "", fmt.Errorf("parentId is required (root is created by bootstrap only)")
+  }
 
-	unitId := uuid.NewString()
+  repo := authzrepo.NewOrgUnitRepo()
 
-	unit := &authzmod.OrgUnit{
-		UnitId:    unitId,
-		OrgId:     orgId,
-		TenantId:  tenantId,
-		ParentId:  parentId,
-		Name:      name,
-		IsRoot:    parentId == nil,
-		CreatedBy: createdBy,
-		CreatedAt: time.Now().UnixMilli(),
-	}
+  // ✅ validate parent exists in same tenant+org
+  parent, err := repo.FindByUnitId(ctx, tenantId, orgId, *parentId)
+  if err != nil {
+    return "", fmt.Errorf("parent orgUnit not found")
+  }
+  _ = parent // just for clarity
 
-	if err := repo.Insert(ctx, unit); err != nil {
-		return "", err
-	}
+  unitId := uuid.NewString()
 
-	return unitId, nil
+  unit := &authzmod.OrgUnit{
+    UnitId: unitId,
+    OrgId: orgId,
+    TenantId: tenantId,
+    ParentId: parentId,
+    Name: name,
+    IsRoot: false, // ✅ never true here
+    CreatedBy: createdBy,
+    CreatedAt: time.Now().UnixMilli(),
+  }
+
+  if err := repo.Insert(ctx, unit); err != nil {
+    return "", err
+  }
+
+  return unitId, nil
 }
+
 
 func GetOrgUnitTree(
 	ctx context.Context,
@@ -77,34 +88,38 @@ func DeleteOrgUnit(
 }
 
 func buildTree(units []authzmod.OrgUnit) []map[string]interface{} {
+  nodeMap := make(map[string]map[string]interface{}, len(units))
+  roots := make([]map[string]interface{}, 0)
 
-	nodeMap := make(map[string]map[string]interface{})
-	var roots []map[string]interface{}
+  for _, u := range units {
+    nodeMap[u.UnitId] = map[string]interface{}{
+      "unitId": u.UnitId,
+      "name": u.Name,
+      "parentId": u.ParentId,
+      "children": []map[string]interface{}{},
+    }
+  }
 
-	for _, u := range units {
-		nodeMap[u.UnitId] = map[string]interface{}{
-			"unitId":   u.UnitId,
-			"name":     u.Name,
-			"parentId": u.ParentId,
-			"children": []map[string]interface{}{},
-		}
-	}
+  for _, u := range units {
+    node := nodeMap[u.UnitId]
 
-	for _, u := range units {
+    if u.ParentId == nil {
+      roots = append(roots, node)
+      continue
+    }
 
-		node := nodeMap[u.UnitId]
+    parent, ok := nodeMap[*u.ParentId]
+    if !ok {
+      // ✅ orphan: treat as root (better than disappearing)
+      node["orphaned"] = true
+      roots = append(roots, node)
+      continue
+    }
 
-		if u.ParentId == nil {
-			roots = append(roots, node)
-			continue
-		}
+    children := parent["children"].([]map[string]interface{})
+    parent["children"] = append(children, node)
+  }
 
-		parent, ok := nodeMap[*u.ParentId]
-		if ok {
-			children := parent["children"].([]map[string]interface{})
-			parent["children"] = append(children, node)
-		}
-	}
-
-	return roots
+  return roots
 }
+

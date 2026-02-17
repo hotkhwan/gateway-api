@@ -19,6 +19,29 @@ type OrgRepo struct {
 	col *mongo.Collection
 }
 
+func (r *OrgUnitRepo) FindByUnitId(ctx context.Context, tenantId string, orgId string, unitId string) (*authzmod.OrgUnit, error) {
+  var result authzmod.OrgUnit
+  err := stomongo.FindOne(ctx, r.collection, bson.M{
+    "tenantId": tenantId,
+    "orgId": orgId,
+    "unitId": unitId,
+  }, &result)
+  if err != nil {
+    return nil, err
+  }
+  return &result, nil
+}
+
+func (r *OrgUnitRepo) UpdateName(ctx context.Context, unitId string, name string) error {
+  _, err := stomongo.UpdateOne(
+    ctx,
+    r.collection,
+    bson.M{"unitId": unitId},
+    bson.M{"$set": bson.M{"name": name}}, // ✅ FIX
+  )
+  return err
+}
+
 func NewOrgRepo(db *mongo.Database) *OrgRepo {
 	return &OrgRepo{col: db.Collection("organizations")}
 }

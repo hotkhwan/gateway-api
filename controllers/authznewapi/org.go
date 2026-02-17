@@ -16,79 +16,72 @@ import (
 // @Security BearerAuth
 // @Produce json
 func ListOrgs(c *fiber.Ctx) error {
+  ctx := c.UserContext()
 
-	ctx := c.UserContext()
+  userId, ok := c.Locals("userId").(string)
+  if !ok || userId == "" {
+    return c.Status(fiber.StatusUnauthorized).JSON(gmod.UnauthorizedResponse{
+      Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
+    })
+  }
 
-	userId, ok := c.Locals("userId").(string)
-	if !ok || userId == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(
-			gmod.UnauthorizedResponse{
-				Code:    gmod.CodeUnauthorized,
-				Message: "Unauthorized",
-				Status:  false,
-			},
-		)
-	}
+  tenantId, ok := c.Locals("tenantId").(string)
+  if !ok || tenantId == "" {
+    return c.Status(fiber.StatusUnauthorized).JSON(gmod.UnauthorizedResponse{
+      Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
+    })
+  }
 
-	tenantId, ok := c.Locals("tenantId").(string)
-	if !ok || tenantId == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(
-			gmod.UnauthorizedResponse{
-				Code:    gmod.CodeUnauthorized,
-				Message: "Unauthorized",
-				Status:  false,
-			},
-		)
-	}
+  page := c.QueryInt("page", 1)
+  perPages := c.QueryInt("perPages", 10)
 
-	// Pagination params
-	page := c.QueryInt("page", 1)
-	perPages := c.QueryInt("perPages", 10)
+  if page < 1 {
+    page = 1
+  }
+  if perPages < 1 {
+    perPages = 10
+  }
+  if perPages > 100 { // ✅ cap เพื่อกันดึงหนัก
+    perPages = 100
+  }
 
-	orgs, err := authzsvc.ListUserOrganizations(ctx, tenantId, userId)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			gmod.ApiErrorResponse{
-				Code:    gmod.CodeInternalError,
-				Message: "Failed to fetch organizations",
-				Status:  false,
-			},
-		)
-	}
+  orgs, err := authzsvc.ListUserOrganizations(ctx, tenantId, userId)
+  if err != nil {
+    return c.Status(fiber.StatusInternalServerError).JSON(gmod.ApiErrorResponse{
+      Code: gmod.CodeInternalError, Message: "Failed to fetch organizations", Status: false,
+    })
+  }
 
-	total := len(orgs)
+  total := len(orgs)
+  start := (page - 1) * perPages
+  end := start + perPages
 
-	start := (page - 1) * perPages
-	end := start + perPages
+  if start > total {
+    start = total
+  }
+  if end > total {
+    end = total
+  }
 
-	if start > total {
-		start = total
-	}
-	if end > total {
-		end = total
-	}
+  paged := orgs[start:end]
 
-	paged := orgs[start:end]
+  totalPages := 0
+  if perPages > 0 {
+    totalPages = (total + perPages - 1) / perPages
+  }
 
-	totalPages := 0
-	if perPages > 0 {
-		totalPages = (total + perPages - 1) / perPages
-	}
-
-	return c.JSON(gmod.OrgListResponse{
-		Code:    gmod.CodeSuccess,
-		Message: "Organizations fetched successfully",
-		Status:  true,
-		Details: paged,
-		Pagination: gmod.Pagination{
-			Page:         page,
-			PerPages:     perPages,
-			TotalRecords: total,
-			TotalPages:   totalPages,
-			SortField:    "",
-			SortOrder:    "",
-		},
-	})
+  return c.JSON(gmod.OrgListResponse{
+    Code: gmod.CodeSuccess,
+    Message: "Organizations fetched successfully",
+    Status: true,
+    Details: paged,
+    Pagination: gmod.Pagination{
+      Page: page,
+      PerPages: perPages,
+      TotalRecords: total,
+      TotalPages: totalPages,
+    },
+  })
 }
 
 // @Summary Create organization
@@ -98,45 +91,56 @@ func ListOrgs(c *fiber.Ctx) error {
 // @Produce json
 // @Success 200 {object} map[string]interface{}
 func CreateOrg(c *fiber.Ctx) error {
+  ctx := c.UserContext()
+  tracer := otel.Tracer("github.com/hotkhwan/gateway-api/authznewapi")
+  ctx, span := tracer.Start(ctx, "AuthzNew.CreateOrg")
+  defer span.End()
 
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/authznewapi")
-	ctx, span := tracer.Start(ctx, "AuthzNew.CreateOrg")
-	defer span.End()
+  userId, ok := c.Locals("userId").(string)
+  if !ok || strings.TrimSpace(userId) == "" {
+    return c.Status(fiber.StatusUnauthorized).JSON(gmod.ApiErrorResponse{
+      Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
+    })
+  }
 
-	userId, ok := c.Locals("userId").(string)
-	if !ok || strings.TrimSpace(userId) == "" {
-		return fiber.ErrUnauthorized
-	}
+  tenantId, ok := c.Locals("tenantId").(string)
+  if !ok || strings.TrimSpace(tenantId) == "" {
+    return c.Status(fiber.StatusUnauthorized).JSON(gmod.ApiErrorResponse{
+      Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
+    })
+  }
 
-	tenantId, ok := c.Locals("tenantId").(string)
-	if !ok || strings.TrimSpace(tenantId) == "" {
-		return fiber.ErrUnauthorized
-	}
+  var req struct {
+    Name string `json:"name"`
+  }
+  if err := c.BodyParser(&req); err != nil {
+    return c.Status(400).JSON(gmod.ApiErrorResponse{
+      Code: gmod.CodeBadRequest, Message: "Invalid request body", Status: false,
+    })
+  }
 
-	var req struct {
-		Name string `json:"name"`
-	}
+  req.Name = strings.TrimSpace(req.Name)
+  if req.Name == "" {
+    return c.Status(400).JSON(gmod.ApiErrorResponse{
+      Code: gmod.CodeBadRequest, Message: "name is required", Status: false,
+    })
+  }
 
-	if err := c.BodyParser(&req); err != nil {
-		return fiber.ErrBadRequest
-	}
+  org, err := authzsvc.BootstrapOrganization(ctx, tenantId, userId, req.Name)
+  if err != nil {
+    return c.Status(500).JSON(gmod.ApiErrorResponse{
+      Code: gmod.CodeInternalError, Message: err.Error(), Status: false,
+    })
+  }
 
-	if req.Name == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "name required")
-	}
-
-	org, err := authzsvc.BootstrapOrganization(ctx, tenantId, userId, req.Name)
-	if err != nil {
-		return err
-	}
-
-	return c.JSON(fiber.Map{
-		"status":  true,
-		"orgId":   org.OrgId,
-		"message": "organization created",
-	})
+  return c.JSON(gmod.SuccessMessageCreateResponse{
+    Code: gmod.CodeCreated,
+    Message: "Organization created",
+    Status: true,
+    ID: org.OrgId,
+  })
 }
+
 
 // UpdateOrg godoc
 // @Summary Update organization

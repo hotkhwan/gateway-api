@@ -46,22 +46,6 @@ func (r *OrgUnitRepo) ListByOrg(
 	return result, err
 }
 
-func (r *OrgUnitRepo) UpdateName(
-	ctx context.Context,
-	unitId string,
-	name string,
-) error {
-
-	_, err := stomongo.UpdateOne(
-		ctx,
-		r.collection,
-		bson.M{"unitId": unitId},
-		bson.M{"name": name},
-	)
-
-	return err
-}
-
 func (r *OrgUnitRepo) Delete(
 	ctx context.Context,
 	unitId string,
