@@ -7,63 +7,107 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 const activeOrgHeader = "X-Active-Org"
 
+func maskId(v string) string {
+	v = strings.TrimSpace(v)
+	if len(v) <= 8 {
+		return v
+	}
+	return v[:4] + "..." + v[len(v)-4:]
+}
+
 func ActiveOrg() fiber.Handler {
-
 	return func(c *fiber.Ctx) error {
+		userId, _ := c.Locals("userId").(string)
+		tenantId, _ := c.Locals("tenantId").(string)
 
-		userId, ok := c.Locals("userId").(string)
-		if !ok || userId == "" {
-			return fiber.ErrUnauthorized
-		}
+		userId = strings.TrimSpace(userId)
+		tenantId = strings.TrimSpace(tenantId)
 
-		tenantId, ok := c.Locals("tenantId").(string)
-		if !ok || tenantId == "" {
-			return fiber.ErrUnauthorized
+		if userId == "" || tenantId == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(gmod.ApiErrorResponse{
+				Code:    gmod.CodeUnauthorized,
+				Message: "Unauthorized",
+				Status:  false,
+			})
 		}
 
 		orgId := strings.TrimSpace(c.Get(activeOrgHeader))
 		if orgId == "" {
-			return fiber.NewError(
-				fiber.StatusBadRequest,
-				"X-Active-Org header required",
-			)
+			return c.Status(fiber.StatusBadRequest).JSON(gmod.ApiErrorResponse{
+				Code:    gmod.CodeBadRequest,
+				Message: "X-Active-Org header required",
+				Status:  false,
+			})
 		}
 
-		// 🔥 check membership via Permify
+		schemaVersion := strings.TrimSpace(config.CurrentSchemaVersion)
+		if schemaVersion == "" {
+			return c.Status(fiber.StatusInternalServerError).JSON(gmod.ApiErrorResponse{
+				Code:    gmod.CodeInternalError,
+				Message: "permify schema version not configured",
+				Status:  false,
+			})
+		}
+
 		ctx, cancel := context.WithTimeout(c.UserContext(), 3*time.Second)
 		defer cancel()
 
-		client := authzgw.NewClient()
+		ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/middleware", "activeOrg.check", "middleware", "ActiveOrg")
+		defer end()
 
-		allowed, err := client.CheckPermission(
+		// ✅ Use gRPC check only (single source of truth)
+		grpc := authzgw.NewGrpcClient()
+
+		allowed, err := grpc.CheckPermission(
 			ctx,
 			tenantId,
 			"organization",
 			orgId,
 			"view",
 			"user",
-			userId,
+			"user:"+userId, // gRPC path in your code expects user:<uuid>
 		)
 
+		log.Info().
+			Str("tenantId", tenantId).
+			Str("orgId", orgId).
+			Str("schemaVersion", schemaVersion).
+			Str("userId", maskId(userId)).
+			Bool("allowed", allowed).
+			Bool("err", err != nil).
+			Msg("permify active org check (grpc)")
+
 		if err != nil {
-			return fiber.NewError(
-				fiber.StatusInternalServerError,
-				"authz check failed",
-			)
+			log.Info().
+				Err(err).
+				Str("tenantId", tenantId).
+				Str("orgId", orgId).
+				Str("schemaVersion", schemaVersion).
+				Msg("authz check failed (grpc)")
+			return c.Status(fiber.StatusInternalServerError).JSON(gmod.ApiErrorResponse{
+				Code:    gmod.CodeInternalError,
+				Message: "authz check failed",
+				Status:  false,
+			})
 		}
 
 		if !allowed {
-			return fiber.ErrForbidden
+			return c.Status(fiber.StatusForbidden).JSON(gmod.ApiErrorResponse{
+				Code:    gmod.CodeForbidden,
+				Message: "Forbidden",
+				Status:  false,
+			})
 		}
 
-		// inject active org
-		c.Locals("activeOrgId", orgId)
-
+		c.Locals("activeOrg", orgId)
 		return c.Next()
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/hotkhwan/gateway-api/config"
 
@@ -32,11 +33,19 @@ func (g *GrpcClient) WriteSchema(ctx context.Context, tenantId string, schema st
 	return resp.SchemaVersion, nil
 }
 
-func (g *GrpcClient) LookupOrganizations(
-	ctx context.Context,
-	tenantId string,
-	userId string,
-) ([]string, error) {
+func normalizeUserSubjectId(userId string) string {
+	userId = strings.TrimSpace(userId)
+	if userId == "" {
+		return ""
+	}
+	if strings.HasPrefix(userId, "user:") {
+		return userId
+	}
+	return "user:" + userId
+}
+
+func (g *GrpcClient) LookupOrganizations(ctx context.Context, tenantId string, userId string) ([]string, error) {
+	subjectId := normalizeUserSubjectId(userId)
 
 	stream, err := config.PermifyClient.Permission.LookupEntityStream(
 		ctx,
@@ -50,7 +59,7 @@ func (g *GrpcClient) LookupOrganizations(
 			Permission: "view",
 			Subject: &permify_payload.Subject{
 				Type: "user",
-				Id:   userId,
+				Id:   subjectId, // ✅ FIX
 			},
 		},
 	)
@@ -59,7 +68,6 @@ func (g *GrpcClient) LookupOrganizations(
 	}
 
 	var ids []string
-
 	for {
 		res, err := stream.Recv()
 		if err == io.EOF {

@@ -32,8 +32,8 @@ type PermifyTupleRow struct {
 
 type PermifyTupleListResult struct {
 	Tuples          []PermifyTupleRow `json:"tuples"`
-	ContinuousToken string           `json:"continuousToken"`
-	PageSize        int              `json:"pageSize"`
+	ContinuousToken string            `json:"continuousToken"`
+	PageSize        int               `json:"pageSize"`
 }
 
 func ListPermifyTuples(ctx context.Context, tenantId string, filter PermifyTupleFilter) (*PermifyTupleListResult, error) {
@@ -143,13 +143,12 @@ func FactoryResetPermifyTuples(ctx context.Context, tenantId string, entityType 
 	return deleted, nil
 }
 
-
 type ProveUserOrgsResult struct {
-	TenantId        string   `json:"tenantId"`
-	UserId          string   `json:"userId"`
-	PermifyOrgIds   []string `json:"permifyOrgIds"`
-	MongoOrgIds     []string `json:"mongoOrgIds"`
-	MissingInMongo  []string `json:"missingInMongo"`
+	TenantId       string   `json:"tenantId"`
+	UserId         string   `json:"userId"`
+	PermifyOrgIds  []string `json:"permifyOrgIds"`
+	MongoOrgIds    []string `json:"mongoOrgIds"`
+	MissingInMongo []string `json:"missingInMongo"`
 }
 
 func ProveUserOrgsAgainstMongo(ctx context.Context, tenantId string, userId string) (*ProveUserOrgsResult, error) {

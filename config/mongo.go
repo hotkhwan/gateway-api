@@ -4,6 +4,7 @@ package config
 import (
 	"context"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/hotkhwan/gateway-api/internal/logger"
@@ -11,11 +12,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
+type MongoBootstrapFn func(ctx context.Context) error
 var (
 	MongoClient *mongo.Client
 	DB          *mongo.Database
+	mongoBootFnsMu sync.Mutex
+	mongoBootFns   []MongoBootstrapFn
 )
+
 
 func InitMongo() {
 	log := logger.Boot("mongoDB", "config-InitMongo")
@@ -53,6 +57,10 @@ func InitMongo() {
 	MongoClient = client
 	DB = client.Database(dbName) // ✅ กำหนด DB
 
+	if err := runMongoBootstraps(ctx); err != nil {
+		log.Fatal().Err(err).Msg("Mongo bootstrap failed")
+	}
+	
 	log.Info().Msg("✅ MongoDB connected to " + dbName)
 }
 
@@ -65,4 +73,26 @@ func DisconnectMongo() {
 			log.Info().Msg("✅ Mongo disconnected")
 		}
 	}
+}
+
+func RegisterMongoBootstrap(fn MongoBootstrapFn) {
+	if fn == nil {
+		return
+	}
+	mongoBootFnsMu.Lock()
+	mongoBootFns = append(mongoBootFns, fn)
+	mongoBootFnsMu.Unlock()
+}
+
+func runMongoBootstraps(ctx context.Context) error {
+	mongoBootFnsMu.Lock()
+	fns := append([]MongoBootstrapFn(nil), mongoBootFns...)
+	mongoBootFnsMu.Unlock()
+
+	for _, fn := range fns {
+		if err := fn(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
 }

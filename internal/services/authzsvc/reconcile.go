@@ -11,40 +11,24 @@ import (
 )
 
 func StartReconcileWorker() {
-
 	go func() {
-
 		for {
 			time.Sleep(30 * time.Second)
 
 			ctx := context.Background()
 
 			orgRepo := authzrepo.NewOrgRepo(config.DB)
-			unitRepo := authzrepo.NewOrgUnitRepo()
 
 			orgs, err := orgRepo.ListBySyncStatus(ctx, "errorSync")
 			if err != nil {
 				continue
 			}
 
+			client := authzgw.NewClient()
+
 			for _, org := range orgs {
-
-				root, err := unitRepo.FindRootByOrg(
-					ctx,
-					org.TenantId, // ✅ FIX
-					org.OrgId,
-				)
-				if err != nil {
-					continue
-				}
-
-				tuples := TupleFactoryOrgBootstrap(
-					org.OrgId,
-					root.UnitId,
-					org.CreatedBy,
-				)
-
-				client := authzgw.NewClient()
+				// ✅ org-only bootstrap tuples
+				tuples := TupleFactoryOrgBootstrap(org.OrgId, org.CreatedBy)
 
 				err = client.WriteTuples(ctx, org.TenantId, tuples)
 				if err == nil {

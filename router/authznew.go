@@ -46,7 +46,8 @@ func RegisterAuthzNewRoutes(router fiber.Router) {
 
 		orgScoped.Post("/units", authznewapi.CreateOrgUnit)
 		orgScoped.Get("/units/tree", authznewapi.GetOrgUnitTree)
-
+		orgScoped.Patch("/units/:id", authznewapi.UpdateOrgUnit)
+		orgScoped.Delete("/units/:id", authznewapi.DeleteOrgUnit)
 		// ------------------------------------------------
 		// 2️⃣ Org-scoped routes (ต้องมี ActiveOrg)
 		// ------------------------------------------------

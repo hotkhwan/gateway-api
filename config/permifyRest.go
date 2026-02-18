@@ -81,7 +81,7 @@ func CheckPermifyHealth() bool {
 func FetchLatestSchemaVersion() {
 	log := logger.Boot("permify", "FetchLatestSchemaVersion")
 
-	url := fmt.Sprintf("%s/v1/tenants/{{ KC_REALM }}/schemas/list?tenant_id=%s&page_size=1", PermifyBaseURL, PermifyTenantID)
+	url := fmt.Sprintf("%s/v1/tenants/%s/schemas/list?page_size=1", PermifyBaseURL, PermifyTenantID)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Warn().Err(err).Msg("⚠️ Failed to fetch schema list, fallback to latest")

@@ -10,9 +10,7 @@ import (
 )
 
 func InitialSyncRelationships(ctx context.Context, tenantId string) error {
-
 	orgRepo := authzrepo.NewOrgRepo(config.DB)
-	unitRepo := authzrepo.NewOrgUnitRepo()
 
 	orgs, err := orgRepo.ListAll(ctx, tenantId)
 	if err != nil {
@@ -22,14 +20,8 @@ func InitialSyncRelationships(ctx context.Context, tenantId string) error {
 	client := authzgw.NewClient()
 
 	for _, org := range orgs {
-
-		root, err := unitRepo.FindRootByOrg(ctx, tenantId, org.OrgId)
-		if err != nil {
-			continue
-		}
-
-		tuples := TupleFactoryOrgBootstrap(org.OrgId, root.UnitId, org.CreatedBy)
-
+		// ✅ org-only bootstrap tuples
+		tuples := TupleFactoryOrgBootstrap(org.OrgId, org.CreatedBy)
 		_ = client.WriteTuples(ctx, tenantId, tuples)
 	}
 

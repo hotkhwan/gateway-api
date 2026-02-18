@@ -6,6 +6,19 @@ import (
 	"time"
 )
 
+// NowUTC returns current time in UTC
+func NowUTC() time.Time {
+	return time.Now().UTC()
+}
+
+// ToRFC3339 converts time to RFC3339Nano string
+func ToRFC3339(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.UTC().Format(time.RFC3339Nano)
+}
+
 func FormatTimeOrEmpty(t time.Time) string {
 	if t.IsZero() {
 		return ""

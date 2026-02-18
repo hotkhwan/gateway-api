@@ -1,24 +1,42 @@
 // internal/gateways/authzgw/client.go
 package authzgw
 
-import "context"
-
-// internal/gateways/authzgw/client.go
+import (
+	"context"
+)
 
 type Client interface {
-  WriteTuples(ctx context.Context, tenantId string, tuples []map[string]interface{}) error
-  DeleteOrgRelationships(ctx context.Context, tenantId string, orgId string) error
+	WriteTuples(ctx context.Context, tenantId string, tuples []map[string]interface{}) error
+	DeleteOrgRelationships(ctx context.Context, tenantId string, orgId string) error
+	// Deprecated: debug only (test env) — delete all tuples under organization entityId via read+delete
+	DeleteOrgTuples(ctx context.Context, tenantId string, orgId string) error
+
+	// Permission
+	CheckPermissionWithSchemaVersion(
+		ctx context.Context,
+		tenantId string,
+		schemaVersion string,
+		entityType string,
+		entityId string,
+		permission string,
+		subjectType string,
+		subjectId string,
+	) (bool, error)
+
+	LookupOrganizations(ctx context.Context, tenantId string, userId string) ([]string, error)
 }
 
 type HybridClient struct {
-	rest *RestClient
-	grpc *GrpcClient
+	rest      *RestClient
+	grpc      *GrpcClient
+	restDebug *permifyRestDebugClient
 }
 
 func NewClient() *HybridClient {
 	return &HybridClient{
-		rest: NewRestClient(),
-		grpc: NewGrpcClient(),
+		rest:      NewRestClient(),
+		grpc:      NewGrpcClient(),
+		restDebug: NewPermifyRestDebugClient(),
 	}
 }
 
@@ -26,61 +44,56 @@ func (c *HybridClient) WriteTuples(ctx context.Context, tenantId string, tuples 
 	return c.rest.WriteTuples(ctx, tenantId, tuples)
 }
 
-
-func (c *HybridClient) LookupOrganizations(
-	ctx context.Context,
-	tenantId string,
-	userId string,
-) ([]string, error) {
-
+func (c *HybridClient) LookupOrganizations(ctx context.Context, tenantId string, userId string) ([]string, error) {
 	// gRPC first
-	ids, err := c.grpc.LookupOrganizations(ctx, tenantId, userId)
-	if err == nil {
-		return ids, nil
+	if c.grpc != nil {
+		ids, err := c.grpc.LookupOrganizations(ctx, tenantId, userId)
+		if err == nil && len(ids) > 0 {
+			return ids, nil
+		}
 	}
 
 	// fallback REST
-	return c.rest.LookupOrganizations(ctx, tenantId, userId)
+	if c.rest != nil {
+		return c.rest.LookupOrganizations(ctx, tenantId, userId)
+	}
+
+	return []string{}, nil
 }
 
-func (c *HybridClient) CheckPermission(
+func (c *HybridClient) DeleteOrgRelationships(ctx context.Context, tenantId string, orgId string) error {
+	return c.rest.DeleteOrgRelationships(ctx, tenantId, orgId)
+}
+
+// Deprecated: debug only
+func (c *HybridClient) DeleteOrgTuples(ctx context.Context, tenantId string, orgId string) error {
+	if c.restDebug == nil {
+		return nil
+	}
+	return c.restDebug.DeleteOrgTuples(ctx, tenantId, orgId)
+}
+
+func (c *HybridClient) CheckPermissionWithSchemaVersion(
 	ctx context.Context,
 	tenantId string,
+	schemaVersion string,
 	entityType string,
 	entityId string,
 	permission string,
 	subjectType string,
 	subjectId string,
 ) (bool, error) {
-
-	if c.grpc != nil {
-		if ok, err := c.grpc.CheckPermission(
-			ctx,
-			tenantId,
-			entityType,
-			entityId,
-			permission,
-			subjectType,
-			subjectId,
-		); err == nil {
-			return ok, nil
-		}
+	if c.rest == nil {
+		return false, ErrNilRestClient
 	}
-
-	if c.rest != nil {
-		return c.rest.CheckPermission(
-			ctx,
-			tenantId,
-			entityType,
-			entityId,
-			permission,
-			subjectType,
-			subjectId,
-		)
-	}
-	return false, nil
-}
-
-func (c *HybridClient) DeleteOrgRelationships(ctx context.Context, tenantId string, orgId string) error {
-  return c.rest.DeleteOrgRelationships(ctx, tenantId, orgId)
+	return c.rest.CheckPermissionWithSchemaVersion(
+		ctx,
+		tenantId,
+		schemaVersion,
+		entityType,
+		entityId,
+		permission,
+		subjectType,
+		subjectId,
+	)
 }

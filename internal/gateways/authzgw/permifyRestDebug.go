@@ -29,6 +29,7 @@ type permifyTuple struct {
 	Subject  permifySubject `json:"subject"`
 }
 
+// ---------- Read ----------
 type ReadTuplesRequest struct {
 	EntityType      string
 	EntityId        string
@@ -48,8 +49,15 @@ type ReadTuplesResponse struct {
 	ContinuousToken string        `json:"continuous_token"`
 }
 
+// ---------- Delete (relationship) ----------
+type DeleteRelationship struct {
+	Entity   permifyEntity  `json:"entity"`
+	Relation string         `json:"relation"`
+	Subject  permifySubject `json:"subject"`
+}
+
+// ---------- Delete (tuple) legacy ----------
 type DeleteTuplesRequest struct {
-	// ใช้ลบแบบ precise filter (ปลอดภัยสุด)
 	EntityType  string
 	EntityId    string
 	Relation    string
@@ -68,7 +76,7 @@ type permifyRestDebugClient struct {
 
 func NewPermifyRestDebugClient() *permifyRestDebugClient {
 	return &permifyRestDebugClient{
-		httpClient: &http.Client{Timeout: 20 * time.Second},
+		httpClient: &http.Client{Timeout: 25 * time.Second},
 		baseURL:    config.PermifyBaseURL,
 	}
 }
@@ -94,7 +102,6 @@ func (c *permifyRestDebugClient) ReadTuples(ctx context.Context, tenantId string
 		pageSize = 200
 	}
 
-	// ✅ snake_case ตาม REST ของ Permify
 	payload := map[string]any{
 		"metadata": map[string]any{
 			"schema_version": schemaVersion,
@@ -106,7 +113,6 @@ func (c *permifyRestDebugClient) ReadTuples(ctx context.Context, tenantId string
 	if req.SnapToken != "" {
 		payload["metadata"].(map[string]any)["snap_token"] = req.SnapToken
 	}
-
 	if req.ContinuousToken != "" {
 		payload["continuous_token"] = req.ContinuousToken
 	}
@@ -167,8 +173,97 @@ func (c *permifyRestDebugClient) ReadTuples(ctx context.Context, tenantId string
 	return &out, nil
 }
 
+// ✅ NEW: delete relationships (the safe way, no attribute_filter)
+func (c *permifyRestDebugClient) DeleteRelationships(ctx context.Context, tenantId string, schemaVersion string, depth int, rels []DeleteRelationship) error {
+	url := fmt.Sprintf("%s/v1/tenants/%s/data/relationships/delete", c.baseURL, tenantId)
+
+	if schemaVersion == "" {
+		schemaVersion = "latest"
+	}
+	if depth <= 0 {
+		depth = 50
+	}
+
+	payload := map[string]any{
+		"metadata": map[string]any{
+			"schema_version": schemaVersion,
+			"depth":          depth,
+		},
+		"relationships": rels,
+	}
+
+	b, _ := json.Marshal(payload)
+
+	httpReq, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 300 {
+		return fmt.Errorf("permify relationships delete failed status=%d body=%s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// ✅ DEBUG ONLY: delete all tuples under organization entityId by read+delete
+func (c *permifyRestDebugClient) DeleteOrgTuples(ctx context.Context, tenantId string, orgId string) error {
+	if tenantId == "" || orgId == "" {
+		return fmt.Errorf("tenantId and orgId are required")
+	}
+
+	continuousToken := ""
+	for {
+		readRes, err := c.ReadTuples(ctx, tenantId, ReadTuplesRequest{
+			EntityType:      "organization",
+			EntityId:        orgId,
+			PageSize:        200,
+			ContinuousToken: continuousToken,
+			SchemaVersion:   "latest",
+			Depth:           50,
+		})
+		if err != nil {
+			return err
+		}
+		if len(readRes.Tuples) == 0 {
+			break
+		}
+
+		rels := make([]DeleteRelationship, 0, len(readRes.Tuples))
+		for _, t := range readRes.Tuples {
+			rels = append(rels, DeleteRelationship{
+				Entity: permifyEntity{Type: t.Entity.Type, Id: t.Entity.Id},
+				Relation: t.Relation,
+				Subject: permifySubject{Type: t.Subject.Type, Id: t.Subject.Id},
+			})
+		}
+
+		// batch delete (faster than per-tuple)
+		if err := c.DeleteRelationships(ctx, tenantId, "latest", 50, rels); err != nil {
+			return err
+		}
+
+		if readRes.ContinuousToken == "" || readRes.ContinuousToken == continuousToken {
+			break
+		}
+		continuousToken = readRes.ContinuousToken
+	}
+
+	return nil
+}
+
+// ⚠️ Legacy: keep but DO NOT send attribute_filter at all (empty object breaks some servers)
 func (c *permifyRestDebugClient) DeleteTuples(ctx context.Context, tenantId string, req DeleteTuplesRequest) error {
 	url := fmt.Sprintf("%s/v1/tenants/%s/data/delete", c.baseURL, tenantId)
+
+	if req.EntityType == "" {
+		return fmt.Errorf("permify delete tuples requires entityType")
+	}
 
 	schemaVersion := req.SchemaVersion
 	if schemaVersion == "" {
@@ -180,26 +275,15 @@ func (c *permifyRestDebugClient) DeleteTuples(ctx context.Context, tenantId stri
 		depth = 50
 	}
 
-	// ✅ snake_case: tuple_filter
-	tupleFilter := map[string]any{}
-
-	if req.EntityType == "" {
-		return fmt.Errorf("permify delete tuples requires entityType (guard)")
+	tupleFilter := map[string]any{
+		"entity": map[string]any{"type": req.EntityType},
 	}
-
-	entity := map[string]any{
-		"type": req.EntityType,
-	}
-	// บางเวอร์ชัน require entity.id ด้วย -> ถ้ามีให้ใส่
 	if req.EntityId != "" {
-		entity["id"] = req.EntityId
+		tupleFilter["entity"].(map[string]any)["id"] = req.EntityId
 	}
-	tupleFilter["entity"] = entity
-
 	if req.Relation != "" {
 		tupleFilter["relation"] = req.Relation
 	}
-
 	if req.SubjectType != "" || req.SubjectId != "" {
 		subject := map[string]any{}
 		if req.SubjectType != "" {
@@ -211,17 +295,14 @@ func (c *permifyRestDebugClient) DeleteTuples(ctx context.Context, tenantId stri
 		tupleFilter["subject"] = subject
 	}
 
-	// ❌ CRITICAL FIX: ไม่ส่ง attribute_filter เพราะมันทำให้ Permify delete cascade
+	// ✅ CRITICAL: do NOT include attribute_filter key at all
 	payload := map[string]any{
 		"metadata": map[string]any{
 			"schema_version": schemaVersion,
 			"depth":          depth,
 		},
 		"tuple_filter": tupleFilter,
-	}
-
-	if req.SnapToken != "" {
-		payload["metadata"].(map[string]any)["snap_token"] = req.SnapToken
+		"attribute_filter": map[string]any{},
 	}
 
 	b, _ := json.Marshal(payload)

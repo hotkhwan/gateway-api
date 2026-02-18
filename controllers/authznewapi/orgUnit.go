@@ -9,87 +9,113 @@ import (
 	"github.com/hotkhwan/gateway-api/models/gmod"
 )
 
-// POST /orgUnits
-func CreateOrgUnit(c *fiber.Ctx) error {
-  var body struct {
-    Name string `json:"name"`
-    ParentId *string `json:"parentId"`
-  }
-
-  if err := c.BodyParser(&body); err != nil {
-    return c.Status(400).JSON(gmod.ApiErrorResponse{
-      Code: gmod.CodeBadRequest, Message: "invalid body", Status: false,
-    })
-  }
-
-  body.Name = strings.TrimSpace(body.Name)
-  if body.Name == "" {
-    return c.Status(400).JSON(gmod.ApiErrorResponse{
-      Code: gmod.CodeBadRequest, Message: "name is required", Status: false,
-    })
-  }
-
-  // ✅ forbid creating root via API
-  if body.ParentId == nil || strings.TrimSpace(*body.ParentId) == "" {
-    return c.Status(400).JSON(gmod.ApiErrorResponse{
-      Code: gmod.CodeBadRequest, Message: "parentId is required (root is created by bootstrap only)", Status: false,
-    })
-  }
-
-  tenantId, ok := c.Locals("tenantId").(string)
-  if !ok || tenantId == "" {
-    return c.Status(401).JSON(gmod.ApiErrorResponse{
-      Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
-    })
-  }
-
-  orgId, ok := c.Locals("activeOrg").(string)
-  if !ok || orgId == "" {
-    return c.Status(401).JSON(gmod.ApiErrorResponse{
-      Code: gmod.CodeUnauthorized, Message: "Active org required", Status: false,
-    })
-  }
-
-  userId, ok := c.Locals("userId").(string)
-  if !ok || userId == "" {
-    return c.Status(401).JSON(gmod.ApiErrorResponse{
-      Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
-    })
-  }
-
-  id, err := authzsvc.CreateOrgUnit(c.Context(), tenantId, orgId, body.Name, body.ParentId, userId)
-  if err != nil {
-    return c.Status(500).JSON(gmod.ApiErrorResponse{
-      Code: gmod.CodeInternalError, Message: err.Error(), Status: false,
-    })
-  }
-
-  return c.JSON(gmod.SuccessMessageCreateResponse{
-    Code: gmod.CodeCreated,
-    Message: "orgUnit created",
-    Status: true,
-    ID: id,
-  })
+// CreateOrgUnitBody swagger model
+type CreateOrgUnitBody struct {
+	Name     string  `json:"name" example:"Operations"`
+	ParentId *string `json:"parentId" example:"unit_root_123"`
 }
 
+// UpdateOrgUnitBody swagger model
+type UpdateOrgUnitBody struct {
+	Name string `json:"name" example:"Operations (North)"`
+}
 
-// GET /orgUnits/tree
-func GetOrgUnitTree(c *fiber.Ctx) error {
+// OrgUnitNode swagger model
+type OrgUnitNode struct {
+	UnitId    string        `json:"unitId"`
+	ParentId  *string       `json:"parentId,omitempty"`
+	Name      string        `json:"name"`
+	IsRoot    bool          `json:"isRoot"`
+	Children  []OrgUnitNode `json:"children"`
+	Orphaned  bool          `json:"orphaned,omitempty"`
+	CreatedAt int64         `json:"createdAt,omitempty"`
+}
 
-	tenantId := c.Locals("tenantId").(string)
-	orgId := c.Locals("activeOrg").(string)
+// @Summary Create org unit
+// @Description Create an org unit under active org (root is created by bootstrap only)
+// @Tags OrgUnit
+// @Accept json
+// @Produce json
+// @Param body body CreateOrgUnitBody true "payload"
+// @Success 200 {object} gmod.SuccessMessageCreateResponse
+// @Failure 400 {object} gmod.ApiErrorResponse
+// @Failure 401 {object} gmod.ApiErrorResponse
+// @Failure 409 {object} gmod.ApiErrorResponse
+// @Failure 500 {object} gmod.ApiErrorResponse
+// @Router /api/v1/orgs/units [post]
+func CreateOrgUnit(c *fiber.Ctx) error {
+	var body CreateOrgUnitBody
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code: gmod.CodeBadRequest, Message: "invalid body", Status: false,
+		})
+	}
 
-	tree, err := authzsvc.GetOrgUnitTree(
-		c.Context(),
-		tenantId,
-		orgId,
-	)
+	body.Name = strings.TrimSpace(body.Name)
+	if body.Name == "" {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code: gmod.CodeBadRequest, Message: "name is required", Status: false,
+		})
+	}
 
+	if body.ParentId != nil {
+		v := strings.TrimSpace(*body.ParentId)
+		if v == "" {
+			body.ParentId = nil
+		} else {
+			body.ParentId = &v
+		}
+	}
+
+	tenantId, _ := c.Locals("tenantId").(string)
+	orgId, _ := c.Locals("activeOrg").(string)
+	userId, _ := c.Locals("userId").(string)
+
+	if tenantId == "" || orgId == "" || userId == "" {
+		return c.Status(401).JSON(gmod.ApiErrorResponse{
+			Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
+		})
+	}
+
+	unitId, err := authzsvc.CreateOrgUnit(c.Context(), tenantId, orgId, body.Name, body.ParentId, userId)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeInternalError,
-			Message: err.Error(),
-			Status:  false,
+		status, code := authzsvc.MapSvcError(err)
+		return c.Status(status).JSON(gmod.ApiErrorResponse{
+			Code: code, Message: err.Error(), Status: false,
+		})
+	}
+
+	return c.JSON(gmod.SuccessMessageCreateResponse{
+		Code:    gmod.CodeCreated,
+		Message: "orgUnit created",
+		Status:  true,
+		ID:      unitId,
+	})
+}
+
+// @Summary Get org unit tree
+// @Description Get org unit tree for active org
+// @Tags OrgUnit
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} gmod.ApiErrorResponse
+// @Failure 500 {object} gmod.ApiErrorResponse
+// @Router /api/v1/orgs/units/tree [get]
+func GetOrgUnitTree(c *fiber.Ctx) error {
+	tenantId, _ := c.Locals("tenantId").(string)
+	orgId, _ := c.Locals("activeOrg").(string)
+
+	if tenantId == "" || orgId == "" {
+		return c.Status(401).JSON(gmod.ApiErrorResponse{
+			Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
+		})
+	}
+
+	tree, err := authzsvc.GetOrgUnitTree(c.Context(), tenantId, orgId)
+	if err != nil {
+		status, code := authzsvc.MapSvcError(err)
+		return c.Status(status).JSON(gmod.ApiErrorResponse{
+			Code: code, Message: err.Error(), Status: false,
 		})
 	}
 
@@ -101,54 +127,99 @@ func GetOrgUnitTree(c *fiber.Ctx) error {
 	})
 }
 
-// PATCH /orgUnits/:id
+// @Summary Update org unit name
+// @Tags OrgUnit
+// @Accept json
+// @Produce json
+// @Param id path string true "unitId"
+// @Param body body UpdateOrgUnitBody true "payload"
+// @Success 200 {object} gmod.SuccessMessageResponse
+// @Failure 400 {object} gmod.ApiErrorResponse
+// @Failure 401 {object} gmod.ApiErrorResponse
+// @Failure 404 {object} gmod.ApiErrorResponse
+// @Failure 500 {object} gmod.ApiErrorResponse
+// @Router /api/v1/orgs/units/{id} [patch]
 func UpdateOrgUnit(c *fiber.Ctx) error {
-
-	unitId := c.Params("id")
-
-	var body struct {
-		Name string `json:"name"`
-	}
-
-	if err := c.BodyParser(&body); err != nil {
+	unitId := strings.TrimSpace(c.Params("id"))
+	if unitId == "" {
 		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "invalid body",
-			Status:  false,
+			Code: gmod.CodeBadRequest, Message: "id is required", Status: false,
 		})
 	}
 
-	if err := authzsvc.UpdateOrgUnit(c.Context(), unitId, body.Name); err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeInternalError,
-			Message: err.Error(),
-			Status:  false,
+	var body UpdateOrgUnitBody
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code: gmod.CodeBadRequest, Message: "invalid body", Status: false,
+		})
+	}
+
+	body.Name = strings.TrimSpace(body.Name)
+	if body.Name == "" {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code: gmod.CodeBadRequest, Message: "name is required", Status: false,
+		})
+	}
+
+	tenantId, _ := c.Locals("tenantId").(string)
+	orgId, _ := c.Locals("activeOrg").(string)
+	userId, _ := c.Locals("userId").(string)
+
+	if tenantId == "" || orgId == "" || userId == "" {
+		return c.Status(401).JSON(gmod.ApiErrorResponse{
+			Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
+		})
+	}
+
+	if err := authzsvc.UpdateOrgUnitName(c.Context(), tenantId, orgId, unitId, body.Name, userId); err != nil {
+		status, code := authzsvc.MapSvcError(err)
+		return c.Status(status).JSON(gmod.ApiErrorResponse{
+			Code: code, Message: err.Error(), Status: false,
 		})
 	}
 
 	return c.JSON(gmod.SuccessMessageResponse{
-		Code:    gmod.CodeSuccess,
-		Message: "updated",
-		Status:  true,
+		Code: gmod.CodeSuccess, Message: "updated", Status: true,
 	})
 }
 
-// DELETE /orgUnits/:id
+// @Summary Delete org unit
+// @Description Delete a unit only if it has no children (safe delete)
+// @Tags OrgUnit
+// @Produce json
+// @Param id path string true "unitId"
+// @Success 200 {object} gmod.SuccessMessageResponse
+// @Failure 401 {object} gmod.ApiErrorResponse
+// @Failure 404 {object} gmod.ApiErrorResponse
+// @Failure 409 {object} gmod.ApiErrorResponse
+// @Failure 500 {object} gmod.ApiErrorResponse
+// @Router /api/v1/orgs/units/{id} [delete]
 func DeleteOrgUnit(c *fiber.Ctx) error {
+	unitId := strings.TrimSpace(c.Params("id"))
+	if unitId == "" {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code: gmod.CodeBadRequest, Message: "id is required", Status: false,
+		})
+	}
 
-	unitId := c.Params("id")
+	tenantId, _ := c.Locals("tenantId").(string)
+	orgId, _ := c.Locals("activeOrg").(string)
+	userId, _ := c.Locals("userId").(string)
 
-	if err := authzsvc.DeleteOrgUnit(c.Context(), unitId); err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeInternalError,
-			Message: err.Error(),
-			Status:  false,
+	if tenantId == "" || orgId == "" || userId == "" {
+		return c.Status(401).JSON(gmod.ApiErrorResponse{
+			Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
+		})
+	}
+
+	if err := authzsvc.DeleteOrgUnit(c.Context(), tenantId, orgId, unitId, userId); err != nil {
+		status, code := authzsvc.MapSvcError(err)
+		return c.Status(status).JSON(gmod.ApiErrorResponse{
+			Code: code, Message: err.Error(), Status: false,
 		})
 	}
 
 	return c.JSON(gmod.SuccessMessageResponse{
-		Code:    gmod.CodeSuccess,
-		Message: "deleted",
-		Status:  true,
+		Code: gmod.CodeSuccess, Message: "deleted", Status: true,
 	})
 }

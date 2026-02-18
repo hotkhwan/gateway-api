@@ -1,4 +1,3 @@
-// internal/services/authzsvc/authzDebugDelete.gน
 package authzsvc
 
 import (
@@ -39,7 +38,7 @@ func ResetPermifyTuplesAll(ctx context.Context, tenantId string, entityType stri
 		return nil, errors.New("entityType is required")
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
 	defer cancel()
 
 	client := authzgw.NewPermifyRestDebugClient()
@@ -63,7 +62,6 @@ func ResetPermifyTuplesAll(ctx context.Context, tenantId string, entityType stri
 			break
 		}
 
-		// ✅ delete ทีละ tuple (ชัวร์สุด เพราะบางเวอร์ชัน require entity.id)
 		for _, t := range readRes.Tuples {
 			err := client.DeleteTuples(ctx, tenantId, authzgw.DeleteTuplesRequest{
 				EntityType:    t.Entity.Type,
@@ -110,7 +108,7 @@ func ResetPermifyTuplesByUser(ctx context.Context, tenantId string, userId strin
 		return nil, errors.New("userId is required")
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
 	defer cancel()
 
 	client := authzgw.NewPermifyRestDebugClient()
@@ -118,11 +116,9 @@ func ResetPermifyTuplesByUser(ctx context.Context, tenantId string, userId strin
 	deleted := 0
 	continuousToken := ""
 
-	// ✅ อ่านเฉพาะ membership org ของ user แล้วลบทีละ tuple
+	// ลบเฉพาะ tuples ของ subject user นี้ (คุณจะขยาย relation/entityType เพิ่มได้)
 	for {
 		readRes, err := client.ReadTuples(ctx, tenantId, authzgw.ReadTuplesRequest{
-			EntityType:      "organization",
-			Relation:        "member",
 			SubjectType:     "user",
 			SubjectId:       userId,
 			PageSize:        200,
