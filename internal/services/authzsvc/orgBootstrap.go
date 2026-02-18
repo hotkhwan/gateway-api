@@ -4,6 +4,7 @@ package authzsvc
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hotkhwan/gateway-api/config"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/google/uuid"
 )
-
 func BootstrapOrganization(
 	ctx context.Context,
 	tenantId string,
@@ -21,9 +21,26 @@ func BootstrapOrganization(
 	name string,
 ) (*authzmod.Organization, error) {
 
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, fmt.Errorf("name is required")
+	}
+
 	now := time.Now().UnixMilli()
 	orgId := uuid.NewString()
 	rootUnitId := uuid.NewString()
+
+	orgRepo := authzrepo.NewOrgRepo(config.DB)
+	unitRepo := authzrepo.NewOrgUnitRepo()
+
+	// ✅ Guard: exists-by-name (fast fail)
+	exists, err := orgRepo.ExistsByName(ctx, tenantId, name)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, authzrepo.ErrOrgNameAlreadyExists
+	}
 
 	org := &authzmod.Organization{
 		OrgId:      orgId,
@@ -44,12 +61,9 @@ func BootstrapOrganization(
 		CreatedAt: now,
 	}
 
-	orgRepo := authzrepo.NewOrgRepo(config.DB)
-	unitRepo := authzrepo.NewOrgUnitRepo()
-
-	// 1️⃣ Insert Mongo first
+	// 1️⃣ Insert Mongo first (unique index is final safety net)
 	if err := orgRepo.Insert(ctx, org); err != nil {
-		return nil, err
+		return nil, err // Insert() already maps dup-key -> ErrOrgNameAlreadyExists
 	}
 
 	if err := unitRepo.Insert(ctx, rootUnit); err != nil {
@@ -66,6 +80,6 @@ func BootstrapOrganization(
 	}
 
 	_ = orgRepo.MarkSyncOK(ctx, orgId)
-
 	return org, nil
 }
+

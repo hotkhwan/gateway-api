@@ -128,7 +128,7 @@ func CreateOrg(c *fiber.Ctx) error {
 
   org, err := authzsvc.BootstrapOrganization(ctx, tenantId, userId, req.Name)
   if err != nil {
-    return c.Status(500).JSON(gmod.ApiErrorResponse{
+    return c.Status(409).JSON(gmod.ApiErrorResponse{
       Code: gmod.CodeInternalError, Message: err.Error(), Status: false,
     })
   }

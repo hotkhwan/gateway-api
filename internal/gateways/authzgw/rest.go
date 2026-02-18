@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 )
 
 type RestClient struct {
@@ -81,54 +82,109 @@ func (r *RestClient) WriteTuples(ctx context.Context, tenantId string, tuples []
 // DeleteOrgTuples ลบทุก tuple ที่ผูกกับ org นี้ (entity=organization:id=orgId)
 // NOTE: Permify REST requires attribute_filter even if empty
 func (r *RestClient) DeleteOrgTuples(ctx context.Context, tenantId string, orgId string) error {
-	if err := r.ensure(); err != nil {
-		return err
-	}
-	if tenantId == "" {
-		return fmt.Errorf("tenantId required")
-	}
-	if orgId == "" {
-		return fmt.Errorf("orgId required")
-	}
+  if err := r.ensure(); err != nil {
+    return err
+  }
+  if tenantId == "" {
+    return fmt.Errorf("tenantId required")
+  }
+  if orgId == "" {
+    return fmt.Errorf("orgId required")
+  }
 
-	schemaVersion := config.CurrentSchemaVersion
-	if schemaVersion == "" {
-		schemaVersion = "latest"
-	}
+  schemaVersion := config.CurrentSchemaVersion
+  if schemaVersion == "" {
+    schemaVersion = "latest"
+  }
 
-	url := fmt.Sprintf("%s/v1/tenants/%s/data/delete", r.baseURL, tenantId)
+  url := fmt.Sprintf("%s/v1/tenants/%s/data/delete", r.baseURL, tenantId)
 
-	payload := map[string]any{
-		"metadata": map[string]any{
-			"schema_version": schemaVersion,
-			"depth":          50,
-		},
-		"tuple_filter": map[string]any{
-			"entity": map[string]any{
-				"type": "organization",
-				"id":   orgId,
-			},
-		},
-		"attribute_filter": map[string]any{},
-	}
+  // ✅ STOP CASCADE: depth = 0 (หรือไม่ส่ง depth เลยก็ได้)
+  payload := map[string]any{
+    "metadata": map[string]any{
+      "schema_version": schemaVersion,
+      "depth":          0,
+    },
+    "tuple_filter": map[string]any{
+      "entity": map[string]any{
+        "type": "organization",
+        "id":   orgId,
+      },
+    },
+    // ❌ อย่าส่ง attribute_filter เลย (ไม่จำเป็น และลดความเสี่ยง)
+    // "attribute_filter": map[string]any{},
+  }
 
-	data, _ := json.Marshal(payload)
+  log := logger.FromCtx(ctx, "authzgw", "DeleteOrgTuples")
+  data, _ := json.Marshal(payload)
+  log.Info().
+    Str("tenantId", tenantId).
+    Str("orgId", orgId).
+    RawJSON("payload", data).
+    Msg("permify data/delete request")
 
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
-	req.Header.Set("Content-Type", "application/json")
+  req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
+  req.Header.Set("Content-Type", "application/json")
 
-	res, err := r.httpc.Do(req)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
+  res, err := r.httpc.Do(req)
+  if err != nil {
+    return err
+  }
+  defer res.Body.Close()
 
-	body, _ := io.ReadAll(res.Body)
-	if res.StatusCode >= http.StatusBadRequest {
-		return fmt.Errorf("authzgw delete org tuples failed: status=%d resp=%s", res.StatusCode, string(body))
-	}
+  body, _ := io.ReadAll(res.Body)
+  if res.StatusCode >= http.StatusBadRequest {
+    return fmt.Errorf("authzgw delete org tuples failed: status=%d resp=%s", res.StatusCode, string(body))
+  }
+  return nil
+}
 
-	return nil
+func (r *RestClient) DeleteOrgRelationships(ctx context.Context, tenantId string, orgId string) error {
+  if err := r.ensure(); err != nil {
+    return err
+  }
+  if tenantId == "" {
+    return fmt.Errorf("tenantId required")
+  }
+  if orgId == "" {
+    return fmt.Errorf("orgId required")
+  }
+
+  url := fmt.Sprintf("%s/v1/tenants/%s/relationships/delete", r.baseURL, tenantId)
+
+  // ✅ CRITICAL: ids (array) not id
+  payload := map[string]any{
+    "filter": map[string]any{
+      "entity": map[string]any{
+        "type": "organization",
+        "ids":  []string{orgId},
+      },
+    },
+  }
+
+  log := logger.FromCtx(ctx, "authzgw", "DeleteOrgRelationships")
+  data, _ := json.Marshal(payload)
+  log.Info().
+    Str("tenantId", tenantId).
+    Str("orgId", orgId).
+    RawJSON("payload", data).
+    Msg("permify relationships/delete request")
+
+  req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
+  req.Header.Set("Content-Type", "application/json")
+
+  res, err := r.httpc.Do(req)
+  if err != nil {
+    return err
+  }
+  defer res.Body.Close()
+
+  body, _ := io.ReadAll(res.Body)
+  if res.StatusCode >= http.StatusBadRequest {
+    return fmt.Errorf("authzgw delete org relationships failed: status=%d resp=%s", res.StatusCode, string(body))
+  }
+
+  return nil
 }
 
 func (r *RestClient) LookupOrganizations(ctx context.Context, tenantId string, userId string) ([]string, error) {

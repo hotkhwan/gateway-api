@@ -211,13 +211,13 @@ func (c *permifyRestDebugClient) DeleteTuples(ctx context.Context, tenantId stri
 		tupleFilter["subject"] = subject
 	}
 
+	// ❌ CRITICAL FIX: ไม่ส่ง attribute_filter เพราะมันทำให้ Permify delete cascade
 	payload := map[string]any{
 		"metadata": map[string]any{
 			"schema_version": schemaVersion,
 			"depth":          depth,
 		},
 		"tuple_filter": tupleFilter,
-		"attribute_filter": map[string]any{}, 
 	}
 
 	if req.SnapToken != "" {

@@ -4,7 +4,6 @@ package kcontrolmsg
 import (
 	"context"
 	"encoding/json"
-	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/rs/zerolog"
@@ -85,7 +84,7 @@ func (b *Bridge) HandleHealthEvent(ctx context.Context, raw []byte) error {
 	return nil
 }
 
-// ใช้ได้ถ้าคุณอยาก log ts เป็น float seconds แบบตัวอย่าง
-func unixFloatSeconds() float64 {
-	return float64(time.Now().UnixNano()) / 1e9
-}
+// // ใช้ได้ถ้าคุณอยาก log ts เป็น float seconds แบบตัวอย่าง
+// func unixFloatSeconds() float64 {
+// 	return float64(time.Now().UnixNano()) / 1e9
+// }

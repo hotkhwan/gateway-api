@@ -76,7 +76,7 @@ func DeleteOrg(ctx context.Context, orgID string) error {
 		Msg("🔐 [2/3] deleting permify tuples")
 
 	client := authzgw.NewClient()
-	if err := client.DeleteOrgTuples(ctx, org.TenantId, orgID); err != nil {
+	if err := client.DeleteOrgRelationships(ctx, org.TenantId, orgID); err != nil {
 		log.Error().
 			Err(err).
 			Str("orgId", orgID).
