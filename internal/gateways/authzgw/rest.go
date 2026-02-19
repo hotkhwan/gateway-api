@@ -40,21 +40,24 @@ func (r *RestClient) ensure() error {
 	}
 	return nil
 }
-
-func normalizeSubjectId(subjectType string, subjectId string) string {
-	subjectType = strings.TrimSpace(subjectType)
-	subjectId = strings.TrimSpace(subjectId)
-	if subjectId == "" {
-		return ""
-	}
-
-	// Permify convention in your codebase: "user:<uuid>"
-	if subjectType == "user" && !strings.HasPrefix(subjectId, "user:") {
-		return "user:" + subjectId
-	}
-
-	return subjectId
+func normalizeSubjectId(subjectId string) string {
+	return strings.TrimSpace(subjectId)
 }
+
+// func normalizeSubjectId(subjectType string, subjectId string) string {
+// 	subjectType = strings.TrimSpace(subjectType)
+// 	subjectId = strings.TrimSpace(subjectId)
+// 	if subjectId == "" {
+// 		return ""
+// 	}
+
+// 	// Permify convention in your codebase: "user:<uuid>"
+// 	if subjectType == "user" && !strings.HasPrefix(subjectId, "user:") {
+// 		return "user:" + subjectId
+// 	}
+
+// 	return subjectId
+// }
 
 func (r *RestClient) WriteTuples(ctx context.Context, tenantId string, tuples []map[string]any) error {
 	log := logger.FromCtx(ctx, "authzgw", "WriteTuples")
@@ -210,7 +213,8 @@ func (r *RestClient) LookupOrganizations(ctx context.Context, tenantId string, u
 		return nil, fmt.Errorf("current schema version is empty")
 	}
 
-	subjectId := normalizeSubjectId("user", userId)
+	subjectId := normalizeSubjectId(userId)
+	// subjectId := normalizeSubjectId("user", userId)
 
 	url := fmt.Sprintf("%s/v1/tenants/%s/permissions/lookup-entity", r.baseURL, tenantId)
 
@@ -300,7 +304,8 @@ func (r *RestClient) CheckPermissionWithSchemaVersion(
 	entityId = strings.TrimSpace(entityId)
 	permission = strings.TrimSpace(permission)
 	subjectType = strings.TrimSpace(subjectType)
-	subjectId = normalizeSubjectId(subjectType, subjectId)
+	subjectId = normalizeSubjectId(subjectId)
+	// subjectId = normalizeSubjectId(subjectType, subjectId)
 
 	if tenantId == "" || schemaVersion == "" || entityType == "" || entityId == "" || permission == "" || subjectType == "" || subjectId == "" {
 		return false, ErrInvalidArgs

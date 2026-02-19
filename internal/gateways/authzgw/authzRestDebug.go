@@ -46,7 +46,7 @@ type ReadTuplesRequest struct {
 
 type ReadTuplesResponse struct {
 	Tuples          []permifyTuple `json:"tuples"`
-	ContinuousToken string        `json:"continuous_token"`
+	ContinuousToken string         `json:"continuous_token"`
 }
 
 // ---------- Delete (relationship) ----------
@@ -237,9 +237,9 @@ func (c *permifyRestDebugClient) DeleteOrgTuples(ctx context.Context, tenantId s
 		rels := make([]DeleteRelationship, 0, len(readRes.Tuples))
 		for _, t := range readRes.Tuples {
 			rels = append(rels, DeleteRelationship{
-				Entity: permifyEntity{Type: t.Entity.Type, Id: t.Entity.Id},
+				Entity:   permifyEntity{Type: t.Entity.Type, Id: t.Entity.Id},
 				Relation: t.Relation,
-				Subject: permifySubject{Type: t.Subject.Type, Id: t.Subject.Id},
+				Subject:  permifySubject{Type: t.Subject.Type, Id: t.Subject.Id},
 			})
 		}
 
@@ -295,13 +295,13 @@ func (c *permifyRestDebugClient) DeleteTuples(ctx context.Context, tenantId stri
 		tupleFilter["subject"] = subject
 	}
 
-	// ✅ CRITICAL: do NOT include attribute_filter key at all
+	// ✅ Delete for ALL
 	payload := map[string]any{
 		"metadata": map[string]any{
 			"schema_version": schemaVersion,
 			"depth":          depth,
 		},
-		"tuple_filter": tupleFilter,
+		"tuple_filter":     tupleFilter,
 		"attribute_filter": map[string]any{},
 	}
 

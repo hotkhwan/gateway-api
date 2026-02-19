@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/models/authzmod"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
@@ -15,13 +16,15 @@ import (
 )
 
 type OrgUnitNode struct {
-	Id        string        `json:"id"`
-	ParentId  *string       `json:"parentId,omitempty"`
-	Name      string        `json:"name"`
-	IsRoot    bool          `json:"isRoot"`
-	Children  []OrgUnitNode `json:"children"`
-	Orphaned  bool          `json:"orphaned,omitempty"`
-	CreatedAt int64         `json:"createdAt"`
+	Id          string        `json:"id"`
+	ParentId    *string       `json:"parentId,omitempty"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	IsRoot      bool          `json:"isRoot"`
+	Children    []OrgUnitNode `json:"children"`
+	Orphaned    bool          `json:"orphaned,omitempty"`
+	CreatedAt   string        `json:"createdAt"`
+	UpdatedAt   string        `json:"updatedAt"`
 }
 
 func GetOrgUnitTree(
@@ -68,6 +71,7 @@ func CreateOrgUnit(
 	tenantId string,
 	orgId string,
 	name string,
+	description string,
 	parentId *string,
 	createdBy string,
 ) (string, error) {
@@ -105,6 +109,7 @@ func CreateOrgUnit(
 
 	isRoot := normalizedParentId == nil
 
+	// 🔍 validate parent
 	if !isRoot {
 		parent, err := repo.FindByUnitId(ctx, tenantId, orgId, *normalizedParentId)
 		if err != nil || parent == nil {
@@ -122,6 +127,7 @@ func CreateOrgUnit(
 		OrgId:        orgId,
 		ParentUnitId: normalizedParentId,
 		Name:         name,
+		Description:  description,
 		IsRoot:       isRoot,
 		CreatedBy:    createdBy,
 		CreatedAt:    now,
@@ -129,11 +135,69 @@ func CreateOrgUnit(
 		UpdatedAt:    now,
 	}
 
+	// 1️⃣ Insert Mongo first
 	if err := repo.Insert(ctx, unit); err != nil {
 		return "", err
 	}
 
-	log.Info().Str("publicId", unitId).Msg("orgUnit created")
+	// 2️⃣ Prepare Permify tuples
+	client := authzgw.NewClient()
+
+	tuples := []map[string]interface{}{
+		{
+			"entity": map[string]interface{}{
+				"type": "orgUnit",
+				"id":   unitId,
+			},
+			"relation": "parentOrg",
+			"subject": map[string]interface{}{
+				"type": "organization",
+				"id":   orgId,
+			},
+		},
+	}
+
+	// parent relation (if not root)
+	if normalizedParentId != nil {
+		tuples = append(tuples, map[string]interface{}{
+			"entity": map[string]interface{}{
+				"type": "orgUnit",
+				"id":   unitId,
+			},
+			"relation": "parent",
+			"subject": map[string]interface{}{
+				"type": "orgUnit",
+				"id":   *normalizedParentId,
+			},
+		})
+	}
+
+	// creator auto member
+	tuples = append(tuples, map[string]interface{}{
+		"entity": map[string]interface{}{
+			"type": "orgUnit",
+			"id":   unitId,
+		},
+		"relation": "member",
+		"subject": map[string]interface{}{
+			"type": "user",
+			"id":   createdBy, // rest client จะ normalize เป็น user:<uuid>
+		},
+	})
+
+	// 3️⃣ Write Permify
+	if err := client.WriteTuples(ctx, tenantId, tuples); err != nil {
+
+		// ❗ rollback mongo (atomic safety)
+		_ = repo.DeleteByUnitId(ctx, tenantId, orgId, unitId)
+
+		return "", err
+	}
+
+	log.Info().
+		Str("unitId", unitId).
+		Bool("isRoot", isRoot).
+		Msg("orgUnit created with permify tuples")
 
 	return unitId, nil
 }
@@ -144,6 +208,7 @@ func UpdateOrgUnitName(
 	orgId string,
 	unitId string,
 	name string,
+	description string,
 	updatedBy string,
 ) error {
 
@@ -162,11 +227,18 @@ func UpdateOrgUnitName(
 	if err != nil || unit == nil {
 		return ErrNotFound
 	}
-	if unit.IsRoot {
-		return ErrRootImmutable
-	}
 
-	return repo.UpdateName(ctx, tenantId, orgId, unitId, name)
+	// ✅ root allowed to update metadata
+
+	return repo.UpdateMetadata(
+		ctx,
+		tenantId,
+		orgId,
+		unitId,
+		name,
+		description,
+		updatedBy,
+	)
 }
 
 func DeleteOrgUnit(
@@ -215,13 +287,16 @@ func buildOrgUnitTree(units []authzmod.OrgUnit) []OrgUnitNode {
 	for _, u := range units {
 
 		nodeMap[u.UnitId] = &OrgUnitNode{
-			Id:        u.UnitId,
-			ParentId:  u.ParentUnitId,
-			Name:      u.Name,
-			IsRoot:    u.IsRoot,
-			Children:  []OrgUnitNode{},
-			CreatedAt: u.CreatedAt.UnixMilli(),
+			Id:          u.UnitId,
+			ParentId:    u.ParentUnitId,
+			Name:        u.Name,
+			Description: u.Description,
+			IsRoot:      u.IsRoot,
+			Children:    []OrgUnitNode{},
+			CreatedAt:   u.CreatedAt.UTC().Format(time.RFC3339Nano),
+			UpdatedAt:   u.UpdatedAt.UTC().Format(time.RFC3339Nano),
 		}
+
 	}
 
 	for _, u := range units {

@@ -92,6 +92,28 @@ func (r *OrgUnitRepo) CountChildren(ctx context.Context, tenantId, orgId, parent
 	})
 }
 
+func (r *OrgUnitRepo) UpdateMetadata(
+	ctx context.Context,
+	tenantId, orgId, unitId,
+	name, description, updatedBy string,
+) error {
+
+	filter := bson.M{
+		"tenantId": tenantId,
+		"orgId":    orgId,
+		"unitId":   unitId,
+	}
+
+	setFields := bson.M{
+		"name":        name,
+		"description": description,
+		"updatedBy":   updatedBy,
+	}
+
+	_, err := stomongo.UpdateOne(ctx, r.collection, filter, setFields)
+	return err
+}
+
 func (r *OrgUnitRepo) DeleteByUnitId(ctx context.Context, tenantId, orgId, unitId string) error {
 	_, err := stomongo.DeleteOne(ctx, r.collection, bson.M{
 		"tenantId": tenantId,

@@ -11,24 +11,27 @@ import (
 
 // CreateOrgUnitBody swagger model
 type CreateOrgUnitBody struct {
-	Name     string  `json:"name" example:"Operations"`
-	ParentId *string `json:"parentId" example:"unit_root_123"`
+	Name        string  `json:"name" example:"Operations"`
+	Description string  `json:"description" example:"Details Operations"`
+	ParentId    *string `json:"parentId" example:"unit_root_123"`
 }
 
 // UpdateOrgUnitBody swagger model
 type UpdateOrgUnitBody struct {
-	Name string `json:"name" example:"Operations (North)"`
+	Name        string `json:"name" example:"Operations (North)"`
+	Description string `json:"description" example:"Details Operations (North)"`
 }
 
 // OrgUnitNode swagger model
 type OrgUnitNode struct {
-	UnitId    string        `json:"unitId"`
-	ParentId  *string       `json:"parentId,omitempty"`
-	Name      string        `json:"name"`
-	IsRoot    bool          `json:"isRoot"`
-	Children  []OrgUnitNode `json:"children"`
-	Orphaned  bool          `json:"orphaned,omitempty"`
-	CreatedAt int64         `json:"createdAt,omitempty"`
+	UnitId      string        `json:"unitId"`
+	ParentId    *string       `json:"parentId,omitempty"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	IsRoot      bool          `json:"isRoot"`
+	Children    []OrgUnitNode `json:"children"`
+	Orphaned    bool          `json:"orphaned,omitempty"`
+	CreatedAt   int64         `json:"createdAt,omitempty"`
 }
 
 // @Summary Create org unit
@@ -77,7 +80,7 @@ func CreateOrgUnit(c *fiber.Ctx) error {
 		})
 	}
 
-	unitId, err := authzsvc.CreateOrgUnit(c.Context(), tenantId, orgId, body.Name, body.ParentId, userId)
+	unitId, err := authzsvc.CreateOrgUnit(c.Context(), tenantId, orgId, body.Name, body.Description, body.ParentId, userId)
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
 		return c.Status(status).JSON(gmod.ApiErrorResponse{
@@ -171,7 +174,7 @@ func UpdateOrgUnit(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := authzsvc.UpdateOrgUnitName(c.Context(), tenantId, orgId, unitId, body.Name, userId); err != nil {
+	if err := authzsvc.UpdateOrgUnitName(c.Context(), tenantId, orgId, unitId, body.Name, body.Description, userId); err != nil {
 		status, code := authzsvc.MapSvcError(err)
 		return c.Status(status).JSON(gmod.ApiErrorResponse{
 			Code: code, Message: err.Error(), Status: false,

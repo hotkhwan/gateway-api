@@ -33,6 +33,10 @@ func RegisterAuthzDebugRoutes(router fiber.Router) {
 
 		// GET /api/v1/authz/prove/orgs?tenantId=aisom
 		protected.Get("/prove/orgs", authznewapi.ProveUserOrgsAgainstMongo)
-		
+
+		protected.Get("/tuples/byUser", authznewapi.ListTuplesByUser)
+		protected.Get("/tuples/ou", authznewapi.ListOrgUnitTuples)
+		protected.Post("/tuples/resetTenant", authznewapi.ResetTenant)
+
 	})
 }

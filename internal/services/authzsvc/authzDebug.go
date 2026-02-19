@@ -36,6 +36,11 @@ type PermifyTupleListResult struct {
 	PageSize        int               `json:"pageSize"`
 }
 
+type ResetTenantResult struct {
+	TenantId string         `json:"tenantId"`
+	Deleted  map[string]int `json:"deleted"`
+}
+
 func ListPermifyTuples(ctx context.Context, tenantId string, filter PermifyTupleFilter) (*PermifyTupleListResult, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
@@ -227,4 +232,297 @@ func ProveUserOrgsAgainstMongo(ctx context.Context, tenantId string, userId stri
 		MongoOrgIds:    mongoIds,
 		MissingInMongo: missing,
 	}, nil
+}
+
+type ResetAllTuplesResult struct {
+	TenantId   string `json:"tenantId"`
+	EntityType string `json:"entityType"`
+	Deleted    int    `json:"deleted"`
+}
+
+type ResetUserTuplesResult struct {
+	TenantId string `json:"tenantId"`
+	UserId   string `json:"userId"`
+	Deleted  int    `json:"deleted"`
+}
+
+func ResetPermifyTuplesAll(ctx context.Context, tenantId string, entityType string) (*ResetAllTuplesResult, error) {
+	ctx, end, log := traceutil.StartLite(
+		ctx,
+		"github.com/hotkhwan/gateway-api/authzsvc",
+		"authz.ResetPermifyTuplesAll",
+		"authzsvc", "ResetPermifyTuplesAll",
+	)
+	defer end()
+
+	if tenantId == "" {
+		return nil, errors.New("tenantId is required")
+	}
+	if entityType == "" {
+		return nil, errors.New("entityType is required")
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+	defer cancel()
+
+	client := authzgw.NewPermifyRestDebugClient()
+
+	deleted := 0
+	continuousToken := ""
+
+	for {
+		readRes, err := client.ReadTuples(ctx, tenantId, authzgw.ReadTuplesRequest{
+			EntityType:      entityType,
+			PageSize:        200,
+			ContinuousToken: continuousToken,
+			SchemaVersion:   "latest",
+			Depth:           50,
+		})
+		if err != nil {
+			log.Error().Err(err).Msg("permify read tuples failed")
+			return nil, err
+		}
+		if len(readRes.Tuples) == 0 {
+			break
+		}
+
+		for _, t := range readRes.Tuples {
+			err := client.DeleteTuples(ctx, tenantId, authzgw.DeleteTuplesRequest{
+				EntityType:    t.Entity.Type,
+				EntityId:      t.Entity.Id,
+				Relation:      t.Relation,
+				SubjectType:   t.Subject.Type,
+				SubjectId:     t.Subject.Id,
+				SchemaVersion: "latest",
+				Depth:         50,
+			})
+			if err != nil {
+				log.Error().Err(err).Msg("permify delete tuples failed")
+				return nil, err
+			}
+			deleted++
+		}
+
+		if readRes.ContinuousToken == "" || readRes.ContinuousToken == continuousToken {
+			break
+		}
+		continuousToken = readRes.ContinuousToken
+	}
+
+	return &ResetAllTuplesResult{
+		TenantId:   tenantId,
+		EntityType: entityType,
+		Deleted:    deleted,
+	}, nil
+}
+
+func ResetPermifyTuplesByUser(ctx context.Context, tenantId string, userId string) (*ResetUserTuplesResult, error) {
+	ctx, end, log := traceutil.StartLite(
+		ctx,
+		"github.com/hotkhwan/gateway-api/authzsvc",
+		"authz.ResetPermifyTuplesByUser",
+		"authzsvc", "ResetPermifyTuplesByUser",
+	)
+	defer end()
+
+	if tenantId == "" {
+		tenantId = config.PermifyTenantID
+	}
+	if userId == "" {
+		return nil, errors.New("userId is required")
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+	defer cancel()
+
+	client := authzgw.NewPermifyRestDebugClient()
+
+	deleted := 0
+	continuousToken := ""
+
+	// ลบเฉพาะ tuples ของ subject user นี้ (คุณจะขยาย relation/entityType เพิ่มได้)
+	for {
+		readRes, err := client.ReadTuples(ctx, tenantId, authzgw.ReadTuplesRequest{
+			SubjectType:     "user",
+			SubjectId:       userId,
+			PageSize:        200,
+			ContinuousToken: continuousToken,
+			SchemaVersion:   "latest",
+			Depth:           50,
+		})
+		if err != nil {
+			log.Error().Err(err).Msg("permify read tuples failed")
+			return nil, err
+		}
+
+		if len(readRes.Tuples) == 0 {
+			break
+		}
+
+		for _, t := range readRes.Tuples {
+			err := client.DeleteTuples(ctx, tenantId, authzgw.DeleteTuplesRequest{
+				EntityType:    t.Entity.Type,
+				EntityId:      t.Entity.Id,
+				Relation:      t.Relation,
+				SubjectType:   t.Subject.Type,
+				SubjectId:     t.Subject.Id,
+				SchemaVersion: "latest",
+				Depth:         50,
+			})
+			if err != nil {
+				log.Error().Err(err).Msg("permify delete tuples failed")
+				return nil, err
+			}
+			deleted++
+		}
+
+		if readRes.ContinuousToken == "" || readRes.ContinuousToken == continuousToken {
+			break
+		}
+		continuousToken = readRes.ContinuousToken
+	}
+
+	return &ResetUserTuplesResult{
+		TenantId: tenantId,
+		UserId:   userId,
+		Deleted:  deleted,
+	}, nil
+}
+
+func ListTuplesByUser(ctx context.Context, tenantId string, userId string) ([]PermifyTupleRow, error) {
+
+	if tenantId == "" {
+		tenantId = config.PermifyTenantID
+	}
+
+	client := authzgw.NewPermifyRestDebugClient()
+
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	out := []PermifyTupleRow{}
+	continuousToken := ""
+
+	for {
+		readRes, err := client.ReadTuples(ctx, tenantId, authzgw.ReadTuplesRequest{
+			SubjectType:     "user",
+			SubjectId:       userId,
+			PageSize:        200,
+			ContinuousToken: continuousToken,
+			SchemaVersion:   "latest",
+			Depth:           50,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if len(readRes.Tuples) == 0 {
+			break
+		}
+
+		for _, t := range readRes.Tuples {
+			out = append(out, PermifyTupleRow{
+				EntityType:  t.Entity.Type,
+				EntityId:    t.Entity.Id,
+				Relation:    t.Relation,
+				SubjectType: t.Subject.Type,
+				SubjectId:   t.Subject.Id,
+			})
+		}
+
+		if readRes.ContinuousToken == "" || readRes.ContinuousToken == continuousToken {
+			break
+		}
+
+		continuousToken = readRes.ContinuousToken
+	}
+
+	return out, nil
+}
+
+func ListTuplesByEntityType(ctx context.Context, tenantId string, entityType string) ([]PermifyTupleRow, error) {
+
+	if tenantId == "" {
+		tenantId = config.PermifyTenantID
+	}
+
+	client := authzgw.NewPermifyRestDebugClient()
+
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	out := []PermifyTupleRow{}
+	continuousToken := ""
+
+	for {
+		readRes, err := client.ReadTuples(ctx, tenantId, authzgw.ReadTuplesRequest{
+			EntityType:      entityType,
+			PageSize:        200,
+			ContinuousToken: continuousToken,
+			SchemaVersion:   "latest",
+			Depth:           50,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if len(readRes.Tuples) == 0 {
+			break
+		}
+
+		for _, t := range readRes.Tuples {
+			out = append(out, PermifyTupleRow{
+				EntityType:  t.Entity.Type,
+				EntityId:    t.Entity.Id,
+				Relation:    t.Relation,
+				SubjectType: t.Subject.Type,
+				SubjectId:   t.Subject.Id,
+			})
+		}
+
+		if readRes.ContinuousToken == "" || readRes.ContinuousToken == continuousToken {
+			break
+		}
+
+		continuousToken = readRes.ContinuousToken
+	}
+
+	return out, nil
+}
+
+func ResetTenant(ctx context.Context, tenantId string) (*ResetTenantResult, error) {
+
+	if tenantId == "" {
+		return nil, errors.New("tenantId is required")
+	}
+
+	entityTypes := []string{
+		"organization",
+		"orgUnit",
+		"deviceGroup",
+		"device",
+		"menu",
+		"serviceAccount",
+	}
+
+	result := &ResetTenantResult{
+		TenantId: tenantId,
+		Deleted:  make(map[string]int),
+	}
+
+	for _, et := range entityTypes {
+
+		res, err := ResetPermifyTuplesAll(ctx, tenantId, et)
+		if err != nil {
+			return nil, err
+		}
+
+		if res != nil {
+			result.Deleted[et] = res.Deleted
+		} else {
+			result.Deleted[et] = 0
+		}
+	}
+
+	return result, nil
 }

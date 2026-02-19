@@ -9,16 +9,16 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/logger"
 )
 
-func normalizeUserId(userId string) string {
-	userId = strings.TrimSpace(userId)
-	if userId == "" {
-		return ""
-	}
-	if strings.HasPrefix(userId, "user:") {
-		return userId
-	}
-	return "user:" + userId
-}
+// func normalizeUserId(userId string) string {
+// 	userId = strings.TrimSpace(userId)
+// 	if userId == "" {
+// 		return ""
+// 	}
+// 	if strings.HasPrefix(userId, "user:") {
+// 		return userId
+// 	}
+// 	return "user:" + userId
+// }
 
 func maskId(v string) string {
 	v = strings.TrimSpace(v)
@@ -33,7 +33,8 @@ func TupleFactoryOrgBootstrap(orgId, userId string) []map[string]interface{} {
 	orgId = strings.TrimSpace(orgId)
 	userId = strings.TrimSpace(userId)
 
-	subjectUserId := normalizeUserId(userId)
+	subjectUserId := userId
+	// subjectUserId := normalizeUserId(userId)
 
 	// ✅ never pass nil context
 	log := logger.FromCtx(context.TODO(), "authzsvc", "TupleFactoryOrgBootstrap")

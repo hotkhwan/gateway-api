@@ -24,13 +24,13 @@ import (
 func ListPermifyTuples(c *fiber.Ctx) error {
 	tenantId := c.Query("tenantId", "")
 	filter := authzsvc.PermifyTupleFilter{
-		EntityType:       c.Query("entityType", ""),
-		EntityId:         c.Query("entityId", ""),
-		Relation:         c.Query("relation", ""),
-		SubjectType:      c.Query("subjectType", ""),
-		SubjectId:        c.Query("subjectId", ""),
-		ContinuousToken:  c.Query("continuousToken", ""),
-		PageSize:         c.QueryInt("pageSize", 50),
+		EntityType:      c.Query("entityType", ""),
+		EntityId:        c.Query("entityId", ""),
+		Relation:        c.Query("relation", ""),
+		SubjectType:     c.Query("subjectType", ""),
+		SubjectId:       c.Query("subjectId", ""),
+		ContinuousToken: c.Query("continuousToken", ""),
+		PageSize:        c.QueryInt("pageSize", 50),
 	}
 
 	res, err := authzsvc.ListPermifyTuples(c.Context(), tenantId, filter)
@@ -139,6 +139,195 @@ func ProveUserOrgsAgainstMongo(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"code":    gmod.CodeSuccess,
 		"message": "Prove completed",
+		"status":  true,
+		"details": res,
+	})
+}
+
+// ResetAllTuples godoc
+// @Summary Factory reset tuples by entityType (debug)
+// @Tags authzDebug
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Router /authzDebugs/tuples/resetAll [post]
+func ResetAllTuples(c *fiber.Ctx) error {
+	var body struct {
+		TenantId   string `json:"tenantId"`
+		EntityType string `json:"entityType"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: "Invalid request body",
+			Status:  false,
+		})
+	}
+
+	res, err := authzsvc.ResetPermifyTuplesAll(c.Context(), body.TenantId, body.EntityType)
+	if err != nil {
+		return c.Status(500).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeInternalError,
+			Message: err.Error(),
+			Status:  false,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code":    gmod.CodeSuccess,
+		"message": "Reset all tuples completed",
+		"status":  true,
+		"details": res,
+	})
+}
+
+// ResetTuplesByUser godoc
+// @Summary Reset org membership tuples by user (debug)
+// @Tags authzDebug
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Router /authzDebugs/tuples/resetByUser [post]
+func ResetTuplesByUser(c *fiber.Ctx) error {
+	var body struct {
+		TenantId string `json:"tenantId"`
+		UserId   string `json:"userId"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: "Invalid request body",
+			Status:  false,
+		})
+	}
+
+	res, err := authzsvc.ResetPermifyTuplesByUser(c.Context(), body.TenantId, body.UserId)
+	if err != nil {
+		return c.Status(500).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeInternalError,
+			Message: err.Error(),
+			Status:  false,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code":    gmod.CodeSuccess,
+		"message": "Reset tuples by user completed",
+		"status":  true,
+		"details": res,
+	})
+}
+
+// ListTuplesByUser godoc
+// @Summary List all tuples by user (debug)
+// @Tags authzDebug
+// @Security BearerAuth
+// @Produce json
+// @Param tenantId query string false "tenant id"
+// @Param userId query string true "user id"
+// @Router /authzDebugs/tuples/byUser [get]
+func ListTuplesByUser(c *fiber.Ctx) error {
+
+	tenantId := c.Query("tenantId", "")
+	userId := c.Query("userId", "")
+
+	if userId == "" {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: "userId is required",
+			Status:  false,
+		})
+	}
+
+	res, err := authzsvc.ListTuplesByUser(c.Context(), tenantId, userId)
+	if err != nil {
+		return c.Status(500).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeInternalError,
+			Message: err.Error(),
+			Status:  false,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code":    gmod.CodeSuccess,
+		"message": "User tuples fetched",
+		"status":  true,
+		"details": res,
+	})
+}
+
+func ListOrgUnitTuples(c *fiber.Ctx) error {
+
+	tenantId := c.Query("tenantId", "")
+
+	res, err := authzsvc.ListTuplesByEntityType(c.Context(), tenantId, "orgUnit")
+	if err != nil {
+		return c.Status(500).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeInternalError,
+			Message: err.Error(),
+			Status:  false,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code":    gmod.CodeSuccess,
+		"message": "OU tuples fetched",
+		"status":  true,
+		"details": res,
+	})
+}
+
+// ResetTenant godoc
+// @Summary Hard reset ALL tuples in tenant (danger)
+// @Tags authzDebug
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Router /authzDebugs/tuples/resetTenant [post]
+func ResetTenant(c *fiber.Ctx) error {
+
+	var body struct {
+		TenantId string `json:"tenantId"`
+		Confirm  string `json:"confirm"`
+	}
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: "Invalid request body",
+			Status:  false,
+		})
+	}
+
+	if body.TenantId == "" {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: "tenantId is required",
+			Status:  false,
+		})
+	}
+
+	// 🔥 SAFETY GUARD
+	if body.Confirm != "RESET_TENANT" {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: "confirmation required: send confirm=RESET_TENANT",
+			Status:  false,
+		})
+	}
+
+	res, err := authzsvc.ResetTenant(c.Context(), body.TenantId)
+	if err != nil {
+		return c.Status(500).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeInternalError,
+			Message: err.Error(),
+			Status:  false,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code":    gmod.CodeSuccess,
+		"message": "Tenant hard reset completed",
 		"status":  true,
 		"details": res,
 	})

@@ -38,7 +38,8 @@ func ListUserOrganizations(ctx context.Context, tenantId string, userId string) 
 	client := authzgw.NewClient()
 
 	// ✅ important: make lookup consistent with tuples subject id format
-	subjectUserId := normalizeUserId(userId)
+	subjectUserId := userId
+	// subjectUserId := normalizeUserId(userId)
 
 	log.Info().
 		Str("tenantId", tenantId).
