@@ -365,3 +365,52 @@ func (r *RestClient) CheckPermissionWithSchemaVersion(
 
 	return false, fmt.Errorf("authz check decode failed: %s", string(body))
 }
+
+func (r *RestClient) DeleteEntityRelationships(
+	ctx context.Context,
+	tenantId string,
+	entityType string,
+	entityId string,
+) error {
+
+	if err := r.ensure(); err != nil {
+		return err
+	}
+
+	tenantId = strings.TrimSpace(tenantId)
+	entityType = strings.TrimSpace(entityType)
+	entityId = strings.TrimSpace(entityId)
+
+	if tenantId == "" || entityType == "" || entityId == "" {
+		return fmt.Errorf("invalid delete entity relationships args")
+	}
+
+	url := fmt.Sprintf("%s/v1/tenants/%s/relationships/delete", r.baseURL, tenantId)
+
+	payload := map[string]any{
+		"filter": map[string]any{
+			"entity": map[string]any{
+				"type": entityType,
+				"ids":  []string{entityId},
+			},
+		},
+	}
+
+	data, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := r.httpc.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		body, _ := io.ReadAll(res.Body)
+		return fmt.Errorf("permify delete relationships failed: %s", string(body))
+	}
+
+	return nil
+}

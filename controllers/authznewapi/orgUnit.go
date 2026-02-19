@@ -34,6 +34,8 @@ type OrgUnitNode struct {
 	CreatedAt   int64         `json:"createdAt,omitempty"`
 }
 
+var orgUnitService *authzsvc.OrgUnitService
+
 // @Summary Create org unit
 // @Description Create an org unit under active org (root is created by bootstrap only)
 // @Tags OrgUnit
@@ -215,7 +217,12 @@ func DeleteOrgUnit(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := authzsvc.DeleteOrgUnit(c.Context(), tenantId, orgId, unitId, userId); err != nil {
+	if err := orgUnitService.DeleteOrgUnit(
+		c.Context(),
+		tenantId,
+		orgId,
+		unitId,
+	); err != nil {
 		status, code := authzsvc.MapSvcError(err)
 		return c.Status(status).JSON(gmod.ApiErrorResponse{
 			Code: code, Message: err.Error(), Status: false,

@@ -3,6 +3,7 @@ package authzsvc
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -25,6 +26,24 @@ type OrgUnitNode struct {
 	Orphaned    bool          `json:"orphaned,omitempty"`
 	CreatedAt   string        `json:"createdAt"`
 	UpdatedAt   string        `json:"updatedAt"`
+}
+
+type OrgUnitService struct {
+	orgUnitRepo *authzrepo.OrgUnitRepo
+	// deviceGroupRepo *authzrepo.DeviceGroupRepo, // TODO: check deviceGroup reference
+	authzRestClient *authzgw.RestClient
+}
+
+func NewOrgUnitService(
+	orgUnitRepo *authzrepo.OrgUnitRepo,
+	// deviceGroupRepo *authzrepo.DeviceGroupRepo, // TODO: check deviceGroup reference
+	authzRestClient *authzgw.RestClient,
+) *OrgUnitService {
+	return &OrgUnitService{
+		orgUnitRepo: orgUnitRepo,
+		// deviceGroupRepo: deviceGroupRepo, // TODO: check deviceGroup reference
+		authzRestClient: authzRestClient,
+	}
 }
 
 func GetOrgUnitTree(
@@ -241,44 +260,6 @@ func UpdateOrgUnitName(
 	)
 }
 
-func DeleteOrgUnit(
-	ctx context.Context,
-	tenantId string,
-	orgId string,
-	unitId string,
-	deletedBy string,
-) error {
-
-	ctx, end, _ := traceutil.StartLite(
-		ctx,
-		"github.com/hotkhwan/gateway-api/authzsvc",
-		"orgUnit.delete",
-		"authzsvc",
-		"DeleteOrgUnit",
-	)
-	defer end()
-
-	repo := authzrepo.NewOrgUnitRepo()
-
-	unit, err := repo.FindByUnitId(ctx, tenantId, orgId, unitId)
-	if err != nil || unit == nil {
-		return ErrNotFound
-	}
-	if unit.IsRoot {
-		return ErrRootImmutable
-	}
-
-	childCount, err := repo.CountChildren(ctx, tenantId, orgId, unitId)
-	if err != nil {
-		return err
-	}
-	if childCount > 0 {
-		return ErrHasChildren
-	}
-
-	return repo.DeleteByUnitId(ctx, tenantId, orgId, unitId)
-}
-
 func buildOrgUnitTree(units []authzmod.OrgUnit) []OrgUnitNode {
 
 	nodeMap := make(map[string]*OrgUnitNode)
@@ -329,4 +310,67 @@ func buildOrgUnitTree(units []authzmod.OrgUnit) []OrgUnitNode {
 	}
 
 	return out
+}
+
+func (s *OrgUnitService) DeleteOrgUnit(
+	ctx context.Context,
+	tenantId string,
+	orgId string,
+	unitId string,
+) error {
+
+	tenantId = strings.TrimSpace(tenantId)
+	orgId = strings.TrimSpace(orgId)
+	unitId = strings.TrimSpace(unitId)
+
+	if tenantId == "" || orgId == "" || unitId == "" {
+		return fmt.Errorf("invalid args")
+	}
+	if s.orgUnitRepo == nil {
+		panic("orgUnitRepo is nil")
+	}
+	if s.authzRestClient == nil {
+		panic("authzRestClient is nil")
+	}
+
+	// 1️⃣ find unit
+	unit, err := s.orgUnitRepo.FindByUnitId(ctx, tenantId, orgId, unitId)
+	if err != nil {
+		return err
+	}
+
+	if unit == nil {
+		return nil // idempotent
+	}
+
+	// 2️⃣ check children
+	children, err := s.orgUnitRepo.FindChildren(ctx, tenantId, orgId, unitId)
+	if err != nil {
+		return err
+	}
+
+	if len(children) > 0 {
+		return fmt.Errorf("cannot delete orgUnit: has children")
+	}
+
+	// // 3️⃣ check deviceGroup reference // TODO: check deviceGroup reference
+	// hasRef, err := s.deviceGroupRepo.ExistsByOrgUnit(ctx, tenantId, orgId, unitId)
+	// if err != nil {
+	// 	return err
+	// }
+	// if hasRef {
+	// 	return fmt.Errorf("cannot delete orgUnit: referenced by deviceGroup")
+	// }
+
+	// 4️⃣ delete permify relationships first
+	if err := s.authzRestClient.DeleteEntityRelationships(ctx, tenantId, "orgUnit", unitId); err != nil {
+		return err
+	}
+
+	// 5️⃣ delete mongo
+	if err := s.orgUnitRepo.DeleteByUnitId(ctx, tenantId, orgId, unitId); err != nil {
+		return err
+	}
+
+	return nil
 }

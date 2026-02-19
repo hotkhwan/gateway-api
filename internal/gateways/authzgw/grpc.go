@@ -33,16 +33,20 @@ func (g *GrpcClient) WriteSchema(ctx context.Context, tenantId string, schema st
 	return resp.SchemaVersion, nil
 }
 
-func normalizeUserSubjectId(userId string) string {
-	userId = strings.TrimSpace(userId)
-	if userId == "" {
-		return ""
-	}
-	if strings.HasPrefix(userId, "user:") {
-		return userId
-	}
-	return "user:" + userId
+func normalizeUserSubjectId(subjectId string) string {
+	return strings.TrimSpace(subjectId)
 }
+
+// func normalizeUserSubjectId(userId string) string {
+// 	userId = strings.TrimSpace(userId)
+// 	if userId == "" {
+// 		return ""
+// 	}
+// 	if strings.HasPrefix(userId, "user:") {
+// 		return userId
+// 	}
+// 	return "user:" + userId
+// }
 
 func (g *GrpcClient) LookupOrganizations(ctx context.Context, tenantId string, userId string) ([]string, error) {
 	subjectId := normalizeUserSubjectId(userId)

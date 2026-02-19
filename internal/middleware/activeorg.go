@@ -73,7 +73,8 @@ func ActiveOrg() fiber.Handler {
 			orgId,
 			"view",
 			"user",
-			"user:"+userId, // gRPC path in your code expects user:<uuid>
+			userId,
+			// "user:"+userId, // gRPC path in your code expects user:<uuid>
 		)
 
 		log.Info().

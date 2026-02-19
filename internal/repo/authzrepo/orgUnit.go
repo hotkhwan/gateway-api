@@ -92,6 +92,30 @@ func (r *OrgUnitRepo) CountChildren(ctx context.Context, tenantId, orgId, parent
 	})
 }
 
+func (r *OrgUnitRepo) FindChildren(
+	ctx context.Context,
+	tenantId string,
+	orgId string,
+	parentUnitId string,
+) ([]authzmod.OrgUnit, error) {
+
+	var result []authzmod.OrgUnit
+
+	err := stomongo.Find(
+		ctx,
+		r.collection,
+		bson.M{
+			"tenantId":     tenantId,
+			"orgId":        orgId,
+			"parentUnitId": parentUnitId,
+		},
+		nil,
+		&result,
+	)
+
+	return result, err
+}
+
 func (r *OrgUnitRepo) UpdateMetadata(
 	ctx context.Context,
 	tenantId, orgId, unitId,
@@ -114,11 +138,57 @@ func (r *OrgUnitRepo) UpdateMetadata(
 	return err
 }
 
-func (r *OrgUnitRepo) DeleteByUnitId(ctx context.Context, tenantId, orgId, unitId string) error {
-	_, err := stomongo.DeleteOne(ctx, r.collection, bson.M{
+func (r *OrgUnitRepo) DeleteByUnitId(
+	ctx context.Context,
+	tenantId string,
+	orgId string,
+	unitId string,
+) error {
+
+	filter := bson.M{
 		"tenantId": tenantId,
 		"orgId":    orgId,
 		"unitId":   unitId,
-	})
+	}
+
+	_, err := stomongo.DeleteOne(ctx, r.collection, filter)
 	return err
+}
+
+func (r *OrgUnitRepo) FindDescendants(
+	ctx context.Context,
+	tenantId string,
+	orgId string,
+	unitId string,
+) ([]authzmod.OrgUnit, error) {
+
+	all, err := r.ListByOrg(ctx, tenantId, orgId)
+	if err != nil {
+		return nil, err
+	}
+
+	// สร้าง children map
+	childrenMap := map[string][]authzmod.OrgUnit{}
+
+	for _, u := range all {
+		if u.ParentUnitId != nil {
+			childrenMap[*u.ParentUnitId] = append(childrenMap[*u.ParentUnitId], u)
+		}
+	}
+
+	var result []authzmod.OrgUnit
+	queue := []string{unitId}
+
+	// BFS
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		for _, child := range childrenMap[current] {
+			result = append(result, child)
+			queue = append(queue, child.UnitId)
+		}
+	}
+
+	return result, nil
 }
