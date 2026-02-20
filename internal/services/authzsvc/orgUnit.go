@@ -3,7 +3,6 @@ package authzsvc
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -15,6 +14,11 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+type OrgUnitService struct {
+	orgUnitRepo *authzrepo.OrgUnitRepo
+	authzClient authzgw.Client
+}
 
 type OrgUnitNode struct {
 	Id          string        `json:"id"`
@@ -28,236 +32,22 @@ type OrgUnitNode struct {
 	UpdatedAt   string        `json:"updatedAt"`
 }
 
-type OrgUnitService struct {
-	orgUnitRepo *authzrepo.OrgUnitRepo
-	// deviceGroupRepo *authzrepo.DeviceGroupRepo, // TODO: check deviceGroup reference
-	authzRestClient *authzgw.RestClient
-}
-
 func NewOrgUnitService(
 	orgUnitRepo *authzrepo.OrgUnitRepo,
-	// deviceGroupRepo *authzrepo.DeviceGroupRepo, // TODO: check deviceGroup reference
-	authzRestClient *authzgw.RestClient,
+	authzClient authzgw.Client,
 ) *OrgUnitService {
+
+	if orgUnitRepo == nil {
+		panic("orgUnitRepo required")
+	}
+	if authzClient == nil {
+		panic("authzClient required")
+	}
+
 	return &OrgUnitService{
 		orgUnitRepo: orgUnitRepo,
-		// deviceGroupRepo: deviceGroupRepo, // TODO: check deviceGroup reference
-		authzRestClient: authzRestClient,
+		authzClient: authzClient,
 	}
-}
-
-func GetOrgUnitTree(
-	ctx context.Context,
-	tenantId string,
-	orgId string,
-) ([]OrgUnitNode, error) {
-
-	ctx, end, log := traceutil.StartLite(
-		ctx,
-		"github.com/hotkhwan/gateway-api/authzsvc",
-		"orgUnit.tree",
-		"authzsvc",
-		"GetOrgUnitTree",
-	)
-	defer end()
-
-	tenantId = strings.TrimSpace(tenantId)
-	orgId = strings.TrimSpace(orgId)
-
-	if tenantId == "" || orgId == "" {
-		return nil, ErrUnauthorized
-	}
-
-	repo := authzrepo.NewOrgUnitRepo()
-
-	units, err := repo.ListByOrg(ctx, tenantId, orgId)
-	if err != nil {
-		return nil, err
-	}
-
-	tree := buildOrgUnitTree(units)
-
-	log.Info().
-		Int("unitCount", len(units)).
-		Int("rootCount", len(tree)).
-		Msg("orgUnit tree loaded")
-
-	return tree, nil
-}
-
-func CreateOrgUnit(
-	ctx context.Context,
-	tenantId string,
-	orgId string,
-	name string,
-	description string,
-	parentId *string,
-	createdBy string,
-) (string, error) {
-
-	ctx, end, log := traceutil.StartLite(
-		ctx,
-		"github.com/hotkhwan/gateway-api/authzsvc",
-		"orgUnit.create",
-		"authzsvc",
-		"CreateOrgUnit",
-	)
-	defer end()
-
-	tenantId = strings.TrimSpace(tenantId)
-	orgId = strings.TrimSpace(orgId)
-	name = strings.TrimSpace(name)
-	createdBy = strings.TrimSpace(createdBy)
-
-	if tenantId == "" || orgId == "" || createdBy == "" {
-		return "", ErrUnauthorized
-	}
-	if name == "" {
-		return "", ErrBadRequest
-	}
-
-	repo := authzrepo.NewOrgUnitRepo()
-
-	var normalizedParentId *string
-	if parentId != nil {
-		v := strings.TrimSpace(*parentId)
-		if v != "" {
-			normalizedParentId = &v
-		}
-	}
-
-	isRoot := normalizedParentId == nil
-
-	// 🔍 validate parent
-	if !isRoot {
-		parent, err := repo.FindByUnitId(ctx, tenantId, orgId, *normalizedParentId)
-		if err != nil || parent == nil {
-			return "", ErrInvalidParent
-		}
-	}
-
-	unitId := uuid.NewString()
-	now := time.Now().UTC()
-
-	unit := &authzmod.OrgUnit{
-		ID:           primitive.NewObjectID(),
-		UnitId:       unitId,
-		TenantId:     tenantId,
-		OrgId:        orgId,
-		ParentUnitId: normalizedParentId,
-		Name:         name,
-		Description:  description,
-		IsRoot:       isRoot,
-		CreatedBy:    createdBy,
-		CreatedAt:    now,
-		UpdatedBy:    createdBy,
-		UpdatedAt:    now,
-	}
-
-	// 1️⃣ Insert Mongo first
-	if err := repo.Insert(ctx, unit); err != nil {
-		return "", err
-	}
-
-	// 2️⃣ Prepare Permify tuples
-	client := authzgw.NewClient()
-
-	tuples := []map[string]interface{}{
-		{
-			"entity": map[string]interface{}{
-				"type": "orgUnit",
-				"id":   unitId,
-			},
-			"relation": "parentOrg",
-			"subject": map[string]interface{}{
-				"type": "organization",
-				"id":   orgId,
-			},
-		},
-	}
-
-	// parent relation (if not root)
-	if normalizedParentId != nil {
-		tuples = append(tuples, map[string]interface{}{
-			"entity": map[string]interface{}{
-				"type": "orgUnit",
-				"id":   unitId,
-			},
-			"relation": "parent",
-			"subject": map[string]interface{}{
-				"type": "orgUnit",
-				"id":   *normalizedParentId,
-			},
-		})
-	}
-
-	// creator auto member
-	tuples = append(tuples, map[string]interface{}{
-		"entity": map[string]interface{}{
-			"type": "orgUnit",
-			"id":   unitId,
-		},
-		"relation": "member",
-		"subject": map[string]interface{}{
-			"type": "user",
-			"id":   createdBy, // rest client จะ normalize เป็น user:<uuid>
-		},
-	})
-
-	// 3️⃣ Write Permify
-	if err := client.WriteTuples(ctx, tenantId, tuples); err != nil {
-
-		// ❗ rollback mongo (atomic safety)
-		_ = repo.DeleteByUnitId(ctx, tenantId, orgId, unitId)
-
-		return "", err
-	}
-
-	log.Info().
-		Str("unitId", unitId).
-		Bool("isRoot", isRoot).
-		Msg("orgUnit created with permify tuples")
-
-	return unitId, nil
-}
-
-func UpdateOrgUnitName(
-	ctx context.Context,
-	tenantId string,
-	orgId string,
-	unitId string,
-	name string,
-	description string,
-	updatedBy string,
-) error {
-
-	ctx, end, _ := traceutil.StartLite(
-		ctx,
-		"github.com/hotkhwan/gateway-api/authzsvc",
-		"orgUnit.updateName",
-		"authzsvc",
-		"UpdateOrgUnitName",
-	)
-	defer end()
-
-	repo := authzrepo.NewOrgUnitRepo()
-
-	unit, err := repo.FindByUnitId(ctx, tenantId, orgId, unitId)
-	if err != nil || unit == nil {
-		return ErrNotFound
-	}
-
-	// ✅ root allowed to update metadata
-
-	return repo.UpdateMetadata(
-		ctx,
-		tenantId,
-		orgId,
-		unitId,
-		name,
-		description,
-		updatedBy,
-	)
 }
 
 func buildOrgUnitTree(units []authzmod.OrgUnit) []OrgUnitNode {
@@ -277,7 +67,6 @@ func buildOrgUnitTree(units []authzmod.OrgUnit) []OrgUnitNode {
 			CreatedAt:   u.CreatedAt.UTC().Format(time.RFC3339Nano),
 			UpdatedAt:   u.UpdatedAt.UTC().Format(time.RFC3339Nano),
 		}
-
 	}
 
 	for _, u := range units {
@@ -312,6 +101,138 @@ func buildOrgUnitTree(units []authzmod.OrgUnit) []OrgUnitNode {
 	return out
 }
 
+func (s *OrgUnitService) GetOrgUnitTree(
+	ctx context.Context,
+	tenantId string,
+	orgId string,
+) ([]OrgUnitNode, error) {
+
+	ctx, end, log := traceutil.StartLite(
+		ctx,
+		"authzsvc",
+		"orgUnit.tree",
+		"authzsvc",
+		"GetOrgUnitTree",
+	)
+	defer end()
+
+	tenantId = strings.TrimSpace(tenantId)
+	orgId = strings.TrimSpace(orgId)
+
+	if tenantId == "" || orgId == "" {
+		return nil, ErrUnauthorized
+	}
+
+	units, err := s.orgUnitRepo.ListByOrg(ctx, tenantId, orgId)
+	if err != nil {
+		return nil, err
+	}
+
+	tree := buildOrgUnitTree(units)
+
+	log.Info().
+		Int("unitCount", len(units)).
+		Int("rootCount", len(tree)).
+		Msg("orgUnit tree built")
+
+	return tree, nil
+}
+
+func (s *OrgUnitService) CreateOrgUnit(
+	ctx context.Context,
+	tenantId string,
+	orgId string,
+	name string,
+	description string,
+	parentId *string,
+	createdBy string,
+) (string, error) {
+
+	ctx, end, log := traceutil.StartLite(
+		ctx,
+		"authzsvc",
+		"orgUnit.create",
+		"authzsvc",
+		"CreateOrgUnit",
+	)
+	defer end()
+
+	tenantId = strings.TrimSpace(tenantId)
+	orgId = strings.TrimSpace(orgId)
+
+	unitId := uuid.NewString()
+	now := time.Now().UTC()
+
+	unit := &authzmod.OrgUnit{
+		ID:           primitive.NewObjectID(),
+		UnitId:       unitId,
+		TenantId:     tenantId,
+		OrgId:        orgId,
+		ParentUnitId: parentId,
+		Name:         name,
+		Description:  description,
+		IsRoot:       parentId == nil,
+		CreatedBy:    createdBy,
+		CreatedAt:    now,
+		UpdatedBy:    createdBy,
+		UpdatedAt:    now,
+	}
+
+	if err := s.orgUnitRepo.Insert(ctx, unit); err != nil {
+		return "", err
+	}
+
+	tuples := []map[string]interface{}{
+		{
+			"entity":   map[string]interface{}{"type": "orgUnit", "id": unitId},
+			"relation": "parentOrg",
+			"subject":  map[string]interface{}{"type": "organization", "id": orgId},
+		},
+	}
+
+	if err := s.authzClient.WriteTuples(ctx, tenantId, tuples); err != nil {
+		_ = s.orgUnitRepo.DeleteByUnitId(ctx, tenantId, orgId, unitId)
+		return "", err
+	}
+
+	log.Info().Str("unitId", unitId).Msg("orgUnit created")
+
+	return unitId, nil
+}
+
+func (s *OrgUnitService) UpdateOrgUnit(
+	ctx context.Context,
+	tenantId string,
+	orgId string,
+	unitId string,
+	name string,
+	description string,
+	updatedBy string,
+) error {
+
+	tenantId = strings.TrimSpace(tenantId)
+	orgId = strings.TrimSpace(orgId)
+	unitId = strings.TrimSpace(unitId)
+
+	unit, err := s.orgUnitRepo.FindByUnitId(ctx, tenantId, orgId, unitId)
+	if err != nil {
+		return err
+	}
+	if unit == nil {
+		return ErrNotFound
+	}
+
+	return s.orgUnitRepo.UpdateMetadata(
+		ctx,
+		tenantId,
+		orgId,
+		unitId,
+		name,
+		description,
+		updatedBy,
+	)
+}
+
 func (s *OrgUnitService) DeleteOrgUnit(
 	ctx context.Context,
 	tenantId string,
@@ -319,58 +240,30 @@ func (s *OrgUnitService) DeleteOrgUnit(
 	unitId string,
 ) error {
 
-	tenantId = strings.TrimSpace(tenantId)
-	orgId = strings.TrimSpace(orgId)
-	unitId = strings.TrimSpace(unitId)
-
-	if tenantId == "" || orgId == "" || unitId == "" {
-		return fmt.Errorf("invalid args")
-	}
-	if s.orgUnitRepo == nil {
-		panic("orgUnitRepo is nil")
-	}
-	if s.authzRestClient == nil {
-		panic("authzRestClient is nil")
-	}
-
-	// 1️⃣ find unit
 	unit, err := s.orgUnitRepo.FindByUnitId(ctx, tenantId, orgId, unitId)
 	if err != nil {
 		return err
 	}
-
 	if unit == nil {
-		return nil // idempotent
+		return nil
 	}
 
-	// 2️⃣ check children
 	children, err := s.orgUnitRepo.FindChildren(ctx, tenantId, orgId, unitId)
 	if err != nil {
 		return err
 	}
-
 	if len(children) > 0 {
-		return fmt.Errorf("cannot delete orgUnit: has children")
+		return ErrConflict
 	}
 
-	// // 3️⃣ check deviceGroup reference // TODO: check deviceGroup reference
-	// hasRef, err := s.deviceGroupRepo.ExistsByOrgUnit(ctx, tenantId, orgId, unitId)
-	// if err != nil {
-	// 	return err
-	// }
-	// if hasRef {
-	// 	return fmt.Errorf("cannot delete orgUnit: referenced by deviceGroup")
-	// }
-
-	// 4️⃣ delete permify relationships first
-	if err := s.authzRestClient.DeleteEntityRelationships(ctx, tenantId, "orgUnit", unitId); err != nil {
+	if err := s.authzClient.DeleteEntityRelationships(
+		ctx,
+		tenantId,
+		"orgUnit",
+		unitId,
+	); err != nil {
 		return err
 	}
 
-	// 5️⃣ delete mongo
-	if err := s.orgUnitRepo.DeleteByUnitId(ctx, tenantId, orgId, unitId); err != nil {
-		return err
-	}
-
-	return nil
+	return s.orgUnitRepo.DeleteByUnitId(ctx, tenantId, orgId, unitId)
 }

@@ -178,7 +178,7 @@ func main() {
 	app := fiber.New(fiber.Config{
 		ReadBufferSize: 16 * 1024,
 		BodyLimit:      50 * 1024 * 1024,
-		StrictRouting:  true,
+		StrictRouting:  false,
 		Prefork:        false, // ✅ เปิดใช้งาน Prefork multi-core เพื่อรองรับ TPS สูง HTTP API (Stateless) on k8s ใช้ 1 core ต่อ Pod → scale ด้วย HPA ตาม CPU / QPS
 		// ✅ ให้ Fiber ใช้ X-Forwarded-For เป็นแหล่ง IP และเปิดตรวจ proxy ที่เชื่อถือได้
 		ProxyHeader:             fiber.HeaderXForwardedFor,

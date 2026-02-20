@@ -4,18 +4,30 @@ package router
 import (
 	"os"
 
+	"github.com/gofiber/fiber/v2"
+
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/controllers/authznewapi"
+	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
 	"github.com/hotkhwan/gateway-api/internal/middleware"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
-
-	"github.com/gofiber/fiber/v2"
+	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 )
 
 func RegisterAuthzNewRoutes(router fiber.Router) {
-	router.Route("/orgs", func(r fiber.Router) {
 
-		// ✅ Audit ก่อนเสมอ (ตาม pattern ของคุณ)
+	orgUnitRepo := authzrepo.NewOrgUnitRepo()
+	authzClient := authzgw.NewClient()
+
+	orgUnitService := authzsvc.NewOrgUnitService(
+		orgUnitRepo,
+		authzClient,
+	)
+
+	orgUnitController := authznewapi.NewOrgUnitController(orgUnitService)
+
+	router.Route("/orgs", func(r fiber.Router) {
+		r.Use(middleware.AuthBearer())
 		r.Use(middleware.Audit(middleware.AuditConfig{
 			AuditRepo: authzrepo.NewAuditLogRepo(config.DB),
 			AuditChan: nil,
@@ -23,39 +35,24 @@ func RegisterAuthzNewRoutes(router fiber.Router) {
 			Effective: middleware.EffectiveGetter(),
 		}))
 
-		// ---------- Guards (405 protection) ----------
-		r.All("/", middleware.AllowMethods("GET", "POST"))
-		r.All("", middleware.AllowMethods("GET", "POST"))
+		protected := r.Group("/")
 
-		// ------------------------------------------------
-		// 1️⃣ Protected (ต้องมี JWT) — selector + create
-		// ------------------------------------------------
-		protected := r.Group("", middleware.AuthBearer())
+		// ---------- ROOT ORG ----------
+		protected.All("/", middleware.AllowMethods("GET", "POST"))
+		protected.All("/:id", middleware.AllowMethods("POST", "PATCH", "DELETE"))
 
-		// Org selector
 		protected.Get("/", authznewapi.ListOrgs)
-		protected.Get("", authznewapi.ListOrgs)
-
-		// Create org (ยังไม่ต้อง ActiveOrg)
 		protected.Post("/", authznewapi.CreateOrg)
-		protected.Post("", authznewapi.CreateOrg)
 		protected.Patch("/:id", authznewapi.UpdateOrg)
 		protected.Delete("/:id", authznewapi.DeleteOrg)
 
-		orgScoped := protected.Group("", middleware.ActiveOrg())
+		// 🔥 สำคัญ: แยก path ชัด
+		orgScoped := protected.Group("/units", middleware.ActiveOrg())
+		orgScoped.Post("/", orgUnitController.Create)
 
-		orgScoped.Post("/units", authznewapi.CreateOrgUnit)
-		orgScoped.Get("/units/tree", authznewapi.GetOrgUnitTree)
-		orgScoped.Patch("/units/:id", authznewapi.UpdateOrgUnit)
-		orgScoped.Delete("/units/:id", authznewapi.DeleteOrgUnit)
-		// ------------------------------------------------
-		// 2️⃣ Org-scoped routes (ต้องมี ActiveOrg)
-		// ------------------------------------------------
-		// orgScoped := protected.Group("", middleware.ActiveOrg())
-
-		// 🔥 future routes:
-		// orgScoped.Get("/members", ...)
-		// orgScoped.Post("/invite", ...)
-		// orgScoped.Delete("/leave", ...)
+		// orgScoped.All("/", middleware.AllowMethods("GET", "PATCH", "DELETE"))
+		orgScoped.Get("/tree", orgUnitController.Tree)
+		orgScoped.Patch("/:id", orgUnitController.Update)
+		orgScoped.Delete("/:id", orgUnitController.Delete)
 	})
 }

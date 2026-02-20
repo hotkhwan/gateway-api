@@ -48,6 +48,22 @@ func normalizeUserSubjectId(subjectId string) string {
 // 	return "user:" + userId
 // }
 
+func (g *GrpcClient) WriteTuples(
+	ctx context.Context,
+	tenantId string,
+	tuples []map[string]interface{},
+) error {
+
+	if config.PermifyClient == nil {
+		return fmt.Errorf("grpc client not initialized")
+	}
+
+	// convert tuples → relationship write request
+	// (คุณต้อง map เองเหมือนที่ทำกับ REST)
+
+	return fmt.Errorf("not implemented yet")
+}
+
 func (g *GrpcClient) LookupOrganizations(ctx context.Context, tenantId string, userId string) ([]string, error) {
 	subjectId := normalizeUserSubjectId(userId)
 
@@ -121,4 +137,27 @@ func (g *GrpcClient) CheckPermission(
 	}
 
 	return resp.Can == permify_payload.CheckResult_CHECK_RESULT_ALLOWED, nil
+}
+
+func (g *GrpcClient) DeleteEntityRelationships(
+	ctx context.Context,
+	tenantId string,
+	entityType string,
+	entityId string,
+) error {
+
+	if config.PermifyClient == nil {
+		return fmt.Errorf("grpc client not initialized")
+	}
+
+	// TODO: implement real grpc relationship delete
+	return fmt.Errorf("grpc delete entity relationships not implemented")
+}
+func (g *GrpcClient) DeleteOrgRelationships(
+	ctx context.Context,
+	tenantId string,
+	orgId string,
+) error {
+
+	return g.DeleteEntityRelationships(ctx, tenantId, "organization", orgId)
 }

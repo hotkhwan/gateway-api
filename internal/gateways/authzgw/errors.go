@@ -4,8 +4,9 @@ package authzgw
 import "errors"
 
 var (
-	ErrNilRestClient      = errors.New("authzgw rest client is nil")
+	ErrNilRestClient       = errors.New("authzgw rest client is nil")
 	ErrEmptyPermifyBaseURL = errors.New("permify baseURL is empty")
-	ErrInvalidArgs        = errors.New("invalid args")
-	ErrPermifyRejected    = errors.New("permify rejected request")
+	ErrInvalidArgs         = errors.New("invalid args")
+	ErrPermifyRejected     = errors.New("permify rejected request")
+	ErrNoAuthzClient       = errors.New("no authz client available")
 )
