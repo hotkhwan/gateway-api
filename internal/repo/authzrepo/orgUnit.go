@@ -192,3 +192,15 @@ func (r *OrgUnitRepo) FindDescendants(
 
 	return result, nil
 }
+
+func (r *OrgUnitRepo) CountByOrg(
+	ctx context.Context,
+	tenantId string,
+	orgId string,
+) (int64, error) {
+
+	return stomongo.Count(ctx, r.collection, bson.M{
+		"tenantId": tenantId,
+		"orgId":    orgId,
+	})
+}

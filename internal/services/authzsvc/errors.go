@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 )
 
@@ -57,21 +58,24 @@ func WithDetail(err error, detail map[string]any) error {
 }
 
 func MapSvcError(err error) (status int, code string) {
+
 	if err == nil {
 		return http.StatusOK, gmod.CodeSuccess
 	}
 
 	switch {
-	case errors.Is(err, ErrBadRequest), errors.Is(err, ErrInvalidParent):
+	case errors.Is(err, authzrepo.ErrOrgNameAlreadyExists):
+		return http.StatusConflict, gmod.CodeConflict
+	case errors.Is(err, authzrepo.ErrNotFound),
+		errors.Is(err, ErrNotFound):
+		return http.StatusNotFound, gmod.CodeNotFound
+	case errors.Is(err, ErrHasChildren),
+		errors.Is(err, ErrConflict):
+		return http.StatusConflict, gmod.CodeConflict
+	case errors.Is(err, ErrBadRequest):
 		return http.StatusBadRequest, gmod.CodeBadRequest
 	case errors.Is(err, ErrUnauthorized):
 		return http.StatusUnauthorized, gmod.CodeUnauthorized
-	case errors.Is(err, ErrForbidden):
-		return http.StatusForbidden, gmod.CodeForbidden
-	case errors.Is(err, ErrNotFound):
-		return http.StatusNotFound, gmod.CodeNotFound
-	case errors.Is(err, ErrConflict), errors.Is(err, ErrHasChildren), errors.Is(err, ErrRootImmutable):
-		return http.StatusConflict, gmod.CodeConflict
 	default:
 		return http.StatusInternalServerError, gmod.CodeInternalError
 	}

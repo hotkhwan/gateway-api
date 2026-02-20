@@ -15,15 +15,19 @@ import (
 )
 
 func RegisterAuthzNewRoutes(router fiber.Router) {
-
-	orgUnitRepo := authzrepo.NewOrgUnitRepo()
 	authzClient := authzgw.NewClient()
-
-	orgUnitService := authzsvc.NewOrgUnitService(
+	orgRepo := authzrepo.NewOrgRepo(config.DB)
+	orgUnitRepo := authzrepo.NewOrgUnitRepo()
+	// ===== Organization DI =====
+	orgService := authzsvc.NewOrganizationService(
+		orgRepo,
 		orgUnitRepo,
 		authzClient,
 	)
+	orgController := authznewapi.NewOrganizationController(orgService)
 
+	// ===== OrgUnit DI =====
+	orgUnitService := authzsvc.NewOrgUnitService(orgUnitRepo, authzClient)
 	orgUnitController := authznewapi.NewOrgUnitController(orgUnitService)
 
 	router.Route("/orgs", func(r fiber.Router) {
@@ -41,10 +45,15 @@ func RegisterAuthzNewRoutes(router fiber.Router) {
 		protected.All("/", middleware.AllowMethods("GET", "POST"))
 		protected.All("/:id", middleware.AllowMethods("POST", "PATCH", "DELETE"))
 
-		protected.Get("/", authznewapi.ListOrgs)
-		protected.Post("/", authznewapi.CreateOrg)
-		protected.Patch("/:id", authznewapi.UpdateOrg)
-		protected.Delete("/:id", authznewapi.DeleteOrg)
+		protected.Get("/", orgController.List)
+		protected.Post("/", orgController.Create)
+		protected.Patch("/:id", orgController.Update)
+		protected.Delete("/:id", orgController.Delete)
+
+		// protected.Get("/", authznewapi.ListOrgs)
+		// protected.Post("/", authznewapi.CreateOrg)
+		// protected.Patch("/:id", authznewapi.UpdateOrg)
+		// protected.Delete("/:id", authznewapi.DeleteOrg)
 
 		// 🔥 สำคัญ: แยก path ชัด
 		orgScoped := protected.Group("/units", middleware.ActiveOrg())

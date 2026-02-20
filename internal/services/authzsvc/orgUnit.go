@@ -3,7 +3,6 @@ package authzsvc
 
 import (
 	"context"
-	"sort"
 	"strings"
 	"time"
 
@@ -53,10 +52,10 @@ func NewOrgUnitService(
 func buildOrgUnitTree(units []authzmod.OrgUnit) []OrgUnitNode {
 
 	nodeMap := make(map[string]*OrgUnitNode)
-	roots := []*OrgUnitNode{}
+	var roots []*OrgUnitNode
 
+	// create nodes
 	for _, u := range units {
-
 		nodeMap[u.UnitId] = &OrgUnitNode{
 			Id:          u.UnitId,
 			ParentId:    u.ParentUnitId,
@@ -69,17 +68,16 @@ func buildOrgUnitTree(units []authzmod.OrgUnit) []OrgUnitNode {
 		}
 	}
 
-	for _, u := range units {
+	// attach children
+	for _, node := range nodeMap {
 
-		node := nodeMap[u.UnitId]
-
-		if u.ParentUnitId == nil {
+		if node.ParentId == nil {
 			roots = append(roots, node)
 			continue
 		}
 
-		parent := nodeMap[*u.ParentUnitId]
-		if parent == nil {
+		parent, ok := nodeMap[*node.ParentId]
+		if !ok {
 			node.Orphaned = true
 			roots = append(roots, node)
 			continue
@@ -88,17 +86,15 @@ func buildOrgUnitTree(units []authzmod.OrgUnit) []OrgUnitNode {
 		parent.Children = append(parent.Children, *node)
 	}
 
-	sort.Slice(roots, func(i, j int) bool {
-		return strings.ToLower(roots[i].Name) <
-			strings.ToLower(roots[j].Name)
-	})
+	return derefNodes(roots)
+}
 
-	out := make([]OrgUnitNode, 0, len(roots))
-	for _, r := range roots {
-		out = append(out, *r)
+func derefNodes(nodes []*OrgUnitNode) []OrgUnitNode {
+	result := make([]OrgUnitNode, 0, len(nodes))
+	for _, n := range nodes {
+		result = append(result, *n)
 	}
-
-	return out
+	return result
 }
 
 func (s *OrgUnitService) GetOrgUnitTree(
@@ -188,6 +184,23 @@ func (s *OrgUnitService) CreateOrgUnit(
 			"relation": "parentOrg",
 			"subject":  map[string]interface{}{"type": "organization", "id": orgId},
 		},
+	}
+	if parentId != nil {
+
+		parent, err := s.orgUnitRepo.FindByUnitId(
+			ctx,
+			tenantId,
+			orgId,
+			*parentId,
+		)
+
+		if err != nil {
+			return "", err
+		}
+
+		if parent == nil {
+			return "", ErrInvalidParent
+		}
 	}
 
 	if err := s.authzClient.WriteTuples(ctx, tenantId, tuples); err != nil {

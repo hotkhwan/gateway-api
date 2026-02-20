@@ -12,10 +12,22 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var ErrOrgNameAlreadyExists = errors.New("organization name already exists")
-
 type OrgRepo struct {
 	col *mongo.Collection
+}
+
+func (r *OrgRepo) FindById(ctx context.Context, orgId string) (*authzmod.Organization, error) {
+	var org authzmod.Organization
+
+	err := r.col.FindOne(ctx, bson.M{"orgId": orgId}).Decode(&org)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &org, nil
 }
 
 func (r *OrgUnitRepo) FindByUnitId(ctx context.Context, tenantId string, orgId string, unitId string) (*authzmod.OrgUnit, error) {
@@ -155,15 +167,6 @@ func (r *OrgRepo) ListBySyncStatus(ctx context.Context, status string) ([]authzm
 	return result, err
 }
 
-func (r *OrgRepo) FindById(ctx context.Context, orgId string) (*authzmod.Organization, error) {
-	var org authzmod.Organization
-	err := r.col.FindOne(ctx, bson.M{"orgId": orgId}).Decode(&org)
-	if err != nil {
-		return nil, err
-	}
-	return &org, nil
-}
-
 func (r *OrgRepo) FindByIds(ctx context.Context, tenantId string, orgIds []string) ([]authzmod.Organization, error) {
 	var result []authzmod.Organization
 	err := stomongo.Find(
@@ -180,13 +183,25 @@ func (r *OrgRepo) FindByIds(ctx context.Context, tenantId string, orgIds []strin
 }
 
 func (r *OrgRepo) Update(ctx context.Context, orgId string, update bson.M) error {
-	_, err := r.col.UpdateOne(ctx, bson.M{"orgId": orgId}, update)
-	return err
+	res, err := r.col.UpdateOne(ctx, bson.M{"orgId": orgId}, update)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (r *OrgRepo) Delete(ctx context.Context, orgId string) error {
-	_, err := r.col.DeleteOne(ctx, bson.M{"orgId": orgId})
-	return err
+	res, err := r.col.DeleteOne(ctx, bson.M{"orgId": orgId})
+	if err != nil {
+		return err
+	}
+	if res.DeletedCount == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (r *OrgUnitRepo) FindRootByOrg(
