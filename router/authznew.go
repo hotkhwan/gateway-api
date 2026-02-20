@@ -54,6 +54,10 @@ func RegisterAuthzNewRoutes(router fiber.Router) {
 		protected.All("/users/invite", middleware.AllowMethods("POST"))
 		protected.Post("/users/invite", middleware.ActiveOrg(), orgController.Invite)
 
+		// List users members
+		protected.All("/users/members", middleware.AllowMethods("GET"))
+		protected.Get("/users/members", middleware.ActiveOrg(), orgController.ListMembers)
+
 		// 🔥 สำคัญ: แยก path ชัด
 		orgScoped := protected.Group("/units", middleware.ActiveOrg())
 		orgScoped.Post("/", orgUnitController.Create)
@@ -62,5 +66,6 @@ func RegisterAuthzNewRoutes(router fiber.Router) {
 		orgScoped.Get("/tree", orgUnitController.Tree)
 		orgScoped.Patch("/:id", orgUnitController.Update)
 		orgScoped.Delete("/:id", orgUnitController.Delete)
+
 	})
 }

@@ -25,6 +25,13 @@ type Client interface {
 	) (bool, error)
 
 	LookupOrganizations(ctx context.Context, tenantId string, userId string) ([]string, error)
+
+	ListEntityRelationships(
+		ctx context.Context,
+		tenantId string,
+		entityType string,
+		entityId string,
+	) ([]Relationship, error)
 }
 
 type HybridClient struct {
@@ -218,4 +225,44 @@ func (c *HybridClient) CheckPermissionWithSchemaVersion(
 	}
 
 	return false, ErrNoAuthzClient
+}
+
+func (c *HybridClient) ListEntityRelationships(
+	ctx context.Context,
+	tenantId string,
+	entityType string,
+	entityId string,
+) ([]Relationship, error) {
+
+	// 🔥 try gRPC first
+	if c.grpc != nil {
+		tuples, err := c.grpc.ListOrgMembers(ctx, tenantId, entityId)
+		if err == nil {
+
+			out := make([]Relationship, 0, len(tuples))
+
+			for _, t := range tuples {
+				out = append(out, Relationship{
+					Entity: EntityRef{
+						Type: t.Entity.Type,
+						ID:   t.Entity.Id,
+					},
+					Relation: t.Relation,
+					Subject: SubjectRef{
+						Type: t.Subject.Type,
+						ID:   t.Subject.Id,
+					},
+				})
+			}
+
+			return out, nil
+		}
+	}
+
+	// fallback REST
+	if c.rest != nil {
+		return c.rest.ListEntityRelationships(ctx, tenantId, entityType, entityId)
+	}
+
+	return nil, ErrNoAuthzClient
 }

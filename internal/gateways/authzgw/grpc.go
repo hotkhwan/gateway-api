@@ -58,10 +58,52 @@ func (g *GrpcClient) WriteTuples(
 		return fmt.Errorf("grpc client not initialized")
 	}
 
-	// convert tuples → relationship write request
-	// (คุณต้อง map เองเหมือนที่ทำกับ REST)
+	if tenantId == "" {
+		return fmt.Errorf("tenantId required")
+	}
 
-	return fmt.Errorf("not implemented yet")
+	if len(tuples) == 0 {
+		return nil
+	}
+
+	schemaVersion := config.CurrentSchemaVersion
+	if schemaVersion == "" {
+		return fmt.Errorf("schema version required")
+	}
+
+	pbTuples := make([]*permify_payload.Tuple, 0, len(tuples))
+
+	for _, t := range tuples {
+
+		entity := t["entity"].(map[string]interface{})
+		subject := t["subject"].(map[string]interface{})
+		relation := t["relation"].(string)
+
+		pbTuples = append(pbTuples, &permify_payload.Tuple{
+			Entity: &permify_payload.Entity{
+				Type: entity["type"].(string),
+				Id:   entity["id"].(string),
+			},
+			Relation: relation,
+			Subject: &permify_payload.Subject{
+				Type: subject["type"].(string),
+				Id:   subject["id"].(string),
+			},
+		})
+	}
+
+	_, err := config.PermifyClient.Data.WriteRelationships(
+		ctx,
+		&permify_payload.RelationshipWriteRequest{
+			TenantId: tenantId,
+			Metadata: &permify_payload.RelationshipWriteRequestMetadata{
+				SchemaVersion: schemaVersion,
+			},
+			Tuples: pbTuples,
+		},
+	)
+
+	return err
 }
 
 func (g *GrpcClient) LookupOrganizations(ctx context.Context, tenantId string, userId string) ([]string, error) {
@@ -160,4 +202,34 @@ func (g *GrpcClient) DeleteOrgRelationships(
 ) error {
 
 	return g.DeleteEntityRelationships(ctx, tenantId, "organization", orgId)
+}
+
+func (g *GrpcClient) ListOrgMembers(
+	ctx context.Context,
+	tenantId string,
+	orgId string,
+) ([]*permify_payload.Tuple, error) {
+
+	if config.PermifyClient == nil {
+		return nil, fmt.Errorf("grpc client not initialized")
+	}
+
+	resp, err := config.PermifyClient.Data.ReadRelationships(
+		ctx,
+		&permify_payload.RelationshipReadRequest{
+			TenantId: tenantId,
+			Filter: &permify_payload.TupleFilter{
+				Entity: &permify_payload.EntityFilter{
+					Type: "organization",
+					Ids:  []string{orgId},
+				},
+			},
+		},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Tuples, nil
 }

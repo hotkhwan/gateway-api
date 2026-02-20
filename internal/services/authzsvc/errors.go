@@ -27,6 +27,9 @@ var (
 	ErrInviteRoleNotAllowed   = errors.New("invalid role")
 	ErrInviteAlreadyMember    = errors.New("user already in organization")
 	ErrInviteSelfAdminBlocked = errors.New("cannot self-invite as admin")
+
+	// List users members
+	ErrInvalidArgs = errors.New("invalid arguments")
 )
 
 type SvcError struct {

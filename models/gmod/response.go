@@ -150,23 +150,6 @@ type IntrospectDetail struct {
 	ZoomLevel         int                      `json:"zoomLevel,omitempty"`
 }
 
-type InviteUserRequest struct {
-	UserId string `json:"userId"`
-	Role   string `json:"role"` // "member" | "admin"
-}
-
-type InviteUserResponse struct {
-	Code    string `json:"code"`
-	Status  bool   `json:"status"`
-	Message string `json:"message"`
-	Details struct {
-		OrgId   string `json:"orgId"`
-		UserId  string `json:"userId"`
-		Role    string `json:"role"`
-		Invited bool   `json:"invited"`
-	} `json:"details"`
-}
-
 type MapLocation struct {
 	Lat float64 `json:"lat"`
 	Lng float64 `json:"lng"`
@@ -280,4 +263,27 @@ type ApiErrorResponse struct {
 	Message string      `json:"message" example:"Invalid request"`
 	Details interface{} `json:"details,omitempty"`
 	Status  bool        `json:"status" example:"false"`
+}
+
+// Organization
+type InviteUserRequest struct {
+	UserId string `json:"userId"`
+	Role   string `json:"role"` // "member" | "admin"
+}
+
+type InviteUserResponse struct {
+	Code    string `json:"code"`
+	Status  bool   `json:"status"`
+	Message string `json:"message"`
+	Details struct {
+		OrgId   string `json:"orgId"`
+		UserId  string `json:"userId"`
+		Role    string `json:"role"`
+		Invited bool   `json:"invited"`
+	} `json:"details"`
+}
+
+type OrgMember struct {
+	UserId string `json:"userId"`
+	Role   string `json:"role"`
 }

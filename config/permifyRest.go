@@ -17,14 +17,18 @@ var (
 )
 
 func InitPermifyRest() {
+	log := logger.Boot("permify", "InitPermifyRest")
+
 	endpoint := os.Getenv("PERMIFY_URI")
 	if endpoint == "" {
-		endpoint = "authz-permify.iam.svc.cluster.local:3478"
+		log.Fatal().Msg("PERMIFY_URI not set")
 	}
 
-	if endpoint == "" {
-		endpoint = "authz-permify.iam.svc.cluster.local:3476" // ✅ fallback
-	}
+	PermifyBaseURL = fmt.Sprintf("http://%s", endpoint)
+
+	log.Debug().
+		Str("baseURL", PermifyBaseURL).
+		Msg("Permify REST configured")
 	PermifyBaseURL = fmt.Sprintf("http://%s", endpoint)
 
 	if t := os.Getenv("KEYCLOAK_REALM"); t != "" {

@@ -414,3 +414,56 @@ func (r *RestClient) DeleteEntityRelationships(
 
 	return nil
 }
+
+func (r *RestClient) ListEntityRelationships(
+	ctx context.Context,
+	tenantId string,
+	entityType string,
+	entityId string,
+) ([]Relationship, error) {
+
+	url := fmt.Sprintf("%s/v1/relationships/read", config.PermifyBaseURL)
+
+	payload := map[string]any{
+		"tenant_id": tenantId,
+		"metadata": map[string]any{
+			"schema_version": config.CurrentSchemaVersion,
+		},
+		"filter": map[string]any{
+			"entity": map[string]any{
+				"type": entityType,
+				"ids":  []string{entityId},
+			},
+		},
+	}
+
+	bodyBytes, _ := json.Marshal(payload)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("permify read failed: %s", string(b))
+	}
+
+	var result struct {
+		Data []Relationship `json:"data"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	return result.Data, nil
+}
