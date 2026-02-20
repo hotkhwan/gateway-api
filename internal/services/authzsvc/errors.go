@@ -11,6 +11,7 @@ import (
 )
 
 var (
+	// Error Request
 	ErrBadRequest    = errors.New("bad request")
 	ErrUnauthorized  = errors.New("unauthorized")
 	ErrNotFound      = errors.New("not found")
@@ -19,6 +20,13 @@ var (
 	ErrHasChildren   = errors.New("has children")
 	ErrRootImmutable = errors.New("root immutable")
 	ErrInvalidParent = errors.New("invalid parent")
+
+	// Error Invite
+	ErrForbiddenInvite        = errors.New("forbidden: no manage permission")
+	ErrInvalidInviteArgs      = errors.New("invalid invite args")
+	ErrInviteRoleNotAllowed   = errors.New("invalid role")
+	ErrInviteAlreadyMember    = errors.New("user already in organization")
+	ErrInviteSelfAdminBlocked = errors.New("cannot self-invite as admin")
 )
 
 type SvcError struct {

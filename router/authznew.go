@@ -50,10 +50,9 @@ func RegisterAuthzNewRoutes(router fiber.Router) {
 		protected.Patch("/:id", orgController.Update)
 		protected.Delete("/:id", orgController.Delete)
 
-		// protected.Get("/", authznewapi.ListOrgs)
-		// protected.Post("/", authznewapi.CreateOrg)
-		// protected.Patch("/:id", authznewapi.UpdateOrg)
-		// protected.Delete("/:id", authznewapi.DeleteOrg)
+		// Invite users
+		protected.All("/users/invite", middleware.AllowMethods("POST"))
+		protected.Post("/users/invite", middleware.ActiveOrg(), orgController.Invite)
 
 		// 🔥 สำคัญ: แยก path ชัด
 		orgScoped := protected.Group("/units", middleware.ActiveOrg())
