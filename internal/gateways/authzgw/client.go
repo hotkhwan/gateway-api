@@ -3,6 +3,8 @@ package authzgw
 
 import (
 	"context"
+
+	"github.com/hotkhwan/gateway-api/internal/logger"
 )
 
 type Client interface {
@@ -86,22 +88,6 @@ func (c *HybridClient) LookupOrganizations(
 	return nil, ErrNoAuthzClient
 }
 
-// func (c *HybridClient) LookupOrganizations(ctx context.Context, tenantId string, userId string) ([]string, error) {
-// 	// gRPC first
-// 	if c.grpc != nil {
-// 		ids, err := c.grpc.LookupOrganizations(ctx, tenantId, userId)
-// 		if err == nil && len(ids) > 0 {
-// 			return ids, nil
-// 		}
-// 	}
-
-// 	// fallback REST
-// 	if c.rest != nil {
-// 		return c.rest.LookupOrganizations(ctx, tenantId, userId)
-// 	}
-
-//		return []string{}, nil
-//	}
 func (c *HybridClient) DeleteOrgRelationships(
 	ctx context.Context,
 	tenantId string,
@@ -227,6 +213,7 @@ func (c *HybridClient) CheckPermissionWithSchemaVersion(
 	return false, ErrNoAuthzClient
 }
 
+// client.go — HybridClient.ListEntityRelationships
 func (c *HybridClient) ListEntityRelationships(
 	ctx context.Context,
 	tenantId string,
@@ -234,32 +221,36 @@ func (c *HybridClient) ListEntityRelationships(
 	entityId string,
 ) ([]Relationship, error) {
 
-	// 🔥 try gRPC first
+	// gRPC first
+	log := logger.FromCtx(ctx, "authzsvc", "listMembers")
 	if c.grpc != nil {
-		tuples, err := c.grpc.ListOrgMembers(ctx, tenantId, entityId)
+		tuples, err := c.grpc.ListEntityRelationships(ctx, tenantId, entityType, entityId)
 		if err == nil {
+			// ✅ เพิ่ม log ตรงนี้
+
+			log.Info().
+				Str("path", "grpc").
+				Int("count", len(tuples)).
+				Msg("list entity relationships")
 
 			out := make([]Relationship, 0, len(tuples))
-
 			for _, t := range tuples {
 				out = append(out, Relationship{
-					Entity: EntityRef{
-						Type: t.Entity.Type,
-						ID:   t.Entity.Id,
-					},
+					Entity:   EntityRef{Type: t.Entity.Type, ID: t.Entity.Id},
 					Relation: t.Relation,
-					Subject: SubjectRef{
-						Type: t.Subject.Type,
-						ID:   t.Subject.Id,
-					},
+					Subject:  SubjectRef{Type: t.Subject.Type, ID: t.Subject.Id},
 				})
 			}
-
 			return out, nil
 		}
+
+		// ✅ เพิ่ม log ตรงนี้ — รู้ว่า gRPC fail ด้วยอะไร
+		log.Info().
+			Err(err).
+			Str("path", "grpc→rest fallback").
+			Msg("grpc failed, falling back to rest")
 	}
 
-	// fallback REST
 	if c.rest != nil {
 		return c.rest.ListEntityRelationships(ctx, tenantId, entityType, entityId)
 	}

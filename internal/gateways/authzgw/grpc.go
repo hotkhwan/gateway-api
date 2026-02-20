@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/hotkhwan/gateway-api/config"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	permify_payload "buf.build/gen/go/permifyco/permify/protocolbuffers/go/base/v1"
 )
@@ -204,10 +206,11 @@ func (g *GrpcClient) DeleteOrgRelationships(
 	return g.DeleteEntityRelationships(ctx, tenantId, "organization", orgId)
 }
 
-func (g *GrpcClient) ListOrgMembers(
+func (g *GrpcClient) ListEntityRelationships(
 	ctx context.Context,
 	tenantId string,
-	orgId string,
+	entityType string,
+	entityId string,
 ) ([]*permify_payload.Tuple, error) {
 
 	if config.PermifyClient == nil {
@@ -218,16 +221,23 @@ func (g *GrpcClient) ListOrgMembers(
 		ctx,
 		&permify_payload.RelationshipReadRequest{
 			TenantId: tenantId,
+			// ✅ SnapToken เท่านั้น — ไม่มี SchemaVersion/Depth ใน Metadata นี้
+			Metadata: &permify_payload.RelationshipReadRequestMetadata{
+				SnapToken: "",
+			},
 			Filter: &permify_payload.TupleFilter{
 				Entity: &permify_payload.EntityFilter{
-					Type: "organization",
-					Ids:  []string{orgId},
+					Type: entityType,
+					Ids:  []string{entityId},
 				},
 			},
 		},
 	)
 
 	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return []*permify_payload.Tuple{}, nil
+		}
 		return nil, err
 	}
 

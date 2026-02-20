@@ -3,14 +3,21 @@ package authzsvc
 
 import (
 	"context"
+	"sort"
+	"strings"
 
 	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 	"github.com/hotkhwan/gateway-api/internal/logger"
 )
 
 type OrgMember struct {
-	UserId string `json:"userId"`
-	Role   string `json:"role"`
+	UserId    string `json:"userId"`
+	Role      string `json:"role"`
+	Email     string `json:"email,omitempty"`
+	FirstName string `json:"firstName,omitempty"`
+	LastName  string `json:"lastName,omitempty"`
+	Enabled   bool   `json:"enabled"`
 }
 
 func (s *OrganizationService) ListMembers(
@@ -18,17 +25,20 @@ func (s *OrganizationService) ListMembers(
 	tenantId string,
 	orgId string,
 	callerUserId string,
-) ([]OrgMember, error) {
+	page int,
+	size int,
+	search string,
+	sortField string,
+	sortOrder string,
+) ([]OrgMember, int, error) {
 
 	log := logger.FromCtx(ctx, "authzsvc", "listMembers")
 
-	// ---- validate ----
 	if tenantId == "" || orgId == "" || callerUserId == "" {
-		log.Warn().Msg("invalid args")
-		return nil, ErrInvalidArgs
+		return nil, 0, ErrInvalidArgs
 	}
 
-	// ---- permission check ----
+	// 1️⃣ Permission check
 	allowed, err := s.authzClient.CheckPermissionWithSchemaVersion(
 		ctx,
 		tenantId,
@@ -40,18 +50,13 @@ func (s *OrganizationService) ListMembers(
 		callerUserId,
 	)
 	if err != nil {
-		log.Error().Err(err).Msg("permission check failed")
-		return nil, err
+		return nil, 0, err
 	}
-
 	if !allowed {
-		log.Warn().
-			Str("callerUserId", callerUserId).
-			Msg("forbidden list members")
-		return nil, ErrForbidden
+		return nil, 0, ErrForbidden
 	}
 
-	// ---- read relationships ----
+	// 2️⃣ Get relationships
 	relationships, err := s.authzClient.ListEntityRelationships(
 		ctx,
 		tenantId,
@@ -59,27 +64,134 @@ func (s *OrganizationService) ListMembers(
 		orgId,
 	)
 	if err != nil {
-		log.Error().Err(err).Msg("read relationships failed")
-		return nil, err
+		return nil, 0, err
 	}
 
-	members := make([]OrgMember, 0)
+	adminSet := make(map[string]bool)
+	memberSet := make(map[string]bool)
 
 	for _, r := range relationships {
-
-		if r.Relation != "member" && r.Relation != "admin" {
+		if r.Subject.Type != "user" {
 			continue
 		}
-
-		members = append(members, OrgMember{
-			UserId: r.Subject.ID,
-			Role:   r.Relation,
-		})
+		if r.Relation == "admin" {
+			adminSet[r.Subject.ID] = true
+			memberSet[r.Subject.ID] = true
+		}
+		if r.Relation == "member" {
+			memberSet[r.Subject.ID] = true
+		}
 	}
 
+	if len(memberSet) == 0 {
+		return []OrgMember{}, 0, nil
+	}
+
+	userIds := make([]string, 0, len(memberSet))
+	for id := range memberSet {
+		userIds = append(userIds, id)
+	}
+
+	// 3️⃣ Fetch profiles
+	profiles, err := s.idClient.GetUsersByIds(ctx, userIds)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	profileMap := make(map[string]authgw.UserProfile)
+	for _, p := range profiles {
+		profileMap[p.ID] = p
+	}
+
+	result := make([]OrgMember, 0, len(userIds))
+
+	for _, userId := range userIds {
+
+		role := "member"
+		if adminSet[userId] {
+			role = "admin"
+		}
+
+		member := OrgMember{
+			UserId: userId,
+			Role:   role,
+		}
+
+		if p, ok := profileMap[userId]; ok {
+			member.Email = p.Email
+			member.FirstName = p.FirstName
+			member.LastName = p.LastName
+			member.Enabled = p.Enabled
+		}
+
+		result = append(result, member)
+	}
+
+	// 🔍 Search filter
+	if search != "" {
+		search = strings.ToLower(search)
+		filtered := make([]OrgMember, 0)
+		for _, m := range result {
+			if strings.Contains(strings.ToLower(m.Email), search) ||
+				strings.Contains(strings.ToLower(m.FirstName), search) ||
+				strings.Contains(strings.ToLower(m.LastName), search) {
+				filtered = append(filtered, m)
+			}
+		}
+		result = filtered
+	}
+
+	totalRecords := len(result)
+
+	// 🔥 Sorting
+	sort.Slice(result, func(i, j int) bool {
+
+		asc := strings.ToLower(sortOrder) != "desc"
+
+		var less bool
+
+		switch sortField {
+		case "email":
+			less = result[i].Email < result[j].Email
+		case "firstName":
+			less = result[i].FirstName < result[j].FirstName
+		case "lastName":
+			less = result[i].LastName < result[j].LastName
+		default:
+			less = result[i].FirstName < result[j].FirstName
+		}
+
+		if asc {
+			return less
+		}
+		return !less
+	})
+
+	// 🔥 Pagination
+	if size <= 0 {
+		size = 20
+	}
+	if page <= 0 {
+		page = 1
+	}
+
+	start := (page - 1) * size
+	if start > totalRecords {
+		return []OrgMember{}, totalRecords, nil
+	}
+
+	end := start + size
+	if end > totalRecords {
+		end = totalRecords
+	}
+
+	result = result[start:end]
+
 	log.Info().
-		Int("count", len(members)).
+		Int("total", totalRecords).
+		Int("page", page).
+		Int("size", size).
 		Msg("list members success")
 
-	return members, nil
+	return result, totalRecords, nil
 }

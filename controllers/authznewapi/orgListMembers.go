@@ -2,7 +2,9 @@
 package authznewapi
 
 import (
-	"github.com/hotkhwan/gateway-api/internal/logger"
+	"math"
+	"strconv"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 )
@@ -20,31 +22,35 @@ import (
 func (ctrl *OrganizationController) ListMembers(c *fiber.Ctx) error {
 
 	ctx := c.UserContext()
-
-	log := logger.FromCtx(ctx, "controller", "ListMembers")
+	// log := logger.FromCtx(ctx, "controller", "ListMembers")
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	callerUserId, _ := c.Locals("userId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 
-	log.Debug().
-		Str("tenantId", tenantId).
-		Str("orgId", orgId).
-		Str("callerUserId", callerUserId).
-		Msg("list members request")
+	page, _ := strconv.Atoi(c.Query("page", "1"))
 
-	members, err := ctrl.service.ListMembers(
+	sizeStr := c.Query("perPages", "")
+	if sizeStr == "" {
+		sizeStr = c.Query("size", "10")
+	}
+	size, _ := strconv.Atoi(sizeStr)
+	search := c.Query("search", "")
+	sortField := c.Query("sortField", "firstName")
+	sortOrder := c.Query("sortOrder", "asc")
+
+	members, totalRecords, err := ctrl.service.ListMembers(
 		ctx,
 		tenantId,
 		orgId,
 		callerUserId,
+		page,
+		size,
+		search,
+		sortField,
+		sortOrder,
 	)
 	if err != nil {
-
-		log.Warn().
-			Err(err).
-			Msg("list members failed")
-
 		return c.Status(403).JSON(gmod.ApiErrorResponse{
 			Code:    gmod.CodeForbidden,
 			Message: err.Error(),
@@ -52,13 +58,25 @@ func (ctrl *OrganizationController) ListMembers(c *fiber.Ctx) error {
 		})
 	}
 
-	log.Debug().
-		Int("count", len(members)).
-		Msg("list members success")
+	totalPages := 0
+	if size > 0 {
+		totalPages = int(math.Ceil(float64(totalRecords) / float64(size)))
+	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"status":  true,
-		"details": members,
-	})
+	response := gmod.OrgListResponse{
+		Code:    gmod.CodeSuccess,
+		Message: "List member in org",
+		Status:  true,
+		Details: members,
+		Pagination: gmod.Pagination{
+			Page:         page,
+			PerPages:     size,
+			TotalRecords: totalRecords,
+			TotalPages:   totalPages,
+			SortField:    sortField,
+			SortOrder:    sortOrder,
+		},
+	}
+
+	return c.JSON(response)
 }

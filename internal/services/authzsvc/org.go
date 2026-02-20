@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/models/authzmod"
@@ -18,6 +19,7 @@ type OrganizationService struct {
 	orgRepo     *authzrepo.OrgRepo
 	orgUnitRepo *authzrepo.OrgUnitRepo
 	authzClient authzgw.Client
+	idClient    *authgw.Client
 }
 
 type OrgSummary struct {
@@ -33,6 +35,7 @@ func NewOrganizationService(
 	orgRepo *authzrepo.OrgRepo,
 	orgUnitRepo *authzrepo.OrgUnitRepo,
 	authzClient authzgw.Client,
+	idClient *authgw.Client,
 ) *OrganizationService {
 
 	if orgRepo == nil || orgUnitRepo == nil || authzClient == nil {
@@ -43,6 +46,7 @@ func NewOrganizationService(
 		orgRepo:     orgRepo,
 		orgUnitRepo: orgUnitRepo,
 		authzClient: authzClient,
+		idClient:    idClient,
 	}
 }
 

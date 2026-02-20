@@ -8,6 +8,7 @@ import (
 
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/controllers/authznewapi"
+	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
 	"github.com/hotkhwan/gateway-api/internal/middleware"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
@@ -15,14 +16,23 @@ import (
 )
 
 func RegisterAuthzNewRoutes(router fiber.Router) {
+
+	idClient := authgw.New(authgw.Config{
+		BaseURL:      os.Getenv("KEYCLOAK_URL"),
+		Realm:        os.Getenv("KEYCLOAK_REALM"),
+		ClientID:     os.Getenv("KEYCLOAK_CLIENT_ID"),
+		ClientSecret: os.Getenv("KEYCLOAK_CLIENT_SECRET"),
+	})
+
 	authzClient := authzgw.NewClient()
 	orgRepo := authzrepo.NewOrgRepo(config.DB)
 	orgUnitRepo := authzrepo.NewOrgUnitRepo()
-	// ===== Organization DI =====
+	// ===== Organization DI =====ß
 	orgService := authzsvc.NewOrganizationService(
 		orgRepo,
 		orgUnitRepo,
 		authzClient,
+		idClient,
 	)
 	orgController := authznewapi.NewOrganizationController(orgService)
 
