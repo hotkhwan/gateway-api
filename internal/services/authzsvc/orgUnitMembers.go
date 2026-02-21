@@ -3,6 +3,9 @@ package authzsvc
 import (
 	"context"
 	"errors"
+	"regexp"
+	"sort"
+	"strings"
 
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
@@ -36,19 +39,37 @@ type OUMember struct {
 	Enabled   bool   `json:"enabled"`
 }
 
+type OUListMembersParams struct {
+	Page      int
+	Size      int
+	Search    string
+	SortField string
+	SortOrder string
+}
+
+type OUListMembersResult struct {
+	Members      []OUMember
+	TotalRecords int
+	TotalPages   int
+	Page         int
+	Size         int
+	SortField    string
+	SortOrder    string
+}
+
 func (s *OrgUnitService) ListMembersOfOU(
 	ctx context.Context,
 	tenantId string,
 	orgId string,
 	ouId string,
-) ([]OUMember, error) {
+	params OUListMembersParams,
+) (*OUListMembersResult, error) {
 
 	rels, err := s.authzClient.ListEntityRelationships(ctx, tenantId, "orgUnit", ouId)
 	if err != nil {
 		return nil, err
 	}
 
-	// build role map
 	roleMap := make(map[string]string)
 	for _, r := range rels {
 		if r.Subject.Type != "user" {
@@ -59,16 +80,12 @@ func (s *OrgUnitService) ListMembersOfOU(
 		}
 	}
 
-	if len(roleMap) == 0 {
-		return []OUMember{}, nil
-	}
-
 	userIds := make([]string, 0, len(roleMap))
 	for uid := range roleMap {
 		userIds = append(userIds, uid)
 	}
 
-	// ✅ enrich with Keycloak (เหมือน org ListMembers)
+	// Keycloak enrich
 	profiles, err := s.idClient.GetUsersByIds(ctx, userIds)
 	profileMap := make(map[string]authgw.UserProfile)
 	if err == nil {
@@ -89,7 +106,79 @@ func (s *OrgUnitService) ListMembersOfOU(
 		out = append(out, m)
 	}
 
-	return out, nil
+	// ✅ Regex search — firstName, lastName, email
+	if params.Search != "" {
+		re, err := regexp.Compile("(?i)" + regexp.QuoteMeta(params.Search))
+		if err == nil {
+			filtered := out[:0]
+			for _, m := range out {
+				if re.MatchString(m.FirstName) || re.MatchString(m.LastName) || re.MatchString(m.Email) {
+					filtered = append(filtered, m)
+				}
+			}
+			out = filtered
+		}
+	}
+
+	totalRecords := len(out)
+
+	// ✅ Sort
+	sortField := params.SortField
+	asc := strings.ToLower(params.SortOrder) != "desc"
+
+	sort.Slice(out, func(i, j int) bool {
+		var less bool
+		switch sortField {
+		case "email":
+			less = out[i].Email < out[j].Email
+		case "lastName":
+			less = out[i].LastName < out[j].LastName
+		case "role":
+			less = out[i].Role < out[j].Role
+		default: // firstName
+			less = out[i].FirstName < out[j].FirstName
+		}
+		if asc {
+			return less
+		}
+		return !less
+	})
+
+	// ✅ Pagination
+	size := params.Size
+	page := params.Page
+	if size <= 0 {
+		size = 20
+	}
+	if page <= 0 {
+		page = 1
+	}
+
+	totalPages := (totalRecords + size - 1) / size
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
+	start := (page - 1) * size
+	if start > totalRecords {
+		out = []OUMember{}
+	} else {
+		end := start + size
+		if end > totalRecords {
+			end = totalRecords
+		}
+		out = out[start:end]
+	}
+
+	return &OUListMembersResult{
+		Members:      out,
+		TotalRecords: totalRecords,
+		TotalPages:   totalPages,
+		Page:         page,
+		Size:         size,
+		SortField:    sortField,
+		SortOrder:    params.SortOrder,
+	}, nil
 }
 
 func (s *OrgUnitService) AssignUsersToOU(

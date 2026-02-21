@@ -3,6 +3,7 @@ package authznewapi
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
@@ -41,32 +42,49 @@ func buildBulkMessage(inserted int, removed int, duplicates int, errors int) str
 // @Param X-Active-Org header string true "Active Organization ID"
 // @Param id path string true "OrgUnit ID"
 // @Router /api/v1/orgs/units/{id}/members [get]
-func (ctrl *OrgUnitController) ListMembers(c *fiber.Ctx) error {
+// controllers/authznewapi/orgUnitMembers.go
 
+func (ctrl *OrgUnitController) ListMembers(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	ouId := c.Params("id")
 
-	results, err := ctrl.service.ListMembersOfOU(
-		ctx,
-		tenantId,
-		orgId,
-		ouId,
-	)
+	// ✅ query params
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	sizeStr := c.Query("perPages", "")
+	if sizeStr == "" {
+		sizeStr = c.Query("size", "10")
+	}
+	size, _ := strconv.Atoi(sizeStr)
+	search := c.Query("search", "")
+	sortField := c.Query("sortField", "firstName")
+	sortOrder := c.Query("sortOrder", "asc")
+
+	res, err := ctrl.service.ListMembersOfOU(ctx, tenantId, orgId, ouId, authzsvc.OUListMembersParams{
+		Page:      page,
+		Size:      size,
+		Search:    search,
+		SortField: sortField,
+		SortOrder: sortOrder,
+	})
 	if err != nil {
-		return c.Status(403).JSON(fiber.Map{
-			"code":    "FORBIDDEN",
-			"message": err.Error(),
-			"status":  false,
-		})
+		return c.Status(403).JSON(fiber.Map{"code": "FORBIDDEN", "message": err.Error(), "status": false})
 	}
 
 	return c.JSON(fiber.Map{
 		"code":    "SUCCESS",
 		"message": "OU members fetched",
 		"status":  true,
-		"details": results,
+		"details": res.Members,
+		"pagination": fiber.Map{
+			"page":         res.Page,
+			"perPages":     res.Size,
+			"totalRecords": res.TotalRecords,
+			"totalPages":   res.TotalPages,
+			"sortField":    res.SortField,
+			"sortOrder":    res.SortOrder,
+		},
 	})
 }
 

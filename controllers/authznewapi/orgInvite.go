@@ -2,7 +2,10 @@
 package authznewapi
 
 import (
+	"fmt"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 )
 
@@ -53,16 +56,11 @@ func (ctrl *OrganizationController) Invite(c *fiber.Ctx) error {
 	}
 
 	results := make([]map[string]any, 0, len(body.Users))
-
+	inserted := 0
+	duplicates := 0
+	errorCount := 0
 	for _, u := range body.Users {
-		err := ctrl.service.InviteUser(
-			ctx,
-			tenantId,
-			orgId,
-			callerUserId,
-			u.UserId,
-			u.Role,
-		)
+		err := ctrl.service.InviteUser(ctx, tenantId, orgId, callerUserId, u.UserId, u.Role)
 
 		result := map[string]any{
 			"userId": u.UserId,
@@ -72,8 +70,15 @@ func (ctrl *OrganizationController) Invite(c *fiber.Ctx) error {
 		if err != nil {
 			result["success"] = false
 			result["error"] = err.Error()
+			// ✅ แยก duplicate vs error
+			if err == authzsvc.ErrInviteAlreadyMember {
+				duplicates++
+			} else {
+				errorCount++
+			}
 		} else {
 			result["success"] = true
+			inserted++
 		}
 
 		results = append(results, result)
@@ -81,7 +86,7 @@ func (ctrl *OrganizationController) Invite(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"code":    gmod.CodeSuccess,
-		"message": "",
+		"message": fmt.Sprintf("insert %d, remove 0, duplicate %d, error %d", inserted, duplicates, errorCount),
 		"status":  true,
 		"details": results,
 	})
