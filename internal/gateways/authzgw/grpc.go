@@ -16,6 +16,20 @@ import (
 
 type GrpcClient struct{}
 
+// toStringMap รองรับทั้ง map[string]string และ map[string]interface{}
+func toStringMap(v interface{}) map[string]string {
+	out := map[string]string{}
+	switch m := v.(type) {
+	case map[string]string:
+		return m
+	case map[string]interface{}:
+		for k, val := range m {
+			out[k], _ = val.(string)
+		}
+	}
+	return out
+}
+
 func NewGrpcClient() *GrpcClient { return &GrpcClient{} }
 
 // ตัวอย่าง: WriteSchema ใช้ gRPC ได้
@@ -74,25 +88,43 @@ func (g *GrpcClient) WriteTuples(
 	}
 
 	pbTuples := make([]*permify_payload.Tuple, 0, len(tuples))
-
+	// internal/gateways/authzgw/grpc.go — WriteTuples
 	for _, t := range tuples {
-
-		entity := t["entity"].(map[string]interface{})
-		subject := t["subject"].(map[string]interface{})
-		relation := t["relation"].(string)
+		// ✅ helper รองรับทั้ง map[string]string และ map[string]interface{}
+		entity := toStringMap(t["entity"])
+		subject := toStringMap(t["subject"])
+		relation, _ := t["relation"].(string)
 
 		pbTuples = append(pbTuples, &permify_payload.Tuple{
 			Entity: &permify_payload.Entity{
-				Type: entity["type"].(string),
-				Id:   entity["id"].(string),
+				Type: entity["type"],
+				Id:   entity["id"],
 			},
 			Relation: relation,
 			Subject: &permify_payload.Subject{
-				Type: subject["type"].(string),
-				Id:   subject["id"].(string),
+				Type: subject["type"],
+				Id:   subject["id"],
 			},
 		})
 	}
+	// for _, t := range tuples {
+
+	// 	entity := t["entity"].(map[string]interface{})
+	// 	subject := t["subject"].(map[string]interface{})
+	// 	relation := t["relation"].(string)
+
+	// 	pbTuples = append(pbTuples, &permify_payload.Tuple{
+	// 		Entity: &permify_payload.Entity{
+	// 			Type: entity["type"].(string),
+	// 			Id:   entity["id"].(string),
+	// 		},
+	// 		Relation: relation,
+	// 		Subject: &permify_payload.Subject{
+	// 			Type: subject["type"].(string),
+	// 			Id:   subject["id"].(string),
+	// 		},
+	// 	})
+	// }
 
 	_, err := config.PermifyClient.Data.WriteRelationships(
 		ctx,
@@ -144,6 +176,44 @@ func (g *GrpcClient) LookupOrganizations(ctx context.Context, tenantId string, u
 	}
 
 	return ids, nil
+}
+
+func (g *GrpcClient) ListEntityRelationships(
+	ctx context.Context,
+	tenantId string,
+	entityType string,
+	entityId string,
+) ([]*permify_payload.Tuple, error) {
+
+	if config.PermifyClient == nil {
+		return nil, fmt.Errorf("grpc client not initialized")
+	}
+
+	resp, err := config.PermifyClient.Data.ReadRelationships(
+		ctx,
+		&permify_payload.RelationshipReadRequest{
+			TenantId: tenantId,
+			// ✅ SnapToken เท่านั้น — ไม่มี SchemaVersion/Depth ใน Metadata นี้
+			Metadata: &permify_payload.RelationshipReadRequestMetadata{
+				SnapToken: "",
+			},
+			Filter: &permify_payload.TupleFilter{
+				Entity: &permify_payload.EntityFilter{
+					Type: entityType,
+					Ids:  []string{entityId},
+				},
+			},
+		},
+	)
+
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return []*permify_payload.Tuple{}, nil
+		}
+		return nil, err
+	}
+
+	return resp.Tuples, nil
 }
 
 func (g *GrpcClient) CheckPermission(
@@ -206,40 +276,31 @@ func (g *GrpcClient) DeleteOrgRelationships(
 	return g.DeleteEntityRelationships(ctx, tenantId, "organization", orgId)
 }
 
-func (g *GrpcClient) ListEntityRelationships(
+func (g *GrpcClient) DeleteSpecificTuple(
 	ctx context.Context,
-	tenantId string,
-	entityType string,
-	entityId string,
-) ([]*permify_payload.Tuple, error) {
-
+	tenantId, entityType, entityId, relation, subjectType, subjectId string,
+) error {
 	if config.PermifyClient == nil {
-		return nil, fmt.Errorf("grpc client not initialized")
+		return fmt.Errorf("grpc client not initialized")
 	}
 
-	resp, err := config.PermifyClient.Data.ReadRelationships(
+	_, err := config.PermifyClient.Data.Delete(
 		ctx,
-		&permify_payload.RelationshipReadRequest{
+		&permify_payload.DataDeleteRequest{
 			TenantId: tenantId,
-			// ✅ SnapToken เท่านั้น — ไม่มี SchemaVersion/Depth ใน Metadata นี้
-			Metadata: &permify_payload.RelationshipReadRequestMetadata{
-				SnapToken: "",
-			},
-			Filter: &permify_payload.TupleFilter{
+			// ❌ ไม่มี Metadata field
+			TupleFilter: &permify_payload.TupleFilter{
 				Entity: &permify_payload.EntityFilter{
 					Type: entityType,
 					Ids:  []string{entityId},
 				},
+				Relation: relation,
+				Subject: &permify_payload.SubjectFilter{
+					Type: subjectType,
+					Ids:  []string{subjectId}, // ✅ Ids ไม่ใช่ Id
+				},
 			},
 		},
 	)
-
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return []*permify_payload.Tuple{}, nil
-		}
-		return nil, err
-	}
-
-	return resp.Tuples, nil
+	return err
 }

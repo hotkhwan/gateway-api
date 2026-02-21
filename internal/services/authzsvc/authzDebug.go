@@ -526,3 +526,9 @@ func ResetTenant(ctx context.Context, tenantId string) (*ResetTenantResult, erro
 
 	return result, nil
 }
+
+type FactoryBootstrapResult struct {
+	OrgId         string `json:"orgId"`
+	TupleCount    int    `json:"tupleCount"`
+	SchemaVersion string `json:"schemaVersion"`
+}

@@ -500,3 +500,61 @@ func (r *RestClient) ListEntityRelationships(
 
 	return out, nil
 }
+
+func (r *RestClient) DeleteSpecificTupleWithRelation(
+	ctx context.Context,
+	tenantId, entityType, entityId, relation, subjectType, subjectId string,
+) error {
+	if err := r.ensure(); err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("%s/v1/tenants/%s/data/delete", r.baseURL, tenantId)
+
+	payload := map[string]any{
+		"tuple_filter": map[string]any{
+			"entity": map[string]any{
+				"type": entityType,
+				"ids":  []string{entityId},
+			},
+			// ❌ ไม่ใส่ relation — ให้ match ด้วย subject เท่านั้น
+			"subject": map[string]any{
+				"type":     subjectType,
+				"ids":      []string{subjectId}, // ✅ ลอง "ids" แทน "id"
+				"relation": "",
+			},
+		},
+		"attribute_filter": map[string]any{},
+	}
+
+	data, _ := json.Marshal(payload)
+
+	// ✅ log payload ดูว่าส่งอะไรไปจริงๆ
+	log := logger.FromCtx(ctx, "authzgw", "DeleteSpecificTupleWithRelation")
+	log.Info().
+		Str("url", url).
+		RawJSON("payload", data).
+		Msg("permify delete specific tuple")
+
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := r.httpc.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	log.Info().
+		Int("status", resp.StatusCode).
+		RawJSON("response", body).
+		Msg("permify delete response")
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("permify delete tuple failed: %s", string(body))
+	}
+
+	return nil
+}

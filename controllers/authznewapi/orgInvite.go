@@ -81,6 +81,7 @@ func (ctrl *OrganizationController) Invite(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"code":    gmod.CodeSuccess,
+		"message": "",
 		"status":  true,
 		"details": results,
 	})

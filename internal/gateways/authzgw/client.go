@@ -34,6 +34,9 @@ type Client interface {
 		entityType string,
 		entityId string,
 	) ([]Relationship, error)
+
+	// internal/gateways/authzgw/client.go — interface
+	DeleteSpecificTupleWithRelation(ctx context.Context, tenantId, entityType, entityId, relation, subjectType, subjectId string) error
 }
 
 type HybridClient struct {
@@ -256,4 +259,15 @@ func (c *HybridClient) ListEntityRelationships(
 	}
 
 	return nil, ErrNoAuthzClient
+}
+
+// internal/gateways/authzgw/client.go — HybridClient
+func (c *HybridClient) DeleteSpecificTupleWithRelation(
+	ctx context.Context,
+	tenantId, entityType, entityId, relation, subjectType, subjectId string,
+) error {
+	if c.rest != nil {
+		return c.rest.DeleteSpecificTupleWithRelation(ctx, tenantId, entityType, entityId, relation, subjectType, subjectId)
+	}
+	return ErrNoAuthzClient
 }

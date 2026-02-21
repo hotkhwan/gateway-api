@@ -37,7 +37,7 @@ func RegisterAuthzNewRoutes(router fiber.Router) {
 	orgController := authznewapi.NewOrganizationController(orgService)
 
 	// ===== OrgUnit DI =====
-	orgUnitService := authzsvc.NewOrgUnitService(orgUnitRepo, authzClient)
+	orgUnitService := authzsvc.NewOrgUnitService(orgUnitRepo, authzClient, idClient)
 	orgUnitController := authznewapi.NewOrgUnitController(orgUnitService)
 
 	router.Route("/orgs", func(r fiber.Router) {
@@ -72,10 +72,16 @@ func RegisterAuthzNewRoutes(router fiber.Router) {
 		orgScoped := protected.Group("/units", middleware.ActiveOrg())
 		orgScoped.Post("/", orgUnitController.Create)
 
-		// orgScoped.All("/", middleware.AllowMethods("GET", "PATCH", "DELETE"))
+		// orgScoped.All("/", middleware.AllowMethods("GET", "PATCH", "DELETE"))å
 		orgScoped.Get("/tree", orgUnitController.Tree)
 		orgScoped.Patch("/:id", orgUnitController.Update)
 		orgScoped.Delete("/:id", orgUnitController.Delete)
+
+		// Assign user into OU
+		protected.All("/:id/members", middleware.AllowMethods("GET", "POST", "PATCH"))
+		orgScoped.Get("/:id/members", orgUnitController.ListMembers)
+		orgScoped.Post("/:id/members", orgUnitController.AssignMembers)
+		orgScoped.Patch("/:id/members", orgUnitController.RemoveMembers)
 
 	})
 }
