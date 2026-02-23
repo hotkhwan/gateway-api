@@ -1,45 +1,18 @@
-// router/authz.go
+// router/authznew.go
 package router
 
 import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
-
 	"github.com/hotkhwan/gateway-api/config"
-	"github.com/hotkhwan/gateway-api/controllers/authznewapi"
-	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
-	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
+	"github.com/hotkhwan/gateway-api/internal/app"
 	"github.com/hotkhwan/gateway-api/internal/middleware"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
-	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 )
 
-func RegisterAuthzNewRoutes(router fiber.Router) {
-
-	idClient := authgw.New(authgw.Config{
-		BaseURL:      os.Getenv("KEYCLOAK_URL"),
-		Realm:        os.Getenv("KEYCLOAK_REALM"),
-		ClientID:     os.Getenv("KEYCLOAK_CLIENT_ID"),
-		ClientSecret: os.Getenv("KEYCLOAK_CLIENT_SECRET"),
-	})
-
-	authzClient := authzgw.NewClient()
-	orgRepo := authzrepo.NewOrgRepo(config.DB)
-	orgUnitRepo := authzrepo.NewOrgUnitRepo()
-	// ===== Organization DI =====ß
-	orgService := authzsvc.NewOrganizationService(
-		orgRepo,
-		orgUnitRepo,
-		authzClient,
-		idClient,
-	)
-	orgController := authznewapi.NewOrganizationController(orgService)
-
-	// ===== OrgUnit DI =====
-	orgUnitService := authzsvc.NewOrgUnitService(orgUnitRepo, authzClient, idClient)
-	orgUnitController := authznewapi.NewOrgUnitController(orgUnitService)
-
+// ✅ รับ container แทนที่จะ new เอง
+func RegisterAuthzNewRoutes(router fiber.Router, c *app.Container) {
 	router.Route("/orgs", func(r fiber.Router) {
 		r.Use(middleware.AuthBearer())
 		r.Use(middleware.Audit(middleware.AuditConfig{
@@ -51,37 +24,29 @@ func RegisterAuthzNewRoutes(router fiber.Router) {
 
 		protected := r.Group("/")
 
-		// ---------- ROOT ORG ----------
 		protected.All("/", middleware.AllowMethods("GET", "POST"))
 		protected.All("/:id", middleware.AllowMethods("POST", "PATCH", "DELETE"))
 
-		protected.Get("/", orgController.List)
-		protected.Post("/", orgController.Create)
-		protected.Patch("/:id", orgController.Update)
-		protected.Delete("/:id", orgController.Delete)
+		protected.Get("/", c.OrgController.List)
+		protected.Post("/", c.OrgController.Create)
+		protected.Patch("/:id", c.OrgController.Update)
+		protected.Delete("/:id", c.OrgController.Delete)
 
-		// Invite users
 		protected.All("/users/invite", middleware.AllowMethods("POST"))
-		protected.Post("/users/invite", middleware.ActiveOrg(), orgController.Invite)
+		protected.Post("/users/invite", middleware.ActiveOrg(), c.OrgController.Invite)
 
-		// List users members
 		protected.All("/users/members", middleware.AllowMethods("GET"))
-		protected.Get("/users/members", middleware.ActiveOrg(), orgController.ListMembers)
+		protected.Get("/users/members", middleware.ActiveOrg(), c.OrgController.ListMembers)
 
-		// 🔥 สำคัญ: แยก path ชัด
 		orgScoped := protected.Group("/units", middleware.ActiveOrg())
-		orgScoped.Post("/", orgUnitController.Create)
+		orgScoped.Post("/", c.OrgUnitController.Create)
+		orgScoped.Get("/tree", c.OrgUnitController.Tree)
+		orgScoped.Patch("/:id", c.OrgUnitController.Update)
+		orgScoped.Delete("/:id", c.OrgUnitController.Delete)
 
-		// orgScoped.All("/", middleware.AllowMethods("GET", "PATCH", "DELETE"))å
-		orgScoped.Get("/tree", orgUnitController.Tree)
-		orgScoped.Patch("/:id", orgUnitController.Update)
-		orgScoped.Delete("/:id", orgUnitController.Delete)
-
-		// Assign user into OU
 		protected.All("/:id/members", middleware.AllowMethods("GET", "POST", "PATCH"))
-		orgScoped.Get("/:id/members", orgUnitController.ListMembers)
-		orgScoped.Post("/:id/members", orgUnitController.AssignMembers)
-		orgScoped.Patch("/:id/members", orgUnitController.RemoveMembers)
-
+		orgScoped.Get("/:id/members", c.OrgUnitController.ListMembers)
+		orgScoped.Post("/:id/members", c.OrgUnitController.AssignMembers)
+		orgScoped.Patch("/:id/members", c.OrgUnitController.RemoveMembers)
 	})
 }

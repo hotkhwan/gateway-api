@@ -76,18 +76,17 @@ func DeviceCreate(c *fiber.Ctx) error {
 	}
 
 	device := devmod.Device{
-		Name:           req.Name,
-		User:           req.User,
-		Password:       req.Password,
-		URL:            req.URL,
-		District:       req.District,
-		Lat:            *req.Lat,
-		Lng:            *req.Lng,
-		Brand:          req.Brand,
-		Status:         true,
-		State:          "create",
-		DateTimeCreate: utils.CurrentDateTime(),
-		DateTimeUpdate: utils.CurrentDateTime(),
+		Name:     req.Name,
+		User:     req.User,
+		Password: req.Password,
+		URL:      req.URL,
+		District: req.District,
+		Lat:      *req.Lat,
+		Lng:      *req.Lng,
+		Brand:    req.Brand,
+		Status:   true,
+		State:    "create",
+		CreateAt: utils.CurrentDateTime(),
 	}
 
 	_, err := devsvc.DeviceCreate(ctx, device)

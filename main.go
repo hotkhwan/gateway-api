@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	appcontainer "github.com/hotkhwan/gateway-api/internal/app"
 	"github.com/hotkhwan/gateway-api/internal/configruntime"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/optionsrepo"
@@ -225,15 +226,19 @@ func main() {
 	app.Use(logger.FiberLogger())
 
 	api := app.Group(basePath)
+	// ✅ สร้าง container ครั้งเดียว
+	container := appcontainer.NewContainer()
 
+	// ✅ router ที่ migrate แล้ว — รับ container
+	router.RegisterAuthzNewRoutes(api, container)
+	router.RegisterResourceRoutes(api, container)
+	// ✅ router เก่าที่ยังไม่ migrate — ยังทำงานได้ปกติ
 	router.RegisterAPIATA(api)
 	router.RegisterAuthRoutes(api)
 	router.RegisterAuthzRoutes(api)
-	router.RegisterAuthzNewRoutes(api)
 	router.RegisterAuthzDebugRoutes(api)
 	router.RegisterBIRoutes(api)
 	router.RegisterKcontrolDashboard(api)
-	router.RegisterDeviceRoutes(api)
 	router.RegisterDeviceSyncRoutes(api)
 	router.RegisterFacesCCTVRoutes(api)
 	router.RegisterGroupRoutes(api)
@@ -244,7 +249,7 @@ func main() {
 	router.RegisterMapsRoutes(api)
 	router.RegisterMedia(api)
 	router.RegisterOptRoutes(api)
-	router.RegisterResourceRoutes(api)
+	// router.RegisterResourceRoutes(api)
 	router.RegisterSystemRoutes(api)
 	router.RegisterThirdAPIRoutes(api)
 	router.RegisterUserRoutes(api)
