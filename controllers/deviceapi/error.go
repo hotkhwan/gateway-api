@@ -41,6 +41,10 @@ func handleErr(c *fiber.Ctx, err error) error {
 		return c.Status(409).JSON(gmod.ApiErrorResponse{
 			Code: "CONFLICT", Message: "camera name already exists in this org", Status: false,
 		})
+	case errors.Is(err, devicesvc.ErrResourceGroupNameAlreadyExists):
+		return c.Status(409).JSON(gmod.ApiErrorResponse{
+			Code: "CONFLICT", Message: "resource group name already exists in this org", Status: false,
+		})
 	default:
 		return c.Status(500).JSON(gmod.ApiErrorResponse{
 			Code: gmod.CodeInternalError, Message: "internal server error", Status: false,
