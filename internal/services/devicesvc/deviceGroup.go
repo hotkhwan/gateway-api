@@ -102,13 +102,13 @@ func tupleGroupOU(groupId, ouId, relation string) map[string]any {
 // ============================================================
 
 type CreateGroupInput struct {
-	TenantID     string
-	OrgID        string
-	Name         string
-	Description  string
-	ResourceType string // "camera" | "sensor" | "" = all
-	Public       bool
-	CallerID     string
+	TenantID      string
+	OrgID         string
+	Name          string
+	Description   string
+	ResourceType  string // "camera" | "sensor" | "" = all
+	MapVisibility string // "public" | "private"
+	CallerID      string
 }
 
 type ListGroupsInput struct {
@@ -180,15 +180,15 @@ func (s *ResourceGroupService) CreateGroup(ctx context.Context, input CreateGrou
 	}
 
 	group := &devmod.ResourceGroup{
-		TenantID:     input.TenantID,
-		OrgID:        input.OrgID,
-		Name:         input.Name,
-		Description:  input.Description,
-		ResourceType: input.ResourceType,
-		Public:       input.Public,
-		CreatedBy:    input.CallerID,
-		SyncStatus:   "pending",
-		CreatedAt:    time.Now(),
+		TenantID:      input.TenantID,
+		OrgID:         input.OrgID,
+		Name:          input.Name,
+		Description:   input.Description,
+		ResourceType:  input.ResourceType,
+		MapVisibility: input.MapVisibility,
+		CreatedBy:     input.CallerID,
+		SyncStatus:    "pending",
+		CreatedAt:     time.Now(),
 	}
 
 	if err := s.groupRepo.Insert(ctx, group); err != nil {

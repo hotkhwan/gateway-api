@@ -28,13 +28,9 @@ func (s *ResourceGroupService) AddDeviceToGroup(ctx context.Context, input AddDe
 	if deviceOrgID != input.OrgID {
 		return fmt.Errorf("cross-org injection blocked: device orgId mismatch")
 	}
-	if err := camRepo.AddGroupID(ctx, input.DeviceID, input.GroupID); err != nil {
-		return err
-	}
 	if err := s.authzClient.WriteTuples(ctx, input.TenantID, []map[string]any{
 		tupleDeviceParentGroup(input.DeviceID, input.GroupID),
 	}); err != nil {
-		_ = camRepo.RemoveGroupID(ctx, input.DeviceID, input.GroupID)
 		return fmt.Errorf("%w: %v", ErrPermifySyncFailed, err)
 	}
 	return nil
@@ -44,14 +40,11 @@ func (s *ResourceGroupService) RemoveDeviceFromGroup(ctx context.Context, input 
 	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
 		return err
 	}
-	if err := s.authzClient.DeleteSpecificTupleWithRelation(
+	return s.authzClient.DeleteSpecificTupleWithRelation(
 		ctx, input.TenantID,
 		"device", input.DeviceID, "parentGroup",
 		"resourceGroup", input.GroupID,
-	); err != nil {
-		return fmt.Errorf("permify delete failed: %w", err)
-	}
-	return camRepo.RemoveGroupID(ctx, input.DeviceID, input.GroupID)
+	)
 }
 
 func (s *ResourceGroupService) AssignGroupToOU(ctx context.Context, input AssignGroupToOUInput) error {

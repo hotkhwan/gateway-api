@@ -32,7 +32,6 @@ func (s *ResourceGroupService) Update(ctx context.Context, input UpdateGroupInpu
 		return err
 	}
 
-	// cross-org: group ต้องอยู่ใน org นี้
 	if _, err := s.groupRepo.FindByIDAndOrg(ctx, input.GroupID, input.TenantID, input.OrgID); err != nil {
 		return err
 	}
@@ -50,6 +49,6 @@ func (s *ResourceGroupService) Update(ctx context.Context, input UpdateGroupInpu
 		return err
 	}
 
-	log.Info().Str("groupId", input.GroupID).Msg("✅ ResourceGroup updated")
+	log.Info().Str("groupId", input.GroupID).Str("mapVisibility", input.MapVisibility).Msg("✅ ResourceGroup updated")
 	return nil
 }

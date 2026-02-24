@@ -48,10 +48,10 @@ func (ctrl *ResourceGroupController) mustLocals(c *fiber.Ctx) (tenantId, orgId, 
 // ============================================================
 
 type CreateResourceGroupRequest struct {
-	Name         string `json:"name"`
-	Description  string `json:"description"`
-	ResourceType string `json:"resourceType"` // camera | sensor | "" = all
-	Public       bool   `json:"public"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	ResourceType  string `json:"resourceType"`  // camera | sensor | "" = all
+	MapVisibility string `json:"mapVisibility"` // public | private
 }
 
 func (ctrl *ResourceGroupController) Create(c *fiber.Ctx) error {
@@ -71,16 +71,17 @@ func (ctrl *ResourceGroupController) Create(c *fiber.Ctx) error {
 		Str("orgId", orgId).
 		Str("name", body.Name).
 		Str("resourceType", body.ResourceType).
+		Str("mapVisibility", body.MapVisibility).
 		Msg("📥 CreateResourceGroup")
 
 	group, err := ctrl.service.CreateGroup(c.UserContext(), devicesvc.CreateGroupInput{
-		TenantID:     tenantId,
-		OrgID:        orgId,
-		Name:         body.Name,
-		Description:  body.Description,
-		ResourceType: body.ResourceType,
-		Public:       body.Public,
-		CallerID:     callerUserId,
+		TenantID:      tenantId,
+		OrgID:         orgId,
+		Name:          body.Name,
+		Description:   body.Description,
+		ResourceType:  body.ResourceType,
+		MapVisibility: body.MapVisibility,
+		CallerID:      callerUserId,
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("❌ CreateResourceGroup failed")

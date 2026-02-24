@@ -36,7 +36,6 @@ func (r *CameraRepo) EnsureIndexes(ctx context.Context) error {
 		},
 		{Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}}},
 		{Keys: bson.D{{Key: "orgId", Value: 1}}},
-		{Keys: bson.D{{Key: "groupIds", Value: 1}}},
 		{Keys: bson.D{{Key: "ip", Value: 1}}},
 	})
 }
@@ -46,8 +45,8 @@ func (r *CameraRepo) EnsureIndexes(ctx context.Context) error {
 // ============================================================
 
 func (r *CameraRepo) Insert(ctx context.Context, input devmod.CreateCameraInput) (string, error) {
-	if input.MapVisibilityOverride == "" {
-		input.MapVisibilityOverride = "inherit"
+	if input.MapVisibility == "" {
+		input.MapVisibility = "inherit"
 	}
 
 	camId := uuid.New().String() // ← public ID ใช้ใน Permify tuple + API route
@@ -67,8 +66,7 @@ func (r *CameraRepo) Insert(ctx context.Context, input devmod.CreateCameraInput)
 		"brand":                 input.Brand,
 		"status":                true,
 		"state":                 "active",
-		"groupIds":              []string{},
-		"mapVisibilityOverride": input.MapVisibilityOverride,
+		"mapVisibility": input.MapVisibility,
 		"createdBy":             input.CallerID,
 		"createAt":              time.Now(),
 	}
@@ -95,7 +93,7 @@ func (r *CameraRepo) BulkInsert(ctx context.Context, tenantId, orgId, callerID s
 		camId := uuid.New().String()
 		camIds = append(camIds, camId)
 		docs = append(docs, bson.M{
-			"id":                    camId,
+			"camId":                 camId,
 			"tenantId":              tenantId,
 			"orgId":                 orgId,
 			"name":                  item.Name,
@@ -107,8 +105,7 @@ func (r *CameraRepo) BulkInsert(ctx context.Context, tenantId, orgId, callerID s
 			"brand":                 item.Brand,
 			"status":                true,
 			"state":                 "active",
-			"groupIds":              []string{},
-			"mapVisibilityOverride": "inherit",
+			"mapVisibility": "inherit",
 			"createdBy":             callerID,
 			"createAt":              time.Now(),
 		})
@@ -159,32 +156,6 @@ func (r *CameraRepo) GetOrgID(ctx context.Context, camId string) (string, error)
 }
 
 // ============================================================
-// AddGroupID / RemoveGroupID — ใช้ UpdateOneRaw (มี $addToSet/$pull)
-// ============================================================
-
-func (r *CameraRepo) AddGroupID(ctx context.Context, camId, groupId string) error {
-	_, err := stomongo.UpdateOneRaw(ctx, r.collection,
-		bson.M{"camId": camId},
-		bson.M{
-			"$addToSet": bson.M{"groupIds": groupId},
-			"$set":      bson.M{"dateTimeUpdate": time.Now()},
-		},
-	)
-	return err
-}
-
-func (r *CameraRepo) RemoveGroupID(ctx context.Context, camId, groupId string) error {
-	_, err := stomongo.UpdateOneRaw(ctx, r.collection,
-		bson.M{"camId": camId},
-		bson.M{
-			"$pull": bson.M{"groupIds": groupId},
-			"$set":  bson.M{"dateTimeUpdate": time.Now()},
-		},
-	)
-	return err
-}
-
-// ============================================================
 // Update — PATCH (ส่ง fields ตรง ไม่ห่อ $set เอง)
 // ============================================================
 
@@ -201,8 +172,8 @@ func (r *CameraRepo) Update(ctx context.Context, camId string, input devmod.Upda
 	if len(input.Roi) > 0 {
 		setFields["roi"] = input.Roi
 	}
-	if input.MapVisibilityOverride != "" {
-		setFields["mapVisibilityOverride"] = input.MapVisibilityOverride
+	if input.MapVisibility != "" {
+		setFields["mapVisibility"] = input.MapVisibility
 	}
 	// stomongo.UpdateOne ห่อ $set ให้ → ส่ง fields โดยตรง
 	res, err := stomongo.UpdateOne(ctx, r.collection, bson.M{"camId": camId}, setFields)
@@ -263,9 +234,6 @@ func (r *CameraRepo) List(ctx context.Context, tenantId, orgId string, opts Came
 	filter := bson.M{"tenantId": tenantId, "orgId": orgId}
 	if opts.Search != "" {
 		filter["name"] = bson.M{"$regex": opts.Search, "$options": "i"}
-	}
-	if opts.GroupID != "" {
-		filter["groupIds"] = opts.GroupID
 	}
 
 	var results []devmod.CameraMongo
@@ -342,8 +310,7 @@ func ToDTO(d *devmod.CameraMongo) devmod.CameraDTO {
 		Brand:                 d.Brand,
 		Status:                d.Status,
 		Roi:                   d.Roi,
-		GroupIDs:              d.GroupIDs,
-		MapVisibilityOverride: d.MapVisibilityOverride,
+		MapVisibility: d.MapVisibility,
 		CreateAt:              utils.FormatTimeOrEmpty(d.CreateAt),
 		UpdateAt:              utils.FormatTimeOrEmpty(d.UpdateAt),
 	}
@@ -372,16 +339,4 @@ func (r *CameraRepo) GetDeviceType(_ context.Context, _ string) (string, error) 
 // Delete — alias ของ HardDelete เพื่อ satisfy devicesvc.CameraRepo interface
 func (r *CameraRepo) Delete(ctx context.Context, camId string) error {
 	return r.HardDelete(ctx, camId)
-}
-
-// HasGroupID — check ว่า device อยู่ใน group แล้วหรือยัง
-func (r *CameraRepo) HasGroupID(ctx context.Context, camId, groupId string) (bool, error) {
-	count, err := stomongo.Count(ctx, r.collection, bson.M{
-		"camId":    camId,
-		"groupIds": groupId,
-	})
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
 }

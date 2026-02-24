@@ -16,10 +16,7 @@ type CameraRepo interface {
 	FindByCamIDAndOrg(ctx context.Context, camId, orgId string) (*devmod.CameraMongo, error)
 	GetOrgID(ctx context.Context, camId string) (string, error)
 	GetDeviceType(ctx context.Context, camId string) (string, error)
-	HasGroupID(ctx context.Context, camId, groupId string) (bool, error)
-	AddGroupID(ctx context.Context, camId, groupId string) error
-	RemoveGroupID(ctx context.Context, camId, groupId string) error
 	Update(ctx context.Context, camId string, input devmod.UpdateCameraInput) error
 	HardDelete(ctx context.Context, camId string) error
-	Delete(ctx context.Context, camId string) error //
+	Delete(ctx context.Context, camId string) error
 }

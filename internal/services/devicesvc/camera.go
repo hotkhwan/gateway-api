@@ -61,8 +61,8 @@ func (s *CameraService) Create(ctx context.Context, input devmod.CreateCameraInp
 	if input.TenantID == "" || input.OrgID == "" || input.Name == "" || input.CallerID == "" {
 		return nil, ErrInvalidArgs
 	}
-	if input.MapVisibilityOverride == "" {
-		input.MapVisibilityOverride = "inherit"
+	if input.MapVisibility == "" {
+		input.MapVisibility = "inherit"
 	}
 	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func (s *CameraService) BulkCreate(ctx context.Context, tenantId, orgId, callerI
 		if i < len(items) {
 			name = items[i].Name
 		}
-		result.Results = append(result.Results, devmod.BulkImportResult{Row: i + 2, Name: name, ID: id, Success: true})
+		result.Results = append(result.Results, devmod.BulkImportResult{Row: i + 2, Name: name, CamID: id, Success: true})
 		result.Inserted++
 	}
 	log.Info().Int("inserted", result.Inserted).Msg("✅ BulkCreate complete")

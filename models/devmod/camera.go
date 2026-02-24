@@ -31,13 +31,12 @@ type CameraMongo struct {
 	Status      bool               `bson:"status"`
 	State       string             `bson:"state,omitempty"` // create | update | delete
 	Roi         []interface{}      `bson:"roi,omitempty"`
-	GroupIDs    []string           `bson:"groupIds"`
 
 	// Map visibility — tri-state override
 	// "inherit" = ใช้ค่าจาก group.mapVisibility
 	// "forcePublic" = โชว์บน map เสมอ
 	// "forcePrivate" = ไม่โชว์บน map เสมอ
-	MapVisibilityOverride string `bson:"mapVisibilityOverride"` // inherit | forcePublic | forcePrivate
+	MapVisibility string `bson:"mapVisibility"` // inherit | forcePublic | forcePrivate
 
 	// Legacy field (backward compat)
 	Public bool `bson:"public,omitempty"`
@@ -69,9 +68,8 @@ type CameraDTO struct {
 	Status      bool          `json:"status"`
 	State       string        `json:"state,omitempty"`
 	Roi         []interface{} `json:"roi,omitempty"`
-	GroupIDs    []string      `json:"groupIds"`
 
-	MapVisibilityOverride string `json:"mapVisibilityOverride"`
+	MapVisibility string `json:"mapVisibility"`
 
 	SyncStatus string `json:"syncStatus,omitempty"`
 	CreateAt   string `json:"createAt,omitempty"`
@@ -98,7 +96,7 @@ type CreateCameraInput struct {
 	AtaWsFlvUrl           string
 	Brand                 string
 	Roi                   []interface{}
-	MapVisibilityOverride string // inherit | forcePublic | forcePrivate
+	MapVisibility string // inherit | forcePublic | forcePrivate
 }
 
 // ============================================================
@@ -114,7 +112,7 @@ type UpdateCameraInput struct {
 	Lat                   float64
 	Lng                   float64
 	Roi                   []interface{}
-	MapVisibilityOverride string
+	MapVisibility string
 }
 
 // ============================================================
@@ -140,7 +138,7 @@ type BulkImportItem struct {
 type BulkImportResult struct {
 	Row     int    `json:"row"`
 	Name    string `json:"name,omitempty"`
-	ID      string `json:"id,omitempty"` // inserted _id.Hex()
+	CamID   string `json:"camId,omitempty"`
 	Success bool   `json:"success"`
 	Error   string `json:"error,omitempty"`
 }

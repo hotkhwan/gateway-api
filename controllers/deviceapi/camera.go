@@ -51,7 +51,7 @@ type CreateCameraRequest struct {
 	AtaWsFlvUrl           string        `json:"ataWsFlvUrl,omitempty"`
 	Brand                 string        `json:"brand,omitempty"`
 	Roi                   []interface{} `json:"roi,omitempty"`
-	MapVisibilityOverride string        `json:"mapVisibilityOverride"`
+	MapVisibility string        `json:"mapVisibility"`
 }
 
 func (ctrl *CameraController) Create(c *fiber.Ctx) error {
@@ -70,7 +70,7 @@ func (ctrl *CameraController) Create(c *fiber.Ctx) error {
 		Name: body.Name, User: body.User, Password: body.Password,
 		URL: body.URL, District: body.District, Lat: body.Lat, Lng: body.Lng,
 		AtaWsFlvUrl: body.AtaWsFlvUrl, Brand: body.Brand, Roi: body.Roi,
-		MapVisibilityOverride: body.MapVisibilityOverride,
+		MapVisibility: body.MapVisibility,
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("❌ CreateCamera failed")
@@ -123,7 +123,7 @@ type UpdateCameraRequest struct {
 	Lat                   float64       `json:"lat"`
 	Lng                   float64       `json:"lng"`
 	Roi                   []interface{} `json:"roi,omitempty"`
-	MapVisibilityOverride string        `json:"mapVisibilityOverride"`
+	MapVisibility string        `json:"mapVisibility"`
 }
 
 func (ctrl *CameraController) Update(c *fiber.Ctx) error {
@@ -136,7 +136,7 @@ func (ctrl *CameraController) Update(c *fiber.Ctx) error {
 	if err := ctrl.service.Update(c.UserContext(), tenantId, orgId, callerUserId, deviceId, devmod.UpdateCameraInput{
 		Name: body.Name, User: body.User, Password: body.Password,
 		URL: body.URL, District: body.District, Lat: body.Lat, Lng: body.Lng,
-		Roi: body.Roi, MapVisibilityOverride: body.MapVisibilityOverride,
+		Roi: body.Roi, MapVisibility: body.MapVisibility,
 	}); err != nil {
 		return handleErr(c, err)
 	}

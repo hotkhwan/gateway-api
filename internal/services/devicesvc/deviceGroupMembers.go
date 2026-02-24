@@ -105,28 +105,6 @@ func (s *ResourceGroupService) AddDevicesToGroup(
 			}
 		}
 
-		// duplicate check (mongo)
-		isDup, err := camRepo.HasGroupID(ctx, d.DeviceID, groupId)
-		if err == nil && isDup {
-			results = append(results, GroupDeviceBulkResult{
-				DeviceID: d.DeviceID,
-				Success:  false,
-				Error:    "device already in group",
-			})
-			duplicates++
-			continue
-		}
-
-		// Mongo $addToSet
-		if err := camRepo.AddGroupID(ctx, d.DeviceID, groupId); err != nil {
-			results = append(results, GroupDeviceBulkResult{
-				DeviceID: d.DeviceID,
-				Success:  false,
-				Error:    err.Error(),
-			})
-			continue
-		}
-
 		tuples = append(tuples, tupleDeviceParentGroup(d.DeviceID, groupId))
 		results = append(results, GroupDeviceBulkResult{DeviceID: d.DeviceID, Success: true})
 		inserted++
@@ -135,11 +113,6 @@ func (s *ResourceGroupService) AddDevicesToGroup(
 	// Permify batch write
 	if len(tuples) > 0 {
 		if err := s.authzClient.WriteTuples(ctx, tenantId, tuples); err != nil {
-			// rollback mongo on permify fail
-			for _, t := range tuples {
-				entity := t["entity"].(map[string]any)
-				_ = camRepo.RemoveGroupID(ctx, entity["id"].(string), groupId)
-			}
 			return nil, 0, 0, fmt.Errorf("%w: %v", ErrPermifySyncFailed, err)
 		}
 	}
@@ -200,33 +173,11 @@ func (s *ResourceGroupService) RemoveDevicesFromGroup(
 	removed := 0
 
 	for _, d := range devices {
-		// ตรวจว่า device อยู่ใน group จริง
-		isDup, err := camRepo.HasGroupID(ctx, d.DeviceID, groupId)
-		if err != nil || !isDup {
-			results = append(results, GroupDeviceBulkResult{
-				DeviceID: d.DeviceID,
-				Success:  false,
-				Error:    "device not in group",
-			})
-			continue
-		}
-
-		// Permify delete ก่อน
 		if err := s.authzClient.DeleteSpecificTupleWithRelation(
 			ctx, tenantId,
 			"device", d.DeviceID, "parentGroup",
 			"resourceGroup", groupId,
 		); err != nil {
-			results = append(results, GroupDeviceBulkResult{
-				DeviceID: d.DeviceID,
-				Success:  false,
-				Error:    err.Error(),
-			})
-			continue
-		}
-
-		// Mongo $pull
-		if err := camRepo.RemoveGroupID(ctx, d.DeviceID, groupId); err != nil {
 			results = append(results, GroupDeviceBulkResult{
 				DeviceID: d.DeviceID,
 				Success:  false,

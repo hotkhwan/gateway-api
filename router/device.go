@@ -62,7 +62,7 @@ func RegisterResourceRoutes(router fiber.Router, c *appcontainer.Container) {
 		protected.Post("/", c.ResourceGroupController.Create)
 
 		protected.All("/:id", middleware.AllowMethods("PATCH", "DELETE"))
-		// protected.Patch("/:id", c.ResourceGroupController.Update)
+		protected.Patch("/:id", c.ResourceGroupController.Update)
 		protected.Delete("/:id", c.ResourceGroupController.Delete)
 
 		// ---------- Devices in Group (bulk add/remove) ----------
