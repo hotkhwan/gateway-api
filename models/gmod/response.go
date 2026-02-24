@@ -276,7 +276,7 @@ type InviteUserResponse struct {
 	Status  bool   `json:"status"`
 	Message string `json:"message"`
 	Details struct {
-		OrgId   string `json:"orgId"`
+		Id      string `json:"orgId"`
 		UserId  string `json:"userId"`
 		Role    string `json:"role"`
 		Invited bool   `json:"invited"`
