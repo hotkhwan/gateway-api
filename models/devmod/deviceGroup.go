@@ -9,12 +9,13 @@ import (
 
 // ResourceGroup — Mongo document
 type ResourceGroup struct {
-	ID           primitive.ObjectID `bson:"_id,omitempty"  json:"id"`
+	InternalID   primitive.ObjectID `bson:"_id,omitempty"  json:"-"`           // internal MongoDB ID (hidden)
+	GroupID      string             `bson:"groupId"        json:"id"`           // UUID — public ID ใช้ใน API + Permify
 	TenantID     string             `bson:"tenantId"       json:"tenantId"`
 	OrgID        string             `bson:"orgId"          json:"orgId"`
 	Name         string             `bson:"name"           json:"name"`
 	Description  string             `bson:"description"    json:"description,omitempty"`
-	ResourceType string             `bson:"resourceType"   json:"resourceType,omitempty"` // "camera" | "sensor" | "" = all types
+	ResourceType string             `bson:"resourceType"   json:"resourceType,omitempty"` // "camera" | "sensor" | "" = all
 	Public       bool               `bson:"public"         json:"public"`
 	CreatedBy    string             `bson:"createdBy"      json:"createdBy,omitempty"`
 	SyncStatus   string             `bson:"syncStatus"     json:"syncStatus,omitempty"` // pending | synced | failed

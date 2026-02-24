@@ -87,7 +87,7 @@ func (ctrl *ResourceGroupController) Create(c *fiber.Ctx) error {
 		return handleErr(c, err)
 	}
 
-	log.Info().Str("groupId", group.ID.Hex()).Msg("✅ ResourceGroup created")
+	log.Info().Str("groupId", group.GroupID).Msg("✅ ResourceGroup created")
 
 	return c.Status(201).JSON(fiber.Map{
 		"code":    gmod.CodeSuccess,

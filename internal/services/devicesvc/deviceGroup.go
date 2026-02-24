@@ -10,7 +10,6 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicerepo"
 	"github.com/hotkhwan/gateway-api/models/devmod"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // ============================================================
@@ -172,8 +171,15 @@ func (s *ResourceGroupService) CreateGroup(ctx context.Context, input CreateGrou
 		return nil, err
 	}
 
+	exists, err := s.groupRepo.ExistsByNameInOrg(ctx, input.OrgID, input.Name, "")
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, ErrResourceGroupNameAlreadyExists
+	}
+
 	group := &devmod.ResourceGroup{
-		ID:           primitive.NewObjectID(),
 		TenantID:     input.TenantID,
 		OrgID:        input.OrgID,
 		Name:         input.Name,
@@ -189,7 +195,7 @@ func (s *ResourceGroupService) CreateGroup(ctx context.Context, input CreateGrou
 		return nil, err
 	}
 
-	groupId := group.ID.Hex()
+	groupId := group.GroupID // UUID ที่ repo generate ให้
 
 	if err := s.authzClient.WriteTuples(ctx, input.TenantID, []map[string]any{
 		tupleResourceGroupParentOrg(groupId, input.OrgID),

@@ -37,6 +37,14 @@ func (s *ResourceGroupService) Update(ctx context.Context, input UpdateGroupInpu
 		return err
 	}
 
+	exists, err := s.groupRepo.ExistsByNameInOrg(ctx, input.OrgID, input.Name, input.GroupID)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return ErrResourceGroupNameAlreadyExists
+	}
+
 	if err := s.groupRepo.Update(ctx, input.GroupID, input.Name, input.Description, input.MapVisibility); err != nil {
 		log.Error().Err(err).Str("groupId", input.GroupID).Msg("❌ Update resource group failed")
 		return err

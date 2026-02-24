@@ -6,12 +6,13 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
 	"github.com/hotkhwan/gateway-api/models/devmod"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const collResourceGroups = "resource_groups"
@@ -50,16 +51,22 @@ func (r *ResourceGroupRepo) EnsureIndexes(ctx context.Context) error {
 	}
 
 	return stomongo.CreateIndexes(ctx, r.collection, []mongo.IndexModel{
+		// groupId เป็น public UUID → unique
+		{
+			Keys:    bson.D{{Key: "groupId", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
 		{Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}}},
 		{Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "resourceType", Value: 1}}},
 	})
 }
 
 // ============================================================
-// Insert
+// Insert — generate groupId (UUID) ก่อน insert
 // ============================================================
 
 func (r *ResourceGroupRepo) Insert(ctx context.Context, group *devmod.ResourceGroup) error {
+	group.GroupID = uuid.New().String()
 	_, err := stomongo.InsertOne(ctx, r.collection, group)
 	if err != nil {
 		if isDuplicateKeyErr(err) {
@@ -71,17 +78,12 @@ func (r *ResourceGroupRepo) Insert(ctx context.Context, group *devmod.ResourceGr
 }
 
 // ============================================================
-// FindByID
+// FindByID — query ด้วย groupId (UUID) ไม่ใช่ _id
 // ============================================================
 
 func (r *ResourceGroupRepo) FindByID(ctx context.Context, groupId string) (*devmod.ResourceGroup, error) {
-	oid, err := primitive.ObjectIDFromHex(groupId)
-	if err != nil {
-		return nil, ErrNotFound
-	}
-
 	var result devmod.ResourceGroup
-	err = stomongo.FindOne(ctx, r.collection, bson.M{"_id": oid}, &result)
+	err := stomongo.FindOne(ctx, r.collection, bson.M{"groupId": groupId}, &result)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrNotFound
@@ -167,30 +169,40 @@ func (r *ResourceGroupRepo) List(ctx context.Context, tenantId, orgId string, op
 }
 
 // ============================================================
-// SetSyncStatus
+// ExistsByNameInOrg — ตรวจสอบชื่อซ้ำใน org เดียวกัน
+// excludeGroupId ใช้ตอน Update เพื่อ exclude ตัวเอง
+// ============================================================
+
+func (r *ResourceGroupRepo) ExistsByNameInOrg(ctx context.Context, orgId, name, excludeGroupId string) (bool, error) {
+	filter := bson.M{"orgId": orgId, "name": name}
+	if excludeGroupId != "" {
+		filter["groupId"] = bson.M{"$ne": excludeGroupId}
+	}
+	count, err := stomongo.Count(ctx, r.collection, filter)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// ============================================================
+// SetSyncStatus — query ด้วย groupId (UUID)
 // ============================================================
 
 func (r *ResourceGroupRepo) SetSyncStatus(ctx context.Context, groupId, status string) error {
-	oid, err := primitive.ObjectIDFromHex(groupId)
-	if err != nil {
-		return ErrNotFound
-	}
-	_, err = stomongo.UpdateOne(ctx, r.collection, bson.M{"_id": oid}, bson.M{
-		"syncStatus": status, "updatedAt": time.Now(),
-	})
+	_, err := stomongo.UpdateOne(ctx, r.collection,
+		bson.M{"groupId": groupId},
+		bson.M{"syncStatus": status, "updatedAt": time.Now()},
+	)
 	return err
 }
 
 // ============================================================
-// Delete — hard delete ลบออกจาก MongoDB ถาวร
+// Delete — hard delete ด้วย groupId (UUID)
 // ============================================================
 
 func (r *ResourceGroupRepo) Delete(ctx context.Context, groupId string) error {
-	oid, err := primitive.ObjectIDFromHex(groupId)
-	if err != nil {
-		return ErrNotFound
-	}
-	res, err := stomongo.DeleteOne(ctx, r.collection, bson.M{"_id": oid})
+	res, err := stomongo.DeleteOne(ctx, r.collection, bson.M{"groupId": groupId})
 	if err != nil {
 		return err
 	}
