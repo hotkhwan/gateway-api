@@ -65,18 +65,16 @@ func RegisterResourceRoutes(router fiber.Router, c *appcontainer.Container) {
 		protected.Patch("/:id", c.ResourceGroupController.Update)
 		protected.Delete("/:id", c.ResourceGroupController.Delete)
 
-		// ---------- Devices in Group (bulk add/remove) ----------
+		// ---------- Devices in Group (list / bulk add / bulk remove) ----------
 		// :resource = resourceType เช่น camera, sensor
+		// GET   → list cameras in group (merge MongoDB metadata)
 		// POST  → bulk add
 		// PATCH → bulk remove
-		protected.All("/:groupId/:resource", middleware.AllowMethods("POST", "PATCH"))
+		protected.All("/:groupId/:resource", middleware.AllowMethods("GET", "POST", "PATCH"))
+		protected.Get("/:groupId/:resource", c.ResourceGroupController.ListCameras)
 		protected.Post("/:groupId/:resource", c.ResourceGroupController.AddDevices)
 		protected.Patch("/:groupId/:resource", c.ResourceGroupController.RemoveDevices)
 
-		// ---------- Group ↔ OrgUnit assign ----------
-		protected.All("/:groupId/assignOu", middleware.AllowMethods("POST", "DELETE"))
-		protected.Post("/:groupId/assignOu", c.ResourceGroupController.AssignOU)
-		protected.Delete("/:groupId/assignOu", c.ResourceGroupController.RemoveOU)
 	})
 }
 

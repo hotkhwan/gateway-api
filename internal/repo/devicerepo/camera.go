@@ -269,6 +269,48 @@ func (r *CameraRepo) ExistsByNameInOrg(ctx context.Context, orgId, name, exclude
 }
 
 // ============================================================
+// FindByCamIDs — fetch multiple cameras by camId list + pagination
+// ============================================================
+
+func (r *CameraRepo) FindByCamIDs(ctx context.Context, camIds []string, search, sortField, sortOrder string, page, perPage int) ([]devmod.CameraMongo, int64, error) {
+	if len(camIds) == 0 {
+		return nil, 0, nil
+	}
+	if page < 1 {
+		page = 1
+	}
+	if perPage <= 0 {
+		perPage = 10
+	}
+	if sortField == "" {
+		sortField = "createAt"
+	}
+	sortVal := -1
+	if sortOrder == "asc" {
+		sortVal = 1
+	}
+
+	filter := bson.M{"camId": bson.M{"$in": camIds}}
+	if search != "" {
+		filter["name"] = bson.M{"$regex": search, "$options": "i"}
+	}
+
+	var results []devmod.CameraMongo
+	if err := stomongo.FindPaginated(ctx, r.collection, filter, stomongo.PaginateOptions{
+		Page:    page,
+		PerPage: perPage,
+		Sort:    bson.D{{Key: sortField, Value: sortVal}},
+	}, &results); err != nil {
+		return nil, 0, err
+	}
+	total, err := stomongo.Count(ctx, r.collection, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	return results, total, nil
+}
+
+// ============================================================
 // FindDuplicateIPs
 // ============================================================
 

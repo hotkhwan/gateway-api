@@ -169,6 +169,52 @@ func (r *ResourceGroupRepo) List(ctx context.Context, tenantId, orgId string, op
 }
 
 // ============================================================
+// FindByGroupIDs — fetch multiple groups by groupId list + pagination
+// ============================================================
+
+func (r *ResourceGroupRepo) FindByGroupIDs(ctx context.Context, tenantId, orgId string, groupIds []string, opts ListOptions) ([]devmod.ResourceGroup, int64, error) {
+	if len(groupIds) == 0 {
+		return nil, 0, nil
+	}
+	if opts.Page < 1 {
+		opts.Page = 1
+	}
+	if opts.PerPages <= 0 {
+		opts.PerPages = 10
+	}
+	if opts.SortField == "" {
+		opts.SortField = "createdAt"
+	}
+	sortVal := -1
+	if opts.SortOrder == "asc" {
+		sortVal = 1
+	}
+
+	filter := bson.M{
+		"tenantId": tenantId,
+		"orgId":    orgId,
+		"groupId":  bson.M{"$in": groupIds},
+	}
+	if opts.Search != "" {
+		filter["name"] = bson.M{"$regex": opts.Search, "$options": "i"}
+	}
+
+	var results []devmod.ResourceGroup
+	if err := stomongo.FindPaginated(ctx, r.collection, filter, stomongo.PaginateOptions{
+		Page:    opts.Page,
+		PerPage: opts.PerPages,
+		Sort:    bson.D{{Key: opts.SortField, Value: sortVal}},
+	}, &results); err != nil {
+		return nil, 0, err
+	}
+	total, err := stomongo.Count(ctx, r.collection, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	return results, total, nil
+}
+
+// ============================================================
 // ExistsByNameInOrg — ตรวจสอบชื่อซ้ำใน org เดียวกัน
 // excludeGroupId ใช้ตอน Update เพื่อ exclude ตัวเอง
 // ============================================================

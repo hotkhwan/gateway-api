@@ -51,5 +51,10 @@ func RegisterAuthzNewRoutes(router fiber.Router, c *app.Container) {
 		orgScoped.Get("/:id/members", c.OrgUnitController.ListMembers)
 		orgScoped.Post("/:id/members", c.OrgUnitController.AssignMembers)
 		orgScoped.Patch("/:id/members", c.OrgUnitController.RemoveMembers)
+
+		// ---------- OrgUnit ↔ ResourceGroup (list / bulk assign / bulk remove) ----------
+		orgScoped.Get("/:unitId/resources", c.OrgUnitResourcesController.ListResourceGroups)
+		orgScoped.Post("/:unitId/resources", c.OrgUnitResourcesController.AssignResourceGroups)
+		orgScoped.Patch("/:unitId/resources", c.OrgUnitResourcesController.RemoveResourceGroups)
 	})
 }

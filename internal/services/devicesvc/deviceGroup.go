@@ -146,6 +146,16 @@ type AssignGroupToOUInput struct {
 	CallerID string
 }
 
+type OUGroupItem struct {
+	GroupID string
+}
+
+type OUGroupBulkResult struct {
+	GroupID string `json:"id"`
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
+}
+
 type CreateDeviceInput struct {
 	TenantID string
 	OrgID    string

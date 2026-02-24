@@ -501,6 +501,86 @@ func (r *RestClient) ListEntityRelationships(
 	return out, nil
 }
 
+func (r *RestClient) ListRelationshipsBySubject(
+	ctx context.Context,
+	tenantId string,
+	subjectType string,
+	subjectId string,
+) ([]Relationship, error) {
+	if err := r.ensure(); err != nil {
+		return nil, err
+	}
+
+	url := fmt.Sprintf("%s/v1/tenants/%s/data/relationships/read", r.baseURL, tenantId)
+
+	payload := map[string]any{
+		"metadata": map[string]any{
+			"schema_version": config.CurrentSchemaVersion,
+			"depth":          50,
+		},
+		"page_size": 200,
+		"filter": map[string]any{
+			"subject": map[string]any{
+				"type": subjectType,
+				"ids":  []string{subjectId},
+			},
+		},
+	}
+
+	bodyBytes, _ := json.Marshal(payload)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := r.httpc.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	b, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		var permifyErr struct {
+			Code int `json:"code"`
+		}
+		if jsonErr := json.Unmarshal(b, &permifyErr); jsonErr == nil && permifyErr.Code == 5 {
+			return []Relationship{}, nil
+		}
+		return nil, fmt.Errorf("permify read by subject failed: %s", string(b))
+	}
+
+	var result struct {
+		Tuples []struct {
+			Entity struct {
+				Type string `json:"type"`
+				Id   string `json:"id"`
+			} `json:"entity"`
+			Relation string `json:"relation"`
+			Subject  struct {
+				Type string `json:"type"`
+				Id   string `json:"id"`
+			} `json:"subject"`
+		} `json:"tuples"`
+	}
+
+	if err := json.Unmarshal(b, &result); err != nil {
+		return nil, err
+	}
+
+	out := make([]Relationship, 0, len(result.Tuples))
+	for _, t := range result.Tuples {
+		out = append(out, Relationship{
+			Entity:   EntityRef{Type: t.Entity.Type, ID: t.Entity.Id},
+			Relation: t.Relation,
+			Subject:  SubjectRef{Type: t.Subject.Type, ID: t.Subject.Id},
+		})
+	}
+	return out, nil
+}
+
 func (r *RestClient) DeleteSpecificTupleWithRelation(
 	ctx context.Context,
 	tenantId, entityType, entityId, relation, subjectType, subjectId string,

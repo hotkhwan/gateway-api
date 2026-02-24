@@ -60,6 +60,64 @@ func buildDeviceBulkMessage(inserted, removed, duplicates, errors int) string {
 }
 
 // ============================================================
+// GET /resources/groups/:groupId/:resource
+// @Summary      List cameras in resource group
+// @Tags         ResourceGroups
+// @Security     BearerAuth
+// @Produce      json
+// @Param        groupId   path   string  true   "group id"
+// @Param        resource  path   string  true   "resource type (camera)"
+// @Param        search    query  string  false  "search by name"
+// @Param        page      query  int     false  "page"      default(1)
+// @Param        perPages  query  int     false  "per page"  default(10)
+// @Param        sortField query  string  false  "sort field"
+// @Param        sortOrder query  string  false  "asc|desc"
+// @Success      200  {object}  map[string]interface{}
+// @Router       /api/v1/resources/groups/{groupId}/{resource} [get]
+// ============================================================
+
+func (ctrl *ResourceGroupController) ListCameras(c *fiber.Ctx) error {
+	tenantId, orgId, _ := ctrl.mustLocals(c)
+	groupId := c.Params("groupId")
+	resource := c.Params("resource")
+	log := logger.FromCtx(c.UserContext(), "deviceapi", "ResourceGroupController.ListCameras")
+
+	if !validResource(resource) {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "unsupported resource type: " + resource})
+	}
+
+	result, err := ctrl.service.ListCamerasInGroup(
+		c.UserContext(),
+		tenantId, orgId, groupId,
+		devicesvc.ListInGroupParams{
+			Search:    c.Query("search"),
+			Page:      c.QueryInt("page", 1),
+			PerPage:   c.QueryInt("perPages", 10),
+			SortField: c.Query("sortField", "createAt"),
+			SortOrder: c.Query("sortOrder", "desc"),
+		},
+		ctrl.camRepo,
+	)
+	if err != nil {
+		log.Error().Err(err).Str("groupId", groupId).Msg("❌ ListCamerasInGroup failed")
+		return handleErr(c, err)
+	}
+
+	return c.JSON(fiber.Map{
+		"code":    gmod.CodeSuccess,
+		"message": "cameras fetched successfully",
+		"status":  true,
+		"details": result.Items,
+		"pagination": fiber.Map{
+			"page":         result.Page,
+			"perPages":     result.PerPage,
+			"totalRecords": result.TotalRecords,
+			"totalPages":   result.TotalPages,
+		},
+	})
+}
+
+// ============================================================
 // POST /devices/groups/:groupId/devices
 // @Summary      Add devices to group (bulk)
 // @Description  Bulk add devices into a device group. Validates cross-org and deviceType match.

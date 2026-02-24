@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/models/devmod"
 )
 
@@ -75,6 +77,172 @@ func (s *ResourceGroupService) RemoveGroupFromOU(ctx context.Context, input Assi
 		"resourceGroup", input.GroupID, input.Relation,
 		"orgUnit", input.OUID,
 	)
+}
+
+// ============================================================
+// BulkAssignGroupsToOU — bulk assign resourceGroups → OU
+// ============================================================
+
+func (s *ResourceGroupService) BulkAssignGroupsToOU(
+	ctx context.Context,
+	tenantId, orgId, ouId, relation, callerUserId string,
+	items []OUGroupItem,
+) ([]OUGroupBulkResult, int, int, error) {
+
+	log := logger.FromCtx(ctx, "devicesvc", "BulkAssignGroupsToOU")
+
+	if tenantId == "" || orgId == "" || ouId == "" || callerUserId == "" {
+		return nil, 0, 0, ErrInvalidArgs
+	}
+	if !validOURelations[relation] {
+		return nil, 0, 0, fmt.Errorf("%w: relation must be viewer|editor|deleter", ErrInvalidArgs)
+	}
+
+	// Permission: manage OU หรือ manage org
+	if ouErr := s.guardManageOU(ctx, tenantId, ouId, callerUserId); ouErr != nil {
+		if orgErr := s.guardManageOrg(ctx, tenantId, orgId, callerUserId); orgErr != nil {
+			return nil, 0, 0, ErrForbidden
+		}
+	}
+
+	results := make([]OUGroupBulkResult, 0, len(items))
+	tuples := make([]map[string]any, 0, len(items))
+	inserted := 0
+	duplicates := 0
+
+	for _, item := range items {
+		// guard: resourceGroup ต้องมีในระบบและ belong to org
+		if _, err := s.groupRepo.FindByIDAndOrg(ctx, item.GroupID, tenantId, orgId); err != nil {
+			results = append(results, OUGroupBulkResult{
+				GroupID: item.GroupID,
+				Success: false,
+				Error:   "resourceGroupId not found: " + item.GroupID,
+			})
+			continue
+		}
+
+		// duplicate check via Permify
+		isDup, err := s.authzClient.CheckPermissionWithSchemaVersion(
+			ctx, tenantId, config.CurrentSchemaVersion,
+			"resourceGroup", item.GroupID, relation,
+			"orgUnit", ouId,
+		)
+		if err == nil && isDup {
+			results = append(results, OUGroupBulkResult{
+				GroupID: item.GroupID,
+				Success: false,
+				Error:   "already assigned to this unit",
+			})
+			duplicates++
+			continue
+		}
+
+		tuples = append(tuples, tupleGroupOU(item.GroupID, ouId, relation))
+		results = append(results, OUGroupBulkResult{GroupID: item.GroupID, Success: true})
+		inserted++
+	}
+
+	if len(tuples) > 0 {
+		if err := s.authzClient.WriteTuples(ctx, tenantId, tuples); err != nil {
+			return nil, 0, 0, fmt.Errorf("%w: %v", ErrPermifySyncFailed, err)
+		}
+	}
+
+	log.Info().
+		Str("ouId", ouId).
+		Int("inserted", inserted).
+		Int("duplicates", duplicates).
+		Msg("✅ BulkAssignGroupsToOU complete")
+
+	return results, inserted, duplicates, nil
+}
+
+// ============================================================
+// BulkRemoveGroupsFromOU — bulk remove resourceGroups ← OU
+// ============================================================
+
+func (s *ResourceGroupService) BulkRemoveGroupsFromOU(
+	ctx context.Context,
+	tenantId, orgId, ouId, relation, callerUserId string,
+	items []OUGroupItem,
+) ([]OUGroupBulkResult, int, error) {
+
+	log := logger.FromCtx(ctx, "devicesvc", "BulkRemoveGroupsFromOU")
+
+	if tenantId == "" || orgId == "" || ouId == "" || callerUserId == "" {
+		return nil, 0, ErrInvalidArgs
+	}
+	if !validOURelations[relation] {
+		return nil, 0, fmt.Errorf("%w: relation must be viewer|editor|deleter", ErrInvalidArgs)
+	}
+
+	// Permission: manage OU หรือ manage org
+	if ouErr := s.guardManageOU(ctx, tenantId, ouId, callerUserId); ouErr != nil {
+		if orgErr := s.guardManageOrg(ctx, tenantId, orgId, callerUserId); orgErr != nil {
+			return nil, 0, ErrForbidden
+		}
+	}
+
+	results := make([]OUGroupBulkResult, 0, len(items))
+	removed := 0
+
+	for _, item := range items {
+		// guard: resourceGroup ต้องมีในระบบและ belong to org
+		if _, err := s.groupRepo.FindByIDAndOrg(ctx, item.GroupID, tenantId, orgId); err != nil {
+			results = append(results, OUGroupBulkResult{
+				GroupID: item.GroupID,
+				Success: false,
+				Error:   "resourceGroupId not found: " + item.GroupID,
+			})
+			continue
+		}
+
+		// check ว่า assigned จริงก่อนลบ
+		inOU, err := s.authzClient.CheckPermissionWithSchemaVersion(
+			ctx, tenantId, config.CurrentSchemaVersion,
+			"resourceGroup", item.GroupID, relation,
+			"orgUnit", ouId,
+		)
+		if err != nil {
+			results = append(results, OUGroupBulkResult{
+				GroupID: item.GroupID,
+				Success: false,
+				Error:   fmt.Sprintf("permission check error: %v", err),
+			})
+			continue
+		}
+		if !inOU {
+			results = append(results, OUGroupBulkResult{
+				GroupID: item.GroupID,
+				Success: false,
+				Error:   "resourceGroup not assigned to this unit",
+			})
+			continue
+		}
+
+		if err := s.authzClient.DeleteSpecificTupleWithRelation(
+			ctx, tenantId,
+			"resourceGroup", item.GroupID, relation,
+			"orgUnit", ouId,
+		); err != nil {
+			results = append(results, OUGroupBulkResult{
+				GroupID: item.GroupID,
+				Success: false,
+				Error:   err.Error(),
+			})
+			continue
+		}
+
+		results = append(results, OUGroupBulkResult{GroupID: item.GroupID, Success: true})
+		removed++
+	}
+
+	log.Info().
+		Str("ouId", ouId).
+		Int("removed", removed).
+		Msg("✅ BulkRemoveGroupsFromOU complete")
+
+	return results, removed, nil
 }
 
 // CreateDevice — ✅ signature ใหม่ + ✅ Roi convert [][]map[string]string → []interface{}

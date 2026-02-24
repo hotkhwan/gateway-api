@@ -27,12 +27,13 @@ type Container struct {
 	IDClient    *authgw.Client
 
 	// ===== Authz domain =====
-	OrgService        *authzsvc.OrganizationService
-	OrgUnitService    *authzsvc.OrgUnitService
-	OrgController     *authznewapi.OrganizationController
-	OrgUnitController *authznewapi.OrgUnitController
+	OrgService                  *authzsvc.OrganizationService
+	OrgUnitService              *authzsvc.OrgUnitService
+	OrgController               *authznewapi.OrganizationController
+	OrgUnitController           *authznewapi.OrgUnitController
+	OrgUnitResourcesController  *authznewapi.OrgUnitResourcesController
 
-	// ===== Device: ResourceGroup domain =====
+	// ===== Device: ResourceGroup domain ====
 	ResourceGroupService    *devicesvc.ResourceGroupService
 	ResourceGroupController *deviceapi.ResourceGroupController
 
@@ -97,4 +98,6 @@ func (c *Container) buildDevice() {
 	// Camera (BSON internal, _id.Hex() → Permify)
 	c.CameraService = devicesvc.NewCameraService(camRepo, c.AuthzClient)
 	c.CameraController = deviceapi.NewCameraController(c.CameraService)
+
+	c.OrgUnitResourcesController = authznewapi.NewOrgUnitResourcesController(c.ResourceGroupService)
 }

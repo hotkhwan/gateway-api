@@ -35,6 +35,14 @@ type Client interface {
 		entityId string,
 	) ([]Relationship, error)
 
+	// ListRelationshipsBySubject — filter tuples WHERE subject = subjectType:subjectId
+	ListRelationshipsBySubject(
+		ctx context.Context,
+		tenantId string,
+		subjectType string,
+		subjectId string,
+	) ([]Relationship, error)
+
 	// internal/gateways/authzgw/client.go — interface
 	DeleteSpecificTupleWithRelation(ctx context.Context, tenantId, entityType, entityId, relation, subjectType, subjectId string) error
 }
@@ -258,6 +266,18 @@ func (c *HybridClient) ListEntityRelationships(
 		return c.rest.ListEntityRelationships(ctx, tenantId, entityType, entityId)
 	}
 
+	return nil, ErrNoAuthzClient
+}
+
+func (c *HybridClient) ListRelationshipsBySubject(
+	ctx context.Context,
+	tenantId string,
+	subjectType string,
+	subjectId string,
+) ([]Relationship, error) {
+	if c.rest != nil {
+		return c.rest.ListRelationshipsBySubject(ctx, tenantId, subjectType, subjectId)
+	}
 	return nil, ErrNoAuthzClient
 }
 
