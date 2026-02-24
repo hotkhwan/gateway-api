@@ -58,24 +58,24 @@ func RegisterResourceRoutes(router fiber.Router, c *appcontainer.Container) {
 
 		// CRUD
 		protected.All("/", middleware.AllowMethods("GET", "POST"))
-		protected.Get("/", c.DeviceGroupController.List)
-		protected.Post("/", c.DeviceGroupController.Create)
+		protected.Get("/", c.ResourceGroupController.List)
+		protected.Post("/", c.ResourceGroupController.Create)
 
 		protected.All("/:id", middleware.AllowMethods("PATCH", "DELETE"))
-		// protected.Patch("/:id", c.DeviceGroupController.Update)
-		protected.Delete("/:id", c.DeviceGroupController.Delete)
+		// protected.Patch("/:id", c.ResourceGroupController.Update)
+		protected.Delete("/:id", c.ResourceGroupController.Delete)
 
 		// ---------- Devices in Group (bulk add/remove) ----------
 		// POST  → bulk add cameras to group
 		// PATCH → bulk remove cameras from group
 		protected.All("/:groupId/devices", middleware.AllowMethods("POST", "PATCH"))
-		protected.Post("/:groupId/devices", c.DeviceGroupController.AddDevices)
-		protected.Patch("/:groupId/devices", c.DeviceGroupController.RemoveDevices)
+		protected.Post("/:groupId/devices", c.ResourceGroupController.AddDevices)
+		protected.Patch("/:groupId/devices", c.ResourceGroupController.RemoveDevices)
 
 		// ---------- Group ↔ OrgUnit assign ----------
 		protected.All("/:groupId/assignOu", middleware.AllowMethods("POST", "DELETE"))
-		protected.Post("/:groupId/assignOu", c.DeviceGroupController.AssignOU)
-		protected.Delete("/:groupId/assignOu", c.DeviceGroupController.RemoveOU)
+		protected.Post("/:groupId/assignOu", c.ResourceGroupController.AssignOU)
+		protected.Delete("/:groupId/assignOu", c.ResourceGroupController.RemoveOU)
 	})
 }
 

@@ -14,7 +14,7 @@ var validOURelations = map[string]bool{
 	"deleter": true,
 }
 
-func (s *DeviceGroupService) AddDeviceToGroup(ctx context.Context, input AddDeviceToGroupInput, camRepo CameraRepo) error {
+func (s *ResourceGroupService) AddDeviceToGroup(ctx context.Context, input AddDeviceToGroupInput, camRepo CameraRepo) error {
 	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func (s *DeviceGroupService) AddDeviceToGroup(ctx context.Context, input AddDevi
 	return nil
 }
 
-func (s *DeviceGroupService) RemoveDeviceFromGroup(ctx context.Context, input AddDeviceToGroupInput, camRepo CameraRepo) error {
+func (s *ResourceGroupService) RemoveDeviceFromGroup(ctx context.Context, input AddDeviceToGroupInput, camRepo CameraRepo) error {
 	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func (s *DeviceGroupService) RemoveDeviceFromGroup(ctx context.Context, input Ad
 	return camRepo.RemoveGroupID(ctx, input.DeviceID, input.GroupID)
 }
 
-func (s *DeviceGroupService) AssignGroupToOU(ctx context.Context, input AssignGroupToOUInput) error {
+func (s *ResourceGroupService) AssignGroupToOU(ctx context.Context, input AssignGroupToOUInput) error {
 	if !validOURelations[input.Relation] {
 		return fmt.Errorf("invalid relation '%s': must be viewer|editor|deleter", input.Relation)
 	}
@@ -71,7 +71,7 @@ func (s *DeviceGroupService) AssignGroupToOU(ctx context.Context, input AssignGr
 	})
 }
 
-func (s *DeviceGroupService) RemoveGroupFromOU(ctx context.Context, input AssignGroupToOUInput) error {
+func (s *ResourceGroupService) RemoveGroupFromOU(ctx context.Context, input AssignGroupToOUInput) error {
 	if ouErr := s.guardManageOU(ctx, input.TenantID, input.OUID, input.CallerID); ouErr != nil {
 		if orgErr := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); orgErr != nil {
 			return ErrForbidden
@@ -85,7 +85,7 @@ func (s *DeviceGroupService) RemoveGroupFromOU(ctx context.Context, input Assign
 }
 
 // CreateDevice — ✅ signature ใหม่ + ✅ Roi convert [][]map[string]string → []interface{}
-func (s *DeviceGroupService) CreateDevice(ctx context.Context, input CreateDeviceInput, camRepo CameraRepo) (string, error) {
+func (s *ResourceGroupService) CreateDevice(ctx context.Context, input CreateDeviceInput, camRepo CameraRepo) (string, error) {
 	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
 		return "", err
 	}

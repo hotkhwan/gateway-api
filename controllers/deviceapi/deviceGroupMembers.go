@@ -49,7 +49,7 @@ func buildDeviceBulkMessage(inserted, removed, duplicates, errors int) string {
 // @Router       /api/v1/devices/groups/{groupId}/devices [post]
 // ============================================================
 
-func (ctrl *DeviceGroupController) AddDevices(c *fiber.Ctx) error {
+func (ctrl *ResourceGroupController) AddDevices(c *fiber.Ctx) error {
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("groupId")
 	log := logger.FromCtx(c.UserContext(), "deviceapi", "DeviceGroupController.AddDevices")
@@ -122,7 +122,7 @@ func (ctrl *DeviceGroupController) AddDevices(c *fiber.Ctx) error {
 // @Router       /api/v1/devices/groups/{groupId}/devices [patch]
 // ============================================================
 
-func (ctrl *DeviceGroupController) RemoveDevices(c *fiber.Ctx) error {
+func (ctrl *ResourceGroupController) RemoveDevices(c *fiber.Ctx) error {
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("groupId")
 	log := logger.FromCtx(c.UserContext(), "deviceapi", "DeviceGroupController.RemoveDevices")

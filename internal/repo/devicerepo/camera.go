@@ -284,6 +284,23 @@ func (r *CameraRepo) List(ctx context.Context, tenantId, orgId string, opts Came
 }
 
 // ============================================================
+// ExistsByNameInOrg — ตรวจสอบชื่อกล้องซ้ำใน org เดียวกัน
+// excludeCamId ใช้ตอน Update เพื่อ exclude ตัวเอง
+// ============================================================
+
+func (r *CameraRepo) ExistsByNameInOrg(ctx context.Context, orgId, name, excludeCamId string) (bool, error) {
+	filter := bson.M{"orgId": orgId, "name": name}
+	if excludeCamId != "" {
+		filter["camId"] = bson.M{"$ne": excludeCamId}
+	}
+	count, err := stomongo.Count(ctx, r.collection, filter)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// ============================================================
 // FindDuplicateIPs
 // ============================================================
 

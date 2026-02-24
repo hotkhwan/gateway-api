@@ -20,8 +20,8 @@ type UpdateGroupInput struct {
 }
 
 // Update — แก้ name / description / mapVisibility
-func (s *DeviceGroupService) Update(ctx context.Context, input UpdateGroupInput) error {
-	log := logger.FromCtx(ctx, "devicesvc", "DeviceGroupService.Update")
+func (s *ResourceGroupService) Update(ctx context.Context, input UpdateGroupInput) error {
+	log := logger.FromCtx(ctx, "devicesvc", "ResourceGroupService.Update")
 
 	input.Name = strings.TrimSpace(input.Name)
 	if input.Name == "" {
@@ -38,7 +38,7 @@ func (s *DeviceGroupService) Update(ctx context.Context, input UpdateGroupInput)
 	}
 
 	if err := s.groupRepo.Update(ctx, input.GroupID, input.Name, input.Description, input.MapVisibility); err != nil {
-		log.Error().Err(err).Str("groupId", input.GroupID).Msg("❌ Update group failed")
+		log.Error().Err(err).Str("groupId", input.GroupID).Msg("❌ Update resource group failed")
 		return err
 	}
 

@@ -499,7 +499,7 @@ func ResetTenant(ctx context.Context, tenantId string) (*ResetTenantResult, erro
 	entityTypes := []string{
 		"organization",
 		"orgUnit",
-		"deviceGroup",
+		"resourceGroup",
 		"device",
 		"menu",
 		"serviceAccount",

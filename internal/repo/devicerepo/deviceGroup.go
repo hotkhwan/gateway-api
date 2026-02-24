@@ -14,27 +14,28 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-const collDeviceGroups = "device_groups"
+const collResourceGroups = "resource_groups"
 
 var (
-	ErrNotFound               = errors.New("device group not found")
-	ErrGroupNameAlreadyExists = errors.New("device group name already exists in this org")
-	ErrCrossOrgAccess         = errors.New("device group does not belong to this organization")
+	ErrNotFound                = errors.New("resource group not found")
+	ErrGroupNameAlreadyExists  = errors.New("resource group name already exists in this org")
+	ErrCrossOrgAccess          = errors.New("resource group does not belong to this organization")
+	ErrCameraNameAlreadyExists = errors.New("camera name already exists in this org")
 )
 
-type DeviceGroupRepo struct {
+type ResourceGroupRepo struct {
 	collection string
 }
 
-func NewDeviceGroupRepo() *DeviceGroupRepo {
-	return &DeviceGroupRepo{collection: collDeviceGroups}
+func NewResourceGroupRepo() *ResourceGroupRepo {
+	return &ResourceGroupRepo{collection: collResourceGroups}
 }
 
 // ============================================================
 // EnsureIndexes
 // ============================================================
 
-func (r *DeviceGroupRepo) EnsureIndexes(ctx context.Context) error {
+func (r *ResourceGroupRepo) EnsureIndexes(ctx context.Context) error {
 	if err := stomongo.EnsureUniqueIndex(
 		ctx,
 		r.collection,
@@ -50,7 +51,7 @@ func (r *DeviceGroupRepo) EnsureIndexes(ctx context.Context) error {
 
 	return stomongo.CreateIndexes(ctx, r.collection, []mongo.IndexModel{
 		{Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}}},
-		{Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "deviceType", Value: 1}}},
+		{Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "resourceType", Value: 1}}},
 	})
 }
 
@@ -58,7 +59,7 @@ func (r *DeviceGroupRepo) EnsureIndexes(ctx context.Context) error {
 // Insert
 // ============================================================
 
-func (r *DeviceGroupRepo) Insert(ctx context.Context, group *devmod.DeviceGroup) error {
+func (r *ResourceGroupRepo) Insert(ctx context.Context, group *devmod.ResourceGroup) error {
 	_, err := stomongo.InsertOne(ctx, r.collection, group)
 	if err != nil {
 		if isDuplicateKeyErr(err) {
@@ -73,17 +74,14 @@ func (r *DeviceGroupRepo) Insert(ctx context.Context, group *devmod.DeviceGroup)
 // FindByID
 // ============================================================
 
-func (r *DeviceGroupRepo) FindByID(ctx context.Context, groupId string) (*devmod.DeviceGroup, error) {
+func (r *ResourceGroupRepo) FindByID(ctx context.Context, groupId string) (*devmod.ResourceGroup, error) {
 	oid, err := primitive.ObjectIDFromHex(groupId)
 	if err != nil {
 		return nil, ErrNotFound
 	}
 
-	var result devmod.DeviceGroup
-	err = stomongo.FindOne(ctx, r.collection, bson.M{
-		"_id":       oid,
-		"isDeleted": bson.M{"$ne": true},
-	}, &result)
+	var result devmod.ResourceGroup
+	err = stomongo.FindOne(ctx, r.collection, bson.M{"_id": oid}, &result)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrNotFound
@@ -97,7 +95,7 @@ func (r *DeviceGroupRepo) FindByID(ctx context.Context, groupId string) (*devmod
 // FindByIDAndOrg — cross-org protection
 // ============================================================
 
-func (r *DeviceGroupRepo) FindByIDAndOrg(ctx context.Context, groupId, tenantId, orgId string) (*devmod.DeviceGroup, error) {
+func (r *ResourceGroupRepo) FindByIDAndOrg(ctx context.Context, groupId, tenantId, orgId string) (*devmod.ResourceGroup, error) {
 	group, err := r.FindByID(ctx, groupId)
 	if err != nil {
 		return nil, err
@@ -113,19 +111,19 @@ func (r *DeviceGroupRepo) FindByIDAndOrg(ctx context.Context, groupId, tenantId,
 // ============================================================
 
 type ListOptions struct {
-	Search     string // regex match on name
-	DeviceType string // filter by deviceType ("" = all)
-	Page       int
-	PerPages   int
-	SortField  string
-	SortOrder  string // "asc" | "desc"
+	Search       string
+	ResourceType string // filter by resourceType ("" = all)
+	Page         int
+	PerPages     int
+	SortField    string
+	SortOrder    string // "asc" | "desc"
 }
 
 // ============================================================
 // List
 // ============================================================
 
-func (r *DeviceGroupRepo) List(ctx context.Context, tenantId, orgId string, opts ListOptions) ([]devmod.DeviceGroup, int64, error) {
+func (r *ResourceGroupRepo) List(ctx context.Context, tenantId, orgId string, opts ListOptions) ([]devmod.ResourceGroup, int64, error) {
 	if opts.Page < 1 {
 		opts.Page = 1
 	}
@@ -141,18 +139,17 @@ func (r *DeviceGroupRepo) List(ctx context.Context, tenantId, orgId string, opts
 	}
 
 	filter := bson.M{
-		"tenantId":  tenantId,
-		"orgId":     orgId,
-		"isDeleted": bson.M{"$ne": true},
+		"tenantId": tenantId,
+		"orgId":    orgId,
 	}
 	if opts.Search != "" {
 		filter["name"] = bson.M{"$regex": opts.Search, "$options": "i"}
 	}
-	if opts.DeviceType != "" {
-		filter["deviceType"] = opts.DeviceType
+	if opts.ResourceType != "" {
+		filter["resourceType"] = opts.ResourceType
 	}
 
-	var results []devmod.DeviceGroup
+	var results []devmod.ResourceGroup
 	if err := stomongo.FindPaginated(ctx, r.collection, filter, stomongo.PaginateOptions{
 		Page:    opts.Page,
 		PerPage: opts.PerPages,
@@ -173,33 +170,31 @@ func (r *DeviceGroupRepo) List(ctx context.Context, tenantId, orgId string, opts
 // SetSyncStatus
 // ============================================================
 
-func (r *DeviceGroupRepo) SetSyncStatus(ctx context.Context, groupId, status string) error {
+func (r *ResourceGroupRepo) SetSyncStatus(ctx context.Context, groupId, status string) error {
 	oid, err := primitive.ObjectIDFromHex(groupId)
 	if err != nil {
 		return ErrNotFound
 	}
 	_, err = stomongo.UpdateOne(ctx, r.collection, bson.M{"_id": oid}, bson.M{
-		"$set": bson.M{"syncStatus": status, "updatedAt": time.Now()},
+		"syncStatus": status, "updatedAt": time.Now(),
 	})
 	return err
 }
 
 // ============================================================
-// SoftDelete
+// Delete — hard delete ลบออกจาก MongoDB ถาวร
 // ============================================================
 
-func (r *DeviceGroupRepo) Delete(ctx context.Context, groupId string) error {
+func (r *ResourceGroupRepo) Delete(ctx context.Context, groupId string) error {
 	oid, err := primitive.ObjectIDFromHex(groupId)
 	if err != nil {
 		return ErrNotFound
 	}
-	res, err := stomongo.UpdateOne(ctx, r.collection, bson.M{"_id": oid}, bson.M{
-		"$set": bson.M{"isDeleted": true, "updatedAt": time.Now()},
-	})
+	res, err := stomongo.DeleteOne(ctx, r.collection, bson.M{"_id": oid})
 	if err != nil {
 		return err
 	}
-	if res.MatchedCount == 0 {
+	if res.DeletedCount == 0 {
 		return ErrNotFound
 	}
 	return nil

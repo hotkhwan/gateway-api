@@ -24,10 +24,10 @@ type GroupDeviceBulkResult struct {
 }
 
 // ============================================================
-// AddDevicesToGroup — bulk add (ล้อ AssignUsersToOU)
+// AddDevicesToGroup — bulk add
 // ============================================================
 
-func (s *DeviceGroupService) AddDevicesToGroup(
+func (s *ResourceGroupService) AddDevicesToGroup(
 	ctx context.Context,
 	tenantId string,
 	orgId string,
@@ -67,29 +67,6 @@ func (s *DeviceGroupService) AddDevicesToGroup(
 		return nil, 0, 0, err
 	}
 
-	// 3) Get existing devices in group from Permify
-	rels, err := s.authzClient.ListEntityRelationships(ctx, tenantId, "deviceGroup", groupId)
-	if err != nil {
-		return nil, 0, 0, fmt.Errorf("list relationships error: %w", err)
-	}
-
-	// build existing set: deviceId → true
-	existing := make(map[string]bool)
-	for _, r := range rels {
-		if r.Relation == "parentGroup" {
-			// subject is device:<id> but stored as entity side in our tuple
-			// ตรวจจาก device#parentGroup@deviceGroup:<groupId>
-			// so we read subject type=device
-		}
-		// ✅ tuple: device#parentGroup@deviceGroup → subject.type=deviceGroup, entity.type=device
-		// ListEntityRelationships ดึงโดย entity=deviceGroup ดังนั้นได้ tuples ที่ deviceGroup เป็น entity
-		// ที่ถูกต้องคือ: device(entity)#parentGroup@deviceGroup(subject) → ต้องดึงจาก entity=device
-		// ดังนั้นใช้ camRepo เช็ค groupId แทน
-		_ = r
-	}
-	// ✅ ใช้ camRepo ตรวจซ้ำจาก mongo แทน (groupIds field)
-	_ = existing
-
 	results := make([]GroupDeviceBulkResult, 0, len(devices))
 	tuples := make([]map[string]any, 0, len(devices))
 	inserted := 0
@@ -115,14 +92,14 @@ func (s *DeviceGroupService) AddDevicesToGroup(
 			continue
 		}
 
-		// deviceType filter: ถ้า group กำหนด deviceType ให้ตรวจ match
-		if group.DeviceType != "" {
+		// resourceType filter: ถ้า group กำหนด resourceType ให้ตรวจ match
+		if group.ResourceType != "" {
 			devType, err := camRepo.GetDeviceType(ctx, d.DeviceID)
-			if err == nil && devType != group.DeviceType {
+			if err == nil && devType != group.ResourceType {
 				results = append(results, GroupDeviceBulkResult{
 					DeviceID: d.DeviceID,
 					Success:  false,
-					Error:    fmt.Sprintf("device type '%s' does not match group type '%s'", devType, group.DeviceType),
+					Error:    fmt.Sprintf("device type '%s' does not match group resourceType '%s'", devType, group.ResourceType),
 				})
 				continue
 			}
@@ -177,10 +154,10 @@ func (s *DeviceGroupService) AddDevicesToGroup(
 }
 
 // ============================================================
-// RemoveDevicesFromGroup — bulk remove (ล้อ RemoveUsersFromOU)
+// RemoveDevicesFromGroup — bulk remove
 // ============================================================
 
-func (s *DeviceGroupService) RemoveDevicesFromGroup(
+func (s *ResourceGroupService) RemoveDevicesFromGroup(
 	ctx context.Context,
 	tenantId string,
 	orgId string,
@@ -238,7 +215,7 @@ func (s *DeviceGroupService) RemoveDevicesFromGroup(
 		if err := s.authzClient.DeleteSpecificTupleWithRelation(
 			ctx, tenantId,
 			"device", d.DeviceID, "parentGroup",
-			"deviceGroup", groupId,
+			"resourceGroup", groupId,
 		); err != nil {
 			results = append(results, GroupDeviceBulkResult{
 				DeviceID: d.DeviceID,

@@ -35,6 +35,9 @@ func RegisterAuthzNewRoutes(router fiber.Router, c *app.Container) {
 		protected.All("/users/invite", middleware.AllowMethods("POST"))
 		protected.Post("/users/invite", middleware.ActiveOrg(), c.OrgController.Invite)
 
+		protected.All("/users/remove", middleware.AllowMethods("PATCH"))
+		protected.Patch("/users/remove", middleware.ActiveOrg(), c.OrgController.RemoveMembers)
+
 		protected.All("/users/members", middleware.AllowMethods("GET"))
 		protected.Get("/users/members", middleware.ActiveOrg(), c.OrgController.ListMembers)
 

@@ -33,8 +33,8 @@ type Container struct {
 	OrgUnitController *authznewapi.OrgUnitController
 
 	// ===== Device: ResourceGroup domain =====
-	DeviceGroupService    *devicesvc.DeviceGroupService
-	DeviceGroupController *deviceapi.DeviceGroupController
+	ResourceGroupService    *devicesvc.ResourceGroupService
+	ResourceGroupController *deviceapi.ResourceGroupController
 
 	// ===== Device: Camera domain =====
 	// resourceType = "camera" — BSON _id internal, ใช้ _id.Hex() ใน Permify
@@ -87,12 +87,12 @@ func (c *Container) buildAuthz() {
 // ============================================================
 
 func (c *Container) buildDevice() {
-	groupRepo := devicerepo.NewDeviceGroupRepo()
+	groupRepo := devicerepo.NewResourceGroupRepo()
 	camRepo := devicerepo.NewCameraRepo()
 
 	// ResourceGroup (UUID external)
-	c.DeviceGroupService = devicesvc.NewDeviceGroupService(groupRepo, c.AuthzClient)
-	c.DeviceGroupController = deviceapi.NewDeviceGroupController(c.DeviceGroupService, camRepo)
+	c.ResourceGroupService = devicesvc.NewResourceGroupService(groupRepo, c.AuthzClient)
+	c.ResourceGroupController = deviceapi.NewResourceGroupController(c.ResourceGroupService, camRepo)
 
 	// Camera (BSON internal, _id.Hex() → Permify)
 	c.CameraService = devicesvc.NewCameraService(camRepo, c.AuthzClient)

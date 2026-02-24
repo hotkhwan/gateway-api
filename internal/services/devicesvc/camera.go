@@ -67,6 +67,13 @@ func (s *CameraService) Create(ctx context.Context, input devmod.CreateCameraInp
 	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
 		return nil, err
 	}
+	exists, err := s.repo.ExistsByNameInOrg(ctx, input.OrgID, input.Name, "")
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, ErrCameraNameAlreadyExists
+	}
 	camId, err := s.repo.Insert(ctx, input)
 	if err != nil {
 		log.Error().Err(err).Msg("❌ Insert camera failed")
@@ -186,6 +193,16 @@ func (s *CameraService) Update(ctx context.Context, tenantId, orgId, callerID, c
 	}
 	if _, err := s.repo.FindByCamIDAndOrg(ctx, camId, orgId); err != nil {
 		return err
+	}
+	if input.Name != "" {
+		input.Name = strings.TrimSpace(input.Name)
+		exists, err := s.repo.ExistsByNameInOrg(ctx, orgId, input.Name, camId)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return ErrCameraNameAlreadyExists
+		}
 	}
 	if err := s.repo.Update(ctx, camId, input); err != nil {
 		log.Error().Err(err).Str("camId", camId).Msg("❌ Update failed")

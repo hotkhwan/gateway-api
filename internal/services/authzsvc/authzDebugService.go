@@ -95,7 +95,7 @@ func (s *AuthzDebugService) FactoryOrgBootstrap(
 // internal/services/authzsvc/authzDebugService.go
 
 var allEntityTypes = []string{
-	"organization", "orgUnit", "deviceGroup", "device", "menu", "serviceAccount",
+	"organization", "orgUnit", "resourceGroup", "device", "menu", "serviceAccount",
 }
 
 func (s *AuthzDebugService) ListAllTuples(ctx context.Context, tenantId string) ([]PermifyTupleRow, error) {

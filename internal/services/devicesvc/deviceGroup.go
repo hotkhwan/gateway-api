@@ -17,16 +17,16 @@ import (
 // Service struct + constructor
 // ============================================================
 
-type DeviceGroupService struct {
-	groupRepo   *devicerepo.DeviceGroupRepo
+type ResourceGroupService struct {
+	groupRepo   *devicerepo.ResourceGroupRepo
 	authzClient authzgw.Client
 }
 
-func NewDeviceGroupService(
-	groupRepo *devicerepo.DeviceGroupRepo,
+func NewResourceGroupService(
+	groupRepo *devicerepo.ResourceGroupRepo,
 	authzClient authzgw.Client,
-) *DeviceGroupService {
-	return &DeviceGroupService{
+) *ResourceGroupService {
+	return &ResourceGroupService{
 		groupRepo:   groupRepo,
 		authzClient: authzClient,
 	}
@@ -36,7 +36,7 @@ func NewDeviceGroupService(
 // Permission guards
 // ============================================================
 
-func (s *DeviceGroupService) guardManageOrg(ctx context.Context, tenantId, orgId, callerUserId string) error {
+func (s *ResourceGroupService) guardManageOrg(ctx context.Context, tenantId, orgId, callerUserId string) error {
 	allowed, err := s.authzClient.CheckPermissionWithSchemaVersion(
 		ctx, tenantId, "", "organization", orgId, "manage", "user", callerUserId,
 	)
@@ -49,7 +49,7 @@ func (s *DeviceGroupService) guardManageOrg(ctx context.Context, tenantId, orgId
 	return nil
 }
 
-func (s *DeviceGroupService) guardManageOU(ctx context.Context, tenantId, ouId, callerUserId string) error {
+func (s *ResourceGroupService) guardManageOU(ctx context.Context, tenantId, ouId, callerUserId string) error {
 	allowed, err := s.authzClient.CheckPermissionWithSchemaVersion(
 		ctx, tenantId, "", "orgUnit", ouId, "manage", "user", callerUserId,
 	)
@@ -66,9 +66,9 @@ func (s *DeviceGroupService) guardManageOU(ctx context.Context, tenantId, ouId, 
 // Tuple builders
 // ============================================================
 
-func tupleDeviceGroupParentOrg(groupId, orgId string) map[string]any {
+func tupleResourceGroupParentOrg(groupId, orgId string) map[string]any {
 	return map[string]any{
-		"entity":   map[string]any{"type": "deviceGroup", "id": groupId},
+		"entity":   map[string]any{"type": "resourceGroup", "id": groupId},
 		"relation": "parentOrg",
 		"subject":  map[string]any{"type": "organization", "id": orgId},
 	}
@@ -86,13 +86,13 @@ func tupleDeviceParentGroup(deviceId, groupId string) map[string]any {
 	return map[string]any{
 		"entity":   map[string]any{"type": "device", "id": deviceId},
 		"relation": "parentGroup",
-		"subject":  map[string]any{"type": "deviceGroup", "id": groupId},
+		"subject":  map[string]any{"type": "resourceGroup", "id": groupId},
 	}
 }
 
 func tupleGroupOU(groupId, ouId, relation string) map[string]any {
 	return map[string]any{
-		"entity":   map[string]any{"type": "deviceGroup", "id": groupId},
+		"entity":   map[string]any{"type": "resourceGroup", "id": groupId},
 		"relation": relation,
 		"subject":  map[string]any{"type": "orgUnit", "id": ouId},
 	}
@@ -103,24 +103,24 @@ func tupleGroupOU(groupId, ouId, relation string) map[string]any {
 // ============================================================
 
 type CreateGroupInput struct {
-	TenantID    string
-	OrgID       string
-	Name        string
-	Description string
-	DeviceType  string // "camera" | "sensor" | "" = all
-	Public      bool
-	CallerID    string
+	TenantID     string
+	OrgID        string
+	Name         string
+	Description  string
+	ResourceType string // "camera" | "sensor" | "" = all
+	Public       bool
+	CallerID     string
 }
 
 type ListGroupsInput struct {
-	TenantID   string
-	OrgID      string
-	Search     string
-	DeviceType string
-	Page       int
-	PerPages   int
-	SortField  string
-	SortOrder  string
+	TenantID     string
+	OrgID        string
+	Search       string
+	ResourceType string
+	Page         int
+	PerPages     int
+	SortField    string
+	SortOrder    string
 }
 
 type DeleteGroupInput struct {
@@ -158,7 +158,7 @@ type CreateDeviceInput struct {
 // 1. CreateGroup
 // ============================================================
 
-func (s *DeviceGroupService) CreateGroup(ctx context.Context, input CreateGroupInput) (*devmod.DeviceGroup, error) {
+func (s *ResourceGroupService) CreateGroup(ctx context.Context, input CreateGroupInput) (*devmod.ResourceGroup, error) {
 	input.TenantID = strings.TrimSpace(input.TenantID)
 	input.OrgID = strings.TrimSpace(input.OrgID)
 	input.Name = strings.TrimSpace(input.Name)
@@ -172,17 +172,17 @@ func (s *DeviceGroupService) CreateGroup(ctx context.Context, input CreateGroupI
 		return nil, err
 	}
 
-	group := &devmod.DeviceGroup{
-		ID:          primitive.NewObjectID(),
-		TenantID:    input.TenantID,
-		OrgID:       input.OrgID,
-		Name:        input.Name,
-		Description: input.Description,
-		DeviceType:  input.DeviceType,
-		Public:      input.Public,
-		CreatedBy:   input.CallerID,
-		SyncStatus:  "pending",
-		CreatedAt:   time.Now(),
+	group := &devmod.ResourceGroup{
+		ID:           primitive.NewObjectID(),
+		TenantID:     input.TenantID,
+		OrgID:        input.OrgID,
+		Name:         input.Name,
+		Description:  input.Description,
+		ResourceType: input.ResourceType,
+		Public:       input.Public,
+		CreatedBy:    input.CallerID,
+		SyncStatus:   "pending",
+		CreatedAt:    time.Now(),
 	}
 
 	if err := s.groupRepo.Insert(ctx, group); err != nil {
@@ -192,7 +192,7 @@ func (s *DeviceGroupService) CreateGroup(ctx context.Context, input CreateGroupI
 	groupId := group.ID.Hex()
 
 	if err := s.authzClient.WriteTuples(ctx, input.TenantID, []map[string]any{
-		tupleDeviceGroupParentOrg(groupId, input.OrgID),
+		tupleResourceGroupParentOrg(groupId, input.OrgID),
 	}); err != nil {
 		_ = s.groupRepo.SetSyncStatus(ctx, groupId, "failed")
 		return nil, fmt.Errorf("%w: %v", ErrPermifySyncFailed, err)
@@ -207,14 +207,14 @@ func (s *DeviceGroupService) CreateGroup(ctx context.Context, input CreateGroupI
 // 2. ListGroups
 // ============================================================
 
-func (s *DeviceGroupService) ListGroups(ctx context.Context, input ListGroupsInput) ([]devmod.DeviceGroup, int64, error) {
+func (s *ResourceGroupService) ListGroups(ctx context.Context, input ListGroupsInput) ([]devmod.ResourceGroup, int64, error) {
 	return s.groupRepo.List(ctx, input.TenantID, input.OrgID, devicerepo.ListOptions{
-		Search:     input.Search,
-		DeviceType: input.DeviceType,
-		Page:       input.Page,
-		PerPages:   input.PerPages,
-		SortField:  input.SortField,
-		SortOrder:  input.SortOrder,
+		Search:       input.Search,
+		ResourceType: input.ResourceType,
+		Page:         input.Page,
+		PerPages:     input.PerPages,
+		SortField:    input.SortField,
+		SortOrder:    input.SortOrder,
 	})
 }
 
@@ -222,7 +222,7 @@ func (s *DeviceGroupService) ListGroups(ctx context.Context, input ListGroupsInp
 // 3. DeleteGroup
 // ============================================================
 
-func (s *DeviceGroupService) DeleteGroup(ctx context.Context, input DeleteGroupInput) error {
+func (s *ResourceGroupService) DeleteGroup(ctx context.Context, input DeleteGroupInput) error {
 	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func (s *DeviceGroupService) DeleteGroup(ctx context.Context, input DeleteGroupI
 	}
 	if err := s.authzClient.DeleteSpecificTupleWithRelation(
 		ctx, input.TenantID,
-		"deviceGroup", input.GroupID, "parentOrg",
+		"resourceGroup", input.GroupID, "parentOrg",
 		"organization", input.OrgID,
 	); err != nil {
 		return fmt.Errorf("permify delete failed: %w", err)

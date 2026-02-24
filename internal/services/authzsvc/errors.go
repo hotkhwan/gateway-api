@@ -28,6 +28,9 @@ var (
 	ErrInviteAlreadyMember    = errors.New("user already in organization")
 	ErrInviteSelfAdminBlocked = errors.New("cannot self-invite as admin")
 
+	// Remove from org
+	ErrRemoveNotMember = errors.New("user is not a member of this organization")
+
 	// List users members
 	ErrInvalidArgs = errors.New("invalid arguments")
 )
