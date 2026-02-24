@@ -11,6 +11,7 @@ import (
 )
 
 var validOURelations = map[string]bool{
+	"creator": true,
 	"viewer":  true,
 	"editor":  true,
 	"deleter": true,
@@ -51,7 +52,7 @@ func (s *ResourceGroupService) RemoveDeviceFromGroup(ctx context.Context, input 
 
 func (s *ResourceGroupService) AssignGroupToOU(ctx context.Context, input AssignGroupToOUInput) error {
 	if !validOURelations[input.Relation] {
-		return fmt.Errorf("invalid relation '%s': must be viewer|editor|deleter", input.Relation)
+		return fmt.Errorf("invalid relation '%s': must be creator|viewer|editor|deleter", input.Relation)
 	}
 	if ouErr := s.guardManageOU(ctx, input.TenantID, input.OUID, input.CallerID); ouErr != nil {
 		if orgErr := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); orgErr != nil {
@@ -95,7 +96,7 @@ func (s *ResourceGroupService) BulkAssignGroupsToOU(
 		return nil, 0, 0, ErrInvalidArgs
 	}
 	if !validOURelations[relation] {
-		return nil, 0, 0, fmt.Errorf("%w: relation must be viewer|editor|deleter", ErrInvalidArgs)
+		return nil, 0, 0, fmt.Errorf("%w: relation must be creator|viewer|editor|deleter", ErrInvalidArgs)
 	}
 
 	// Permission: manage OU หรือ manage org
@@ -173,7 +174,7 @@ func (s *ResourceGroupService) BulkRemoveGroupsFromOU(
 		return nil, 0, ErrInvalidArgs
 	}
 	if !validOURelations[relation] {
-		return nil, 0, fmt.Errorf("%w: relation must be viewer|editor|deleter", ErrInvalidArgs)
+		return nil, 0, fmt.Errorf("%w: relation must be creator|viewer|editor|deleter", ErrInvalidArgs)
 	}
 
 	// Permission: manage OU หรือ manage org

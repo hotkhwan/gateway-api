@@ -1,5 +1,5 @@
-// controllers/authznewapi/org.go
-package authznewapi
+// controllers/authzapi/org.go
+package authzapi
 
 import (
 	"strings"
@@ -48,7 +48,7 @@ func NewOrganizationController(svc *authzsvc.OrganizationService) *OrganizationC
 func (ctrl *OrganizationController) List(c *fiber.Ctx) error {
 
 	ctx := c.UserContext()
-	tracer := otel.Tracer("authznewapi")
+	tracer := otel.Tracer("authzapi")
 	ctx, span := tracer.Start(ctx, "Organization.List")
 	defer span.End()
 
@@ -123,7 +123,7 @@ func (ctrl *OrganizationController) List(c *fiber.Ctx) error {
 func (ctrl *OrganizationController) Create(c *fiber.Ctx) error {
 
 	ctx := c.UserContext()
-	tracer := otel.Tracer("authznewapi")
+	tracer := otel.Tracer("authzapi")
 	ctx, span := tracer.Start(ctx, "Organization.Create")
 	defer span.End()
 
@@ -175,7 +175,7 @@ func (ctrl *OrganizationController) Create(c *fiber.Ctx) error {
 func (ctrl *OrganizationController) Update(c *fiber.Ctx) error {
 
 	ctx := c.UserContext()
-	tracer := otel.Tracer("authznewapi")
+	tracer := otel.Tracer("authzapi")
 	ctx, span := tracer.Start(ctx, "Organization.Update")
 	defer span.End()
 
@@ -229,7 +229,7 @@ func (ctrl *OrganizationController) Update(c *fiber.Ctx) error {
 func (ctrl *OrganizationController) Delete(c *fiber.Ctx) error {
 
 	ctx := c.UserContext()
-	tracer := otel.Tracer("authznewapi")
+	tracer := otel.Tracer("authzapi")
 	ctx, span := tracer.Start(ctx, "Organization.Delete")
 	defer span.End()
 

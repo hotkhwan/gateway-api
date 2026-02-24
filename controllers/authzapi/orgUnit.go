@@ -1,5 +1,5 @@
-// controllers/authznewapi/orgUnit.go
-package authznewapi
+// controllers/authzapi/orgUnit.go
+package authzapi
 
 import (
 	"strings"
@@ -47,7 +47,7 @@ type UpdateOrgUnitBody struct {
 func (ctrl *OrgUnitController) Create(c *fiber.Ctx) error {
 
 	ctx := c.UserContext()
-	tracer := otel.Tracer("authznewapi")
+	tracer := otel.Tracer("authzapi")
 	ctx, span := tracer.Start(ctx, "OrgUnit.Create")
 	defer span.End()
 
@@ -110,7 +110,7 @@ func (ctrl *OrgUnitController) Create(c *fiber.Ctx) error {
 func (ctrl *OrgUnitController) Tree(c *fiber.Ctx) error {
 
 	ctx := c.UserContext()
-	tracer := otel.Tracer("authznewapi")
+	tracer := otel.Tracer("authzapi")
 	ctx, span := tracer.Start(ctx, "OrgUnit.Tree")
 	defer span.End()
 
@@ -151,7 +151,7 @@ func (ctrl *OrgUnitController) Tree(c *fiber.Ctx) error {
 func (ctrl *OrgUnitController) Update(c *fiber.Ctx) error {
 
 	ctx := c.UserContext()
-	tracer := otel.Tracer("authznewapi")
+	tracer := otel.Tracer("authzapi")
 	ctx, span := tracer.Start(ctx, "OrgUnit.Update")
 	defer span.End()
 
@@ -206,7 +206,7 @@ func (ctrl *OrgUnitController) Update(c *fiber.Ctx) error {
 func (ctrl *OrgUnitController) Delete(c *fiber.Ctx) error {
 
 	ctx := c.UserContext()
-	tracer := otel.Tracer("authznewapi")
+	tracer := otel.Tracer("authzapi")
 	ctx, span := tracer.Start(ctx, "OrgUnit.Delete")
 	defer span.End()
 

@@ -1,87 +1,70 @@
-// router/authz.go
+// router/authznew.go
 package router
 
 import (
-	"github.com/hotkhwan/gateway-api/config"
-	"github.com/hotkhwan/gateway-api/controllers/authzapi"
-	"github.com/hotkhwan/gateway-api/internal/middleware"
-	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"os"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/app"
+	"github.com/hotkhwan/gateway-api/internal/middleware"
+	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 )
 
-func RegisterAuthzRoutes(router fiber.Router) {
-	router.Route("/authz", func(r fiber.Router) {
+// ✅ รับ container แทนที่จะ new เอง
+func RegisterAuthzNewRoutes(router fiber.Router, c *app.Container) {
+	router.Route("/orgs", func(r fiber.Router) {
 		r.Use(middleware.AuthBearer())
 		r.Use(middleware.Audit(middleware.AuditConfig{
 			AuditRepo: authzrepo.NewAuditLogRepo(config.DB),
 			AuditChan: nil,
-			BasePath:  os.Getenv("BASE_PATH"), // หรือ os.Getenv("BASE_PATH")
+			BasePath:  os.Getenv("BASE_PATH"),
 			Effective: middleware.EffectiveGetter(),
 		}))
 
-		// ---------- Guards (405 สำหรับเมธอดที่ไม่รองรับ) ----------
-		r.All("/healthz", middleware.AllowMethods("GET"))
-		r.All("/schema/apply", middleware.AllowMethods("POST"))
-		r.All("/permission/check", middleware.AllowMethods("POST"))
-		r.All("/permission/check/batch", middleware.AllowMethods("POST"))
-		r.All("/relationships", middleware.AllowMethods("GET"))
+		protected := r.Group("/")
 
-		r.All("/resource/grant", middleware.AllowMethods("POST"))
-		r.All("/resource/revoke", middleware.AllowMethods("POST"))
+		protected.All("/", middleware.AllowMethods("GET", "POST"))
+		protected.All("/:id", middleware.AllowMethods("POST", "PATCH", "DELETE"))
 
-		r.All("/profiles", middleware.AllowMethods("GET", "POST"))
-		r.All("/profiles/:code", middleware.AllowMethods("PATCH", "DELETE"))
-		//r.All("/profiles/:code/*", middleware.AllowMethods("GET", "POST")) // drift=GET, ที่เหลือ=POST
-		r.All("/profiles/:code/drift", middleware.AllowMethods("GET"))
-		r.All("/profiles/:code/publish", middleware.AllowMethods("POST"))
-		r.All("/profiles/:code/plan", middleware.AllowMethods("POST"))
-		r.All("/profiles/:code/apply", middleware.AllowMethods("POST"))
-		r.All("/profiles/:code/reconcile", middleware.AllowMethods("POST"))
-		// ---------- End Guards ----------
+		protected.Get("/", c.OrgController.List)
+		protected.Post("/", c.OrgController.Create)
+		protected.Patch("/:id", c.OrgController.Update)
+		protected.Delete("/:id", c.OrgController.Delete)
 
-		// ---------- Handlers จริง ----------
-		// Health
-		r.Get("/healthz", authzapi.GetHealth)
-		r.Post("/tuples/factoryResetTenant", authzapi.FactoryResetTenantHandler)
-		// Schema
-		r.Post("/schema/apply", authzapi.ApplySchemaHandler)
+		protected.All("/users/invite", middleware.AllowMethods("POST"))
+		protected.Post("/users/invite", middleware.ActiveOrg(), c.OrgController.Invite)
 
-		// Permission
-		r.Post("/permission/check", authzapi.PermissionCheckHandler)
-		r.Post("/permission/check/batch", authzapi.PermissionCheckBatchHandler)
-		r.Post("/permission/check/subjectPermission", authzapi.PermissionSubjectCheckHandler)
+		protected.All("/users/remove", middleware.AllowMethods("PATCH"))
+		protected.Patch("/users/remove", middleware.ActiveOrg(), c.OrgController.RemoveMembers)
 
-		// Relationships
-		r.Get("/relationships", authzapi.GetRelationshipsHandler)
+		protected.All("/users/members", middleware.AllowMethods("GET"))
+		protected.Get("/users/members", middleware.ActiveOrg(), c.OrgController.ListMembers)
 
-		// Resource
-		r.Post("/resource/grant", authzapi.GrantResourceHandler)
-		r.Post("/resource/revoke", authzapi.RevokeResourceHandler)
+		orgScoped := protected.Group("/units", middleware.ActiveOrg())
+		orgScoped.Post("/", c.OrgUnitController.Create)
+		orgScoped.Get("/tree", c.OrgUnitController.Tree)
+		orgScoped.Patch("/:id", c.OrgUnitController.Update)
+		orgScoped.Delete("/:id", c.OrgUnitController.Delete)
 
-		// Profiles
-		// r.Get("/profiles", authzapi.ListProfilesHandler)
-		// r.Post("/profiles", authzapi.CreateProfileHandler)
-		// r.Post("/profiles/:code/publish", authzapi.PublishProfileHandler)
-		// r.Post("/profiles/:code/plan", authzapi.PlanProfileHandler)
-		// r.Post("/profiles/:code/apply", authzapi.ApplyProfileHandler)
-		// r.Get("/profiles/:code/drift", authzapi.DriftProfileHandler)
-		// r.Post("/profiles/:code/reconcile", authzapi.ReconcileProfileHandler)
-		// r.Patch("/profiles/:code", authzapi.UpdateProfileHandler)
-		// r.Patch("/profiles/:code", middleware.AllowMethods("PATCH"), authzapi.UpdateProfileHandler)
-		// r.Delete("/profiles/:code", middleware.AllowMethods("DELETE"), authzapi.DeleteProfileHandler)
-		r.Get("/profiles", authzapi.ListProfilesHandler)
-		r.Post("/profiles", authzapi.CreateProfileHandler)
+		protected.All("/:id/members", middleware.AllowMethods("GET", "POST", "PATCH"))
+		orgScoped.Get("/:id/members", c.OrgUnitController.ListMembers)
+		orgScoped.Post("/:id/members", c.OrgUnitController.AssignMembers)
+		orgScoped.Patch("/:id/members", c.OrgUnitController.RemoveMembers)
 
-		r.Get("/profiles/:code/drift", authzapi.DriftProfileHandler)
-		r.Post("/profiles/:code/publish", authzapi.PublishProfileHandler)
-		r.Post("/profiles/:code/plan", authzapi.PlanProfileHandler)
-		r.Post("/profiles/:code/apply", authzapi.ApplyProfileHandler)
-		r.Post("/profiles/:code/reconcile", authzapi.ReconcileProfileHandler)
+		// ---------- OrgUnit ↔ ResourceGroup (list / bulk assign / bulk remove) ----------
+		orgScoped.Get("/:unitId/resources", c.OrgUnitResourcesController.ListResourceGroups)
+		orgScoped.Post("/:unitId/resources", c.OrgUnitResourcesController.AssignResourceGroups)
+		orgScoped.Patch("/:unitId/resources", c.OrgUnitResourcesController.RemoveResourceGroups)
 
-		r.Patch("/profiles/:code", authzapi.UpdateProfileHandler)
-		r.Delete("/profiles/:code", authzapi.DeleteProfileHandler)
-
+		// ---------- profilePermissions CRUD ----------
+		profileGroup := protected.Group("/profile", middleware.ActiveOrg())
+		profileGroup.All("/permissions", middleware.AllowMethods("GET", "POST"))
+		profileGroup.All("/permissions/:id", middleware.AllowMethods("GET", "PATCH", "DELETE"))
+		profileGroup.Post("/permissions", c.ProfilePermissionsController.Create)
+		profileGroup.Get("/permissions", c.ProfilePermissionsController.List)
+		profileGroup.Get("/permissions/:id", c.ProfilePermissionsController.GetOne)
+		profileGroup.Patch("/permissions/:id", c.ProfilePermissionsController.Update)
+		profileGroup.Delete("/permissions/:id", c.ProfilePermissionsController.Delete)
 	})
 }

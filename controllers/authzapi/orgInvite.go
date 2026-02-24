@@ -1,5 +1,5 @@
-// controllers/authznewapi/orgInvite.go
-package authznewapi
+// controllers/authzapi/orgInvite.go
+package authzapi
 
 import (
 	"fmt"

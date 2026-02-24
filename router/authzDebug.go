@@ -6,7 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/hotkhwan/gateway-api/config"
-	"github.com/hotkhwan/gateway-api/controllers/authznewapi"
+	"github.com/hotkhwan/gateway-api/controllers/authzapi"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
 	"github.com/hotkhwan/gateway-api/internal/middleware"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
@@ -17,7 +17,7 @@ func RegisterAuthzDebugRoutes(router fiber.Router) {
 	// ✅ DI
 	authzClient := authzgw.NewClient()
 	debugService := authzsvc.NewAuthzDebugService(authzClient)
-	ctrl := authznewapi.NewAuthzDebugController(debugService)
+	ctrl := authzapi.NewAuthzDebugController(debugService)
 
 	router.Route("/authzDebugs", func(r fiber.Router) {
 		r.Use(middleware.Audit(middleware.AuditConfig{

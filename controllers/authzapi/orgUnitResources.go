@@ -1,5 +1,5 @@
-// controllers/authznewapi/orgUnitResources.go
-package authznewapi
+// controllers/authzapi/orgUnitResources.go
+package authzapi
 
 import (
 	"errors"

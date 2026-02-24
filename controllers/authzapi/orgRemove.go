@@ -1,5 +1,5 @@
-// controllers/authznewapi/orgRemove.go
-package authznewapi
+// controllers/authzapi/orgRemove.go
+package authzapi
 
 import (
 	"fmt"

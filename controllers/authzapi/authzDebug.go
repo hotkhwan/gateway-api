@@ -1,5 +1,5 @@
-// controllers/authznewapi/authzDebug.go
-package authznewapi
+// controllers/authzapi/authzDebug.go
+package authzapi
 
 import (
 	"github.com/gofiber/fiber/v2"
@@ -174,7 +174,7 @@ func (ctrl *AuthzDebugController) FactoryOrgBootstrap(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"code": "SUCCESS", "message": "factory bootstrap done", "status": true, "details": res})
 }
 
-// controllers/authznewapi/authzDebug.go
+// controllers/authzapi/authzDebug.go
 
 func (ctrl *AuthzDebugController) ListAllTuples(c *fiber.Ctx) error {
 	tenantId := c.Query("tenantId", "")

@@ -254,3 +254,4 @@ func (s *ResourceGroupService) DeleteGroup(ctx context.Context, input DeleteGrou
 	}
 	return s.groupRepo.Delete(ctx, input.GroupID)
 }
+

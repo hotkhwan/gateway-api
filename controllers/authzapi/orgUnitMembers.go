@@ -1,5 +1,5 @@
-// controllers/authznewapi/orgUnitMembers.go
-package authznewapi
+// controllers/authzapi/orgUnitMembers.go
+package authzapi
 
 import (
 	"fmt"
@@ -42,7 +42,7 @@ func buildBulkMessage(inserted int, removed int, duplicates int, errors int) str
 // @Param X-Active-Org header string true "Active Organization ID"
 // @Param id path string true "OrgUnit ID"
 // @Router /api/v1/orgs/units/{id}/members [get]
-// controllers/authznewapi/orgUnitMembers.go
+// controllers/authzapi/orgUnitMembers.go
 
 func (ctrl *OrgUnitController) ListMembers(c *fiber.Ctx) error {
 	ctx := c.UserContext()

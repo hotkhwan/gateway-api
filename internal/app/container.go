@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/hotkhwan/gateway-api/config"
-	"github.com/hotkhwan/gateway-api/controllers/authznewapi"
+	"github.com/hotkhwan/gateway-api/controllers/authzapi"
 	"github.com/hotkhwan/gateway-api/controllers/deviceapi"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
@@ -29,9 +29,11 @@ type Container struct {
 	// ===== Authz domain =====
 	OrgService                  *authzsvc.OrganizationService
 	OrgUnitService              *authzsvc.OrgUnitService
-	OrgController               *authznewapi.OrganizationController
-	OrgUnitController           *authznewapi.OrgUnitController
-	OrgUnitResourcesController  *authznewapi.OrgUnitResourcesController
+	OrgController               *authzapi.OrganizationController
+	OrgUnitController           *authzapi.OrgUnitController
+	OrgUnitResourcesController      *authzapi.OrgUnitResourcesController
+	PermissionProfileService         *authzsvc.PermissionProfileService
+	ProfilePermissionsController     *authzapi.ProfilePermissionsController
 
 	// ===== Device: ResourceGroup domain ====
 	ResourceGroupService    *devicesvc.ResourceGroupService
@@ -77,10 +79,10 @@ func (c *Container) buildAuthz() {
 	orgUnitRepo := authzrepo.NewOrgUnitRepo()
 
 	c.OrgService = authzsvc.NewOrganizationService(orgRepo, orgUnitRepo, c.AuthzClient, c.IDClient)
-	c.OrgController = authznewapi.NewOrganizationController(c.OrgService)
+	c.OrgController = authzapi.NewOrganizationController(c.OrgService)
 
 	c.OrgUnitService = authzsvc.NewOrgUnitService(orgUnitRepo, c.AuthzClient, c.IDClient)
-	c.OrgUnitController = authznewapi.NewOrgUnitController(c.OrgUnitService)
+	c.OrgUnitController = authzapi.NewOrgUnitController(c.OrgUnitService)
 }
 
 // ============================================================
@@ -99,5 +101,14 @@ func (c *Container) buildDevice() {
 	c.CameraService = devicesvc.NewCameraService(camRepo, c.AuthzClient)
 	c.CameraController = deviceapi.NewCameraController(c.CameraService)
 
-	c.OrgUnitResourcesController = authznewapi.NewOrgUnitResourcesController(c.ResourceGroupService)
+	c.OrgUnitResourcesController = authzapi.NewOrgUnitResourcesController(c.ResourceGroupService)
+
+	// PermissionProfile: cross-domain service (authzsvc using devicerepo)
+	c.PermissionProfileService = authzsvc.NewPermissionProfileService(
+		authzrepo.NewPermissionProfileRepo(),
+		authzrepo.NewOrgUnitRepo(),
+		groupRepo,
+		c.AuthzClient,
+	)
+	c.ProfilePermissionsController = authzapi.NewProfilePermissionsController(c.PermissionProfileService)
 }

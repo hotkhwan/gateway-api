@@ -17,8 +17,6 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/services/klivesvc"
 	"github.com/hotkhwan/gateway-api/models/systemmod"
 
-	"github.com/hotkhwan/gateway-api/controllers/authzapi"
-
 	"github.com/hotkhwan/gateway-api/internal/kafka/kctrlcons"
 	"github.com/hotkhwan/gateway-api/internal/kafka/klivecorns"
 	"github.com/hotkhwan/gateway-api/internal/kafka/kschcorns"
@@ -127,22 +125,6 @@ func main() {
 	if eff, err := optsRepo.LoadEffective(context.Background()); err == nil {
 		_ = authzrepo.EnsureAuditIndexes(context.Background(), config.DB, eff.AuditRetentionDays)
 	}
-	// ---- Wire Profile service for /authz/profiles ----
-	profRepo := authzrepo.NewProfileRepo(config.DB)
-	verRepo := authzrepo.NewProfileVersionRepo(config.DB)
-	idemRepo := authzrepo.NewIdempotencyRepo(config.DB)
-	auditRepo := authzrepo.NewAuditLogRepo(config.DB)
-	effTupleRepo := authzrepo.NewProfileEffectiveTupleRepo(config.DB)
-
-	profSvc := authzsvc.NewProfileService(
-		profRepo,
-		verRepo,
-		idemRepo,
-		auditRepo,
-		effTupleRepo,
-	)
-	authzapi.SetProfileService(profSvc)
-
 	// Start Consumer Real-time
 	schemaVersion, err := authzsvc.ApplySchema(ctx)
 	if err != nil {
@@ -235,7 +217,6 @@ func main() {
 	// ✅ router เก่าที่ยังไม่ migrate — ยังทำงานได้ปกติ
 	router.RegisterAPIATA(api)
 	router.RegisterAuthRoutes(api)
-	router.RegisterAuthzRoutes(api)
 	router.RegisterAuthzDebugRoutes(api)
 	router.RegisterBIRoutes(api)
 	router.RegisterKcontrolDashboard(api)

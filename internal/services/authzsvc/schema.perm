@@ -20,13 +20,15 @@ entity orgUnit {
 
 entity resourceGroup {
     relation parentOrg  @organization
+    relation creator    @orgUnit
     relation viewer     @orgUnit
     relation editor     @orgUnit
     relation deleter    @orgUnit
 
-    permission view   = viewer or editor or deleter or parentOrg.manage
+    permission view   = creator or viewer or editor or deleter or parentOrg.manage
     permission edit   = editor or parentOrg.manage
     permission delete = deleter or parentOrg.manage
+    permission create = creator or parentOrg.manage
 }
 
 entity resource {

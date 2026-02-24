@@ -204,3 +204,12 @@ func (r *OrgUnitRepo) CountByOrg(
 		"orgId":    orgId,
 	})
 }
+
+func (r *OrgUnitRepo) ExistsByIDAndOrg(ctx context.Context, tenantId, orgId, unitId string) (bool, error) {
+	count, err := stomongo.Count(ctx, r.collection, bson.M{
+		"tenantId": tenantId,
+		"orgId":    orgId,
+		"unitId":   unitId,
+	})
+	return count > 0, err
+}
