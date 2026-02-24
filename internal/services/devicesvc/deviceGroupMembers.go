@@ -18,7 +18,7 @@ type GroupDeviceItem struct {
 }
 
 type GroupDeviceBulkResult struct {
-	DeviceID string `json:"deviceId"`
+	DeviceID string `json:"camId"`
 	Success  bool   `json:"success"`
 	Error    string `json:"error,omitempty"`
 }
@@ -73,13 +73,13 @@ func (s *ResourceGroupService) AddDevicesToGroup(
 	duplicates := 0
 
 	for _, d := range devices {
-		// cross-org check
+		// guard: camId ต้องมีในระบบ
 		deviceOrgID, err := camRepo.GetOrgID(ctx, d.DeviceID)
 		if err != nil {
 			results = append(results, GroupDeviceBulkResult{
 				DeviceID: d.DeviceID,
 				Success:  false,
-				Error:    "device not found",
+				Error:    "camId not found: " + d.DeviceID,
 			})
 			continue
 		}
@@ -103,6 +103,22 @@ func (s *ResourceGroupService) AddDevicesToGroup(
 				})
 				continue
 			}
+		}
+
+		// duplicate check via Permify
+		isDup, err := s.authzClient.CheckPermissionWithSchemaVersion(
+			ctx, tenantId, config.CurrentSchemaVersion,
+			"resource", d.DeviceID, "parentGroup",
+			"resourceGroup", groupId,
+		)
+		if err == nil && isDup {
+			results = append(results, GroupDeviceBulkResult{
+				DeviceID: d.DeviceID,
+				Success:  false,
+				Error:    "already in group",
+			})
+			duplicates++
+			continue
 		}
 
 		tuples = append(tuples, tupleDeviceParentGroup(d.DeviceID, groupId))
@@ -173,9 +189,51 @@ func (s *ResourceGroupService) RemoveDevicesFromGroup(
 	removed := 0
 
 	for _, d := range devices {
+		// guard: camId ต้องมีในระบบ
+		deviceOrgID, err := camRepo.GetOrgID(ctx, d.DeviceID)
+		if err != nil {
+			results = append(results, GroupDeviceBulkResult{
+				DeviceID: d.DeviceID,
+				Success:  false,
+				Error:    "camId not found: " + d.DeviceID,
+			})
+			continue
+		}
+		if deviceOrgID != orgId {
+			results = append(results, GroupDeviceBulkResult{
+				DeviceID: d.DeviceID,
+				Success:  false,
+				Error:    "device does not belong to this organization",
+			})
+			continue
+		}
+
+		// check ว่า device อยู่ใน group จริงก่อนลบ
+		inGroup, err := s.authzClient.CheckPermissionWithSchemaVersion(
+			ctx, tenantId, config.CurrentSchemaVersion,
+			"resource", d.DeviceID, "parentGroup",
+			"resourceGroup", groupId,
+		)
+		if err != nil {
+			results = append(results, GroupDeviceBulkResult{
+				DeviceID: d.DeviceID,
+				Success:  false,
+				Error:    fmt.Sprintf("permission check error: %v", err),
+			})
+			continue
+		}
+		if !inGroup {
+			results = append(results, GroupDeviceBulkResult{
+				DeviceID: d.DeviceID,
+				Success:  false,
+				Error:    "device not in group",
+			})
+			continue
+		}
+
 		if err := s.authzClient.DeleteSpecificTupleWithRelation(
 			ctx, tenantId,
-			"device", d.DeviceID, "parentGroup",
+			"resource", d.DeviceID, "parentGroup",
 			"resourceGroup", groupId,
 		); err != nil {
 			results = append(results, GroupDeviceBulkResult{

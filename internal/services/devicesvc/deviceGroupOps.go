@@ -42,7 +42,7 @@ func (s *ResourceGroupService) RemoveDeviceFromGroup(ctx context.Context, input 
 	}
 	return s.authzClient.DeleteSpecificTupleWithRelation(
 		ctx, input.TenantID,
-		"device", input.DeviceID, "parentGroup",
+		"resource", input.DeviceID, "parentGroup",
 		"resourceGroup", input.GroupID,
 	)
 }

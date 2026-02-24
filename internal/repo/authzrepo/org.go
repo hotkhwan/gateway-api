@@ -38,6 +38,9 @@ func (r *OrgUnitRepo) FindByUnitId(ctx context.Context, tenantId string, orgId s
 		"unitId":   unitId,
 	}, &result)
 	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &result, nil

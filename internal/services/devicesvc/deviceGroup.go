@@ -75,7 +75,7 @@ func tupleResourceGroupParentOrg(groupId, orgId string) map[string]any {
 
 func tupleDeviceParentOrg(deviceId, orgId string) map[string]any {
 	return map[string]any{
-		"entity":   map[string]any{"type": "device", "id": deviceId},
+		"entity":   map[string]any{"type": "resource", "id": deviceId},
 		"relation": "parentOrg",
 		"subject":  map[string]any{"type": "organization", "id": orgId},
 	}
@@ -83,7 +83,7 @@ func tupleDeviceParentOrg(deviceId, orgId string) map[string]any {
 
 func tupleDeviceParentGroup(deviceId, groupId string) map[string]any {
 	return map[string]any{
-		"entity":   map[string]any{"type": "device", "id": deviceId},
+		"entity":   map[string]any{"type": "resource", "id": deviceId},
 		"relation": "parentGroup",
 		"subject":  map[string]any{"type": "resourceGroup", "id": groupId},
 	}

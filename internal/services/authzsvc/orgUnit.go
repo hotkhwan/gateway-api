@@ -163,6 +163,17 @@ func (s *OrgUnitService) CreateOrgUnit(
 	unitId := uuid.NewString()
 	now := time.Now().UTC()
 
+	// ตรวจ parentId ก่อน insert — ป้องกัน orphan record
+	if parentId != nil {
+		parent, err := s.orgUnitRepo.FindByUnitId(ctx, tenantId, orgId, *parentId)
+		if err != nil {
+			return "", err
+		}
+		if parent == nil {
+			return "", ErrInvalidParent
+		}
+	}
+
 	unit := &authzmod.OrgUnit{
 		ID:           primitive.NewObjectID(),
 		UnitId:       unitId,
@@ -188,23 +199,6 @@ func (s *OrgUnitService) CreateOrgUnit(
 			"relation": "parentOrg",
 			"subject":  map[string]interface{}{"type": "organization", "id": orgId},
 		},
-	}
-	if parentId != nil {
-
-		parent, err := s.orgUnitRepo.FindByUnitId(
-			ctx,
-			tenantId,
-			orgId,
-			*parentId,
-		)
-
-		if err != nil {
-			return "", err
-		}
-
-		if parent == nil {
-			return "", ErrInvalidParent
-		}
 	}
 
 	if err := s.authzClient.WriteTuples(ctx, tenantId, tuples); err != nil {

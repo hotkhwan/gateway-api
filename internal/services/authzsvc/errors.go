@@ -19,7 +19,7 @@ var (
 	ErrForbidden     = errors.New("forbidden")
 	ErrHasChildren   = errors.New("has children")
 	ErrRootImmutable = errors.New("root immutable")
-	ErrInvalidParent = errors.New("invalid parent")
+	ErrInvalidParent = errors.New("parentId does not exist")
 
 	// Error Invite
 	ErrForbiddenInvite        = errors.New("forbidden: no manage permission")
@@ -86,7 +86,8 @@ func MapSvcError(err error) (status int, code string) {
 	case errors.Is(err, ErrHasChildren),
 		errors.Is(err, ErrConflict):
 		return http.StatusConflict, gmod.CodeConflict
-	case errors.Is(err, ErrBadRequest):
+	case errors.Is(err, ErrBadRequest),
+		errors.Is(err, ErrInvalidParent):
 		return http.StatusBadRequest, gmod.CodeBadRequest
 	case errors.Is(err, ErrUnauthorized):
 		return http.StatusUnauthorized, gmod.CodeUnauthorized

@@ -10,23 +10,49 @@ import (
 	"github.com/hotkhwan/gateway-api/models/gmod"
 )
 
+// validResource — resourceType ที่รองรับใน URL param :resource
+var supportedResources = map[string]bool{
+	"camera": true,
+}
+
+func validResource(r string) bool {
+	return supportedResources[r]
+}
+
 // ============================================================
 // Request / Response types
 // ============================================================
 
-type AddDevicesRequest struct {
-	Devices []devicesvc.GroupDeviceItem `json:"device"` // body key: "device"
-}
-
-type RemoveDevicesRequest struct {
-	Devices []devicesvc.GroupDeviceItem `json:"device"` // body key: "device"
+// CameraItem — item ใน body array สำหรับ resource type "camera"
+type CameraItem struct {
+	CamID string `json:"camId"`
 }
 
 type DeviceBulkResponse struct {
-	Code    string                          `json:"code"`
-	Message string                          `json:"message"`
-	Status  bool                            `json:"status"`
+	Code    string                            `json:"code"`
+	Message string                            `json:"message"`
+	Status  bool                              `json:"status"`
 	Details []devicesvc.GroupDeviceBulkResult `json:"details"`
+}
+
+// parseResourceItems — อ่าน body `{ "<resource>": [{"camId": "..."}] }`
+// แล้ว convert เป็น []GroupDeviceItem
+func parseResourceItems(c *fiber.Ctx, resource string) ([]devicesvc.GroupDeviceItem, error) {
+	var body map[string][]CameraItem
+	if err := c.BodyParser(&body); err != nil {
+		return nil, err
+	}
+	items, ok := body[resource]
+	if !ok || len(items) == 0 {
+		return nil, nil
+	}
+	result := make([]devicesvc.GroupDeviceItem, 0, len(items))
+	for _, item := range items {
+		if item.CamID != "" {
+			result = append(result, devicesvc.GroupDeviceItem{DeviceID: item.CamID})
+		}
+	}
+	return result, nil
 }
 
 func buildDeviceBulkMessage(inserted, removed, duplicates, errors int) string {
@@ -52,22 +78,28 @@ func buildDeviceBulkMessage(inserted, removed, duplicates, errors int) string {
 func (ctrl *ResourceGroupController) AddDevices(c *fiber.Ctx) error {
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("groupId")
+	resource := c.Params("resource")
 	log := logger.FromCtx(c.UserContext(), "deviceapi", "DeviceGroupController.AddDevices")
 
-	var req AddDevicesRequest
-	if err := c.BodyParser(&req); err != nil {
+	if !validResource(resource) {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "unsupported resource type: " + resource})
+	}
+
+	devices, err := parseResourceItems(c, resource)
+	if err != nil {
 		log.Warn().Err(err).Msg("❌ invalid body")
 		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body"})
 	}
-	if len(req.Devices) == 0 {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "device list is required"})
+	if len(devices) == 0 {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: resource + " list is required"})
 	}
 
 	log.Info().
 		Str("tenantId", tenantId).
 		Str("orgId", orgId).
 		Str("groupId", groupId).
-		Int("deviceCount", len(req.Devices)).
+		Str("resource", resource).
+		Int("count", len(devices)).
 		Msg("📥 AddDevices request")
 
 	results, inserted, duplicates, err := ctrl.service.AddDevicesToGroup(
@@ -76,7 +108,7 @@ func (ctrl *ResourceGroupController) AddDevices(c *fiber.Ctx) error {
 		orgId,
 		groupId,
 		callerUserId,
-		req.Devices,
+		devices,
 		ctrl.camRepo,
 	)
 	if err != nil {
@@ -125,22 +157,28 @@ func (ctrl *ResourceGroupController) AddDevices(c *fiber.Ctx) error {
 func (ctrl *ResourceGroupController) RemoveDevices(c *fiber.Ctx) error {
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("groupId")
+	resource := c.Params("resource")
 	log := logger.FromCtx(c.UserContext(), "deviceapi", "DeviceGroupController.RemoveDevices")
 
-	var req RemoveDevicesRequest
-	if err := c.BodyParser(&req); err != nil {
+	if !validResource(resource) {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "unsupported resource type: " + resource})
+	}
+
+	devices, err := parseResourceItems(c, resource)
+	if err != nil {
 		log.Warn().Err(err).Msg("❌ invalid body")
 		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body"})
 	}
-	if len(req.Devices) == 0 {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "device list is required"})
+	if len(devices) == 0 {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: resource + " list is required"})
 	}
 
 	log.Info().
 		Str("tenantId", tenantId).
 		Str("orgId", orgId).
 		Str("groupId", groupId).
-		Int("deviceCount", len(req.Devices)).
+		Str("resource", resource).
+		Int("count", len(devices)).
 		Msg("📥 RemoveDevices request")
 
 	results, removed, err := ctrl.service.RemoveDevicesFromGroup(
@@ -149,7 +187,7 @@ func (ctrl *ResourceGroupController) RemoveDevices(c *fiber.Ctx) error {
 		orgId,
 		groupId,
 		callerUserId,
-		req.Devices,
+		devices,
 		ctrl.camRepo,
 	)
 	if err != nil {
