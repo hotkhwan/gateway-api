@@ -1,4 +1,4 @@
-// controllers/authzapi/profilePermissions.go
+// controllers/authzapi/resourcePermissions.go
 package authzapi
 
 import (
@@ -11,12 +11,12 @@ import (
 	"github.com/hotkhwan/gateway-api/models/gmod"
 )
 
-type ProfilePermissionsController struct {
+type ResourcePermissionsProfileController struct {
 	svc *authzsvc.PermissionProfileService
 }
 
-func NewProfilePermissionsController(svc *authzsvc.PermissionProfileService) *ProfilePermissionsController {
-	return &ProfilePermissionsController{svc: svc}
+func NewResourcePermissionsProfileController(svc *authzsvc.PermissionProfileService) *ResourcePermissionsProfileController {
+	return &ResourcePermissionsProfileController{svc: svc}
 }
 
 // ============================================================
@@ -31,20 +31,29 @@ type createPermProfileBody struct {
 }
 
 type updatePermProfileBody struct {
-	Name           string   `json:"name"`
-	Description    string   `json:"description"`
-	Status         bool     `json:"status"`
-	Relations      []string `json:"relations"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Status      bool     `json:"status"`
+	Relations   []string `json:"relations"`
 	// flat string IDs — nil = not provided (keep old), [] = clear, ["id"] = set
 	OrgUnits       []string `json:"orgUnits"`
 	ResourceGroups []string `json:"resourceGroups"`
 }
 
-// ============================================================
-// POST /orgs/profile/permissions
-// ============================================================
-
-func (ctrl *ProfilePermissionsController) Create(c *fiber.Ctx) error {
+// Create godoc
+// @Summary      Create resource permission profile
+// @Tags         ResourcePermissionProfile
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        body body createPermProfileBody true "payload"
+// @Success      201 {object} gmod.SuccessDetailResponse
+// @Failure      400 {object} gmod.ApiErrorResponse
+// @Failure      401 {object} gmod.ApiErrorResponse
+// @Failure      409 {object} gmod.ApiErrorResponse
+// @Failure      500 {object} gmod.ApiErrorResponse
+// @Router       /api/v1/orgs/resource/permissions [post]
+func (ctrl *ResourcePermissionsProfileController) Create(c *fiber.Ctx) error {
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	userId, _ := c.Locals("userId").(string)
@@ -77,29 +86,25 @@ func (ctrl *ProfilePermissionsController) Create(c *fiber.Ctx) error {
 		"code":    gmod.CodeSuccess,
 		"message": "permission profile created",
 		"status":  true,
-		"details": profile,
+		"detail":  profile,
 	})
 }
 
-// ============================================================
-// PATCH /orgs/profile/permissions/:id
-//
-// Payload (all fields optional — omit to keep existing value):
-//
-//	{
-//	  "name":           "...",
-//	  "description":    "...",
-//	  "status":         true,
-//	  "relations":      ["viewer","editor"],
-//	  "orgUnits":       ["uuid1","uuid2"],   // flat string IDs
-//	  "resourceGroups": ["uuid1","uuid2"]    // flat string IDs
-//	}
-//
-// status true  → write tuples (relations × orgUnits × resourceGroups)
-// status false → delete existing tuples
-// ============================================================
-
-func (ctrl *ProfilePermissionsController) Update(c *fiber.Ctx) error {
+// Update godoc
+// @Summary      Update resource permission profile
+// @Tags         ResourcePermissionProfile
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        id   path string true "profileId"
+// @Param        body body updatePermProfileBody true "payload"
+// @Success      200 {object} gmod.SuccessDetailResponse
+// @Failure      400 {object} gmod.ApiErrorResponse
+// @Failure      401 {object} gmod.ApiErrorResponse
+// @Failure      404 {object} gmod.ApiErrorResponse
+// @Failure      500 {object} gmod.ApiErrorResponse
+// @Router       /api/v1/orgs/resource/permissions/{id} [patch]
+func (ctrl *ResourcePermissionsProfileController) Update(c *fiber.Ctx) error {
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	userId, _ := c.Locals("userId").(string)
@@ -110,10 +115,6 @@ func (ctrl *ProfilePermissionsController) Update(c *fiber.Ctx) error {
 		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body", Status: false})
 	}
 
-	// Preserve nil semantics:
-	//   body.OrgUnits == nil      → field not in JSON → pass nil → service keeps old
-	//   body.OrgUnits == []string{} → field was "orgUnits":[] → pass []string{} → service clears
-	//   body.OrgUnits == ["id1"]  → pass ["id1"] → service validates + sets
 	updated, err := ctrl.svc.Update(c.UserContext(), authzsvc.UpdatePermProfileInput{
 		TenantID:         tenantId,
 		OrgID:            orgId,
@@ -134,15 +135,22 @@ func (ctrl *ProfilePermissionsController) Update(c *fiber.Ctx) error {
 		"code":    gmod.CodeSuccess,
 		"message": "permission profile updated",
 		"status":  true,
-		"details": updated,
+		"detail":  updated,
 	})
 }
 
-// ============================================================
-// DELETE /orgs/profile/permissions/:id
-// ============================================================
-
-func (ctrl *ProfilePermissionsController) Delete(c *fiber.Ctx) error {
+// Delete godoc
+// @Summary      Delete resource permission profile
+// @Tags         ResourcePermissionProfile
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id path string true "profileId"
+// @Success      200 {object} gmod.SuccessMessageResponse
+// @Failure      401 {object} gmod.ApiErrorResponse
+// @Failure      404 {object} gmod.ApiErrorResponse
+// @Failure      500 {object} gmod.ApiErrorResponse
+// @Router       /api/v1/orgs/resource/permissions/{id} [delete]
+func (ctrl *ResourcePermissionsProfileController) Delete(c *fiber.Ctx) error {
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	userId, _ := c.Locals("userId").(string)
@@ -159,11 +167,21 @@ func (ctrl *ProfilePermissionsController) Delete(c *fiber.Ctx) error {
 	})
 }
 
-// ============================================================
-// GET /orgs/profile/permissions
-// ============================================================
-
-func (ctrl *ProfilePermissionsController) List(c *fiber.Ctx) error {
+// List godoc
+// @Summary      List resource permission profiles
+// @Tags         ResourcePermissionProfile
+// @Security     BearerAuth
+// @Produce      json
+// @Param        page      query int    false "page (default 1)"
+// @Param        perPages  query int    false "items per page (default 10)"
+// @Param        search    query string false "search keyword"
+// @Param        sortField query string false "sort field (default createdAt)"
+// @Param        sortOrder query string false "sort order: asc|desc (default desc)"
+// @Success      200 {object} gmod.PaginatedResponse
+// @Failure      401 {object} gmod.ApiErrorResponse
+// @Failure      500 {object} gmod.ApiErrorResponse
+// @Router       /api/v1/orgs/resource/permissions [get]
+func (ctrl *ResourcePermissionsProfileController) List(c *fiber.Ctx) error {
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 
@@ -202,11 +220,18 @@ func (ctrl *ProfilePermissionsController) List(c *fiber.Ctx) error {
 	})
 }
 
-// ============================================================
-// GET /orgs/profile/permissions/:id
-// ============================================================
-
-func (ctrl *ProfilePermissionsController) GetOne(c *fiber.Ctx) error {
+// GetOne godoc
+// @Summary      Get resource permission profile by ID
+// @Tags         ResourcePermissionProfile
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id path string true "profileId"
+// @Success      200 {object} gmod.SuccessDetailResponse
+// @Failure      401 {object} gmod.ApiErrorResponse
+// @Failure      404 {object} gmod.ApiErrorResponse
+// @Failure      500 {object} gmod.ApiErrorResponse
+// @Router       /api/v1/orgs/resource/permissions/{id} [get]
+func (ctrl *ResourcePermissionsProfileController) GetOne(c *fiber.Ctx) error {
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	profileId := c.Params("id")
@@ -220,7 +245,7 @@ func (ctrl *ProfilePermissionsController) GetOne(c *fiber.Ctx) error {
 		"code":    gmod.CodeSuccess,
 		"message": "permission profile fetched",
 		"status":  true,
-		"details": profile,
+		"detail":  profile,
 	})
 }
 

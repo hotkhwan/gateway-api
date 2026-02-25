@@ -57,14 +57,32 @@ func RegisterAuthzNewRoutes(router fiber.Router, c *app.Container) {
 		orgScoped.Post("/:unitId/resources", c.OrgUnitResourcesController.AssignResourceGroups)
 		orgScoped.Patch("/:unitId/resources", c.OrgUnitResourcesController.RemoveResourceGroups)
 
-		// ---------- profilePermissions CRUD ----------
-		profileGroup := protected.Group("/profile", middleware.ActiveOrg())
-		profileGroup.All("/permissions", middleware.AllowMethods("GET", "POST"))
-		profileGroup.All("/permissions/:id", middleware.AllowMethods("GET", "PATCH", "DELETE"))
-		profileGroup.Post("/permissions", c.ProfilePermissionsController.Create)
-		profileGroup.Get("/permissions", c.ProfilePermissionsController.List)
-		profileGroup.Get("/permissions/:id", c.ProfilePermissionsController.GetOne)
-		profileGroup.Patch("/permissions/:id", c.ProfilePermissionsController.Update)
-		profileGroup.Delete("/permissions/:id", c.ProfilePermissionsController.Delete)
+		// ---------- resourcePermissions CRUD (admin) ----------
+		profileResourceGroup := protected.Group("/resource", middleware.ActiveOrg())
+		profileResourceGroup.All("/permissions", middleware.AllowMethods("GET", "POST"))
+		profileResourceGroup.All("/permissions/:id", middleware.AllowMethods("GET", "PATCH", "DELETE"))
+		profileResourceGroup.Post("/permissions", c.ResourcePermissionsProfileController.Create)
+		profileResourceGroup.Get("/permissions", c.ResourcePermissionsProfileController.List)
+		profileResourceGroup.Get("/permissions/:id", c.ResourcePermissionsProfileController.GetOne)
+		profileResourceGroup.Patch("/permissions/:id", c.ResourcePermissionsProfileController.Update)
+		profileResourceGroup.Delete("/permissions/:id", c.ResourcePermissionsProfileController.Delete)
+		// member: list resource groups accessible to the caller
+		profileResourceGroup.All("/access", middleware.AllowMethods("GET"))
+		profileResourceGroup.Get("/access", c.MemberAccessController.MyResourceAccess)
+
+		// ---------- menuPermissions CRUD (admin) + member access ----------
+		profileMenuGroup := protected.Group("/menu", middleware.ActiveOrg())
+		profileMenuGroup.All("/list", middleware.AllowMethods("GET"))
+		profileMenuGroup.All("/permissions", middleware.AllowMethods("GET", "POST"))
+		profileMenuGroup.All("/permissions/:id", middleware.AllowMethods("GET", "PATCH", "DELETE"))
+		profileMenuGroup.Get("/list", c.MenuPermissionsProfileController.ListMenus)
+		profileMenuGroup.Post("/permissions", c.MenuPermissionsProfileController.Create)
+		profileMenuGroup.Get("/permissions", c.MenuPermissionsProfileController.List)
+		profileMenuGroup.Get("/permissions/:id", c.MenuPermissionsProfileController.GetOne)
+		profileMenuGroup.Patch("/permissions/:id", c.MenuPermissionsProfileController.Update)
+		profileMenuGroup.Delete("/permissions/:id", c.MenuPermissionsProfileController.Delete)
+		// member: list menus accessible to the caller
+		profileMenuGroup.All("/access", middleware.AllowMethods("GET"))
+		profileMenuGroup.Get("/access", c.MemberAccessController.MyMenuAccess)
 	})
 }

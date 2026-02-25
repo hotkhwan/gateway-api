@@ -145,8 +145,8 @@ type IntrospectDetail struct {
 	Exp               int64                    `json:"exp"`
 	Scope             string                   `json:"scope"`
 	Role              string                   `json:"role,omitempty"`
-	Permissions       authmod.PermissionsBlock `json:"permissions,omitempty"`
-	MapLocation       MapLocation              `json:"mapLocation,omitempty"`
+	Permissions       *authmod.PermissionsBlock `json:"permissions,omitempty"`
+	MapLocation       *MapLocation              `json:"mapLocation,omitempty"`
 	ZoomLevel         int                      `json:"zoomLevel,omitempty"`
 }
 

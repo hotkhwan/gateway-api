@@ -135,3 +135,21 @@ func (r *PermissionProfileRepo) Delete(ctx context.Context, profileId, tenantId,
 	})
 	return err
 }
+
+// FindActiveByOrgUnitIDs returns active profiles that contain any of the given orgUnitIds.
+func (r *PermissionProfileRepo) FindActiveByOrgUnitIDs(ctx context.Context, tenantId, orgId string, ouIDs []string) ([]authzmod.PermissionProfile, error) {
+	if len(ouIDs) == 0 {
+		return []authzmod.PermissionProfile{}, nil
+	}
+	var results []authzmod.PermissionProfile
+	err := stomongo.Find(ctx, r.collection, bson.M{
+		"tenantId":   tenantId,
+		"orgId":      orgId,
+		"status":     true,
+		"orgUnitIds": bson.M{"$in": ouIDs},
+	}, nil, &results)
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
+}

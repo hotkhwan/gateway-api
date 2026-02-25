@@ -48,7 +48,7 @@ type SigninResponse struct {
 	Name           string            `json:"name"`
 	Email          string            `json:"email"`
 	Role           string            `json:"role"`
-	Permissions    PermissionsBlock  `json:"permissions"`
+	Permissions    *PermissionsBlock `json:"permissions,omitempty"`
 	Meta           map[string]string `json:"meta,omitempty"`
 	Locale         string            `json:"locale"`
 	Plant          any               `json:"plant"`
@@ -81,9 +81,9 @@ type IntrospectResult struct {
 	Scope             string `json:"scope"`
 	Role              string `json:"role,omitempty"`
 	//Permissions       []Permission `json:"permissions,omitempty"` // ← introspect ใช้ของมันต่อ (ไม่เกี่ยวกับ SigninResponse)
-	Permissions PermissionsBlock `json:"permissions,omitempty"`
-	ZoomLevel   int              `json:"zoom_level,omitempty"`
-	MapLocation MapLocation      `json:"map_location,omitempty"`
+	Permissions *PermissionsBlock `json:"permissions,omitempty"`
+	ZoomLevel   int               `json:"zoom_level,omitempty"`
+	MapLocation *MapLocation      `json:"map_location,omitempty"`
 }
 
 type MapLocation struct {

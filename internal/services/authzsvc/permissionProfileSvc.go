@@ -98,6 +98,7 @@ func validateRelations(relations []string) error {
 
 func (s *PermissionProfileService) Create(ctx context.Context, input CreatePermProfileInput) (*authzmod.PermissionProfile, error) {
 	log := logger.FromCtx(ctx, "authzsvc", "PermissionProfile.Create")
+	log.Debug().Str("orgId", input.OrgID).Str("name", input.Name).Strs("relations", input.Relations).Msg("creating resource permission profile")
 
 	if input.TenantID == "" || input.OrgID == "" || input.Name == "" || input.CallerID == "" {
 		return nil, ErrInvalidArgs
@@ -109,6 +110,7 @@ func (s *PermissionProfileService) Create(ctx context.Context, input CreatePermP
 	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
 		return nil, ErrForbidden
 	}
+	log.Debug().Msg("permission guard passed")
 
 	exists, err := s.profileRepo.ExistsByNameInOrg(ctx, input.TenantID, input.OrgID, input.Name, "")
 	if err != nil {
@@ -117,6 +119,7 @@ func (s *PermissionProfileService) Create(ctx context.Context, input CreatePermP
 	if exists {
 		return nil, authzrepo.ErrPermProfileNameExists
 	}
+	log.Debug().Str("name", input.Name).Msg("name uniqueness check passed")
 
 	p := &authzmod.PermissionProfile{
 		TenantID:         input.TenantID,
@@ -144,6 +147,7 @@ func (s *PermissionProfileService) Create(ctx context.Context, input CreatePermP
 
 func (s *PermissionProfileService) Update(ctx context.Context, input UpdatePermProfileInput) (*authzmod.PermissionProfile, error) {
 	log := logger.FromCtx(ctx, "authzsvc", "PermissionProfile.Update")
+	log.Debug().Str("profileId", input.ProfileID).Str("orgId", input.OrgID).Msg("updating resource permission profile")
 
 	if input.TenantID == "" || input.OrgID == "" || input.ProfileID == "" || input.CallerID == "" {
 		return nil, ErrInvalidArgs
@@ -155,6 +159,7 @@ func (s *PermissionProfileService) Update(ctx context.Context, input UpdatePermP
 	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
 		return nil, ErrForbidden
 	}
+	log.Debug().Msg("permission guard passed")
 
 	// Load old profile
 	old, err := s.profileRepo.FindByIDAndOrg(ctx, input.ProfileID, input.TenantID, input.OrgID)
@@ -171,6 +176,7 @@ func (s *PermissionProfileService) Update(ctx context.Context, input UpdatePermP
 		if exists {
 			return nil, authzrepo.ErrPermProfileNameExists
 		}
+		log.Debug().Str("newName", input.Name).Msg("name uniqueness check passed")
 	}
 
 	// ── Resolve new OUs (nil = not provided → keep old) ─────────
@@ -180,6 +186,7 @@ func (s *PermissionProfileService) Update(ctx context.Context, input UpdatePermP
 	var validOUIDs []string
 	if input.OrgUnitIDs == nil {
 		validOUIDs = old.OrgUnitIDs
+		log.Debug().Int("ouCount", len(validOUIDs)).Msg("orgUnitIds not provided, keeping old")
 	} else {
 		validOUIDs = make([]string, 0, len(input.OrgUnitIDs))
 		for _, ouID := range input.OrgUnitIDs {
@@ -189,12 +196,14 @@ func (s *PermissionProfileService) Update(ctx context.Context, input UpdatePermP
 			}
 			validOUIDs = append(validOUIDs, ouID)
 		}
+		log.Debug().Int("ouCount", len(validOUIDs)).Msg("orgUnitIds resolved")
 	}
 
 	// ── Resolve new RGs (nil = not provided → keep old) ──────────
 	var validRGIDs []string
 	if input.ResourceGroupIDs == nil {
 		validRGIDs = old.ResourceGroupIDs
+		log.Debug().Int("rgCount", len(validRGIDs)).Msg("resourceGroupIds not provided, keeping old")
 	} else {
 		validRGIDs = make([]string, 0, len(input.ResourceGroupIDs))
 		for _, rgID := range input.ResourceGroupIDs {
@@ -203,10 +212,12 @@ func (s *PermissionProfileService) Update(ctx context.Context, input UpdatePermP
 			}
 			validRGIDs = append(validRGIDs, rgID)
 		}
+		log.Debug().Int("rgCount", len(validRGIDs)).Msg("resourceGroupIds resolved")
 	}
 
 	// ── Delete old tuples (before applying new state) ────────────
 	if old.Status && len(old.OrgUnitIDs) > 0 && len(old.ResourceGroupIDs) > 0 {
+		log.Debug().Int("ouCount", len(old.OrgUnitIDs)).Int("rgCount", len(old.ResourceGroupIDs)).Msg("deleting old permify tuples")
 		if err := s.deleteTuples(ctx, input.TenantID, old.Relations, old.OrgUnitIDs, old.ResourceGroupIDs); err != nil {
 			log.Warn().Err(err).Msg("⚠️ partial tuple delete on update")
 		}
@@ -239,6 +250,7 @@ func (s *PermissionProfileService) Update(ctx context.Context, input UpdatePermP
 
 	// ── Write new tuples (if new state is active) ───────────────
 	if input.Status && len(validOUIDs) > 0 && len(validRGIDs) > 0 {
+		log.Debug().Int("ouCount", len(validOUIDs)).Int("rgCount", len(validRGIDs)).Strs("relations", newRelations).Msg("writing new permify tuples")
 		if err := s.writeTuples(ctx, input.TenantID, newRelations, validOUIDs, validRGIDs); err != nil {
 			return nil, fmt.Errorf("permify sync failed: %w", err)
 		}
@@ -259,10 +271,12 @@ func (s *PermissionProfileService) Update(ctx context.Context, input UpdatePermP
 
 func (s *PermissionProfileService) Delete(ctx context.Context, tenantId, orgId, profileId, callerID string) error {
 	log := logger.FromCtx(ctx, "authzsvc", "PermissionProfile.Delete")
+	log.Debug().Str("profileId", profileId).Str("orgId", orgId).Msg("deleting resource permission profile")
 
 	if err := s.guardManageOrg(ctx, tenantId, orgId, callerID); err != nil {
 		return ErrForbidden
 	}
+	log.Debug().Msg("permission guard passed")
 
 	p, err := s.profileRepo.FindByIDAndOrg(ctx, profileId, tenantId, orgId)
 	if err != nil {
@@ -271,6 +285,7 @@ func (s *PermissionProfileService) Delete(ctx context.Context, tenantId, orgId, 
 
 	// Delete tuples if profile was active
 	if p.Status && len(p.OrgUnitIDs) > 0 && len(p.ResourceGroupIDs) > 0 {
+		log.Debug().Int("ouCount", len(p.OrgUnitIDs)).Int("rgCount", len(p.ResourceGroupIDs)).Msg("revoking permify tuples before delete")
 		if err := s.deleteTuples(ctx, tenantId, p.Relations, p.OrgUnitIDs, p.ResourceGroupIDs); err != nil {
 			log.Warn().Err(err).Msg("⚠️ partial tuple delete on profile delete")
 		}
@@ -289,6 +304,8 @@ func (s *PermissionProfileService) Delete(ctx context.Context, tenantId, orgId, 
 // ============================================================
 
 func (s *PermissionProfileService) Get(ctx context.Context, tenantId, orgId, profileId string) (*authzmod.PermissionProfile, error) {
+	log := logger.FromCtx(ctx, "authzsvc", "PermissionProfile.Get")
+	log.Debug().Str("profileId", profileId).Str("orgId", orgId).Msg("fetching resource permission profile")
 	return s.profileRepo.FindByIDAndOrg(ctx, profileId, tenantId, orgId)
 }
 
@@ -297,6 +314,8 @@ func (s *PermissionProfileService) Get(ctx context.Context, tenantId, orgId, pro
 // ============================================================
 
 func (s *PermissionProfileService) List(ctx context.Context, input ListPermProfileInput) ([]authzmod.PermissionProfile, int64, error) {
+	log := logger.FromCtx(ctx, "authzsvc", "PermissionProfile.List")
+	log.Debug().Str("orgId", input.OrgID).Str("search", input.Search).Int("page", input.Page).Int("perPage", input.PerPage).Msg("listing resource permission profiles")
 	return s.profileRepo.List(
 		ctx,
 		input.TenantID, input.OrgID, input.Search,
@@ -324,6 +343,7 @@ func (s *PermissionProfileService) guardManageOrg(ctx context.Context, tenantId,
 
 // writeTuples: Cartesian product relations × OUs × RGs → Permify
 func (s *PermissionProfileService) writeTuples(ctx context.Context, tenantId string, relations, ouIDs, rgIDs []string) error {
+	log := logger.FromCtx(ctx, "authzsvc", "PermissionProfile.writeTuples")
 	tuples := make([]map[string]any, 0, len(relations)*len(ouIDs)*len(rgIDs))
 	for _, rgID := range rgIDs {
 		for _, ouID := range ouIDs {
@@ -339,11 +359,15 @@ func (s *PermissionProfileService) writeTuples(ctx context.Context, tenantId str
 	if len(tuples) == 0 {
 		return nil
 	}
+	log.Debug().Int("tupleCount", len(tuples)).Msg("writing tuples to permify")
 	return s.authzClient.WriteTuples(ctx, tenantId, tuples)
 }
 
 // deleteTuples: delete all combinations relations × OUs × RGs from Permify
 func (s *PermissionProfileService) deleteTuples(ctx context.Context, tenantId string, relations, ouIDs, rgIDs []string) error {
+	log := logger.FromCtx(ctx, "authzsvc", "PermissionProfile.deleteTuples")
+	total := len(relations) * len(ouIDs) * len(rgIDs)
+	log.Debug().Int("tupleCount", total).Msg("deleting tuples from permify")
 	var lastErr error
 	for _, rgID := range rgIDs {
 		for _, ouID := range ouIDs {

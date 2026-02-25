@@ -1,3 +1,4 @@
+// internal/middleware/audit.go
 package middleware
 
 import (
@@ -63,10 +64,13 @@ var auditPrefixes = []auditPath{
 	{"/authz/resource/revoke", "resourceRevoke"},
 	{"/authz/permission/check/batch", "permissionCheckBatch"},
 	{"/authz/profiles", "profiles"},
+	// authz permission profiles
+	{"/orgs/resource/permissions", "resourcePermissionProfile"},
+	{"/orgs/menu/permissions", "menuPermissionProfile"},
 	// Kcontrol
 	{"/kcontrol/alarms", "kcontrolAlarms"},
 	{"/kcontrol", "kcontrol"},
-	// third token apis	
+	// third token apis
 	{"/token/api/serviceAccount", "serviceAccount"},
 	{"/token/api/clientCredentials", "clientCredentials"},
 	// ✅ ATA control apis
@@ -84,9 +88,9 @@ var auditPrefixes = []auditPath{
  * ========================================= */
 
 func init() {
-    sort.SliceStable(auditPrefixes, func(i, j int) bool {
-        return len(auditPrefixes[i].Prefix) > len(auditPrefixes[j].Prefix)
-    })
+	sort.SliceStable(auditPrefixes, func(i, j int) bool {
+		return len(auditPrefixes[i].Prefix) > len(auditPrefixes[j].Prefix)
+	})
 }
 
 func Audit(cfg AuditConfig) fiber.Handler {

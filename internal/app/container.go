@@ -27,13 +27,17 @@ type Container struct {
 	IDClient    *authgw.Client
 
 	// ===== Authz domain =====
-	OrgService                  *authzsvc.OrganizationService
-	OrgUnitService              *authzsvc.OrgUnitService
-	OrgController               *authzapi.OrganizationController
-	OrgUnitController           *authzapi.OrgUnitController
-	OrgUnitResourcesController      *authzapi.OrgUnitResourcesController
-	PermissionProfileService         *authzsvc.PermissionProfileService
-	ProfilePermissionsController     *authzapi.ProfilePermissionsController
+	OrgService                           *authzsvc.OrganizationService
+	OrgUnitService                       *authzsvc.OrgUnitService
+	OrgController                        *authzapi.OrganizationController
+	OrgUnitController                    *authzapi.OrgUnitController
+	OrgUnitResourcesController           *authzapi.OrgUnitResourcesController
+	ResourcePermissionProfileService     *authzsvc.PermissionProfileService
+	ResourcePermissionsProfileController *authzapi.ResourcePermissionsProfileController
+	MenuPermissionProfileService         *authzsvc.ProfileMenuPermissionService
+	MenuPermissionsProfileController     *authzapi.MenuPermissionsProfileController
+	MemberAccessService                  *authzsvc.MemberAccessService
+	MemberAccessController               *authzapi.MemberAccessController
 
 	// ===== Device: ResourceGroup domain ====
 	ResourceGroupService    *devicesvc.ResourceGroupService
@@ -104,11 +108,28 @@ func (c *Container) buildDevice() {
 	c.OrgUnitResourcesController = authzapi.NewOrgUnitResourcesController(c.ResourceGroupService)
 
 	// PermissionProfile: cross-domain service (authzsvc using devicerepo)
-	c.PermissionProfileService = authzsvc.NewPermissionProfileService(
+	c.ResourcePermissionProfileService = authzsvc.NewPermissionProfileService(
 		authzrepo.NewPermissionProfileRepo(),
 		authzrepo.NewOrgUnitRepo(),
 		groupRepo,
 		c.AuthzClient,
 	)
-	c.ProfilePermissionsController = authzapi.NewProfilePermissionsController(c.PermissionProfileService)
+	c.ResourcePermissionsProfileController = authzapi.NewResourcePermissionsProfileController(c.ResourcePermissionProfileService)
+
+	// MenuPermissionProfile
+	menuListRepo := authzrepo.NewMenuListRepo()
+	c.MenuPermissionProfileService = authzsvc.NewMenuPermissionProfileService(
+		authzrepo.NewMenuPermissionProfileRepo(),
+		authzrepo.NewOrgUnitRepo(),
+		menuListRepo,
+		c.AuthzClient,
+	)
+	c.MenuPermissionsProfileController = authzapi.NewMenuPermissionsProfileController(c.MenuPermissionProfileService, menuListRepo)
+
+	// MemberAccess — read-only view of what the caller can access via OrgUnit profiles
+	permProfileRepo := authzrepo.NewPermissionProfileRepo()
+	menuProfileRepo := authzrepo.NewMenuPermissionProfileRepo()
+	c.MemberAccessService = authzsvc.NewMemberAccessService(permProfileRepo, menuProfileRepo, c.AuthzClient, groupRepo, camRepo)
+	c.MemberAccessController = authzapi.NewMemberAccessController(c.MemberAccessService)
+	authzsvc.SetDefaultMemberAccessService(c.MemberAccessService)
 }
