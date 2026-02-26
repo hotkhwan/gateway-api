@@ -8,3 +8,8 @@ bin/air
 dahua/
 tmp/
 certs/
+
+
+#clause coding 
+.claude*
+api.json

@@ -53,6 +53,9 @@ func UpdateUser(ctx context.Context, userID string, attrs map[string]any) error 
 	if v, ok := attrs["perPages"]; ok {
 		setAttr("perPages", v)
 	}
+	if v, ok := attrs["activeOrgId"]; ok {
+		setAttr("activeOrgId", v)
+	}
 
 	if ml, ok := attrs["mapLocation"].(map[string]any); ok {
 		if lat, ok := ml["lat"]; ok {

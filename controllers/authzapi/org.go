@@ -22,6 +22,7 @@ type CreateOrgRequest struct {
 type UpdateOrgRequest struct {
 	Name        string  `json:"name"`
 	Description *string `json:"description,omitempty"`
+	IsActive    *bool   `json:"isActive,omitempty"`
 }
 
 func NewOrganizationController(svc *authzsvc.OrganizationService) *OrganizationController {
@@ -54,6 +55,13 @@ func (ctrl *OrganizationController) List(c *fiber.Ctx) error {
 
 	userId, _ := c.Locals("userId").(string)
 	tenantId, _ := c.Locals("tenantId").(string)
+	// Use user's stored activeOrgId from JWT attributes, fallback to X-Active-Org header
+	userActiveOrgId, _ := c.Locals("userActiveOrgId").(string)
+	activeOrg, _ := c.Locals("activeOrg").(string)
+	activeOrgId := userActiveOrgId
+	if activeOrgId == "" {
+		activeOrgId = activeOrg
+	}
 
 	if userId == "" || tenantId == "" {
 		return c.Status(401).JSON(gmod.ApiErrorResponse{
@@ -74,7 +82,7 @@ func (ctrl *OrganizationController) List(c *fiber.Ctx) error {
 		perPage = 100
 	}
 
-	orgs, err := ctrl.service.List(ctx, tenantId, userId)
+	orgs, err := ctrl.service.List(ctx, tenantId, userId, activeOrgId)
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
 		return c.Status(status).JSON(gmod.ApiErrorResponse{
@@ -298,6 +306,7 @@ func (ctrl *OrganizationController) Update(c *fiber.Ctx) error {
 		orgId,
 		body.Name,
 		body.Description,
+		body.IsActive,
 	)
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)

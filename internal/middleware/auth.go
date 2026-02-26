@@ -3,6 +3,7 @@ package middleware
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/hotkhwan/gateway-api/internal/logger"
@@ -65,10 +66,19 @@ func AuthBearer() fiber.Handler {
 			tenantId = getStr(claims["realm"]) // เผื่อมี custom claim
 		}
 
+		// Extract activeOrgId from user attributes if available
+		activeOrgId := ""
+		if attrs, ok := claims["attributes"].(map[string]any); ok {
+			if activeOrg, ok := attrs["activeOrgId"].([]any); ok && len(activeOrg) > 0 {
+				activeOrgId = fmt.Sprintf("%v", activeOrg[0])
+			}
+		}
+
 		log.Debug().
 			Str("sub", userId).
 			Str("tenantId", tenantId).
 			Str("username", username).
+			Str("activeOrgId", activeOrgId).
 			Str("ip", c.IP()).
 			Msg("token_validated")
 
@@ -78,6 +88,7 @@ func AuthBearer() fiber.Handler {
 		// ✅ ของใหม่ (additive ไม่กระทบ legacy)
 		c.Locals("userId", userId)
 		c.Locals("tenantId", tenantId)
+		c.Locals("userActiveOrgId", activeOrgId)
 
 		return c.Next()
 	}

@@ -79,6 +79,7 @@ type OrgSummary struct {
 	TenantId    string `json:"tenantId"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	IsActive    bool   `json:"isActive"`
 	CreatedAt   string `json:"createdAt"`
 	UpdatedAt   string `json:"updatedAt"`
 }
@@ -106,6 +107,7 @@ func (s *OrganizationService) List(
 	ctx context.Context,
 	tenantId string,
 	userId string,
+	activeOrgId string,
 ) ([]OrgSummary, error) {
 
 	ctx, end, log := traceutil.StartLite(
@@ -145,6 +147,7 @@ func (s *OrganizationService) List(
 			TenantId:    o.TenantId,
 			Name:        o.Name,
 			Description: o.Description,
+			IsActive:    o.OrgId == activeOrgId,
 			CreatedAt:   o.CreatedAt.UTC().Format(time.RFC3339Nano),
 			UpdatedAt:   o.UpdatedAt.UTC().Format(time.RFC3339Nano),
 		})
@@ -231,6 +234,7 @@ func (s *OrganizationService) Update(
 	orgId,
 	name string,
 	description *string,
+	isActive *bool,
 ) error {
 
 	ctx, end, log := traceutil.StartLite(
@@ -265,6 +269,14 @@ func (s *OrganizationService) Update(
 		}
 		log.Error().Err(err).Str("orgId", orgId).Msg("update failed")
 		return err
+	}
+
+	// Update user's active org if isActive is true
+	if isActive != nil && *isActive {
+		if err := s.idClient.SetUserActiveOrg(ctx, tenantId, userId, orgId); err != nil {
+			log.Error().Err(err).Str("userId", userId).Str("orgId", orgId).Msg("failed to set user's active org")
+			// Don't fail the update, just log the error
+		}
 	}
 
 	return nil

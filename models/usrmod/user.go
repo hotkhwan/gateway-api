@@ -20,6 +20,7 @@ type User struct {
 	RefId       string       `json:"refId" bson:"refId"`
 	Department  string       `json:"department" bson:"department"`
 	Enabled     bool         `json:"enabled" bson:"enabled"`
+	ActiveOrgId string       `json:"activeOrgId,omitempty" bson:"activeOrgId"`
 	MapLocation *MapLocation `json:"mapLocation,omitempty"`
 	CreatedAt   *time.Time   `json:"createdAt,omitempty"`
 }
