@@ -229,10 +229,10 @@ func (s *OrganizationService) Create(
 
 func (s *OrganizationService) Update(
 	ctx context.Context,
-	tenantId,
-	userId,
-	orgId,
-	name string,
+	tenantId string,
+	userId string,
+	orgId string,
+	name *string,
 	description *string,
 	isActive *bool,
 ) error {
@@ -246,17 +246,24 @@ func (s *OrganizationService) Update(
 	)
 	defer end()
 
-	name = strings.TrimSpace(name)
-	if name == "" {
+	// Validate at least one field is provided
+	if name == nil && description == nil && isActive == nil {
 		return ErrBadRequest
 	}
 
 	update := bson.M{
 		"$set": bson.M{
-			"name":      name,
 			"updatedBy": userId,
 			"updatedAt": time.Now().UTC(),
 		},
+	}
+
+	if name != nil {
+		trimmed := strings.TrimSpace(*name)
+		if trimmed == "" {
+			return ErrBadRequest
+		}
+		update["$set"].(bson.M)["name"] = trimmed
 	}
 
 	if description != nil {

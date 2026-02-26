@@ -20,7 +20,7 @@ type CreateOrgRequest struct {
 }
 
 type UpdateOrgRequest struct {
-	Name        string  `json:"name"`
+	Name        *string `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
 	IsActive    *bool   `json:"isActive,omitempty"`
 }
