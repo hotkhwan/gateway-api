@@ -240,6 +240,14 @@ func main() {
 	router.RegisterHookzkt(api)
 	router.RegisterHookATA(api)
 
+	// ---------- Ingest hot-path: POST /events/:orgId (no JWT, root level) ----------
+	router.RegisterIngestEventsRoutes(app, container)
+	// ---------- Ingest config: GET|POST /api/v1/ingest (JWT + X-Active-Org) ----------
+	router.RegisterIngestRoutes(api, container)
+
+	// ---------- Delivery Targets domain ----------
+	router.RegisterTargetsRoutes(api, container)
+
 	iwownapi := app.Group(iwownPath)
 	router.RegisterHookIwownAPI(iwownapi)
 

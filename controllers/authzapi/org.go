@@ -164,6 +164,104 @@ func (ctrl *OrganizationController) Create(c *fiber.Ctx) error {
 }
 
 // =========================
+// GET INGEST CONFIG
+// =========================
+
+// GetIngestConfig godoc
+// @Summary Get ingest config for an organization (admin only)
+// @Description Returns ingest endpoint, masked secret, and rate limit config
+// @Tags Authorization
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Organization ID"
+// @Success 200 {object} gmod.SuccessDataResponse
+// @Failure 401 {object} gmod.ApiErrorResponse
+// @Failure 403 {object} gmod.ApiErrorResponse
+// @Failure 404 {object} gmod.ApiErrorResponse
+// @Router /api/v1/orgs/{id}/ingest [get]
+func (ctrl *OrganizationController) GetIngestConfig(c *fiber.Ctx) error {
+
+	ctx := c.UserContext()
+	tracer := otel.Tracer("authzapi")
+	ctx, span := tracer.Start(ctx, "Organization.GetIngestConfig")
+	defer span.End()
+
+	orgId := strings.TrimSpace(c.Locals("activeOrg").(string))
+	userId, _ := c.Locals("userId").(string)
+	tenantId, _ := c.Locals("tenantId").(string)
+
+	if userId == "" || tenantId == "" {
+		return c.Status(401).JSON(gmod.ApiErrorResponse{
+			Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
+		})
+	}
+
+	cfg, err := ctrl.service.GetIngestConfig(ctx, tenantId, userId, orgId)
+	if err != nil {
+		status, code := authzsvc.MapSvcError(err)
+		return c.Status(status).JSON(gmod.ApiErrorResponse{
+			Code: code, Message: err.Error(), Status: false,
+		})
+	}
+
+	return c.JSON(gmod.SuccessDataResponse{
+		Code:    gmod.CodeSuccess,
+		Status:  true,
+		Message: "ingest config fetched",
+		Data:    cfg,
+	})
+}
+
+// =========================
+// ROTATE INGEST SECRET
+// =========================
+
+// RotateIngestSecret godoc
+// @Summary Rotate ingest secret for an organization (admin only)
+// @Description Generates a new HMAC signing key and returns the masked version
+// @Tags Authorization
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Organization ID"
+// @Success 200 {object} gmod.SuccessDataResponse
+// @Failure 401 {object} gmod.ApiErrorResponse
+// @Failure 403 {object} gmod.ApiErrorResponse
+// @Failure 404 {object} gmod.ApiErrorResponse
+// @Router /api/v1/orgs/{id}/ingest/rotateSecret [post]
+func (ctrl *OrganizationController) RotateIngestSecret(c *fiber.Ctx) error {
+
+	ctx := c.UserContext()
+	tracer := otel.Tracer("authzapi")
+	ctx, span := tracer.Start(ctx, "Organization.RotateIngestSecret")
+	defer span.End()
+
+	orgId := strings.TrimSpace(c.Locals("activeOrg").(string))
+	userId, _ := c.Locals("userId").(string)
+	tenantId, _ := c.Locals("tenantId").(string)
+
+	if userId == "" || tenantId == "" {
+		return c.Status(401).JSON(gmod.ApiErrorResponse{
+			Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
+		})
+	}
+
+	cfg, err := ctrl.service.RotateIngestSecret(ctx, tenantId, userId, orgId)
+	if err != nil {
+		status, code := authzsvc.MapSvcError(err)
+		return c.Status(status).JSON(gmod.ApiErrorResponse{
+			Code: code, Message: err.Error(), Status: false,
+		})
+	}
+
+	return c.JSON(gmod.SuccessDataResponse{
+		Code:    gmod.CodeSuccess,
+		Status:  true,
+		Message: "ingest secret rotated",
+		Data:    cfg,
+	})
+}
+
+// =========================
 // UPDATE ORGANIZATION
 // =========================
 

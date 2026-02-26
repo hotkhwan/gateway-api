@@ -91,6 +91,9 @@ func MapSvcError(err error) (status int, code string) {
 		return http.StatusBadRequest, gmod.CodeBadRequest
 	case errors.Is(err, ErrUnauthorized):
 		return http.StatusUnauthorized, gmod.CodeUnauthorized
+	case errors.Is(err, ErrForbidden),
+		errors.Is(err, ErrForbiddenInvite):
+		return http.StatusForbidden, gmod.CodeForbidden
 	default:
 		return http.StatusInternalServerError, gmod.CodeInternalError
 	}

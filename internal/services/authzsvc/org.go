@@ -3,10 +3,14 @@ package authzsvc
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
@@ -14,6 +18,54 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"go.mongodb.org/mongo-driver/bson"
 )
+
+// generateIngestKey สร้าง random 32-byte hex string สำหรับ HMAC signing
+func generateIngestKey() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
+// maskSecret แสดงเฉพาะ prefix + suffix (สำหรับ UI)
+func maskSecret(s string) string {
+	if len(s) <= 8 {
+		return s
+	}
+	return s[:4] + "..." + s[len(s)-4:]
+}
+
+// IngestConfigView คือ response ที่ส่งให้ FE (ไม่เปิดเผย raw key)
+type IngestConfigView struct {
+	IngestEndpoint     string          `json:"ingestEndpoint"`
+	IngestSecretMasked string          `json:"ingestSecretMasked"`
+	SignatureRequired  bool            `json:"signatureRequired"`
+	RateLimit          RateLimitConfig `json:"rateLimit"`
+}
+
+type RateLimitConfig struct {
+	PerSecond int `json:"perSecond"`
+	Burst     int `json:"burst"`
+}
+
+const (
+	defaultRateLimitPerSec = 10
+	defaultRateLimitBurst  = 20
+)
+
+// resolveRateLimit ใช้ค่า default เมื่อ org เก่าที่ยังไม่มี ingestConfig ใน Mongo
+func resolveRateLimit(cfg authzmod.OrgIngestConfig) RateLimitConfig {
+	perSec := cfg.RateLimitPerSec
+	if perSec <= 0 {
+		perSec = defaultRateLimitPerSec
+	}
+	burst := cfg.RateLimitBurst
+	if burst <= 0 {
+		burst = defaultRateLimitBurst
+	}
+	return RateLimitConfig{PerSecond: perSec, Burst: burst}
+}
 
 type OrganizationService struct {
 	orgRepo     *authzrepo.OrgRepo
@@ -132,16 +184,27 @@ func (s *OrganizationService) Create(
 		desc = strings.TrimSpace(*description)
 	}
 
+	ingestKey, err := generateIngestKey()
+	if err != nil {
+		return "", err
+	}
+
 	org := &authzmod.Organization{
 		OrgId:       orgId,
 		TenantId:    tenantId,
 		Name:        name,
 		Description: desc,
-		CreatedBy:   userId,
-		CreatedAt:   now,
-		UpdatedBy:   userId,
-		UpdatedAt:   now,
-		SyncStatus:  "pending",
+		IngestConfig: authzmod.OrgIngestConfig{
+			IngestKey:         ingestKey,
+			SignatureRequired: false,
+			RateLimitPerSec:   defaultRateLimitPerSec,
+			RateLimitBurst:    defaultRateLimitBurst,
+		},
+		CreatedBy:  userId,
+		CreatedAt:  now,
+		UpdatedBy:  userId,
+		UpdatedAt:  now,
+		SyncStatus: "pending",
 	}
 
 	if err := s.orgRepo.Insert(ctx, org); err != nil {
@@ -205,6 +268,106 @@ func (s *OrganizationService) Update(
 	}
 
 	return nil
+}
+
+// GetIngestConfig ดึง ingest config ของ org (admin only)
+func (s *OrganizationService) GetIngestConfig(
+	ctx context.Context,
+	tenantId string,
+	userId string,
+	orgId string,
+) (*IngestConfigView, error) {
+
+	ctx, end, _ := traceutil.StartLite(ctx, "authzsvc", "org.getIngestConfig", "authzsvc", "GetIngestConfig")
+	defer end()
+
+	orgId = strings.TrimSpace(orgId)
+	if orgId == "" {
+		return nil, ErrBadRequest
+	}
+
+	// ตรวจสิทธิ์: ต้องเป็น admin ของ org
+	allowed, err := s.authzClient.CheckPermissionWithSchemaVersion(
+		ctx, tenantId, config.CurrentSchemaVersion,
+		"organization", orgId, "admin", "user", userId,
+	)
+	if err != nil || !allowed {
+		return nil, ErrForbidden
+	}
+
+	org, err := s.orgRepo.FindById(ctx, orgId)
+	if err != nil {
+		if err == authzrepo.ErrNotFound {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &IngestConfigView{
+		IngestEndpoint:     fmt.Sprintf("/events/%s", orgId),
+		IngestSecretMasked: maskSecret(org.IngestConfig.IngestKey),
+		SignatureRequired:  org.IngestConfig.SignatureRequired,
+		RateLimit:          resolveRateLimit(org.IngestConfig),
+	}, nil
+}
+
+// RotateIngestSecret สร้าง ingest key ใหม่และ save ลง Mongo (admin only)
+func (s *OrganizationService) RotateIngestSecret(
+	ctx context.Context,
+	tenantId string,
+	userId string,
+	orgId string,
+) (*IngestConfigView, error) {
+
+	ctx, end, log := traceutil.StartLite(ctx, "authzsvc", "org.rotateIngestSecret", "authzsvc", "RotateIngestSecret")
+	defer end()
+
+	orgId = strings.TrimSpace(orgId)
+	if orgId == "" {
+		return nil, ErrBadRequest
+	}
+
+	// ตรวจสิทธิ์: ต้องเป็น admin ของ org
+	allowed, err := s.authzClient.CheckPermissionWithSchemaVersion(
+		ctx, tenantId, config.CurrentSchemaVersion,
+		"organization", orgId, "admin", "user", userId,
+	)
+	if err != nil || !allowed {
+		return nil, ErrForbidden
+	}
+
+	newKey, err := generateIngestKey()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.orgRepo.Update(ctx, orgId, bson.M{
+		"$set": bson.M{
+			"ingestConfig.ingestKey": newKey,
+			"updatedBy":              userId,
+			"updatedAt":              time.Now().UTC(),
+		},
+	}); err != nil {
+		if err == authzrepo.ErrNotFound {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	log.Info().Str("orgId", orgId).Msg("ingest secret rotated")
+
+	// ดึง rate limit ปัจจุบันจาก Mongo เพื่อ return ครบ
+	org, err := s.orgRepo.FindById(ctx, orgId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &IngestConfigView{
+		IngestEndpoint:     fmt.Sprintf("/events/%s", orgId),
+		IngestSecretMasked: maskSecret(newKey),
+		SignatureRequired:  org.IngestConfig.SignatureRequired,
+		RateLimit:          resolveRateLimit(org.IngestConfig),
+	}, nil
 }
 
 func (s *OrganizationService) Delete(

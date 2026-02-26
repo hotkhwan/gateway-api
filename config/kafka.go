@@ -51,6 +51,7 @@ func ensureKafkaWriter() error {
 			{"KAFKA_LIVE_TOPIC", "klive.player"},
 			{"KAFKA_TOPIC_IBOC", "iboc"},
 			{"KAFKA_TOPIC_ATA", "ata.events"},
+			{"KAFKA_TOPIC_RAW_EVENTS", "raw.events"},
 		})...)
 
 		// (ถ้าต้องการ topic เพิ่มเติมเฉพาะกิจ ก็ append ต่อได้)

@@ -7,12 +7,17 @@ import (
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/controllers/authzapi"
 	"github.com/hotkhwan/gateway-api/controllers/deviceapi"
+	"github.com/hotkhwan/gateway-api/controllers/ingestapi"
+	"github.com/hotkhwan/gateway-api/controllers/targetapi"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicerepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/targetrepo"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
+	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
 )
 
 // ============================================================
@@ -47,6 +52,14 @@ type Container struct {
 	// resourceType = "camera" — BSON _id internal, ใช้ _id.Hex() ใน Permify
 	CameraService    *devicesvc.CameraService
 	CameraController *deviceapi.CameraController
+
+	// ===== Ingest domain (hot path, no JWT) =====
+	IngestService    *ingestsvc.IngestService
+	IngestController *ingestapi.IngestController
+
+	// ===== Delivery Targets domain =====
+	TargetService    *targetsvc.TargetService
+	TargetController *targetapi.TargetController
 }
 
 // NewContainer — เรียกครั้งเดียวใน main.go
@@ -55,6 +68,8 @@ func NewContainer() *Container {
 	c.buildShared()
 	c.buildAuthz()
 	c.buildDevice()
+	c.buildIngest()
+	c.buildTargets()
 	return c
 }
 
@@ -132,4 +147,24 @@ func (c *Container) buildDevice() {
 	c.MemberAccessService = authzsvc.NewMemberAccessService(permProfileRepo, menuProfileRepo, c.AuthzClient, groupRepo, camRepo)
 	c.MemberAccessController = authzapi.NewMemberAccessController(c.MemberAccessService)
 	authzsvc.SetDefaultMemberAccessService(c.MemberAccessService)
+}
+
+// ============================================================
+// buildIngest — hot-path ingest (no JWT)
+// ============================================================
+
+func (c *Container) buildIngest() {
+	orgRepo := authzrepo.NewOrgRepo(config.DB)
+	c.IngestService = ingestsvc.NewIngestService(orgRepo, config.Redis)
+	c.IngestController = ingestapi.NewIngestController(c.IngestService)
+}
+
+// ============================================================
+// buildTargets — Delivery Targets domain
+// ============================================================
+
+func (c *Container) buildTargets() {
+	repo := targetrepo.NewTargetRepo()
+	c.TargetService = targetsvc.NewTargetService(repo, c.AuthzClient)
+	c.TargetController = targetapi.NewTargetController(c.TargetService)
 }
