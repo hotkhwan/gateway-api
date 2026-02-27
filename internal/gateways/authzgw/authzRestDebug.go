@@ -57,7 +57,7 @@ type DeleteRelationship struct {
 }
 
 // ---------- Delete (tuple) legacy ----------
-type DeleteTuplesRequest struct {
+type permifyDeleteTuplesRequest struct {
 	EntityType  string
 	EntityId    string
 	Relation    string
@@ -68,6 +68,9 @@ type DeleteTuplesRequest struct {
 	SnapToken     string
 	Depth         int
 }
+
+// Export for debug controller - alias to internal type
+type DeleteTuplesRequest = permifyDeleteTuplesRequest
 
 type permifyRestDebugClient struct {
 	httpClient *http.Client

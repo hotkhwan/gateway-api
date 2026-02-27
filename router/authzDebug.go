@@ -43,5 +43,16 @@ func RegisterAuthzDebugRoutes(router fiber.Router) {
 		protected.Get("/tuples/byUser", ctrl.ListTuplesByUser)
 		protected.Get("/tuples/ou", ctrl.ListOrgUnitTuples)
 		protected.Post("/tuples/resetTenant", ctrl.ResetTenant)
+
+		// ========== Debug/Tuples routes (migrated from /debug/tuples) ==========
+		allowTupleDebug := os.Getenv("ALLOW_TUPLE_DEBUG") == "true"
+		if allowTupleDebug {
+			protected.All("/tuples/debug", middleware.AllowMethods("GET", "DELETE"))
+			protected.Get("/tuples/debug", ctrl.DebugReadTuples)
+			protected.Delete("/tuples/debug", ctrl.DebugDeleteTuples)
+
+			protected.All("/tuples/debug/org/:orgId", middleware.AllowMethods("DELETE"))
+			protected.Delete("/tuples/debug/org/:orgId", ctrl.DebugDeleteOrgTuples)
+		}
 	})
 }

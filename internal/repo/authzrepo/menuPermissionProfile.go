@@ -102,7 +102,7 @@ func (r *MenuPermissionProfileRepo) List(
 	}
 
 	var results []authzmod.MenuPermissionProfile
-	pag, err := stomongo.FindWithPagination[authzmod.MenuPermissionProfile](
+	pag, err := stomongo.FindWithPagination(
 		ctx, r.collection, filter,
 		bson.D{{Key: sortField, Value: sortDir}},
 		page, perPage, &results,

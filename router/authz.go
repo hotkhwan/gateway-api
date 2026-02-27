@@ -44,6 +44,7 @@ func RegisterAuthzNewRoutes(router fiber.Router, c *app.Container) {
 		orgScoped := protected.Group("/units", middleware.ActiveOrg())
 		orgScoped.Post("/", c.OrgUnitController.Create)
 		orgScoped.Get("/tree", c.OrgUnitController.Tree)
+		orgScoped.Get("/tree/:id", c.OrgUnitController.TreeNode)
 		orgScoped.Patch("/:id", c.OrgUnitController.Update)
 		orgScoped.Delete("/:id", c.OrgUnitController.Delete)
 

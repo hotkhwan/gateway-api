@@ -251,3 +251,158 @@ func (ctrl *AuthzDebugController) ClearOrgTuples(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "status": true, "message": "org tuples cleared"})
 }
+
+// ========== Debug/Tuples methods (migrated from DebugController) ==========
+
+func (ctrl *AuthzDebugController) DebugReadTuples(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	tenantId, _ := c.Locals("tenantId").(string)
+
+	if tenantId == "" {
+		return c.Status(401).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeUnauthorized,
+			Message: "tenantId required",
+			Status:  false,
+		})
+	}
+
+	entityType := c.Query("entityType")
+	entityId := c.Query("entityId")
+	relation := c.Query("relation")
+	subjectType := c.Query("subjectType")
+	subjectId := c.Query("subjectId")
+
+	// Require at least one filter - Permify requires filter in request
+	if entityType == "" && entityId == "" && relation == "" && subjectType == "" && subjectId == "" {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: "at least one filter required (entityType, entityId, relation, subjectType, or subjectId)",
+			Status:  false,
+		})
+	}
+
+	res, err := ctrl.debugService.DebugReadTuples(ctx, tenantId, authzsvc.ReadTuplesRequest{
+		EntityType:    entityType,
+		EntityId:      entityId,
+		Relation:      relation,
+		SubjectType:   subjectType,
+		SubjectId:     subjectId,
+		SchemaVersion: "latest",
+		Depth:         50,
+		PageSize:      c.QueryInt("pageSize", 200),
+	})
+	if err != nil {
+		return c.Status(500).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeInternalError,
+			Message: err.Error(),
+			Status:  false,
+		})
+	}
+
+	details := make([]map[string]any, 0, len(res.Tuples))
+	for _, t := range res.Tuples {
+		details = append(details, map[string]any{
+			"entityType":  t.EntityType,
+			"entityId":    t.EntityId,
+			"relation":    t.Relation,
+			"subjectType": t.SubjectType,
+			"subjectId":   t.SubjectId,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code":       gmod.CodeSuccess,
+		"status":     true,
+		"message":    "tuples fetched",
+		"details":    details,
+		"pagination": fiber.Map{"continuousToken": res.ContinuousToken, "pageSize": res.PageSize},
+	})
+}
+
+func (ctrl *AuthzDebugController) DebugDeleteTuples(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	tenantId, _ := c.Locals("tenantId").(string)
+
+	if tenantId == "" {
+		return c.Status(401).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeUnauthorized,
+			Message: "tenantId required",
+			Status:  false,
+		})
+	}
+
+	var body map[string]any
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: "invalid body",
+			Status:  false,
+		})
+	}
+
+	entityType, _ := body["entityType"].(string)
+	entityId, _ := body["entityId"].(string)
+	relation, _ := body["relation"].(string)
+	subjectType, _ := body["subjectType"].(string)
+	subjectId, _ := body["subjectId"].(string)
+
+	if entityType == "" {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: "entityType required",
+			Status:  false,
+		})
+	}
+
+	err := ctrl.debugService.DebugDeleteTuples(ctx, tenantId, authzsvc.DeleteTuplesRequest{
+		EntityType:    entityType,
+		EntityId:      entityId,
+		Relation:      relation,
+		SubjectType:   subjectType,
+		SubjectId:     subjectId,
+		SchemaVersion: "latest",
+		Depth:         50,
+	})
+	if err != nil {
+		return c.Status(500).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeInternalError,
+			Message: err.Error(),
+			Status:  false,
+		})
+	}
+
+	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "status": true, "message": "tuples deleted"})
+}
+
+func (ctrl *AuthzDebugController) DebugDeleteOrgTuples(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	tenantId, _ := c.Locals("tenantId").(string)
+	orgId := c.Params("orgId")
+
+	if tenantId == "" {
+		return c.Status(401).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeUnauthorized,
+			Message: "tenantId required",
+			Status:  false,
+		})
+	}
+
+	if orgId == "" {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: "orgId required",
+			Status:  false,
+		})
+	}
+
+	err := ctrl.debugService.DebugDeleteOrgTuples(ctx, tenantId, orgId)
+	if err != nil {
+		return c.Status(500).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeInternalError,
+			Message: err.Error(),
+			Status:  false,
+		})
+	}
+
+	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "status": true, "message": "org tuples deleted"})
+}

@@ -45,6 +45,10 @@ type Client interface {
 
 	// internal/gateways/authzgw/client.go — interface
 	DeleteSpecificTupleWithRelation(ctx context.Context, tenantId, entityType, entityId, relation, subjectType, subjectId string) error
+
+	// Debug methods
+	DebugReadTuples(ctx context.Context, tenantId string, req ReadTuplesRequest) (*ReadTuplesResponse, error)
+	DebugDeleteTuples(ctx context.Context, tenantId string, req DeleteTuplesRequest) error
 }
 
 type HybridClient struct {
@@ -288,6 +292,21 @@ func (c *HybridClient) DeleteSpecificTupleWithRelation(
 ) error {
 	if c.rest != nil {
 		return c.rest.DeleteSpecificTupleWithRelation(ctx, tenantId, entityType, entityId, relation, subjectType, subjectId)
+	}
+	return ErrNoAuthzClient
+}
+
+// Debug methods
+func (c *HybridClient) DebugReadTuples(ctx context.Context, tenantId string, req ReadTuplesRequest) (*ReadTuplesResponse, error) {
+	if c.restDebug != nil {
+		return c.restDebug.ReadTuples(ctx, tenantId, req)
+	}
+	return nil, ErrNoAuthzClient
+}
+
+func (c *HybridClient) DebugDeleteTuples(ctx context.Context, tenantId string, req DeleteTuplesRequest) error {
+	if c.restDebug != nil {
+		return c.restDebug.DeleteTuples(ctx, tenantId, req)
 	}
 	return ErrNoAuthzClient
 }

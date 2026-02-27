@@ -28,8 +28,9 @@ type CreateOrgUnitBody struct {
 }
 
 type UpdateOrgUnitBody struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	ParentId    *string `json:"parentId,omitempty"`
 }
 
 // Create godoc
@@ -101,7 +102,7 @@ func (ctrl *OrgUnitController) Create(c *fiber.Ctx) error {
 }
 
 // Tree godoc
-// @Summary Get org unit tree
+// @Summary Get org unit tree (root nodes only)
 // @Tags OrgUnit
 // @Security BearerAuth
 // @Produce json
@@ -136,6 +137,49 @@ func (ctrl *OrgUnitController) Tree(c *fiber.Ctx) error {
 		"code":    gmod.CodeSuccess,
 		"status":  true,
 		"details": tree,
+	})
+}
+
+// TreeNode godoc
+// @Summary Get org unit node with immediate children (1 level only)
+// @Tags OrgUnit
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "unitId"
+// @Success 200 {object} map[string]interface{}
+// @Router /api/v1/orgs/units/tree/{id} [get]
+func (ctrl *OrgUnitController) TreeNode(c *fiber.Ctx) error {
+
+	ctx := c.UserContext()
+	tracer := otel.Tracer("authzapi")
+	ctx, span := tracer.Start(ctx, "OrgUnit.TreeNode")
+	defer span.End()
+
+	unitId := strings.TrimSpace(c.Params("id"))
+
+	tenantId, _ := c.Locals("tenantId").(string)
+	orgId, _ := c.Locals("activeOrg").(string)
+
+	node, err := ctrl.service.GetOrgUnitTreeNode(
+		ctx,
+		tenantId,
+		orgId,
+		unitId,
+	)
+
+	if err != nil {
+		status, code := authzsvc.MapSvcError(err)
+		return c.Status(status).JSON(gmod.ApiErrorResponse{
+			Code:    code,
+			Message: err.Error(),
+			Status:  false,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code":    gmod.CodeSuccess,
+		"status":  true,
+		"details": node,
 	})
 }
 
@@ -177,6 +221,7 @@ func (ctrl *OrgUnitController) Update(c *fiber.Ctx) error {
 		unitId,
 		body.Name,
 		body.Description,
+		body.ParentId,
 		userId,
 	)
 
@@ -235,5 +280,56 @@ func (ctrl *OrgUnitController) Delete(c *fiber.Ctx) error {
 		Code:    gmod.CodeSuccess,
 		Status:  true,
 		Message: "deleted",
+	})
+}
+
+// TreeDebug godoc
+// @Summary Debug: Get org unit tree with raw data
+// @Tags OrgUnit
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /api/v1/orgs/units/tree-debug [get]
+func (ctrl *OrgUnitController) TreeDebug(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	tenantId, _ := c.Locals("tenantId").(string)
+	orgId, _ := c.Locals("activeOrg").(string)
+
+	// Get raw units from DB
+	units, err := ctrl.service.GetOrgUnitsRaw(ctx, tenantId, orgId)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"code":    "ERROR",
+			"status":  false,
+			"message": err.Error(),
+		})
+	}
+
+	// Build tree
+	tree := ctrl.service.BuildOrgUnitTree(units)
+
+	// Count nodes recursively
+	var countNodes func(nodes []authzsvc.OrgUnitNode) int
+	countNodes = func(nodes []authzsvc.OrgUnitNode) int {
+		count := 0
+		for _, n := range nodes {
+			count++
+			count += countNodes(n.Children)
+		}
+		return count
+	}
+
+	return c.JSON(fiber.Map{
+		"code":   "SUCCESS",
+		"status": true,
+		"debug": fiber.Map{
+			"tenantId":      tenantId,
+			"orgId":         orgId,
+			"dbRecordCount": len(units),
+			"treeNodeCount": countNodes(tree),
+			"rawUnits":      units,
+		},
+		"tree": tree,
 	})
 }

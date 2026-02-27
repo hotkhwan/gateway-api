@@ -156,3 +156,83 @@ func (s *AuthzDebugService) ClearOrgTuples(ctx context.Context, tenantId string,
 	client := authzgw.NewPermifyRestDebugClient()
 	return client.DeleteOrgTuples(ctx, tenantId, orgId)
 }
+
+// ========== Debug/Tuples service methods (migrated from DebugController) ==========
+
+type ReadTuplesRequest struct {
+	EntityType      string
+	EntityId        string
+	Relation        string
+	SubjectType     string
+	SubjectId       string
+	PageSize        int
+	SchemaVersion   string
+	Depth           int
+}
+
+type DeleteTuplesRequest struct {
+	EntityType      string
+	EntityId        string
+	Relation        string
+	SubjectType     string
+	SubjectId       string
+	SchemaVersion   string
+	Depth           int
+}
+
+func (s *AuthzDebugService) DebugReadTuples(ctx context.Context, tenantId string, req ReadTuplesRequest) (*PermifyTupleListResult, error) {
+	client := authzgw.NewPermifyRestDebugClient()
+	if req.PageSize <= 0 || req.PageSize > 200 {
+		req.PageSize = 200
+	}
+
+	res, err := client.ReadTuples(ctx, tenantId, authzgw.ReadTuplesRequest{
+		EntityType:      req.EntityType,
+		EntityId:        req.EntityId,
+		Relation:        req.Relation,
+		SubjectType:     req.SubjectType,
+		SubjectId:       req.SubjectId,
+		PageSize:        req.PageSize,
+		SchemaVersion:   req.SchemaVersion,
+		Depth:           req.Depth,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	out := &PermifyTupleListResult{
+		Tuples:          make([]PermifyTupleRow, 0, len(res.Tuples)),
+		ContinuousToken: res.ContinuousToken,
+		PageSize:        req.PageSize,
+	}
+
+	for _, t := range res.Tuples {
+		out.Tuples = append(out.Tuples, PermifyTupleRow{
+			EntityType:  t.Entity.Type,
+			EntityId:    t.Entity.Id,
+			Relation:    t.Relation,
+			SubjectType: t.Subject.Type,
+			SubjectId:   t.Subject.Id,
+		})
+	}
+
+	return out, nil
+}
+
+func (s *AuthzDebugService) DebugDeleteTuples(ctx context.Context, tenantId string, req DeleteTuplesRequest) error {
+	client := authzgw.NewPermifyRestDebugClient()
+	return client.DeleteTuples(ctx, tenantId, authzgw.DeleteTuplesRequest{
+		EntityType:    req.EntityType,
+		EntityId:      req.EntityId,
+		Relation:      req.Relation,
+		SubjectType:   req.SubjectType,
+		SubjectId:     req.SubjectId,
+		SchemaVersion: req.SchemaVersion,
+		Depth:         req.Depth,
+	})
+}
+
+func (s *AuthzDebugService) DebugDeleteOrgTuples(ctx context.Context, tenantId string, orgId string) error {
+	client := authzgw.NewPermifyRestDebugClient()
+	return client.DeleteOrgTuples(ctx, tenantId, orgId)
+}

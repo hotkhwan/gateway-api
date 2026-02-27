@@ -213,3 +213,27 @@ func (r *OrgUnitRepo) ExistsByIDAndOrg(ctx context.Context, tenantId, orgId, uni
 	})
 	return count > 0, err
 }
+
+// UpdateParent updates parentId and isRoot (used when moving orgUnits in tree)
+func (r *OrgUnitRepo) UpdateParent(
+	ctx context.Context,
+	tenantId, orgId, unitId string,
+	parentId *string,
+	updatedBy string,
+) error {
+
+	filter := bson.M{
+		"tenantId": tenantId,
+		"orgId":    orgId,
+		"unitId":   unitId,
+	}
+
+	setFields := bson.M{
+		"parentUnitId": parentId,
+		"isRoot":       parentId == nil,
+		"updatedBy":    updatedBy,
+	}
+
+	_, err := stomongo.UpdateOne(ctx, r.collection, filter, setFields)
+	return err
+}
