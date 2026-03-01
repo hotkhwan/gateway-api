@@ -17,8 +17,10 @@ import (
 )
 
 var (
-	KafkaWriter *kafka.Writer
-	kafkaOnce   sync.Once
+	KafkaWriter              *kafka.Writer
+	kafkaOnce                sync.Once
+	kafkaMaxMessageBytes     int64 // Maximum message size Kafka can accept
+	kafkaSafeMaxPayloadBytes int64 // Safe limit for subscription limits (with margin)
 )
 
 func InitKafka() { _ = ensureKafkaWriter() }
@@ -67,16 +69,23 @@ func ensureKafkaWriter() error {
 			if t == "" {
 				continue
 			}
-			if err := ensureTopic(broker, t, parts, rf, map[string]string{
+			topicConfig := map[string]string{
 				"cleanup.policy":   "delete",
 				"compression.type": "producer",
+				"max.message.bytes": strconv.FormatInt(kafkaMaxMessageBytes, 10),
 				// "retention.ms":   os.Getenv("KAFKA_TOPIC_RETENTION_MS"),
-			}); err != nil {
+			}
+			if err := ensureTopic(broker, t, parts, rf, topicConfig); err != nil {
 				log.Error().Err(err).Str("topic", t).Msg("❌ ensure topic failed")
 			} else {
 				log.Info().Str("topic", t).Msg("✅ topic ensured")
 			}
 		}
+
+		// Configure Kafka max message size with safety margin
+		kafkaMaxMessageBytes = envInt64("KAFKA_MAX_MESSAGE_BYTES", 1*1024*1024) // Default 1MB
+		// Safe limit for subscription limits is 90% of Kafka max (10% margin for overhead)
+		kafkaSafeMaxPayloadBytes = int64(float64(kafkaMaxMessageBytes) * 0.9)
 
 		KafkaWriter = &kafka.Writer{
 			Addr:                   kafka.TCP(broker),
@@ -90,7 +99,11 @@ func ensureKafkaWriter() error {
 			BatchBytes:             envInt64("KAFKA_BATCH_BYTES", 1<<20),
 			Compression:            kafka.Snappy, // ← เปลี่ยนจาก CompressionCodec
 		}
-		log.Info().Str("broker", broker).Msg("✅ Kafka writer initialized")
+		log.Info().
+			Str("broker", broker).
+			Int64("maxMessageBytes", kafkaMaxMessageBytes).
+			Int64("safeMaxPayloadBytes", kafkaSafeMaxPayloadBytes).
+			Msg("✅ Kafka writer initialized")
 	})
 	return initErr
 }
@@ -175,6 +188,16 @@ func CloseKafka() {
 	if KafkaWriter != nil {
 		_ = KafkaWriter.Close()
 	}
+}
+
+// GetKafkaSafeMaxPayloadBytes returns the safe maximum payload size for subscription limits
+// This is 90% of Kafka's max message size to account for protocol overhead
+func GetKafkaSafeMaxPayloadBytes() int64 {
+	if kafkaSafeMaxPayloadBytes == 0 {
+		// If not initialized, return default safe limit (900KB for 1MB Kafka default)
+		return int64(1*1024*1024) * 9 / 10
+	}
+	return kafkaSafeMaxPayloadBytes
 }
 
 // -------------------- helpers เพิ่มเติม --------------------

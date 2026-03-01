@@ -13,6 +13,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/configruntime"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/optionsrepo"
+	_ "github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/klivesvc"
 	"github.com/hotkhwan/gateway-api/models/systemmod"
@@ -239,6 +240,7 @@ func main() {
 	router.RegisterHookIboc(api)
 	router.RegisterHookzkt(api)
 	router.RegisterHookATA(api)
+	router.RegisterSubscriptionRoutes(api, container)
 
 	// ---------- Ingest hot-path: POST /events/:orgId (no JWT, root level) ----------
 	router.RegisterIngestEventsRoutes(app, container)

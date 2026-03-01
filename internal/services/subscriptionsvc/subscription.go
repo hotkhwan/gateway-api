@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
 	"github.com/hotkhwan/gateway-api/models/subscripmod"
 
@@ -62,6 +63,12 @@ func (s *SubscriptionService) GetEffectiveLimits(
 
 	// 3. Merge plan limits with overrides
 	limits := s.mergeLimits(&plan.Limits, sub.Overrides)
+
+	// 4. Ensure MaxPayloadBytes doesn't exceed Kafka safe limit
+	kafkaSafeMax := config.GetKafkaSafeMaxPayloadBytes()
+	if limits.MaxPayloadBytes > kafkaSafeMax {
+		limits.MaxPayloadBytes = kafkaSafeMax
+	}
 
 	return &EffectiveLimits{
 		PlanId:                  sub.PlanId,
@@ -183,6 +190,15 @@ func (s *SubscriptionService) ActivateEnterprise(
 	licenseKey string,
 	limits *subscripmod.SubscriptionLimits,
 ) error {
+	// Validate limits against Kafka safe max
+	if limits != nil && limits.MaxPayloadBytes > 0 {
+		kafkaSafeMax := config.GetKafkaSafeMaxPayloadBytes()
+		if limits.MaxPayloadBytes > kafkaSafeMax {
+			return fmt.Errorf("maxPayloadBytes %d exceeds Kafka safe limit %d (set KAFKA_MAX_MESSAGE_BYTES to increase)",
+				limits.MaxPayloadBytes, kafkaSafeMax)
+		}
+	}
+
 	// Hash the license key (store hash, not plain key)
 	hasher := sha256.New()
 	hasher.Write([]byte(licenseKey))

@@ -8,15 +8,19 @@ import (
 	"github.com/hotkhwan/gateway-api/controllers/authzapi"
 	"github.com/hotkhwan/gateway-api/controllers/deviceapi"
 	"github.com/hotkhwan/gateway-api/controllers/ingestapi"
+	"github.com/hotkhwan/gateway-api/controllers/subapi"
 	"github.com/hotkhwan/gateway-api/controllers/targetapi"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicerepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/targetrepo"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
 )
 
@@ -57,6 +61,10 @@ type Container struct {
 	IngestService    *ingestsvc.IngestService
 	IngestController *ingestapi.IngestController
 
+	// ===== Subscription domain =====
+	SubscriptionService    *subscriptionsvc.SubscriptionService
+	SubscriptionController *subapi.SubscriptionController
+
 	// ===== Delivery Targets domain =====
 	TargetService    *targetsvc.TargetService
 	TargetController *targetapi.TargetController
@@ -68,6 +76,7 @@ func NewContainer() *Container {
 	c.buildShared()
 	c.buildAuthz()
 	c.buildDevice()
+	c.buildSubscription()
 	c.buildIngest()
 	c.buildTargets()
 	return c
@@ -141,7 +150,7 @@ func (c *Container) buildDevice() {
 	)
 	c.MenuPermissionsProfileController = authzapi.NewMenuPermissionsProfileController(c.MenuPermissionProfileService, menuListRepo)
 
-	// MemberAccess — read-only view of what the caller can access via OrgUnit profiles
+	// MemberAccess — read-only view of what's caller can access via OrgUnit profiles
 	permProfileRepo := authzrepo.NewPermissionProfileRepo()
 	menuProfileRepo := authzrepo.NewMenuPermissionProfileRepo()
 	c.MemberAccessService = authzsvc.NewMemberAccessService(permProfileRepo, menuProfileRepo, c.AuthzClient, groupRepo, camRepo)
@@ -155,8 +164,17 @@ func (c *Container) buildDevice() {
 
 func (c *Container) buildIngest() {
 	orgRepo := authzrepo.NewOrgRepo(config.DB)
-	c.IngestService = ingestsvc.NewIngestService(orgRepo, config.Redis)
+	c.IngestService = ingestsvc.NewIngestService(orgRepo, c.SubscriptionService, config.Redis, logger.WithMeta("ingest", "container"))
 	c.IngestController = ingestapi.NewIngestController(c.IngestService)
+}
+
+// ============================================================
+// buildSubscription — subscription service
+// ============================================================
+func (c *Container) buildSubscription() {
+	subRepo := subscriprepo.NewSubscriptionRepo(config.DB)
+	c.SubscriptionService = subscriptionsvc.NewSubscriptionService(subRepo, config.Redis)
+	c.SubscriptionController = subapi.NewSubscriptionController(c.SubscriptionService)
 }
 
 // ============================================================
