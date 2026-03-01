@@ -216,7 +216,7 @@ func (ctrl *OrganizationController) GetIngestConfig(c *fiber.Ctx) error {
 		Code:    gmod.CodeSuccess,
 		Status:  true,
 		Message: "ingest config fetched",
-		Data:    cfg,
+		Detail:    cfg,
 	})
 }
 
@@ -265,7 +265,7 @@ func (ctrl *OrganizationController) RotateIngestSecret(c *fiber.Ctx) error {
 		Code:    gmod.CodeSuccess,
 		Status:  true,
 		Message: "ingest secret rotated",
-		Data:    cfg,
+		Detail:    cfg,
 	})
 }
 

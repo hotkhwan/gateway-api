@@ -34,7 +34,7 @@ type Response struct {
 	Code    string      `json:"code" example:"SUCCESS"`
 	Message string      `json:"message" example:"Operation completed"`
 	Status  bool        `json:"status" example:"true"`
-	Data    interface{} `json:"data,omitempty"`
+	Detail    interface{} `json:"detail,omitempty"`
 }
 
 type AcceptedResponse struct {
@@ -214,7 +214,7 @@ type SuccessDataResponse struct {
 	Code    string      `json:"code"`
 	Message string      `json:"message"`
 	Status  bool        `json:"status"`
-	Data    interface{} `json:"data,omitempty"`
+	Detail    interface{} `json:"detail,omitempty"`
 }
 
 type SuccessDetailResponseWithMSG struct {

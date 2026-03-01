@@ -9,9 +9,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/cacheevt"
+	"github.com/hotkhwan/gateway-api/internal/repo/eventmgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
+	"github.com/hotkhwan/gateway-api/models/eventmod"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 )
@@ -34,8 +36,11 @@ type RawEvent struct {
 
 // IngestResult คือ response กลับ client
 type IngestResult struct {
-	EventId    string    `json:"eventId"`
-	ReceivedAt time.Time `json:"receivedAt"`
+	EventId     string  `json:"eventId"`
+	ReceivedAt  time.Time `json:"receivedAt"`
+	DeviceKey   string  `json:"deviceKey,omitempty"`   // Canonical device key (e.g., "camera:cam-001")
+	Locked      bool   `json:"locked,omitempty"`       // True if device has pending event
+	LockMessage string `json:"lockMessage,omitempty"` // Lock reason if locked
 }
 
 // cachedOrgPolicy เก็บ effective policy สำหรับ ingest (includes tenantId)
@@ -72,30 +77,33 @@ func (l *localEmergencyLimiter) Check(key string, limit int) bool {
 
 // IngestService — thin hot-path service
 // ไม่มี auth, ไม่ยุ่ง Permify
-// Updated to use subscription-based limits
+// Updated to use subscription-based limits and event management
 type IngestService struct {
-	orgRepo  *authzrepo.OrgRepo
-	subSvc   *subscriptionsvc.SubscriptionService
-	redis    *redis.Client
-	localOrg *localEmergencyLimiter
-	logger   zerolog.Logger
+	orgRepo      *authzrepo.OrgRepo
+	eventMgmtRepo *eventmgmtrepo.EventManagementRepo
+	subSvc       *subscriptionsvc.SubscriptionService
+	redis        *redis.Client
+	localOrg     *localEmergencyLimiter
+	logger       zerolog.Logger
 }
 
 func NewIngestService(
 	orgRepo *authzrepo.OrgRepo,
+	eventMgmtRepo *eventmgmtrepo.EventManagementRepo,
 	subSvc *subscriptionsvc.SubscriptionService,
 	redis *redis.Client,
 	logger zerolog.Logger,
 ) *IngestService {
-	if orgRepo == nil || subSvc == nil || redis == nil {
-		panic("IngestService: orgRepo, subSvc, redis and logger are required")
+	if orgRepo == nil || eventMgmtRepo == nil || subSvc == nil || redis == nil {
+		panic("IngestService: orgRepo, eventMgmtRepo, subSvc, redis and logger are required")
 	}
 	return &IngestService{
-		orgRepo:  orgRepo,
-		subSvc:   subSvc,
-		redis:    redis,
-		localOrg: newLocalEmergencyLimiter(),
-		logger:   logger,
+		orgRepo:      orgRepo,
+		eventMgmtRepo: eventMgmtRepo,
+		subSvc:       subSvc,
+		redis:        redis,
+		localOrg:     newLocalEmergencyLimiter(),
+		logger:       logger,
 	}
 }
 
@@ -259,7 +267,7 @@ func (s *IngestService) checkRateLimit(
 	return nil
 }
 
-// Ingest is the main entry point: validate → rate limit → produce Kafka
+// Ingest is the main entry point: validate → rate limit → store pending event
 func (s *IngestService) Ingest(
 	ctx context.Context,
 	orgId string,
@@ -304,43 +312,232 @@ func (s *IngestService) Ingest(
 		return nil, err
 	}
 
-	// 4) Build raw event
+	// 4) Generate event ID and timestamps
 	eventId := uuid.NewString()
 	receivedAt := time.Now().UTC()
 
-	raw := RawEvent{
-		OrgId:       orgId,
-		EventId:     eventId,
-		ReceivedAt:  receivedAt,
-		RawBody:     json.RawMessage(body),
-		SourceIp:    sourceIp,
-		ContentType: contentType,
-	}
+	// 5) Auto-detect event type
+	suggestedType := s.detectEventType(body)
 
-	payload, err := json.Marshal(raw)
+	// 5) Normalize device identity
+	deviceRef, rawAliases, _ := s.normalizeDeviceIdentity(body)
+	deviceKey := s.computeDeviceKey(deviceRef)
+	_ = rawAliases // Store rawAliases but don't use it (for audit purposes)
+
+	// 6) Check for device pending lock (same device has pending event)
+	isLocked, pendingEventId, err := s.checkDevicePendingLock(ctx, policy.TenantId, orgId, deviceKey)
 	if err != nil {
-		return nil, err
+		s.logger.Error().
+			Str("orgId", orgId).
+			Str("tenantId", policy.TenantId).
+			Err(err).
+			Msg("failed to check device pending lock")
+		return nil, fmt.Errorf("failed to check device lock: %w", err)
 	}
 
-	// 5) Produce Kafka (key = orgId → same partition per org)
-	topic := config.TopicEnv("KAFKA_TOPIC_RAW_EVENTS", "raw.events")
-	if err := config.SendToKafkaWithCtx(ctx, topic, orgId, payload, nil); err != nil {
+	// 7) Build pending event (or return locked response)
+	if isLocked {
+		s.logger.Warn().
+			Str("orgId", orgId).
+			Str("tenantId", policy.TenantId).
+			Str("deviceKey", deviceKey).
+			Str("pendingEventId", pendingEventId).
+			Msg("device has pending event, rejecting new event")
+
+		return &IngestResult{
+			EventId:    eventId,
+			ReceivedAt: receivedAt,
+			DeviceKey:   deviceKey,
+			Locked:      true,
+			LockMessage: fmt.Sprintf("Device has pending event: %s", pendingEventId),
+		}, nil
+	}
+
+	pendingEvent := &eventmod.EventManagement{
+		EventId:      eventId,
+		TenantId:     policy.TenantId,
+		OrgId:        orgId,
+		Name:         fmt.Sprintf("Event %s", eventId[:8]),
+		Lat:          0,
+		Lng:          0,
+		EventType:    suggestedType,
+		Status:       false,
+		StatusName:   "pending",
+		RawBody:      json.RawMessage(body),
+		ContentType:  contentType,
+		SourceIp:     sourceIp,
+		SuggestedType: suggestedType,
+		DeviceRef:    deviceRef,
+		DeviceKey:    deviceKey,
+		RawAliases:   rawAliases,
+		CreatedAt:    receivedAt,
+		UpdatedAt:    receivedAt,
+	}
+
+	if err := s.eventMgmtRepo.Insert(ctx, pendingEvent); err != nil {
 		s.logger.Error().
 			Str("orgId", orgId).
 			Str("tenantId", policy.TenantId).
 			Str("eventId", eventId).
 			Err(err).
-			Msg("kafka produce failed")
-		return nil, fmt.Errorf("kafka produce failed: %w", err)
+			Msg("failed to store pending event")
+		return nil, fmt.Errorf("failed to store event: %w", err)
+	}
+
+	// 8) Cache event status in Redis
+	if err := cacheevt.SetEventStatusPending(ctx, policy.TenantId, eventId); err != nil {
+		// Log warning but don't fail - this is non-critical
+		s.logger.Warn().
+			Str("orgId", orgId).
+			Str("tenantId", policy.TenantId).
+			Str("eventId", eventId).
+			Err(err).
+			Msg("failed to cache event status in Redis (non-critical)")
 	}
 
 	s.logger.Debug().
 		Str("orgId", orgId).
 		Str("tenantId", policy.TenantId).
 		Str("eventId", eventId).
-		Str("planId", "from-policy").
+		Str("deviceKey", deviceKey).
+		Str("suggestedType", suggestedType).
 		Int64("payloadSize", int64(len(body))).
-		Msg("ingest accepted")
+		Msg("ingest stored as pending event")
 
 	return &IngestResult{EventId: eventId, ReceivedAt: receivedAt}, nil
+}
+
+// detectEventType auto-detects event type from raw body
+// Returns suggested event type based on payload patterns
+func (s *IngestService) detectEventType(body []byte) string {
+	// Parse raw body to extract hints
+	var raw map[string]interface{}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return "unknown"
+	}
+
+	// Pattern matching logic
+	if _, ok := raw["plateNumber"]; ok {
+		return "LPR_Brand"
+	}
+	if _, ok := raw["faceId"]; ok {
+		return "FACE_Brand"
+	}
+	if _, ok := raw["deviceId"]; ok {
+		return "camera_Brand"
+	}
+	if _, ok := raw["cameraId"]; ok {
+		return "camera_Brand"
+	}
+	if _, ok := raw["sensorId"]; ok {
+		return "IOT_Brand"
+	}
+
+	return "unknown"
+}
+
+// normalizeDeviceIdentity normalizes device identity from raw event body
+// Returns: deviceRef (nil if missing), rawAliasesBytes (json), aliases map
+func (s *IngestService) normalizeDeviceIdentity(body []byte) (*eventmod.DeviceIdentity, json.RawMessage, map[string]string) {
+	var raw map[string]any
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return nil, nil, nil
+	}
+
+	aliases := map[string]string{}
+
+	getString := func(v any) (string, bool) {
+		switch t := v.(type) {
+		case string:
+			if t == "" {
+				return "", false
+			}
+			return t, true
+		default:
+			return "", false
+		}
+	}
+
+	// helper: find first existing key in raw (for alias support)
+	findFirst := func(keys ...string) (key string, val string, ok bool) {
+		for _, k := range keys {
+			v, exists := raw[k]
+			if !exists {
+				continue
+			}
+			s, ok := getString(v)
+			if !ok {
+				continue
+			}
+			return k, s, true
+		}
+		return "", "", false
+	}
+
+	// Priority rules (stop at first match):
+	// 1) cameraId -> camera
+	// 2) sensorId -> sensor
+	// 3) faceId   -> face
+	// 4) deviceId -> device
+	if k, id, ok := findFirst("cameraId", "camId", "camera_id"); ok {
+		aliases[k] = id
+		rawAliasesBytes, _ := json.Marshal(aliases)
+		return &eventmod.DeviceIdentity{Type: "camera", ID: id}, rawAliasesBytes, aliases
+	}
+
+	if k, id, ok := findFirst("sensorId", "sensor_id"); ok {
+		aliases[k] = id
+		rawAliasesBytes, _ := json.Marshal(aliases)
+		return &eventmod.DeviceIdentity{Type: "sensor", ID: id}, rawAliasesBytes, aliases
+	}
+
+	if k, id, ok := findFirst("faceId", "face_id"); ok {
+		aliases[k] = id
+		rawAliasesBytes, _ := json.Marshal(aliases)
+		return &eventmod.DeviceIdentity{Type: "face", ID: id}, rawAliasesBytes, aliases
+	}
+
+	if k, id, ok := findFirst("deviceId", "device_id"); ok {
+		aliases[k] = id
+		rawAliasesBytes, _ := json.Marshal(aliases)
+		return &eventmod.DeviceIdentity{Type: "device", ID: id}, rawAliasesBytes, aliases
+	}
+
+	// no identity
+	rawAliasesBytes, _ := json.Marshal(aliases)
+	return nil, rawAliasesBytes, aliases
+}
+
+// computeDeviceKey computes canonical device key for locking
+// Format: "type:id" (e.g., "camera:cam-001", "device:dev-001")
+func (s *IngestService) computeDeviceKey(deviceRef *eventmod.DeviceIdentity) string {
+	if deviceRef == nil || deviceRef.Type == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s:%s", deviceRef.Type, deviceRef.ID)
+}
+
+// checkDevicePendingLock checks if device has pending events
+// Returns (isLocked, pendingEventId, error)
+func (s *IngestService) checkDevicePendingLock(ctx context.Context, tenantId, orgId, deviceKey string) (bool, string, error) {
+	if deviceKey == "" {
+		return false, "", nil
+	}
+
+	// Check for existing pending event with same deviceKey in pending status
+	// Use the partial unique index for efficient lookup
+	pending, err := s.eventMgmtRepo.FindByDeviceKey(ctx, tenantId, orgId, deviceKey)
+	if err != nil {
+		// ErrNotFound means no pending event exists (no lock), not an error
+		if err == eventmgmtrepo.ErrNotFound {
+			return false, "", nil
+		}
+		return false, "", fmt.Errorf("failed to check device lock: %w", err)
+	}
+
+	if pending != nil {
+		return true, pending.EventId, nil
+	}
+
+	return false, "", nil
 }

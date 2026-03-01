@@ -18,7 +18,7 @@ func Ok(c *fiber.Ctx, data any, message ...string) error {
 		Code:    gmod.CodeSuccess,
 		Message: msg,
 		Status:  true,
-		Data:    data,
+		Detail:    data,
 	})
 }
 
@@ -33,7 +33,7 @@ func Created(c *fiber.Ctx, data any, message ...string) error {
 		Code:    gmod.CodeCreated,
 		Message: msg,
 		Status:  true,
-		Data:    data,
+		Detail:    data,
 	})
 }
 
@@ -48,7 +48,7 @@ func Accepted(c *fiber.Ctx, data any, message ...string) error {
 		Code:    gmod.CodeAccepted,
 		Message: msg,
 		Status:  true,
-		Data:    data,
+		Detail:    data,
 	})
 }
 

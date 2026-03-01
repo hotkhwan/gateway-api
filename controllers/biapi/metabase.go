@@ -48,6 +48,6 @@ func SignBIUrl(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(gmod.SuccessDataResponse{
-		Code: "SUCCESS", Message: "Signed Metabase URL generated", Status: true, Data: res,
+		Code: "SUCCESS", Message: "Signed Metabase URL generated", Status: true, Detail: res,
 	})
 }

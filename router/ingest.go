@@ -20,6 +20,7 @@ func RegisterIngestEventsRoutes(app fiber.Router, c *app.Container) {
 
 func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
 	router.Route("/ingest", func(r fiber.Router) {
+		// ---------- Org ingest config (admin only) ----------
 		r.Use(middleware.AuthBearer())
 		r.Use(middleware.Audit(middleware.AuditConfig{
 			AuditRepo: authzrepo.NewAuditLogRepo(config.DB),
@@ -33,5 +34,24 @@ func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
 		protected.All("/rotateSecret", middleware.AllowMethods("POST"))
 		protected.Get("/", middleware.ActiveOrg(), c.OrgController.GetIngestConfig)
 		protected.Post("/rotateSecret", middleware.ActiveOrg(), c.OrgController.RotateIngestSecret)
+
+		// Apply active organization middleware
+		r.Use(middleware.ActiveOrg())
+
+		// ---------- Event Management domain ----------
+		r.Route("/management", func(mgmt fiber.Router) {
+			mgmt.Get("/", c.EventManagementController.ListPendingEvents)
+			mgmt.Get("/:eventId", c.EventManagementController.GetPendingEvent)
+			mgmt.Patch("/:eventId", c.EventManagementController.UpdatePendingEvent)
+			mgmt.Post("/:eventId/approve", c.EventManagementController.ApproveEvent)
+			mgmt.Post("/:eventId/reject", c.EventManagementController.RejectEvent)
+			mgmt.Delete("/:eventId", c.EventManagementController.DeletePendingEvent)
+		})
+
+		// ---------- Event Details domain ----------
+		r.Route("/details", func(details fiber.Router) {
+			details.Get("/", c.EventDetailsController.ListApprovedEvents)
+			details.Get("/:eventId", c.EventDetailsController.GetApprovedEvent)
+		})
 	})
 }

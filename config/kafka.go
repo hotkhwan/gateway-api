@@ -54,6 +54,7 @@ func ensureKafkaWriter() error {
 			{"KAFKA_TOPIC_IBOC", "iboc"},
 			{"KAFKA_TOPIC_ATA", "ata.events"},
 			{"KAFKA_TOPIC_RAW_EVENTS", "raw.events"},
+			{"KAFKA_TOPIC_NORMALIZED_EVENTS", "normalized.events"},
 		})...)
 
 		// (ถ้าต้องการ topic เพิ่มเติมเฉพาะกิจ ก็ append ต่อได้)
