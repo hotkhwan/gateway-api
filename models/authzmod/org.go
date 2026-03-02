@@ -30,5 +30,14 @@ type Organization struct {
 	UpdatedBy string    `bson:"updatedBy"`
 	UpdatedAt time.Time `bson:"updatedAt"` // ✅ BSON Date
 
+	// NEW: Billing owner for billing responsibility (separate from ownership)
+	BillingOwnerId string `bson:"billingOwnerId,omitempty"`
+	// NEW: Track if org is orphaned (no owners or no effective managers)
+	IsOrphaned bool `bson:"isOrphaned,omitempty"`
+
+	// NEW: Membership version for optimistic locking (race protection)
+	// Increment on any membership change (invite, remove, promote, demote)
+	MembershipVersion int `bson:"membershipVersion,omitempty"`
+
 	SyncStatus string `bson:"syncStatus"`
 }

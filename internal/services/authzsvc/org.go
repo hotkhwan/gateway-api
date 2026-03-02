@@ -203,11 +203,13 @@ func (s *OrganizationService) Create(
 			RateLimitPerSec:   defaultRateLimitPerSec,
 			RateLimitBurst:    defaultRateLimitBurst,
 		},
-		CreatedBy:  userId,
-		CreatedAt:  now,
-		UpdatedBy:  userId,
-		UpdatedAt:  now,
-		SyncStatus: "pending",
+		CreatedBy:       userId,
+		CreatedAt:       now,
+		UpdatedBy:       userId,
+		UpdatedAt:       now,
+		BillingOwnerId:   userId,      // NEW: set creator as billing owner
+		MembershipVersion: 1,           // NEW: initialize version for race protection
+		SyncStatus:      "pending",
 	}
 
 	if err := s.orgRepo.Insert(ctx, org); err != nil {
@@ -305,10 +307,10 @@ func (s *OrganizationService) GetIngestConfig(
 		return nil, ErrBadRequest
 	}
 
-	// ตรวจสิทธิ์: ต้องเป็น admin ของ org
+	// ตรวจสิทธิ์: ต้องเป็น owner หรือ admin ของ org (manage permission)
 	allowed, err := s.authzClient.CheckPermissionWithSchemaVersion(
 		ctx, tenantId, config.CurrentSchemaVersion,
-		"organization", orgId, "admin", "user", userId,
+		"organization", orgId, "manage", "user", userId,
 	)
 	if err != nil || !allowed {
 		return nil, ErrForbidden
@@ -346,10 +348,10 @@ func (s *OrganizationService) RotateIngestSecret(
 		return nil, ErrBadRequest
 	}
 
-	// ตรวจสิทธิ์: ต้องเป็น admin ของ org
+	// ตรวจสิทธิ์: ต้องเป็น owner หรือ admin ของ org (manage permission)
 	allowed, err := s.authzClient.CheckPermissionWithSchemaVersion(
 		ctx, tenantId, config.CurrentSchemaVersion,
-		"organization", orgId, "admin", "user", userId,
+		"organization", orgId, "manage", "user", userId,
 	)
 	if err != nil || !allowed {
 		return nil, ErrForbidden
@@ -435,4 +437,16 @@ func (s *OrganizationService) Delete(
 
 	log.Info().Str("orgId", orgId).Msg("organization deleted")
 	return nil
+}
+
+// GetOrganizationByOrgId retrieves an organization by orgId
+func (s *OrganizationService) GetOrganizationByOrgId(
+	ctx context.Context,
+	orgId string,
+) (*authzmod.Organization, error) {
+	orgId = strings.TrimSpace(orgId)
+	if orgId == "" {
+		return nil, ErrNotFound
+	}
+	return s.orgRepo.GetByOrgId(ctx, orgId)
 }

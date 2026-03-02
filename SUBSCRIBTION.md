@@ -1,7 +1,7 @@
 Subscription.md
 1) Goals & Non-goals
 Goals
-
+go run cmd/license.go -action=generate -env=dev -notes="Customer X"
 มี subscription packet 3 ระดับ: Freemium / Pro / Enterprise
 
 enforce limits ที่ ingest hot-path:

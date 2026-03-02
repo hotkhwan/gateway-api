@@ -30,6 +30,31 @@ func (r *OrgRepo) FindById(ctx context.Context, orgId string) (*authzmod.Organiz
 	return &org, nil
 }
 
+// GetByOrgId is an alias for FindById for consistency with service layer naming
+func (r *OrgRepo) GetByOrgId(ctx context.Context, orgId string) (*authzmod.Organization, error) {
+	return r.FindById(ctx, orgId)
+}
+
+// UpdateMembershipVersion increments membership version with optimistic locking
+// Returns true if updated, false if version mismatch (race detected)
+func (r *OrgRepo) UpdateMembershipVersion(ctx context.Context, orgId string, oldVersion, newVersion int) (bool, error) {
+	filter := bson.M{
+		"orgId": orgId,
+		"membershipVersion": oldVersion,
+	}
+	update := bson.M{
+		"$set": bson.M{
+			"membershipVersion": newVersion,
+			"updatedAt": bson.M{"$currentDate": true},
+		},
+	}
+	result, err := r.col.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return false, err
+	}
+	return result.MatchedCount == 1, nil
+}
+
 func (r *OrgUnitRepo) FindByUnitId(ctx context.Context, tenantId string, orgId string, unitId string) (*authzmod.OrgUnit, error) {
 	var result authzmod.OrgUnit
 	err := stomongo.FindOne(ctx, r.collection, bson.M{

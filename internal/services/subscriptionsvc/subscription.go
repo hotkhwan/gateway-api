@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
@@ -28,16 +29,19 @@ type EffectiveLimits struct {
 
 type SubscriptionService struct {
 	subRepo      *subscriprepo.SubscriptionRepo
+	licenseRepo  *subscriprepo.LicenseRepo
 	planCatalog  subscripmod.PlanCatalog
 	redis        *redis.Client
 }
 
 func NewSubscriptionService(
 	subRepo *subscriprepo.SubscriptionRepo,
+	licenseRepo *subscriprepo.LicenseRepo,
 	redis *redis.Client,
 ) *SubscriptionService {
 	return &SubscriptionService{
 		subRepo:     subRepo,
+		licenseRepo: licenseRepo,
 		planCatalog: subscripmod.NewHardcodedPlanCatalog(),
 		redis:       redis,
 	}
@@ -190,21 +194,40 @@ func (s *SubscriptionService) ActivateEnterprise(
 	licenseKey string,
 	limits *subscripmod.SubscriptionLimits,
 ) error {
-	// Validate limits against Kafka safe max
-	if limits != nil && limits.MaxPayloadBytes > 0 {
+	// 1. Validate license key exists and is available
+	license, err := s.licenseRepo.ValidateLicenseKey(ctx, licenseKey)
+	if err != nil {
+		return ErrInvalidLicenseKey
+	}
+
+	// 2. Use limits from license if not provided in request
+	finalLimits := limits
+	if finalLimits == nil && license.Limits != nil {
+		finalLimits = license.Limits
+	}
+
+	// 3. Validate limits against Kafka safe max
+	if finalLimits != nil && finalLimits.MaxPayloadBytes > 0 {
 		kafkaSafeMax := config.GetKafkaSafeMaxPayloadBytes()
-		if limits.MaxPayloadBytes > kafkaSafeMax {
+		if finalLimits.MaxPayloadBytes > kafkaSafeMax {
 			return fmt.Errorf("maxPayloadBytes %d exceeds Kafka safe limit %d (set KAFKA_MAX_MESSAGE_BYTES to increase)",
-				limits.MaxPayloadBytes, kafkaSafeMax)
+				finalLimits.MaxPayloadBytes, kafkaSafeMax)
 		}
 	}
 
-	// Hash the license key (store hash, not plain key)
+	// 4. Hash the license key (store hash, not plain key)
 	hasher := sha256.New()
 	hasher.Write([]byte(licenseKey))
 	licenseKeyHash := hex.EncodeToString(hasher.Sum(nil))
 
-	return s.subRepo.ActivateEnterprise(ctx, tenantId, licenseKey, licenseKeyHash, limits)
+	// 5. Mark license as activated
+	now := time.Now().UTC()
+	if err := s.licenseRepo.MarkLicenseActivated(ctx, license.ID, tenantId, now); err != nil {
+		return fmt.Errorf("failed to mark license as activated: %w", err)
+	}
+
+	// 6. Activate enterprise for tenant
+	return s.subRepo.ActivateEnterprise(ctx, tenantId, licenseKey, licenseKeyHash, finalLimits)
 }
 
 // CheckOrganizationLimit checks if tenant can create more organizations

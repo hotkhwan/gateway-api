@@ -41,6 +41,15 @@ func RegisterAuthzNewRoutes(router fiber.Router, c *app.Container) {
 		protected.All("/users/members", middleware.AllowMethods("GET"))
 		protected.Get("/users/members", middleware.ActiveOrg(), c.OrgController.ListMembers)
 
+		// Owner management (promote/demote)
+		protected.All("/:id/owners/:userId", middleware.AllowMethods("POST", "DELETE"))
+		protected.Post("/:id/owners/:userId", middleware.ActiveOrg(), c.OrgController.PromoteToOwner)
+		protected.Delete("/:id/owners/:userId", middleware.ActiveOrg(), c.OrgController.DemoteFromOwner)
+
+		// Transfer billing ownership
+		protected.All("/:id/transfer-billing-ownership", middleware.AllowMethods("POST"))
+		protected.Post("/:id/transfer-billing-ownership", middleware.ActiveOrg(), c.OrgController.TransferBillingOwnership)
+
 		orgScoped := protected.Group("/units", middleware.ActiveOrg())
 		orgScoped.Post("/", c.OrgUnitController.Create)
 		orgScoped.Get("/tree", c.OrgUnitController.Tree)

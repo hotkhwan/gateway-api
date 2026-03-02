@@ -34,7 +34,7 @@ func (ctrl *EventManagementController) ListPendingEvents(c *fiber.Ctx) error {
 	input := eventmod.ListEventsInput{
 		TenantId:   tenantId,
 		OrgId:      orgId,
-		StatusName:  c.Query("status", "pending"), // pending|approved|rejected|all
+		StatusName:  c.Query("status", "all"), // default: all (shows pending|approved|rejected)
 		EventType:   c.Query("eventType", ""),
 		Page:       c.QueryInt("page", 1),
 		PerPage:    c.QueryInt("perPage", 10),
@@ -117,9 +117,10 @@ func (ctrl *EventManagementController) UpdatePendingEvent(c *fiber.Ctx) error {
 		&body,
 	); err != nil {
 		code := gmod.CodeInternalError
-		if err == eventsvc.ErrEventNotFound {
+		switch err {
+		case eventsvc.ErrEventNotFound:
 			code = gmod.CodeNotFound
-		} else if err == eventsvc.ErrEventAlreadyApproved {
+		case eventsvc.ErrEventAlreadyApproved:
 			code = gmod.CodeConflict
 		}
 		return c.Status(mapCodeToStatusMgmt(code)).JSON(gmod.ApiErrorResponse{
@@ -149,11 +150,10 @@ func (ctrl *EventManagementController) ApproveEvent(c *fiber.Ctx) error {
 	)
 	if err != nil {
 		code := gmod.CodeInternalError
-		if err == eventsvc.ErrEventNotFound {
+		switch err {
+		case eventsvc.ErrEventNotFound:
 			code = gmod.CodeNotFound
-		} else if err == eventsvc.ErrEventAlreadyApproved {
-			code = gmod.CodeConflict
-		} else if err == eventsvc.ErrEventAlreadyRejected {
+		case eventsvc.ErrEventAlreadyApproved, eventsvc.ErrEventAlreadyRejected:
 			code = gmod.CodeConflict
 		}
 		return c.Status(mapCodeToStatusMgmt(code)).JSON(gmod.ApiErrorResponse{
@@ -177,9 +177,10 @@ func (ctrl *EventManagementController) RejectEvent(c *fiber.Ctx) error {
 		tenantId, orgId, eventId, callerUserId,
 	); err != nil {
 		code := gmod.CodeInternalError
-		if err == eventsvc.ErrEventNotFound {
+		switch err {
+		case eventsvc.ErrEventNotFound:
 			code = gmod.CodeNotFound
-		} else if err == eventsvc.ErrEventAlreadyApproved {
+		case eventsvc.ErrEventAlreadyApproved:
 			code = gmod.CodeConflict
 		}
 		return c.Status(mapCodeToStatusMgmt(code)).JSON(gmod.ApiErrorResponse{
@@ -203,9 +204,10 @@ func (ctrl *EventManagementController) DeletePendingEvent(c *fiber.Ctx) error {
 		tenantId, orgId, eventId, callerUserId,
 	); err != nil {
 		code := gmod.CodeInternalError
-		if err == eventsvc.ErrEventNotFound {
+		switch err {
+		case eventsvc.ErrEventNotFound:
 			code = gmod.CodeNotFound
-		} else if err == eventsvc.ErrEventAlreadyApproved {
+		case eventsvc.ErrEventAlreadyApproved:
 			code = gmod.CodeConflict
 		}
 		return c.Status(mapCodeToStatusMgmt(code)).JSON(gmod.ApiErrorResponse{

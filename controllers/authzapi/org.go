@@ -3,6 +3,7 @@ package authzapi
 
 import (
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
@@ -15,7 +16,7 @@ type OrganizationController struct {
 }
 
 type CreateOrgRequest struct {
-	Name        string  `json:"name"`
+	Name        string `json:"name"`
 	Description *string `json:"description,omitempty"`
 }
 
@@ -23,6 +24,15 @@ type UpdateOrgRequest struct {
 	Name        *string `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
 	IsActive    *bool   `json:"isActive,omitempty"`
+}
+
+// Owner promotion request/response
+type PromoteToOwnerRequest struct {
+	UserId string `json:"userId"`
+}
+
+type DemoteFromOwnerRequest struct {
+	NewRole string `json:"newRole"` // "member" or "admin"
 }
 
 func NewOrganizationController(svc *authzsvc.OrganizationService) *OrganizationController {
@@ -360,4 +370,207 @@ func (ctrl *OrganizationController) Delete(c *fiber.Ctx) error {
 		Status:  true,
 		Message: "organization deleted",
 	})
+}
+
+// =========================
+// OWNER MANAGEMENT
+// =========================
+
+// PromoteToOwner godoc
+// @Summary Promote a member to owner
+// @Description Promote a member to owner with invariant checks + race protection
+// @Tags Authorization
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Organization ID"
+// @Param userId path string true "User ID to promote"
+// @Success 200 {object} gmod.PromoteToOwnerResponse
+// @Failure 400 {object} gmod.ApiErrorResponse
+// @Failure 401 {object} gmod.ApiErrorResponse
+// @Failure 403 {object} gmod.ApiErrorResponse
+// @Failure 409 {object} gmod.ApiErrorResponse
+// @Router /api/v1/orgs/{id}/owners/{userId} [post]
+func (ctrl *OrganizationController) PromoteToOwner(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	tracer := otel.Tracer("authzapi")
+	ctx, span := tracer.Start(ctx, "Organization.PromoteToOwner")
+	defer span.End()
+
+	orgId := strings.TrimSpace(c.Params("id"))
+	userId := strings.TrimSpace(c.Params("userId"))
+	callerUserId, _ := c.Locals("userId").(string)
+	tenantId, _ := c.Locals("tenantId").(string)
+
+	if userId == "" || callerUserId == "" || tenantId == "" {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: "missing required parameters",
+			Status:  false,
+		})
+	}
+
+	err := ctrl.service.PromoteUserToOwner(ctx, tenantId, orgId, callerUserId, userId)
+	if err != nil {
+		status, code := authzsvc.MapSvcError(err)
+		return c.Status(status).JSON(gmod.ApiErrorResponse{
+			Code:    code,
+			Message: err.Error(),
+			Status:  false,
+		})
+	}
+
+	var result gmod.PromoteToOwnerResponse
+	result.Code = gmod.CodeSuccess
+	result.Status = true
+	result.Message = "user promoted to owner"
+	result.Details.OrgId = orgId
+	result.Details.UserId = userId
+	result.Details.Role = "owner"
+	result.Details.PromotedAt = time.Now().Unix()
+
+	return c.JSON(result)
+}
+
+// DemoteFromOwner godoc
+// @Summary Demote an owner to member or admin
+// @Description Demote an owner to member or admin with invariant checks + race protection
+// @Tags Authorization
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Organization ID"
+// @Param userId path string true "User ID to demote"
+// @Param newRole query string false "New role (member or admin)"
+// @Success 200 {object} gmod.DemoteFromOwnerResponse
+// @Failure 400 {object} gmod.ApiErrorResponse
+// @Failure 401 {object} gmod.ApiErrorResponse
+// @Failure 403 {object} gmod.ApiErrorResponse
+// @Failure 409 {object} gmod.ApiErrorResponse
+// @Router /api/v1/orgs/{id}/owners/{userId} [delete]
+func (ctrl *OrganizationController) DemoteFromOwner(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	tracer := otel.Tracer("authzapi")
+	ctx, span := tracer.Start(ctx, "Organization.DemoteFromOwner")
+	defer span.End()
+
+	orgId := strings.TrimSpace(c.Params("id"))
+	userId := strings.TrimSpace(c.Params("userId"))
+	newRole := strings.ToLower(strings.TrimSpace(c.Query("newRole", "member")))
+	callerUserId, _ := c.Locals("userId").(string)
+	tenantId, _ := c.Locals("tenantId").(string)
+
+	if userId == "" || callerUserId == "" || tenantId == "" {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: "missing required parameters",
+			Status:  false,
+		})
+	}
+
+	err := ctrl.service.DemoteUserFromOwner(ctx, tenantId, orgId, callerUserId, userId, newRole)
+	if err != nil {
+		status, code := authzsvc.MapSvcError(err)
+		return c.Status(status).JSON(gmod.ApiErrorResponse{
+			Code:    code,
+			Message: err.Error(),
+			Status:  false,
+		})
+	}
+
+	var result gmod.DemoteFromOwnerResponse
+	result.Code = gmod.CodeSuccess
+	result.Status = true
+	result.Message = "user demoted from owner"
+	result.Details.OrgId = orgId
+	result.Details.UserId = userId
+	result.Details.PreviousRole = "owner"
+	result.Details.NewRole = newRole
+	result.Details.DemotedAt = time.Now().Unix()
+
+	return c.JSON(result)
+}
+
+// =========================
+// TRANSFER BILLING OWNERSHIP
+// =========================
+
+// TransferBillingOwnership godoc
+// @Summary Transfer billing ownership to another user
+// @Description Transfer billing ownership - only current billingOwnerId or owners can transfer
+// @Tags Authorization
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Organization ID"
+// @Param body body TransferBillingOwnershipRequest true "Transfer request"
+// @Success 200 {object} gmod.TransferBillingOwnershipResponse
+// @Failure 400 {object} gmod.ApiErrorResponse
+// @Failure 401 {object} gmod.ApiErrorResponse
+// @Failure 403 {object} gmod.ApiErrorResponse
+// @Router /api/v1/orgs/{id}/transfer-billing-ownership [post]
+func (ctrl *OrganizationController) TransferBillingOwnership(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	tracer := otel.Tracer("authzapi")
+	ctx, span := tracer.Start(ctx, "Organization.TransferBillingOwnership")
+	defer span.End()
+
+	orgId := strings.TrimSpace(c.Params("id"))
+	userId, _ := c.Locals("userId").(string)
+	tenantId, _ := c.Locals("tenantId").(string)
+
+	var body struct {
+		NewBillingOwnerId string `json:"newBillingOwnerId"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: "invalid body",
+			Status:  false,
+		})
+	}
+
+	newBillingOwnerId := strings.TrimSpace(body.NewBillingOwnerId)
+	if newBillingOwnerId == "" {
+		return c.Status(400).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeBadRequest,
+			Message: "newBillingOwnerId is required",
+			Status:  false,
+		})
+	}
+
+	if userId == "" || tenantId == "" {
+		return c.Status(401).JSON(gmod.ApiErrorResponse{
+			Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
+		})
+	}
+
+	// Get org to find previous billing owner
+	org, err := ctrl.service.GetOrganizationByOrgId(ctx, orgId)
+	if err != nil {
+		status, code := authzsvc.MapSvcError(err)
+		return c.Status(status).JSON(gmod.ApiErrorResponse{
+			Code: code, Message: err.Error(), Status: false,
+		})
+	}
+	oldBillingOwnerId := org.BillingOwnerId
+
+	err = ctrl.service.TransferBillingOwnership(ctx, tenantId, orgId, userId, newBillingOwnerId)
+	if err != nil {
+		status, code := authzsvc.MapSvcError(err)
+		return c.Status(status).JSON(gmod.ApiErrorResponse{
+			Code:    code,
+			Message: err.Error(),
+			Status:  false,
+		})
+	}
+
+	var result gmod.TransferBillingOwnershipResponse
+	result.Code = gmod.CodeSuccess
+	result.Status = true
+	result.Message = "billing ownership transferred"
+	result.Details.OrgId = orgId
+	result.Details.PreviousOwnerId = oldBillingOwnerId
+	result.Details.NewOwnerId = newBillingOwnerId
+	result.Details.TransferredAt = time.Now().Unix()
+
+	return c.JSON(result)
 }

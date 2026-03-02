@@ -83,6 +83,17 @@ func (ctrl *IngestController) Ingest(c *fiber.Ctx) error {
 		}
 	}
 
+	// Check if device is locked (has pending event)
+	if result.Locked {
+		return c.Status(423).JSON(fiber.Map{
+			"code":        "DEVICE_PENDING_LOCKED",
+			"status":      false,
+			"message":     result.LockMessage,
+			"deviceKey":   result.DeviceKey,
+			"pendingEventId": result.EventId,
+		})
+	}
+
 	return c.Status(202).JSON(fiber.Map{
 		"code":       "ACCEPTED",
 		"status":     true,

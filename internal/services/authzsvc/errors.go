@@ -31,6 +31,19 @@ var (
 	// Remove from org
 	ErrRemoveNotMember = errors.New("user is not a member of this organization")
 
+	// Owner-related errors
+	ErrCannotRemoveLastOwner         = errors.New("cannot remove the last owner of organization")
+	ErrCannotRemoveLastEffectiveManager = errors.New("cannot remove the last effective manager (owner/admin that is valid/enabled)")
+	ErrNotOwner                      = errors.New("user is not an owner of this organization")
+	ErrMustBeOwner                   = errors.New("only owners can perform this action")
+	ErrNotBillingOwnerOrOwner        = errors.New("only billing owner or owners can transfer billing ownership")
+	ErrInvalidBillingOwner            = errors.New("new billing owner must be a member of the organization and must be valid/enabled")
+	ErrOrphanedOrganization           = errors.New("organization is orphaned - requires system intervention")
+	ErrConcurrentModification         = errors.New("concurrent modification detected - please retry")
+	ErrNotAnOwner                    = errors.New("target user is not an owner")
+	ErrAlreadyOwner                  = errors.New("user is already an owner")
+	ErrInvalidDemoteRole              = errors.New("invalid demote role - must be 'member' or 'admin'")
+
 	// List users members
 	ErrInvalidArgs = errors.New("invalid arguments")
 )
@@ -94,6 +107,24 @@ func MapSvcError(err error) (status int, code string) {
 	case errors.Is(err, ErrForbidden),
 		errors.Is(err, ErrForbiddenInvite):
 		return http.StatusForbidden, gmod.CodeForbidden
+	case errors.Is(err, ErrNotOwner),
+		errors.Is(err, ErrMustBeOwner),
+		errors.Is(err, ErrNotBillingOwnerOrOwner):
+		return http.StatusForbidden, gmod.CodeForbidden
+	case errors.Is(err, ErrInvalidBillingOwner),
+		errors.Is(err, ErrInvalidDemoteRole),
+		errors.Is(err, ErrInvalidInviteArgs):
+		return http.StatusBadRequest, gmod.CodeBadRequest
+	case errors.Is(err, ErrCannotRemoveLastOwner),
+		errors.Is(err, ErrCannotRemoveLastEffectiveManager),
+		errors.Is(err, ErrConcurrentModification),
+		errors.Is(err, ErrAlreadyOwner),
+		errors.Is(err, ErrInviteAlreadyMember):
+		return http.StatusConflict, gmod.CodeConflict
+	case errors.Is(err, ErrOrphanedOrganization):
+		return http.StatusForbidden, gmod.CodeForbidden
+	case errors.Is(err, ErrNotAnOwner):
+		return http.StatusNotFound, gmod.CodeNotFound
 	default:
 		return http.StatusInternalServerError, gmod.CodeInternalError
 	}

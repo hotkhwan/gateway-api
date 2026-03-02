@@ -29,6 +29,8 @@ func maskId(v string) string {
 }
 
 // TupleFactoryOrgBootstrap: org-only (no orgUnit)
+// NEW: Creator becomes owner + member (NOT admin)
+// Owner has full management rights via schema permission: manage = owner or admin
 func TupleFactoryOrgBootstrap(orgId, userId string) []map[string]interface{} {
 	orgId = strings.TrimSpace(orgId)
 	userId = strings.TrimSpace(userId)
@@ -46,10 +48,12 @@ func TupleFactoryOrgBootstrap(orgId, userId string) []map[string]interface{} {
 		Str("schemaVersion", strings.TrimSpace(config.CurrentSchemaVersion)).
 		Msg("🔧 generating org bootstrap tuples")
 
+	// NEW: Creator is owner + member (NOT admin)
+	// Owner relation gives full management rights via schema
 	tuples := []map[string]interface{}{
 		{
 			"entity":   map[string]string{"type": "organization", "id": orgId},
-			"relation": "admin",
+			"relation": "owner", // NEW: set creator as owner ONLY (not admin)
 			"subject":  map[string]string{"type": "user", "id": subjectUserId},
 		},
 		{

@@ -287,3 +287,53 @@ type OrgMember struct {
 	UserId string `json:"userId"`
 	Role   string `json:"role"`
 }
+
+// PromoteToOwnerResponse is the response for promoting a user to owner
+type PromoteToOwnerResponse struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Status  bool   `json:"status"`
+	Details struct {
+		OrgId      string `json:"orgId"`
+		UserId     string `json:"userId"`
+		Role       string `json:"role"` // "owner"
+		PromotedAt int64  `json:"promotedAt"`
+	} `json:"details"`
+}
+
+// DemoteFromOwnerRequest is the request for demoting an owner
+type DemoteFromOwnerRequest struct {
+	NewRole string `json:"newRole"` // "member" or "admin"
+}
+
+// DemoteFromOwnerResponse is the response for demoting an owner
+type DemoteFromOwnerResponse struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Status  bool   `json:"status"`
+	Details struct {
+		OrgId        string `json:"orgId"`
+		UserId       string `json:"userId"`
+		PreviousRole string `json:"previousRole"` // "owner"
+		NewRole      string `json:"newRole"`       // "member" or "admin"
+		DemotedAt    int64  `json:"demotedAt"`
+	} `json:"details"`
+}
+
+// TransferBillingOwnershipRequest is the request for transferring billing ownership
+type TransferBillingOwnershipRequest struct {
+	NewBillingOwnerId string `json:"newBillingOwnerId"`
+}
+
+// TransferBillingOwnershipResponse is the response for transferring billing ownership
+type TransferBillingOwnershipResponse struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Status  bool   `json:"status"`
+	Details struct {
+		OrgId           string `json:"orgId"`
+		PreviousOwnerId string `json:"previousOwnerId"`
+		NewOwnerId      string `json:"newOwnerId"`
+		TransferredAt   int64  `json:"transferredAt"`
+	} `json:"details"`
+}

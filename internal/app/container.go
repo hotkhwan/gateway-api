@@ -121,6 +121,7 @@ func (c *Container) buildAuthz() {
 
 	c.OrgUnitService = authzsvc.NewOrgUnitService(orgUnitRepo, c.AuthzClient, c.IDClient)
 	c.OrgUnitController = authzapi.NewOrgUnitController(c.OrgUnitService)
+	c.OrgUnitResourcesController = authzapi.NewOrgUnitResourcesController(c.ResourceGroupService)
 }
 
 // ============================================================
@@ -184,7 +185,8 @@ func (c *Container) buildIngest() {
 // ============================================================
 func (c *Container) buildSubscription() {
 	subRepo := subscriprepo.NewSubscriptionRepo(config.DB)
-	c.SubscriptionService = subscriptionsvc.NewSubscriptionService(subRepo, config.Redis)
+	licenseRepo := subscriprepo.NewLicenseRepo(config.DB)
+	c.SubscriptionService = subscriptionsvc.NewSubscriptionService(subRepo, licenseRepo, config.Redis)
 	c.SubscriptionController = subapi.NewSubscriptionController(c.SubscriptionService)
 }
 

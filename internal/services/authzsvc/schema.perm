@@ -1,10 +1,11 @@
 entity user {}
 
 entity organization {
+    relation owner @user
     relation admin @user
     relation member @user
 
-    permission manage = admin
+    permission manage = owner or admin
     permission view = manage or member
 }
 

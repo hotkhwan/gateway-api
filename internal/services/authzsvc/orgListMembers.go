@@ -13,7 +13,10 @@ import (
 
 type OrgMember struct {
 	UserId    string `json:"userId"`
-	Role      string `json:"role"`
+	Role      string `json:"role"`         // "admin", "member" (owner shows as admin with isOwner flag)
+	IsOwner   bool   `json:"isOwner"`      // NEW: true if has owner relation
+	IsAdmin   bool   `json:"isAdmin"`      // NEW: true if has admin relation explicitly (NOT implied from owner)
+	IsBillingOwner bool `json:"isBillingOwner"` // NEW: true if is billing owner
 	Email     string `json:"email,omitempty"`
 	FirstName string `json:"firstName,omitempty"`
 	LastName  string `json:"lastName,omitempty"`
@@ -67,12 +70,18 @@ func (s *OrganizationService) ListMembers(
 		return nil, 0, err
 	}
 
+	ownerSet := make(map[string]bool)   // NEW
 	adminSet := make(map[string]bool)
 	memberSet := make(map[string]bool)
 
 	for _, r := range relationships {
 		if r.Subject.Type != "user" {
 			continue
+		}
+		if r.Relation == "owner" {      // NEW
+			ownerSet[r.Subject.ID] = true
+			memberSet[r.Subject.ID] = true
+			// IMPORTANT: do NOT set adminSet - isAdmin means has admin relation explicitly
 		}
 		if r.Relation == "admin" {
 			adminSet[r.Subject.ID] = true
@@ -103,18 +112,25 @@ func (s *OrganizationService) ListMembers(
 		profileMap[p.ID] = p
 	}
 
+	// NEW: Get org to check billing owner
+	org, _ := s.orgRepo.GetByOrgId(ctx, orgId)
+
 	result := make([]OrgMember, 0, len(userIds))
 
 	for _, userId := range userIds {
 
 		role := "member"
-		if adminSet[userId] {
+		// role = "admin" if user is admin OR owner (owners get management rights)
+		if adminSet[userId] || ownerSet[userId] {
 			role = "admin"
 		}
 
 		member := OrgMember{
-			UserId: userId,
-			Role:   role,
+			UserId:        userId,
+			Role:         role,
+			IsOwner:      ownerSet[userId],                      // has owner relation
+			IsAdmin:      adminSet[userId],                      // has admin relation (not implied)
+			IsBillingOwner: org != nil && org.BillingOwnerId == userId, // is billing owner
 		}
 
 		if p, ok := profileMap[userId]; ok {
