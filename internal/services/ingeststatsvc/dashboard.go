@@ -18,9 +18,9 @@ var (
 )
 
 type DashboardStatsService struct {
-	eventMgmtRepo   *eventmgmtrepo.EventManagementRepo
+	eventMgmtRepo    *eventmgmtrepo.EventManagementRepo
 	eventDetailsRepo *eventdetailsrepo.EventDetailsRepo
-	logger          zerolog.Logger
+	logger           zerolog.Logger
 }
 
 func NewDashboardStatsService(
@@ -29,9 +29,9 @@ func NewDashboardStatsService(
 	logger zerolog.Logger,
 ) *DashboardStatsService {
 	return &DashboardStatsService{
-		eventMgmtRepo:   eventMgmtRepo,
+		eventMgmtRepo:    eventMgmtRepo,
 		eventDetailsRepo: eventDetailsRepo,
-		logger:          logger,
+		logger:           logger,
 	}
 }
 
@@ -111,8 +111,8 @@ func (s *DashboardStatsService) buildStats(
 	status, eventType string,
 ) (*ingestmod.IngestDashboardStats, error) {
 	stats := &ingestmod.IngestDashboardStats{
-		ByEventType: make(map[string]int),
-		ByPriority:  make(map[string]int),
+		ByEventType:  make(map[string]int),
+		ByPriority:   make(map[string]int),
 		ByAdminArea1: make(map[string]int),
 		ByGeoCell:    []ingestmod.GeoCellBucket{},
 	}

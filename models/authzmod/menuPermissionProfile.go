@@ -4,18 +4,18 @@ package authzmod
 import "time"
 
 type MenuPermissionProfile struct {
-	ProfileID   string    `bson:"profileId"   json:"id"`
-	TenantID    string    `bson:"tenantId"    json:"-"`
-	OrgID       string    `bson:"orgId"       json:"orgId"`
-	Name        string    `bson:"name"        json:"name"`
-	Description string    `bson:"description" json:"description,omitempty"`
-	Status      bool      `bson:"status"      json:"status"`
-	OrgUnitIDs  []string  `bson:"orgUnitIds"  json:"orgUnitIds"`
-	MenuIDs     []string  `bson:"menuIds"     json:"menuIds"`
+	ProfileID   string   `bson:"profileId"   json:"id"`
+	TenantID    string   `bson:"tenantId"    json:"-"`
+	OrgID       string   `bson:"orgId"       json:"orgId"`
+	Name        string   `bson:"name"        json:"name"`
+	Description string   `bson:"description" json:"description,omitempty"`
+	Status      bool     `bson:"status"      json:"status"`
+	OrgUnitIDs  []string `bson:"orgUnitIds"  json:"orgUnitIds"`
+	MenuIDs     []string `bson:"menuIds"     json:"menuIds"`
 	// Relations ที่ orgUnit มีบน menu entity (เช่น "viewer", "creator")
 	// ถ้าไม่ระบุ ระบบจะใช้ค่า default ["viewer"]
-	Relations   []string  `bson:"relations"   json:"relations"`
-	CreatedBy   string    `bson:"createdBy"   json:"createdBy"`
-	CreatedAt   time.Time `bson:"createdAt"   json:"createdAt"`
-	UpdatedAt   time.Time `bson:"updatedAt"   json:"updatedAt"`
+	Relations []string  `bson:"relations"   json:"relations"`
+	CreatedBy string    `bson:"createdBy"   json:"createdBy"`
+	CreatedAt time.Time `bson:"createdAt"   json:"createdAt"`
+	UpdatedAt time.Time `bson:"updatedAt"   json:"updatedAt"`
 }

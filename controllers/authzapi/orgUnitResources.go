@@ -29,7 +29,7 @@ type ouResourceGroupItem struct {
 }
 
 type ouResourceGroupsBody struct {
-	Relation       string               `json:"relation"` // viewer | editor | deleter
+	Relation       string                `json:"relation"` // viewer | editor | deleter
 	ResourceGroups []ouResourceGroupItem `json:"resourceGroups"`
 }
 

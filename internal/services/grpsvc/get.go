@@ -118,8 +118,8 @@ func BuildGroupTree(ctx context.Context, groups []grpmod.Group, parentId *string
 func GetAllGroups(ctx context.Context) ([]grpmod.Group, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"github.com/hotkhwan/gateway-api/grpsvc",        // tracerName
-		"grpsvc.GetAllGroups", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/grpsvc", // tracerName
+		"grpsvc.GetAllGroups",                    // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"grpsvc", "GetAllGroups",
 	)
 	defer end()

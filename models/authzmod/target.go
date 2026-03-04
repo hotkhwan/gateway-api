@@ -14,8 +14,8 @@ const (
 // TargetConfig เป็น flat union — field ที่ใช้ขึ้นกับ type
 type TargetConfig struct {
 	// webhook + discord: shared
-	URL           string            `bson:"url,omitempty"           json:"url,omitempty"`
-	Headers       map[string]string `bson:"headers,omitempty"       json:"headers,omitempty"`
+	URL            string            `bson:"url,omitempty"           json:"url,omitempty"`
+	Headers        map[string]string `bson:"headers,omitempty"       json:"headers,omitempty"`
 	SigningEnabled bool              `bson:"signingEnabled"          json:"signingEnabled"`
 	SigningSecret  string            `bson:"signingSecret,omitempty" json:"signingSecret,omitempty"`
 	TimeoutMs      int               `bson:"timeoutMs,omitempty"     json:"timeoutMs,omitempty"`

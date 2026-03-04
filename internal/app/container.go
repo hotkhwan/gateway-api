@@ -67,9 +67,9 @@ type Container struct {
 	IngestController *ingestapi.IngestController
 
 	// ===== Event Management domain =====
-	ApprovalService            *eventsvc.ApprovalService
-	EventManagementController    *eventapi.EventManagementController
-	EventDetailsController      *eventapi.EventDetailsController
+	ApprovalService           *eventsvc.ApprovalService
+	EventManagementController *eventapi.EventManagementController
+	EventDetailsController    *eventapi.EventDetailsController
 
 	// ===== Ingest Dashboard domain =====
 	DashboardStatsService     *ingeststatsvc.DashboardStatsService

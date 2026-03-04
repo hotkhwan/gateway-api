@@ -87,8 +87,8 @@ func Introspect(c *fiber.Ctx) error {
 			Locale:            res.Locale,
 			Exp:               res.Exp,
 			Scope:             res.Scope,
-			Role:      res.Role,
-			ZoomLevel: res.ZoomLevel,
+			Role:              res.Role,
+			ZoomLevel:         res.ZoomLevel,
 			MapLocation: func() *gmod.MapLocation {
 				if res.MapLocation == nil {
 					return nil

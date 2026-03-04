@@ -39,15 +39,15 @@ func (c *HardcodedPlanCatalog) ListPlans() []SubscriptionPlan {
 	now := time.Now()
 	return []SubscriptionPlan{
 		{
-			PlanId:   "freemium",
-			Name:     "Freemium",
+			PlanId: "freemium",
+			Name:   "Freemium",
 			Limits: SubscriptionLimits{
-				OrgCacheTtlSec:           30,
-				MaxPayloadBytes:          1 * 1024 * 1024, // 1MB
-				PerOrgPerSec:             10,
-				PerOrgBurst:              20,
-				PerIpPerMin:              300,
-				StorageQuotaBytes:        10 * 1024 * 1024 * 1024, // 10GB
+				OrgCacheTtlSec:            30,
+				MaxPayloadBytes:           1 * 1024 * 1024, // 1MB
+				PerOrgPerSec:              10,
+				PerOrgBurst:               20,
+				PerIpPerMin:               300,
+				StorageQuotaBytes:         10 * 1024 * 1024 * 1024, // 10GB
 				MaxOrganizationsPerTenant: 2,
 			},
 			IsPublic:  true,
@@ -55,15 +55,15 @@ func (c *HardcodedPlanCatalog) ListPlans() []SubscriptionPlan {
 			UpdatedAt: now,
 		},
 		{
-			PlanId:   "pro",
-			Name:     "Pro",
+			PlanId: "pro",
+			Name:   "Pro",
 			Limits: SubscriptionLimits{
-				OrgCacheTtlSec:           90,
-				MaxPayloadBytes:          40 * 1024 * 1024, // 40MB
-				PerOrgPerSec:             100,
-				PerOrgBurst:              200,
-				PerIpPerMin:              3000,
-				StorageQuotaBytes:        100 * 1024 * 1024 * 1024, // 100GB
+				OrgCacheTtlSec:            90,
+				MaxPayloadBytes:           40 * 1024 * 1024, // 40MB
+				PerOrgPerSec:              100,
+				PerOrgBurst:               200,
+				PerIpPerMin:               3000,
+				StorageQuotaBytes:         100 * 1024 * 1024 * 1024, // 100GB
 				MaxOrganizationsPerTenant: 5,
 			},
 			IsPublic:  true,
@@ -71,15 +71,15 @@ func (c *HardcodedPlanCatalog) ListPlans() []SubscriptionPlan {
 			UpdatedAt: now,
 		},
 		{
-			PlanId:   "enterprise",
-			Name:     "Enterprise",
+			PlanId: "enterprise",
+			Name:   "Enterprise",
 			Limits: SubscriptionLimits{
-				OrgCacheTtlSec:           120,
-				MaxPayloadBytes:          100 * 1024 * 1024, // 100MB (can be overridden)
-				PerOrgPerSec:             1000,
-				PerOrgBurst:              2000,
-				PerIpPerMin:              10000,
-				StorageQuotaBytes:        1024 * 1024 * 1024 * 1024, // 1TB
+				OrgCacheTtlSec:            120,
+				MaxPayloadBytes:           100 * 1024 * 1024, // 100MB (can be overridden)
+				PerOrgPerSec:              1000,
+				PerOrgBurst:               2000,
+				PerIpPerMin:               10000,
+				StorageQuotaBytes:         1024 * 1024 * 1024 * 1024, // 1TB
 				MaxOrganizationsPerTenant: 10,
 			},
 			IsPublic:  false, // Enterprise requires license key

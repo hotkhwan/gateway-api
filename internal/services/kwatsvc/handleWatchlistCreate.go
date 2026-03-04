@@ -29,8 +29,8 @@ import (
 func HandleWatchlistCreate(parent context.Context, evt kwatmod.WatchlistEvent, g Gateways) error {
 	ctx, end, log := traceutil.StartLite(
 		parent,
-		"github.com/hotkhwan/gateway-api/kwatsvc",                   // tracerName
-		"watchlist.HandleWatchlistCreate", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/kwatsvc", // tracerName
+		"watchlist.HandleWatchlistCreate",         // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kwatsvc", "HandleWatchlistCreate",
 	)
 	defer end()

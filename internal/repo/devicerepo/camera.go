@@ -52,23 +52,23 @@ func (r *CameraRepo) Insert(ctx context.Context, input devmod.CreateCameraInput)
 	camId := uuid.New().String() // ← public ID ใช้ใน Permify tuple + API route
 
 	doc := bson.M{
-		"camId":                 camId, // ← index unique
-		"tenantId":              input.TenantID,
-		"orgId":                 input.OrgID,
-		"name":                  input.Name,
-		"user":                  input.User,
-		"password":              input.Password,
-		"url":                   input.URL,
-		"ip":                    input.IP,
-		"district":              input.District,
-		"lat":                   input.Lat,
-		"lng":                   input.Lng,
-		"brand":                 input.Brand,
-		"status":                true,
-		"state":                 "active",
+		"camId":         camId, // ← index unique
+		"tenantId":      input.TenantID,
+		"orgId":         input.OrgID,
+		"name":          input.Name,
+		"user":          input.User,
+		"password":      input.Password,
+		"url":           input.URL,
+		"ip":            input.IP,
+		"district":      input.District,
+		"lat":           input.Lat,
+		"lng":           input.Lng,
+		"brand":         input.Brand,
+		"status":        true,
+		"state":         "active",
 		"mapVisibility": input.MapVisibility,
-		"createdBy":             input.CallerID,
-		"createAt":              time.Now(),
+		"createdBy":     input.CallerID,
+		"createAt":      time.Now(),
 	}
 	if len(input.Roi) > 0 {
 		doc["roi"] = input.Roi
@@ -93,21 +93,21 @@ func (r *CameraRepo) BulkInsert(ctx context.Context, tenantId, orgId, callerID s
 		camId := uuid.New().String()
 		camIds = append(camIds, camId)
 		docs = append(docs, bson.M{
-			"camId":                 camId,
-			"tenantId":              tenantId,
-			"orgId":                 orgId,
-			"name":                  item.Name,
-			"url":                   item.URL,
-			"ip":                    item.IP,
-			"lat":                   item.Lat,
-			"lng":                   item.Lng,
-			"district":              item.District,
-			"brand":                 item.Brand,
-			"status":                true,
-			"state":                 "active",
+			"camId":         camId,
+			"tenantId":      tenantId,
+			"orgId":         orgId,
+			"name":          item.Name,
+			"url":           item.URL,
+			"ip":            item.IP,
+			"lat":           item.Lat,
+			"lng":           item.Lng,
+			"district":      item.District,
+			"brand":         item.Brand,
+			"status":        true,
+			"state":         "active",
 			"mapVisibility": "inherit",
-			"createdBy":             callerID,
-			"createAt":              time.Now(),
+			"createdBy":     callerID,
+			"createAt":      time.Now(),
 		})
 	}
 
@@ -339,22 +339,22 @@ func (r *CameraRepo) FindDuplicateIPs(ctx context.Context, orgId string, ips []s
 
 func ToDTO(d *devmod.CameraMongo) devmod.CameraDTO {
 	return devmod.CameraDTO{
-		ID:                    d.CamId, // ← UUID ไม่ใช่ _id.Hex()
-		TenantID:              d.TenantID,
-		OrgID:                 d.OrgID,
-		Name:                  d.Name,
-		User:                  d.User,
-		URL:                   d.URL,
-		IP:                    d.IP,
-		District:              d.District,
-		Lat:                   d.Lat,
-		Lng:                   d.Lng,
-		Brand:                 d.Brand,
-		Status:                d.Status,
-		Roi:                   d.Roi,
+		ID:            d.CamId, // ← UUID ไม่ใช่ _id.Hex()
+		TenantID:      d.TenantID,
+		OrgID:         d.OrgID,
+		Name:          d.Name,
+		User:          d.User,
+		URL:           d.URL,
+		IP:            d.IP,
+		District:      d.District,
+		Lat:           d.Lat,
+		Lng:           d.Lng,
+		Brand:         d.Brand,
+		Status:        d.Status,
+		Roi:           d.Roi,
 		MapVisibility: d.MapVisibility,
-		CreateAt:              utils.FormatTimeOrEmpty(d.CreateAt),
-		UpdateAt:              utils.FormatTimeOrEmpty(d.UpdateAt),
+		CreateAt:      utils.FormatTimeOrEmpty(d.CreateAt),
+		UpdateAt:      utils.FormatTimeOrEmpty(d.UpdateAt),
 	}
 }
 

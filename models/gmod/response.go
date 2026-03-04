@@ -34,7 +34,7 @@ type Response struct {
 	Code    string      `json:"code" example:"SUCCESS"`
 	Message string      `json:"message" example:"Operation completed"`
 	Status  bool        `json:"status" example:"true"`
-	Detail    interface{} `json:"detail,omitempty"`
+	Detail  interface{} `json:"detail,omitempty"`
 }
 
 type AcceptedResponse struct {
@@ -133,21 +133,21 @@ type GroupResponse struct {
 
 // IntrospectDetail ใช้เป็น Detail ใน SuccessDetailResponse
 type IntrospectDetail struct {
-	Active            bool                     `json:"active"`
-	Sub               string                   `json:"sub"`
-	Given_name        string                   `json:"given_name,omitempty"`
-	Family_name       string                   `json:"family_name,omitempty"`
-	PreferredUsername string                   `json:"preferred_username,omitempty"`
-	Username          string                   `json:"username"`
-	Avatar            string                   `json:"avatar,omitempty"`
-	Email             string                   `json:"email,omitempty"`
-	Locale            string                   `json:"locale,omitempty"`
-	Exp               int64                    `json:"exp"`
-	Scope             string                   `json:"scope"`
-	Role              string                   `json:"role,omitempty"`
+	Active            bool                      `json:"active"`
+	Sub               string                    `json:"sub"`
+	Given_name        string                    `json:"given_name,omitempty"`
+	Family_name       string                    `json:"family_name,omitempty"`
+	PreferredUsername string                    `json:"preferred_username,omitempty"`
+	Username          string                    `json:"username"`
+	Avatar            string                    `json:"avatar,omitempty"`
+	Email             string                    `json:"email,omitempty"`
+	Locale            string                    `json:"locale,omitempty"`
+	Exp               int64                     `json:"exp"`
+	Scope             string                    `json:"scope"`
+	Role              string                    `json:"role,omitempty"`
 	Permissions       *authmod.PermissionsBlock `json:"permissions,omitempty"`
 	MapLocation       *MapLocation              `json:"mapLocation,omitempty"`
-	ZoomLevel         int                      `json:"zoomLevel,omitempty"`
+	ZoomLevel         int                       `json:"zoomLevel,omitempty"`
 }
 
 type MapLocation struct {
@@ -214,7 +214,7 @@ type SuccessDataResponse struct {
 	Code    string      `json:"code"`
 	Message string      `json:"message"`
 	Status  bool        `json:"status"`
-	Detail    interface{} `json:"detail,omitempty"`
+	Detail  interface{} `json:"detail,omitempty"`
 }
 
 type SuccessDetailResponseWithMSG struct {
@@ -360,7 +360,7 @@ type DemoteFromOwnerResponse struct {
 		OrgId        string `json:"orgId"`
 		UserId       string `json:"userId"`
 		PreviousRole string `json:"previousRole"` // "owner"
-		NewRole      string `json:"newRole"`       // "member" or "admin"
+		NewRole      string `json:"newRole"`      // "member" or "admin"
 		DemotedAt    int64  `json:"demotedAt"`
 	} `json:"details"`
 }

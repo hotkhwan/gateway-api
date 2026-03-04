@@ -12,10 +12,10 @@ type IngestDashboardStats struct {
 	ByEventType map[string]int `json:"byEventType"`
 	ByPriority  map[string]int `json:"byPriority"`
 
-	Geo      GeoMeta     `json:"geo"`
-	GeoCell  GeoCellMeta `json:"geoCell"`
-	ByAdminArea1 map[string]int `json:"byAdminArea1"`
-	ByGeoCell []GeoCellBucket `json:"byGeoCell"`
+	Geo          GeoMeta         `json:"geo"`
+	GeoCell      GeoCellMeta     `json:"geoCell"`
+	ByAdminArea1 map[string]int  `json:"byAdminArea1"`
+	ByGeoCell    []GeoCellBucket `json:"byGeoCell"`
 
 	RecentEvents []RecentEventSummary `json:"recentEvents"`
 

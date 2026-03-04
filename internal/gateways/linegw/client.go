@@ -28,7 +28,7 @@ type LineMessage struct {
 type LineErrorResponse struct {
 	Message string `json:"message"`
 	Details []struct {
-		Message string `json:"message"`
+		Message  string `json:"message"`
 		Property string `json:"property"`
 	} `json:"details"`
 }

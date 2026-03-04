@@ -28,7 +28,7 @@ func (ctrl *IngestDashboardController) GetIngestDashboard(c *fiber.Ctx) error {
 		OrgId:     orgId,
 		StartDate: c.Query("startDate", ""),
 		EndDate:   c.Query("endDate", ""),
-		Status:    c.Query("status", "all"),     // all, pending, approved, rejected
+		Status:    c.Query("status", "all"), // all, pending, approved, rejected
 		EventType: c.Query("eventType", ""),
 	}
 

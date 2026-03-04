@@ -19,8 +19,8 @@ import (
 func WatchlistGetByID(ctx context.Context, id string) (kwatmod.WatchlistResponse, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"github.com/hotkhwan/gateway-api/kwatsvc",           // tracerName
-		"kwatch.WatchlistGetByID", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/kwatsvc", // tracerName
+		"kwatch.WatchlistGetByID",                 // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kwatsvc", "WatchlistGetByID",
 	)
 	defer end()

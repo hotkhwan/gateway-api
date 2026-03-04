@@ -58,14 +58,14 @@ func (r *SubscriptionRepo) UpsertDefaultIfMissing(ctx context.Context, tenantId 
 	// Create default freemium
 	now := time.Now().UTC()
 	sub := &subscripmod.Subscription{
-		ID:          primitive.NewObjectID(),
-		IDString:    generateSubscriptionId(),
-		TenantId:    tenantId,
-		PlanId:      "freemium",
-		Status:      subscripmod.SubscriptionStatusActive,
+		ID:           primitive.NewObjectID(),
+		IDString:     generateSubscriptionId(),
+		TenantId:     tenantId,
+		PlanId:       "freemium",
+		Status:       subscripmod.SubscriptionStatusActive,
 		BillingCycle: subscripmod.BillingCycleNone,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}
 
 	_, err = r.col.InsertOne(ctx, sub)
@@ -128,8 +128,8 @@ func (r *SubscriptionRepo) UpdateOverrides(ctx context.Context, tenantId string,
 	now := time.Now().UTC()
 	_, err := r.col.UpdateOne(ctx, bson.M{"tenantId": tenantId}, bson.M{
 		"$set": bson.M{
-			"overrides":  overrides,
-			"updatedAt":  now,
+			"overrides": overrides,
+			"updatedAt": now,
 		},
 	})
 	return err

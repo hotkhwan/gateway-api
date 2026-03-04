@@ -14,8 +14,8 @@ import (
 func CreateMember(ctx context.Context, reqs []memmod.MemberRequest) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"github.com/hotkhwan/gateway-api/memsvc",        // tracerName
-		"memsvc.CreateMember", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/memsvc", // tracerName
+		"memsvc.CreateMember",                    // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"memsvc", "CreateMember",
 	)
 	defer end()

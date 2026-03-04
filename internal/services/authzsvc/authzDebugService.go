@@ -160,24 +160,24 @@ func (s *AuthzDebugService) ClearOrgTuples(ctx context.Context, tenantId string,
 // ========== Debug/Tuples service methods (migrated from DebugController) ==========
 
 type ReadTuplesRequest struct {
-	EntityType      string
-	EntityId        string
-	Relation        string
-	SubjectType     string
-	SubjectId       string
-	PageSize        int
-	SchemaVersion   string
-	Depth           int
+	EntityType    string
+	EntityId      string
+	Relation      string
+	SubjectType   string
+	SubjectId     string
+	PageSize      int
+	SchemaVersion string
+	Depth         int
 }
 
 type DeleteTuplesRequest struct {
-	EntityType      string
-	EntityId        string
-	Relation        string
-	SubjectType     string
-	SubjectId       string
-	SchemaVersion   string
-	Depth           int
+	EntityType    string
+	EntityId      string
+	Relation      string
+	SubjectType   string
+	SubjectId     string
+	SchemaVersion string
+	Depth         int
 }
 
 func (s *AuthzDebugService) DebugReadTuples(ctx context.Context, tenantId string, req ReadTuplesRequest) (*PermifyTupleListResult, error) {
@@ -187,14 +187,14 @@ func (s *AuthzDebugService) DebugReadTuples(ctx context.Context, tenantId string
 	}
 
 	res, err := client.ReadTuples(ctx, tenantId, authzgw.ReadTuplesRequest{
-		EntityType:      req.EntityType,
-		EntityId:        req.EntityId,
-		Relation:        req.Relation,
-		SubjectType:     req.SubjectType,
-		SubjectId:       req.SubjectId,
-		PageSize:        req.PageSize,
-		SchemaVersion:   req.SchemaVersion,
-		Depth:           req.Depth,
+		EntityType:    req.EntityType,
+		EntityId:      req.EntityId,
+		Relation:      req.Relation,
+		SubjectType:   req.SubjectType,
+		SubjectId:     req.SubjectId,
+		PageSize:      req.PageSize,
+		SchemaVersion: req.SchemaVersion,
+		Depth:         req.Depth,
 	})
 	if err != nil {
 		return nil, err

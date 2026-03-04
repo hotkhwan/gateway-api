@@ -9,12 +9,12 @@ import (
 )
 
 const (
-	statusPrefix        = "evt:status:"
+	statusPrefix         = "evt:status:"
 	deviceApprovalPrefix = "evt:device:approved:"
-	pendingTTL         = 30 * time.Minute
-	approvedTTL        = 24 * time.Hour
-	rejectedTTL        = 24 * time.Hour
-	deviceApprovedTTL   = 7 * 24 * time.Hour // 7 days for device:eventType approval
+	pendingTTL           = 30 * time.Minute
+	approvedTTL          = 24 * time.Hour
+	rejectedTTL          = 24 * time.Hour
+	deviceApprovedTTL    = 7 * 24 * time.Hour // 7 days for device:eventType approval
 )
 
 // StatusKey creates a cache key for event status

@@ -203,13 +203,13 @@ func (s *OrganizationService) Create(
 			RateLimitPerSec:   defaultRateLimitPerSec,
 			RateLimitBurst:    defaultRateLimitBurst,
 		},
-		CreatedBy:       userId,
-		CreatedAt:       now,
-		UpdatedBy:       userId,
-		UpdatedAt:       now,
-		BillingOwnerId:   userId,      // NEW: set creator as billing owner
-		MembershipVersion: 1,           // NEW: initialize version for race protection
-		SyncStatus:      "pending",
+		CreatedBy:         userId,
+		CreatedAt:         now,
+		UpdatedBy:         userId,
+		UpdatedAt:         now,
+		BillingOwnerId:    userId, // NEW: set creator as billing owner
+		MembershipVersion: 1,      // NEW: initialize version for race protection
+		SyncStatus:        "pending",
 	}
 
 	if err := s.orgRepo.Insert(ctx, org); err != nil {

@@ -34,11 +34,11 @@ type NormalizedEvent struct {
 
 // DeliveryResult tracks the result of delivery to a target
 type DeliveryResult struct {
-	TargetId string
+	TargetId   string
 	TargetName string
-	Success   bool
-	Error     string
-	SentAt    time.Time
+	Success    bool
+	Error      string
+	SentAt     time.Time
 }
 
 // Service handles delivery of events to configured targets
@@ -165,7 +165,7 @@ func (s *Service) deliverToTarget(
 		TargetId:   target.TargetId,
 		TargetName: target.Name,
 		SentAt:     time.Now().UTC(),
-		Success:     true,
+		Success:    true,
 	}
 
 	var err error
