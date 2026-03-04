@@ -22,6 +22,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/kafka/klivecorns"
 	"github.com/hotkhwan/gateway-api/internal/kafka/kschcorns"
 	"github.com/hotkhwan/gateway-api/internal/kafka/kwatchcons"
+	"github.com/hotkhwan/gateway-api/internal/kafka/normalizedcons"
 	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/middleware"
 	"github.com/hotkhwan/gateway-api/utils"
@@ -158,6 +159,7 @@ func main() {
 	go kwatchcons.StartWatchlistConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_KWATCH_TOPIC", "kwatch.watchlist"))
 	go kwatchcons.StartWatchlistConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_KWATCH_SYNC_TOPIC", "kwatch.watchlist.sync"))
 	go iwowncons.StartKafkaIwownConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_TOPIC_IWOWN", "kwatch4g.iwown"))
+	go normalizedcons.StartKafkaNormalizedEventConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_TOPIC_NORMALIZED_EVENTS", "normalized.events"))
 
 	app := fiber.New(fiber.Config{
 		ReadBufferSize: 16 * 1024,

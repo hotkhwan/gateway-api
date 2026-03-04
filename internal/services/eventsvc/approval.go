@@ -142,6 +142,20 @@ func (s *ApprovalService) ApproveEvent(
 			Msg("failed to update Redis cache (non-critical)")
 	}
 
+	// 9) Set device:eventType approval cache for auto-processing future events
+	// This allows future events from the same device:eventType to skip approval
+	if pending.DeviceKey != "" && pending.EventType != "" {
+		deviceKey := pending.DeviceRef.Type + ":" + pending.DeviceRef.ID
+		if err := cacheevt.SetDeviceEventTypeApproved(ctx, tenantId, deviceKey, pending.EventType); err != nil {
+			s.logger.Warn().
+				Str("tenantId", tenantId).
+				Str("deviceKey", deviceKey).
+				Str("eventType", pending.EventType).
+				Err(err).
+				Msg("failed to set device:eventType approval cache (non-critical)")
+		}
+	}
+
 	return eventDetail, nil
 }
 

@@ -181,7 +181,8 @@ func (c *Container) buildDevice() {
 func (c *Container) buildIngest() {
 	orgRepo := authzrepo.NewOrgRepo(config.DB)
 	eventMgmtRepo := eventmgmtrepo.NewEventManagementRepo()
-	c.IngestService = ingestsvc.NewIngestService(orgRepo, eventMgmtRepo, c.SubscriptionService, config.Redis, logger.WithMeta("ingest", "container"))
+	eventDetailsRepo := eventdetailsrepo.NewEventDetailsRepo()
+	c.IngestService = ingestsvc.NewIngestService(orgRepo, eventMgmtRepo, eventDetailsRepo, c.SubscriptionService, config.Redis, logger.WithMeta("ingest", "container"))
 	c.IngestController = ingestapi.NewIngestController(c.IngestService)
 }
 
