@@ -229,6 +229,12 @@ type SuccessDetailResponse[T any] struct {
 	Status bool `json:"status"`
 }
 
+// SuccessDetailResponseAny is a non-generic version for Swagger documentation
+type SuccessDetailResponseAny struct {
+	Detail interface{} `json:"detail"`
+	Status bool        `json:"status"`
+}
+
 type SuccessOptionsDetailResponse[T any] struct {
 	Details T    `json:"details"`
 	Status  bool `json:"status"`
@@ -256,6 +262,22 @@ type UnauthorizedResponse struct {
 type SuccessDetailResponseIntrospect struct {
 	Detail IntrospectDetail `json:"detail"`
 	Status bool             `json:"status"`
+}
+
+// SuccessDetailResponseMenuAccess is the response for menu access endpoints
+type SuccessDetailResponseMenuAccess struct {
+	Code    string      `json:"code" example:"SUCCESS"`
+	Message string      `json:"message" example:"accessible menus fetched"`
+	Status  bool        `json:"status" example:"true"`
+	Detail  interface{} `json:"detail"`
+}
+
+// SuccessDetailResponseResourceAccess is the response for resource access endpoints
+type SuccessDetailResponseResourceAccess struct {
+	Code    string      `json:"code" example:"SUCCESS"`
+	Message string      `json:"message" example:"accessible cameras fetched"`
+	Status  bool        `json:"status" example:"true"`
+	Detail  interface{} `json:"detail"`
 }
 
 type ApiErrorResponse struct {

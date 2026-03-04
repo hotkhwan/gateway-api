@@ -27,7 +27,7 @@ func NewMemberAccessController(svc *authzsvc.MemberAccessService) *MemberAccessC
 // @Tags         MemberAccess
 // @Security     BearerAuth
 // @Produce      json
-// @Success      200 {object} gmod.SuccessDetailResponse
+// @Success      200 {object} gmod.SuccessDetailResponseMenuAccess
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/menu/access [get]
@@ -50,11 +50,11 @@ func (ctrl *MemberAccessController) MyMenuAccess(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "accessible menus fetched",
-		"status":  true,
-		"detail":  menus,
+	return c.JSON(gmod.SuccessDetailResponseMenuAccess{
+		Code:    gmod.CodeSuccess,
+		Message: "accessible menus fetched",
+		Status:  true,
+		Detail:  menus,
 	})
 }
 
@@ -70,7 +70,7 @@ func (ctrl *MemberAccessController) MyMenuAccess(c *fiber.Ctx) error {
 // @Param        perPages     query int    false "Items per page (default 10)"
 // @Param        sortField    query string false "Sort field (default createAt)"
 // @Param        sortOrder    query string false "Sort order: asc | desc (default desc)"
-// @Success      200 {object} gmod.SuccessDetailResponse
+// @Success      200 {object} gmod.SuccessDetailResponseResourceAccess
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/resource/access [get]
@@ -105,11 +105,11 @@ func (ctrl *MemberAccessController) MyResourceAccess(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "accessible cameras fetched",
-		"status":  true,
-		"detail": fiber.Map{
+	return c.JSON(gmod.SuccessDetailResponseResourceAccess{
+		Code:    gmod.CodeSuccess,
+		Message: "accessible cameras fetched",
+		Status:  true,
+		Detail: fiber.Map{
 			"cameras":      result.Cameras,
 			"totalRecords": result.TotalRecords,
 			"totalPages":   result.TotalPages,

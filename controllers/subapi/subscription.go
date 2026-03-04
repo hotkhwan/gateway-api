@@ -24,7 +24,7 @@ func NewSubscriptionController(svc *subscriptionsvc.SubscriptionService) *Subscr
 // @Tags         Subscription
 // @Security     BearerAuth
 // @Produce      json
-// @Success      200 {object} gmod.SuccessDetailResponse
+// @Success      200 {object} gmod.SuccessDetailResponseAny
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/subscriptions/bootstrap [post]
 func (ctrl *SubscriptionController) BootstrapSubscription(c *fiber.Ctx) error {
@@ -63,7 +63,7 @@ func (ctrl *SubscriptionController) BootstrapSubscription(c *fiber.Ctx) error {
 // @Tags         Subscription
 // @Security     BearerAuth
 // @Produce      json
-// @Success      200 {object} gmod.SuccessDetailResponse
+// @Success      200 {object} gmod.SuccessDetailResponseAny
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/subscriptions/me [get]
@@ -109,7 +109,7 @@ func (ctrl *SubscriptionController) GetMySubscription(c *fiber.Ctx) error {
 // @Accept       json
 // @Produce      json
 // @Param        request body subscriptionsvc.UpdatePlanRequest true "Plan update request"
-// @Success      200 {object} gmod.SuccessDetailResponse
+// @Success      200 {object} gmod.SuccessDetailResponseAny
 // @Failure      400 {object} gmod.ApiErrorResponse
 // @Failure      403 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
@@ -163,7 +163,7 @@ func (ctrl *SubscriptionController) UpdatePlan(c *fiber.Ctx) error {
 // @Accept       json
 // @Produce      json
 // @Param        request body subscriptionsvc.ActivateEnterpriseRequest true "Enterprise activation request"
-// @Success      200 {object} gmod.SuccessDetailResponse
+// @Success      200 {object} gmod.SuccessDetailResponseAny
 // @Failure      400 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/subscriptions/enterprise/activate [post]
