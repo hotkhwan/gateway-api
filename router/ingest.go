@@ -38,6 +38,9 @@ func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
 		// Apply active organization middleware
 		r.Use(middleware.ActiveOrg())
 
+		// ---------- Ingest Dashboard ----------
+		r.Get("/dashboard", c.IngestDashboardController.GetIngestDashboard)
+
 		// ---------- Event Management domain ----------
 		r.Route("/management", func(mgmt fiber.Router) {
 			mgmt.Get("/", c.EventManagementController.ListPendingEvents) // GET /ingest/management - รายการกิจการที่รออนนุษธิ์

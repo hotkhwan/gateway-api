@@ -23,6 +23,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
 	"github.com/hotkhwan/gateway-api/internal/services/eventsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/ingeststatsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
@@ -66,9 +67,13 @@ type Container struct {
 	IngestController *ingestapi.IngestController
 
 	// ===== Event Management domain =====
-	ApprovalService          *eventsvc.ApprovalService
-	EventManagementController *eventapi.EventManagementController
-	EventDetailsController    *eventapi.EventDetailsController
+	ApprovalService            *eventsvc.ApprovalService
+	EventManagementController    *eventapi.EventManagementController
+	EventDetailsController      *eventapi.EventDetailsController
+
+	// ===== Ingest Dashboard domain =====
+	DashboardStatsService     *ingeststatsvc.DashboardStatsService
+	IngestDashboardController *ingestapi.IngestDashboardController
 
 	// ===== Subscription domain =====
 	SubscriptionService    *subscriptionsvc.SubscriptionService
@@ -216,4 +221,12 @@ func (c *Container) buildEvents() {
 	)
 	c.EventManagementController = eventapi.NewEventManagementController(c.ApprovalService)
 	c.EventDetailsController = eventapi.NewEventDetailsController(c.ApprovalService)
+
+	// Dashboard Stats Service
+	c.DashboardStatsService = ingeststatsvc.NewDashboardStatsService(
+		eventMgmtRepo,
+		eventDetailsRepo,
+		logger.WithMeta("ingest", "dashboard"),
+	)
+	c.IngestDashboardController = ingestapi.NewIngestDashboardController(c.DashboardStatsService)
 }
