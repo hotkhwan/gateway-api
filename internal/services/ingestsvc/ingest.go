@@ -9,8 +9,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/cacheevt"
+	"github.com/hotkhwan/gateway-api/internal/repo/eventdetailsrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/eventmgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
 	"github.com/hotkhwan/gateway-api/models/eventmod"
@@ -79,31 +81,34 @@ func (l *localEmergencyLimiter) Check(key string, limit int) bool {
 // ไม่มี auth, ไม่ยุ่ง Permify
 // Updated to use subscription-based limits and event management
 type IngestService struct {
-	orgRepo      *authzrepo.OrgRepo
-	eventMgmtRepo *eventmgmtrepo.EventManagementRepo
-	subSvc       *subscriptionsvc.SubscriptionService
-	redis        *redis.Client
-	localOrg     *localEmergencyLimiter
-	logger       zerolog.Logger
+	orgRepo         *authzrepo.OrgRepo
+	eventMgmtRepo   *eventmgmtrepo.EventManagementRepo
+	eventDetailsRepo *eventdetailsrepo.EventDetailsRepo
+	subSvc          *subscriptionsvc.SubscriptionService
+	redis           *redis.Client
+	localOrg        *localEmergencyLimiter
+	logger          zerolog.Logger
 }
 
 func NewIngestService(
 	orgRepo *authzrepo.OrgRepo,
 	eventMgmtRepo *eventmgmtrepo.EventManagementRepo,
+	eventDetailsRepo *eventdetailsrepo.EventDetailsRepo,
 	subSvc *subscriptionsvc.SubscriptionService,
 	redis *redis.Client,
 	logger zerolog.Logger,
 ) *IngestService {
-	if orgRepo == nil || eventMgmtRepo == nil || subSvc == nil || redis == nil {
-		panic("IngestService: orgRepo, eventMgmtRepo, subSvc, redis and logger are required")
+	if orgRepo == nil || eventMgmtRepo == nil || eventDetailsRepo == nil || subSvc == nil || redis == nil {
+		panic("IngestService: orgRepo, eventMgmtRepo, eventDetailsRepo, subSvc, redis and logger are required")
 	}
 	return &IngestService{
-		orgRepo:      orgRepo,
-		eventMgmtRepo: eventMgmtRepo,
-		subSvc:       subSvc,
-		redis:        redis,
-		localOrg:     newLocalEmergencyLimiter(),
-		logger:       logger,
+		orgRepo:         orgRepo,
+		eventMgmtRepo:   eventMgmtRepo,
+		eventDetailsRepo: eventDetailsRepo,
+		subSvc:          subSvc,
+		redis:           redis,
+		localOrg:        newLocalEmergencyLimiter(),
+		logger:          logger,
 	}
 }
 
@@ -324,7 +329,42 @@ func (s *IngestService) Ingest(
 	deviceKey := s.computeDeviceKey(deviceRef)
 	_ = rawAliases // Store rawAliases but don't use it (for audit purposes)
 
-	// 6) Check for device pending lock (same device has pending event)
+	// 6) Check if device:eventType is already approved (skip approval flow)
+	isApproved := cacheevt.IsDeviceEventTypeApproved(ctx, policy.TenantId, deviceKey, suggestedType)
+	if isApproved && deviceKey != "" {
+		s.logger.Info().
+			Str("orgId", orgId).
+			Str("tenantId", policy.TenantId).
+			Str("deviceKey", deviceKey).
+			Str("eventType", suggestedType).
+			Msg("device:eventType already approved, auto-processing")
+
+		// Auto-process: Normalize, store in event_details, send to Kafka
+		if err := s.processAutoApprovedEvent(
+			ctx,
+			policy.TenantId,
+			orgId,
+			deviceKey,
+			suggestedType,
+			eventId,
+			receivedAt,
+			sourceIp,
+			body,
+			rawAliases,
+			deviceRef,
+		); err != nil {
+			s.logger.Error().
+				Str("orgId", orgId).
+				Str("tenantId", policy.TenantId).
+				Err(err).
+				Msg("failed to auto-process approved event")
+			return nil, fmt.Errorf("failed to auto-process event: %w", err)
+		}
+
+		return &IngestResult{EventId: eventId, ReceivedAt: receivedAt}, nil
+	}
+
+	// 7) Check for device pending lock (same device has pending event)
 	isLocked, pendingEventId, err := s.checkDevicePendingLock(ctx, policy.TenantId, orgId, deviceKey)
 	if err != nil {
 		s.logger.Error().
@@ -335,7 +375,7 @@ func (s *IngestService) Ingest(
 		return nil, fmt.Errorf("failed to check device lock: %w", err)
 	}
 
-	// 7) Build pending event (or return locked response)
+	// 8) Build pending event (or return locked response)
 	if isLocked {
 		s.logger.Warn().
 			Str("orgId", orgId).
@@ -384,7 +424,7 @@ func (s *IngestService) Ingest(
 		return nil, fmt.Errorf("failed to store event: %w", err)
 	}
 
-	// 8) Cache event status in Redis
+	// 9) Cache event status in Redis
 	if err := cacheevt.SetEventStatusPending(ctx, policy.TenantId, eventId); err != nil {
 		// Log warning but don't fail - this is non-critical
 		s.logger.Warn().
@@ -405,6 +445,95 @@ func (s *IngestService) Ingest(
 		Msg("ingest stored as pending event")
 
 	return &IngestResult{EventId: eventId, ReceivedAt: receivedAt}, nil
+}
+
+// processAutoApprovedEvent handles events that have pre-approved device:eventType
+// Normalizes, stores in event_details, and sends to Kafka
+func (s *IngestService) processAutoApprovedEvent(
+	ctx context.Context,
+	tenantId, orgId, deviceKey, eventType, eventId string,
+	receivedAt time.Time,
+	sourceIp string,
+	body []byte,
+	rawAliases json.RawMessage,
+	deviceRef *eventmod.DeviceIdentity,
+) error {
+	now := time.Now().UTC()
+
+	// 1) Normalize event data
+	normalizedData, err := s.normalizeEvent(eventType, json.RawMessage(body))
+	if err != nil {
+		return fmt.Errorf("normalization failed: %w", err)
+	}
+
+	// 2) Create approved event detail
+	eventDetail := &eventmod.EventDetail{
+		EventId:        eventId,
+		TenantId:       tenantId,
+		OrgId:          orgId,
+		Name:           fmt.Sprintf("Event %s (Auto-approved)", eventId[:8]),
+		Lat:            0,
+		Lng:            0,
+		EventType:      eventType,
+		NormalizedData: normalizedData,
+		SourceIp:       sourceIp,
+		IngestedAt:     receivedAt,
+		ApprovedAt:     now,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+
+	// 3) Store in event_details
+	if err := s.eventDetailsRepo.Insert(ctx, eventDetail); err != nil {
+		return fmt.Errorf("failed to store approved event: %w", err)
+	}
+
+	// 4) Send to Kafka (normalized topic)
+	topic := config.TopicEnv("KAFKA_TOPIC_NORMALIZED_EVENTS", "normalized.events")
+	payload, _ := json.Marshal(eventDetail)
+	if err := config.SendToKafkaWithCtx(ctx, topic, orgId, payload, nil); err != nil {
+		// Log error but don't block processing
+		s.logger.Error().
+			Str("tenantId", tenantId).
+			Str("orgId", orgId).
+			Str("eventId", eventId).
+			Str("deviceKey", deviceKey).
+			Str("eventType", eventType).
+			Err(err).
+			Msg("kafka send failed (non-blocking)")
+	}
+
+	// 5) Cache event status as approved
+	if err := cacheevt.SetEventStatusApproved(ctx, tenantId, eventId); err != nil {
+		s.logger.Warn().
+			Str("tenantId", tenantId).
+			Str("eventId", eventId).
+			Err(err).
+			Msg("failed to update Redis cache (non-critical)")
+	}
+
+	s.logger.Info().
+		Str("tenantId", tenantId).
+		Str("orgId", orgId).
+		Str("eventId", eventId).
+		Str("deviceKey", deviceKey).
+		Str("eventType", eventType).
+		Msg("auto-approved event processed successfully")
+
+	return nil
+}
+
+// normalizeEvent normalizes raw event data
+// For now, returns raw data with metadata
+// Future: Apply type-specific normalization templates
+func (s *IngestService) normalizeEvent(eventType string, rawBody json.RawMessage) (json.RawMessage, error) {
+	result := map[string]interface{}{
+		"eventType":  eventType,
+		"normalized": true,
+		"rawData":    rawBody,
+	}
+
+	return json.Marshal(result)
 }
 
 // detectEventType auto-detects event type from raw body
