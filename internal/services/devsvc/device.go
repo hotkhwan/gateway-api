@@ -226,8 +226,8 @@ func DevicesList(ctx context.Context, page, perPages int, filters map[string]str
 			Int("after", len(filtered)).
 			Msg("✅ Devices filtered by permission")
 
-		// devices = filtered
-		devices = devices
+		//devices = filtered
+		//devices = devices
 	}
 
 	return devices, pagination, int(onlineCount), int(offlineCount), nil
