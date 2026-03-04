@@ -47,7 +47,7 @@ type updatePermProfileBody struct {
 // @Accept       json
 // @Produce      json
 // @Param        body body createPermProfileBody true "payload"
-// @Success      201 {object} gmod.SuccessDetailResponse
+// @Success      201 {object} gmod.SuccessDetailResponseAny
 // @Failure      400 {object} gmod.ApiErrorResponse
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      409 {object} gmod.ApiErrorResponse
@@ -98,7 +98,7 @@ func (ctrl *ResourcePermissionsProfileController) Create(c *fiber.Ctx) error {
 // @Produce      json
 // @Param        id   path string true "profileId"
 // @Param        body body updatePermProfileBody true "payload"
-// @Success      200 {object} gmod.SuccessDetailResponse
+// @Success      200 {object} gmod.SuccessDetailResponseAny
 // @Failure      400 {object} gmod.ApiErrorResponse
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      404 {object} gmod.ApiErrorResponse
@@ -226,7 +226,7 @@ func (ctrl *ResourcePermissionsProfileController) List(c *fiber.Ctx) error {
 // @Security     BearerAuth
 // @Produce      json
 // @Param        id path string true "profileId"
-// @Success      200 {object} gmod.SuccessDetailResponse
+// @Success      200 {object} gmod.SuccessDetailResponseAny
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse

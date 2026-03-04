@@ -25,7 +25,7 @@ type SyncRequest struct {
 // @Accept       json
 // @Produce      json
 // @Param        body body atapi.SyncRequest false "Optional sync options"
-// @Success      200 {object} atapi.ATASyncResponse "Sync result"
+// @Success      200 {object} devsyncmod.ATASyncResponse "Sync result"
 // @Failure      502 {object} gmod.ErrorMessageResponse "Bad Gateway – ATA upstream error"
 // @Failure      500 {object} gmod.ErrorMessageResponse "Internal Server Error – config or DB error"
 // @Router       /ata/svms/sync [post]
