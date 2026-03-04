@@ -23,8 +23,8 @@ func docID(kind, ns string) string { return kind + "." + ns }
 func UpsertOptions(ctx context.Context, kind string, p optmod.NamespacedOptionsPayload) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"github.com/hotkhwan/gateway-api/optsvc",          // tracerName
-		"options.UpsertOptions", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/optsvc", // tracerName
+		"options.UpsertOptions",                  // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"optsvc", "UpsertOptions",
 	)
 	defer end()

@@ -71,8 +71,8 @@ func ensureKafkaWriter() error {
 				continue
 			}
 			topicConfig := map[string]string{
-				"cleanup.policy":   "delete",
-				"compression.type": "producer",
+				"cleanup.policy":    "delete",
+				"compression.type":  "producer",
 				"max.message.bytes": strconv.FormatInt(kafkaMaxMessageBytes, 10),
 				// "retention.ms":   os.Getenv("KAFKA_TOPIC_RETENTION_MS"),
 			}

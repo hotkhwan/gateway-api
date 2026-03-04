@@ -135,8 +135,8 @@ func (s *OrganizationService) RemoveUser(
 			// Note: We skip version check here since we just updated it
 			if err := s.orgRepo.Update(ctx, orgId, bson.M{
 				"billingOwnerId": newBillingOwnerId,
-				"updatedBy":    callerUserId,
-				"updatedAt":    time.Now().UTC(),
+				"updatedBy":      callerUserId,
+				"updatedAt":      time.Now().UTC(),
 			}); err != nil {
 				log.Error().Err(err).Msg("failed to update billing owner")
 			}
@@ -162,4 +162,3 @@ func (s *OrganizationService) findFirstOwnerId(ctx context.Context, tenantId, or
 
 	return "", nil
 }
-

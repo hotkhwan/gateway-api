@@ -32,17 +32,17 @@ var (
 	ErrRemoveNotMember = errors.New("user is not a member of this organization")
 
 	// Owner-related errors
-	ErrCannotRemoveLastOwner         = errors.New("cannot remove the last owner of organization")
+	ErrCannotRemoveLastOwner            = errors.New("cannot remove the last owner of organization")
 	ErrCannotRemoveLastEffectiveManager = errors.New("cannot remove the last effective manager (owner/admin that is valid/enabled)")
-	ErrNotOwner                      = errors.New("user is not an owner of this organization")
-	ErrMustBeOwner                   = errors.New("only owners can perform this action")
-	ErrNotBillingOwnerOrOwner        = errors.New("only billing owner or owners can transfer billing ownership")
-	ErrInvalidBillingOwner            = errors.New("new billing owner must be a member of the organization and must be valid/enabled")
-	ErrOrphanedOrganization           = errors.New("organization is orphaned - requires system intervention")
-	ErrConcurrentModification         = errors.New("concurrent modification detected - please retry")
-	ErrNotAnOwner                    = errors.New("target user is not an owner")
-	ErrAlreadyOwner                  = errors.New("user is already an owner")
-	ErrInvalidDemoteRole              = errors.New("invalid demote role - must be 'member' or 'admin'")
+	ErrNotOwner                         = errors.New("user is not an owner of this organization")
+	ErrMustBeOwner                      = errors.New("only owners can perform this action")
+	ErrNotBillingOwnerOrOwner           = errors.New("only billing owner or owners can transfer billing ownership")
+	ErrInvalidBillingOwner              = errors.New("new billing owner must be a member of the organization and must be valid/enabled")
+	ErrOrphanedOrganization             = errors.New("organization is orphaned - requires system intervention")
+	ErrConcurrentModification           = errors.New("concurrent modification detected - please retry")
+	ErrNotAnOwner                       = errors.New("target user is not an owner")
+	ErrAlreadyOwner                     = errors.New("user is already an owner")
+	ErrInvalidDemoteRole                = errors.New("invalid demote role - must be 'member' or 'admin'")
 
 	// List users members
 	ErrInvalidArgs = errors.New("invalid arguments")

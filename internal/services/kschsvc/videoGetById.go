@@ -19,8 +19,8 @@ import (
 func VideoGetByID(ctx context.Context, id string) (kschmod.VideoResponse, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"github.com/hotkhwan/gateway-api/kschsvc",       // tracerName
-		"search.VideoGetByID", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/kschsvc", // tracerName
+		"search.VideoGetByID",                     // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kschsvc", "VideoGetByID",
 	)
 	defer end()

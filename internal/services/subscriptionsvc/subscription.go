@@ -17,21 +17,21 @@ import (
 
 // EffectiveLimits represents the actual limits after considering plan + overrides
 type EffectiveLimits struct {
-	PlanId                string
-	OrgCacheTtlSec        int64
-	MaxPayloadBytes       int64
-	PerOrgPerSec          int
-	PerOrgBurst           int
-	PerIpPerMin           int
-	StorageQuotaBytes     int64
+	PlanId                    string
+	OrgCacheTtlSec            int64
+	MaxPayloadBytes           int64
+	PerOrgPerSec              int
+	PerOrgBurst               int
+	PerIpPerMin               int
+	StorageQuotaBytes         int64
 	MaxOrganizationsPerTenant int
 }
 
 type SubscriptionService struct {
-	subRepo      *subscriprepo.SubscriptionRepo
-	licenseRepo  *subscriprepo.LicenseRepo
-	planCatalog  subscripmod.PlanCatalog
-	redis        *redis.Client
+	subRepo     *subscriprepo.SubscriptionRepo
+	licenseRepo *subscriprepo.LicenseRepo
+	planCatalog subscripmod.PlanCatalog
+	redis       *redis.Client
 }
 
 func NewSubscriptionService(
@@ -75,13 +75,13 @@ func (s *SubscriptionService) GetEffectiveLimits(
 	}
 
 	return &EffectiveLimits{
-		PlanId:                  sub.PlanId,
-		OrgCacheTtlSec:          limits.OrgCacheTtlSec,
-		MaxPayloadBytes:         limits.MaxPayloadBytes,
-		PerOrgPerSec:            limits.PerOrgPerSec,
-		PerOrgBurst:             limits.PerOrgBurst,
-		PerIpPerMin:             limits.PerIpPerMin,
-		StorageQuotaBytes:       limits.StorageQuotaBytes,
+		PlanId:                    sub.PlanId,
+		OrgCacheTtlSec:            limits.OrgCacheTtlSec,
+		MaxPayloadBytes:           limits.MaxPayloadBytes,
+		PerOrgPerSec:              limits.PerOrgPerSec,
+		PerOrgBurst:               limits.PerOrgBurst,
+		PerIpPerMin:               limits.PerIpPerMin,
+		StorageQuotaBytes:         limits.StorageQuotaBytes,
 		MaxOrganizationsPerTenant: limits.MaxOrganizationsPerTenant,
 	}, nil
 }

@@ -15,8 +15,8 @@ import (
 
 // DashboardStatsResponse สรุปสถิติจาก event_management
 type DashboardStatsResponse struct {
-	PendingCount   int             `json:"pendingCount"`
-	RejectedCount  int             `json:"rejectedCount"`
+	PendingCount  int            `json:"pendingCount"`
+	RejectedCount int            `json:"rejectedCount"`
 	ByEventType   map[string]int `json:"byEventType"`
 	ByPriority    map[string]int `json:"byPriority"`
 }
@@ -54,10 +54,10 @@ func (r *EventManagementRepo) GetStatsForDashboard(
 			{Key: "$group", Value: bson.M{
 				"_id": bson.M{
 					"statusName": "$statusName",
-					"eventType": "$eventType",
+					"eventType":  "$eventType",
 					"priority":   "$priority",
 				},
-				"count":     bson.M{"$sum": 1},
+				"count": bson.M{"$sum": 1},
 			}},
 		},
 	}
@@ -141,7 +141,7 @@ func (r *EventManagementRepo) GetGeoCellBuckets(
 					"lat": bson.M{"$round": bson.A{"$lat", precision}},
 					"lng": bson.M{"$round": bson.A{"$lng", precision}},
 				},
-				"count":     bson.M{"$sum": 1},
+				"count":    bson.M{"$sum": 1},
 				"firstLat": bson.M{"$first": "$lat"},
 				"firstLng": bson.M{"$first": "$lng"},
 			}},
@@ -154,8 +154,8 @@ func (r *EventManagementRepo) GetGeoCellBuckets(
 			Lng float64 `bson:"lng"`
 		} `bson:"_id"`
 		Count    int     `bson:"count"`
-		FirstLat  float64 `bson:"firstLat"`
-		FirstLng  float64 `bson:"firstLng"`
+		FirstLat float64 `bson:"firstLat"`
+		FirstLng float64 `bson:"firstLng"`
 	}
 
 	var aggResults []geoCellAgg

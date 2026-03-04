@@ -36,9 +36,9 @@ func ResourceList(ctx context.Context, page, perPages int, filters map[string]st
 	ctx, end, log := traceutil.StartLite(
 		ctx,
 		"github.com/hotkhwan/gateway-api/rscsvc", // tracer name
-		"ResourceList", // span name
-		"rscsvc",       // service tag
-		"ResourceList", // operation tag
+		"ResourceList",                           // span name
+		"rscsvc",                                 // service tag
+		"ResourceList",                           // operation tag
 	)
 	defer end()
 

@@ -33,7 +33,7 @@ func RegisterKcontrolRoutes(router fiber.Router) {
 		r.Get("/events/export", middleware.AllowOnly("GET"), kctrlapi.ExportAlarms)
 		r.Get("/events/logs", middleware.AllowOnly("GET"), kctrlapi.ListAlarmsLogs)
 		r.Get("/events", middleware.AllowOnly("GET"), kctrlapi.ListEvents)
-		
+
 		r.Post("", middleware.AllowOnly("POST"), kctrlapi.SendMessage)
 		r.Get("/:id", middleware.AllowOnly("GET"), kctrlapi.DeviceGetByID)
 		r.Patch("/:id", middleware.AllowOnly("PATCH"), kctrlapi.UpdateDevice)

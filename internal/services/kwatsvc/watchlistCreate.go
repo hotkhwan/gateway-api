@@ -53,8 +53,8 @@ func parseBoolStr(s string, def bool) bool {
 func WatchlistCreate(ctx context.Context, req kwatmod.WatchlistCreateRequest) (primitive.ObjectID, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"github.com/hotkhwan/gateway-api/kwatsvc",             // tracerName
-		"watchlist.WatchlistCreate", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/kwatsvc", // tracerName
+		"watchlist.WatchlistCreate",               // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kwatsvc", "WatchlistCreate",
 	)
 	defer end()

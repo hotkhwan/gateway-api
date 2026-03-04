@@ -43,17 +43,17 @@ func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
 
 		// ---------- Event Management domain ----------
 		r.Route("/management", func(mgmt fiber.Router) {
-			mgmt.Get("/", c.EventManagementController.ListPendingEvents) // GET /ingest/management - รายการกิจการที่รออนนุษธิ์
-			mgmt.Get("/:eventId", c.EventManagementController.GetPendingEvent) // GET /ingest/management/:eventId - รายละเอียดกิจกรรออนนุษธิ์รายการ
-			mgmt.Patch("/:eventId", c.EventManagementController.UpdatePendingEvent) // PATCH /ingest/management/:eventId - อัปเดตกิจกรรออนนุษธิ์รายการ
+			mgmt.Get("/", c.EventManagementController.ListPendingEvents)             // GET /ingest/management - รายการกิจการที่รออนนุษธิ์
+			mgmt.Get("/:eventId", c.EventManagementController.GetPendingEvent)       // GET /ingest/management/:eventId - รายละเอียดกิจกรรออนนุษธิ์รายการ
+			mgmt.Patch("/:eventId", c.EventManagementController.UpdatePendingEvent)  // PATCH /ingest/management/:eventId - อัปเดตกิจกรรออนนุษธิ์รายการ
 			mgmt.Post("/:eventId/approve", c.EventManagementController.ApproveEvent) // POST /ingest/management/:eventId/approve - อนุมัตกิจกรรออนนุษธิ์รายการ
-			mgmt.Post("/:eventId/reject", c.EventManagementController.RejectEvent) // POST /ingest/management/:eventId/reject - ปฏิบกิจกรรออนนุษธิ์รายการ
+			mgmt.Post("/:eventId/reject", c.EventManagementController.RejectEvent)   // POST /ingest/management/:eventId/reject - ปฏิบกิจกรรออนนุษธิ์รายการ
 			mgmt.Delete("/:eventId", c.EventManagementController.DeletePendingEvent) // DELETE /ingest/management/:eventId - ลบกิจกรรออนนุษธิ์รายการ
 		})
 
 		// ---------- Event Details domain ----------
 		r.Route("/details", func(details fiber.Router) {
-			details.Get("/", c.EventDetailsController.ListApprovedEvents) // GET /ingest/details - รายการกิจกรอนุมัตแล้ว
+			details.Get("/", c.EventDetailsController.ListApprovedEvents)       // GET /ingest/details - รายการกิจกรอนุมัตแล้ว
 			details.Get("/:eventId", c.EventDetailsController.GetApprovedEvent) // GET /ingest/details/:eventId - รายละเอียดกิจกรอนุมัตแล้วรายการ
 		})
 	})

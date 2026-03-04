@@ -34,8 +34,8 @@ func (ctrl *EventManagementController) ListPendingEvents(c *fiber.Ctx) error {
 	input := eventmod.ListEventsInput{
 		TenantId:   tenantId,
 		OrgId:      orgId,
-		StatusName:  c.Query("status", "all"), // default: all (shows pending|approved|rejected)
-		EventType:   c.Query("eventType", ""),
+		StatusName: c.Query("status", "all"), // default: all (shows pending|approved|rejected)
+		EventType:  c.Query("eventType", ""),
 		Page:       c.QueryInt("page", 1),
 		PerPage:    c.QueryInt("perPage", 10),
 		SortField:  c.Query("sortField", "createdAt"),

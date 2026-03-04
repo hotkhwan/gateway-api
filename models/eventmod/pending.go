@@ -9,34 +9,34 @@ import (
 
 // DeviceIdentity represents normalized device reference
 type DeviceIdentity struct {
-	Type string `json:"type"`   // "camera", "sensor", "face", "device"
-	ID   string `json:"id"`     // device identifier
+	Type string `json:"type"` // "camera", "sensor", "face", "device"
+	ID   string `json:"id"`   // device identifier
 }
 
 // EventManagement represents pending events awaiting approval
 type EventManagement struct {
-	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	EventId      string             `bson:"eventId" json:"eventId"`
-	TenantId     string             `bson:"tenantId" json:"tenantId"`
-	OrgId        string             `bson:"orgId" json:"orgId"`
+	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	EventId  string             `bson:"eventId" json:"eventId"`
+	TenantId string             `bson:"tenantId" json:"tenantId"`
+	OrgId    string             `bson:"orgId" json:"orgId"`
 
 	// Editable metadata (by admin)
 	Name        string   `bson:"name" json:"name"`
-	Description  *string   `bson:"description,omitempty" json:"description,omitempty"`
+	Description *string  `bson:"description,omitempty" json:"description,omitempty"`
 	Lat         float64  `bson:"lat" json:"lat"`
 	Lng         float64  `bson:"lng" json:"lng"`
-	EventType   string    `bson:"eventType" json:"eventType"` // LPR_Brand, FACE_Brand, camera_Brand, IOT_Brand, etc.
-	Priority     string    `bson:"priority,omitempty" json:"priority,omitempty"`  // "low", "medium", "high"
-	Tags        []string  `bson:"tags,omitempty" json:"tags,omitempty"`      // e.g., ["LPR", "FACE", "IOT"]
+	EventType   string   `bson:"eventType" json:"eventType"`                   // LPR_Brand, FACE_Brand, camera_Brand, IOT_Brand, etc.
+	Priority    string   `bson:"priority,omitempty" json:"priority,omitempty"` // "low", "medium", "high"
+	Tags        []string `bson:"tags,omitempty" json:"tags,omitempty"`         // e.g., ["LPR", "FACE", "IOT"]
 
 	// Approval status
-	Status     bool   `bson:"status" json:"status"`           // false = pending, true = approved
+	Status     bool   `bson:"status" json:"status"`         // false = pending, true = approved
 	StatusName string `bson:"statusName" json:"statusName"` // "pending", "approved", "rejected"
 
 	// Device Identity Normalization
-	DeviceRef     *DeviceIdentity   `bson:"deviceRef,omitempty" json:"deviceRef,omitempty"`     // { type: "camera"| "sensor"| "face"| "device", id: "..." }
-	DeviceKey     string           `bson:"deviceKey,omitempty" json:"deviceKey,omitempty"`     // "camera:cam-001", "device:dev-001" (canonical key for locking)
-	RawAliases    json.RawMessage `bson:"rawAliases,omitempty" json:"rawAliases,omitempty"` // Original raw field mapping
+	DeviceRef  *DeviceIdentity `bson:"deviceRef,omitempty" json:"deviceRef,omitempty"`   // { type: "camera"| "sensor"| "face"| "device", id: "..." }
+	DeviceKey  string          `bson:"deviceKey,omitempty" json:"deviceKey,omitempty"`   // "camera:cam-001", "device:dev-001" (canonical key for locking)
+	RawAliases json.RawMessage `bson:"rawAliases,omitempty" json:"rawAliases,omitempty"` // Original raw field mapping
 
 	// Raw event data
 	RawBody     json.RawMessage `bson:"rawBody" json:"rawBody"`

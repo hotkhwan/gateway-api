@@ -104,8 +104,8 @@ func (s *OrganizationService) TransferBillingOwnership(
 
 	if err := s.orgRepo.Update(ctx, orgId, map[string]interface{}{
 		"billingOwnerId": newBillingOwnerId,
-		"updatedBy":    callerUserId,
-		"updatedAt":    org.UpdatedAt,
+		"updatedBy":      callerUserId,
+		"updatedAt":      org.UpdatedAt,
 	}); err != nil {
 		log.Error().Err(err).
 			Str("orgId", orgId).

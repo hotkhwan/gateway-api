@@ -23,8 +23,8 @@ import (
 func VideoCreate(ctx context.Context, req kschmod.VideoCreateRequest) (primitive.ObjectID, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"github.com/hotkhwan/gateway-api/kschsvc",      // tracerName
-		"search.VideoCreate", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/kschsvc", // tracerName
+		"search.VideoCreate",                      // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kschsvc", "VideoCreate",
 	)
 	defer end()

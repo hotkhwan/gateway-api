@@ -26,8 +26,8 @@ type LicenseKey struct {
 	Limits *SubscriptionLimits `bson:"limits,omitempty"`
 
 	// Activation tracking
-	TenantId    *string `bson:"tenantId,omitempty"`   // Set when activated
-	Status      LicenseStatus `bson:"status"`         // "available", "activated", "revoked"
+	TenantId *string       `bson:"tenantId,omitempty"` // Set when activated
+	Status   LicenseStatus `bson:"status"`             // "available", "activated", "revoked"
 
 	// Timestamps
 	CreatedAt   time.Time  `bson:"createdAt"`

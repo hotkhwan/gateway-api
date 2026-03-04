@@ -21,8 +21,8 @@ import (
 func ListDevices(ctx context.Context, page, perPages int, filters map[string]string, sortField, sortOrder string) ([]kctrlmod.Device, gmod.Pagination, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"github.com/hotkhwan/gateway-api/kctrlsvc",     // tracerName
-		"alarms.ListDevices", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/kctrlsvc", // tracerName
+		"alarms.ListDevices",                       // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kctrlsvc", "ListDevices",
 	)
 	defer end()
@@ -103,8 +103,8 @@ func ListDevices(ctx context.Context, page, perPages int, filters map[string]str
 func UpdateDevice(ctx context.Context, id primitive.ObjectID, payload kctrlmod.UpdatePayload) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"github.com/hotkhwan/gateway-api/kctrlsvc",      // tracerName
-		"alarms.UpdateDevice", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/kctrlsvc", // tracerName
+		"alarms.UpdateDevice",                      // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kctrlsvc", "UpdateDevice",
 	)
 	defer end()
@@ -168,8 +168,8 @@ func UpdateDevice(ctx context.Context, id primitive.ObjectID, payload kctrlmod.U
 func ResetStats(ctx context.Context, deviceId string) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"github.com/hotkhwan/gateway-api/kctrlsvc",    // tracerName
-		"alarms.ResetStats", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/kctrlsvc", // tracerName
+		"alarms.ResetStats",                        // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kctrlsvc", "ResetStats",
 	)
 	defer end()

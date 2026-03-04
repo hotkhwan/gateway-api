@@ -208,118 +208,118 @@ func HandleAlarm(ctx context.Context, msg kctrlmod.AlarmMessage) {
 	}
 	log.Debug().Str("hwId", msg.HwID).Msg("✅ Alarm event inserted to kcontrol_events")
 
-    // ---------- 3) upsert kcontrol_alarms (สถานะ alarm ล่าสุด) ----------
-    cycleId := msg.CycleID
-    if strings.TrimSpace(cycleId) == "" {
-        cycleId = "default"
-    }
+	// ---------- 3) upsert kcontrol_alarms (สถานะ alarm ล่าสุด) ----------
+	cycleId := msg.CycleID
+	if strings.TrimSpace(cycleId) == "" {
+		cycleId = "default"
+	}
 
-    filter := bson.M{
-        "hwId":   msg.HwID,
-        "sensor": msg.Sensor,
-        "cycleId": cycleId,
-    }
+	filter := bson.M{
+		"hwId":    msg.HwID,
+		"sensor":  msg.Sensor,
+		"cycleId": cycleId,
+	}
 
-    alarmDoc := bson.M{
-        "hwId":     msg.HwID,
-        "device":   device.ID,
-        "name":     device.Name,
-        "district": device.District,
-        "lat":      device.Lat,
-        "lng":      device.Lng,
-        "brand":    device.Brand,
+	alarmDoc := bson.M{
+		"hwId":     msg.HwID,
+		"device":   device.ID,
+		"name":     device.Name,
+		"district": device.District,
+		"lat":      device.Lat,
+		"lng":      device.Lng,
+		"brand":    device.Brand,
 
-        "message":  message,
-        "sensor":   msg.Sensor,
-        "cycleId":  cycleId,
-        "datetime": dt,
-        "startedAt": func() *int64 {
-            if msg.StartedAt != nil && *msg.StartedAt > 0 {
-                return msg.StartedAt
-            }
-            return nil
-        }(),
-        "alarmAt": func() *int64 {
-            if msg.AlarmAt != nil && *msg.AlarmAt > 0 {
-                return msg.AlarmAt
-            }
-            return nil
-        }(),
-        "elapsed":   msg.Elapsed,
-        "status":    "active",
-        "updatedAt": now,
-    }
+		"message":  message,
+		"sensor":   msg.Sensor,
+		"cycleId":  cycleId,
+		"datetime": dt,
+		"startedAt": func() *int64 {
+			if msg.StartedAt != nil && *msg.StartedAt > 0 {
+				return msg.StartedAt
+			}
+			return nil
+		}(),
+		"alarmAt": func() *int64 {
+			if msg.AlarmAt != nil && *msg.AlarmAt > 0 {
+				return msg.AlarmAt
+			}
+			return nil
+		}(),
+		"elapsed":   msg.Elapsed,
+		"status":    "active",
+		"updatedAt": now,
+	}
 
-    up := bson.M{
-        "$set": alarmDoc,
-        "$setOnInsert": bson.M{
-            "createdAt": now,
-        },
-    }
+	up := bson.M{
+		"$set": alarmDoc,
+		"$setOnInsert": bson.M{
+			"createdAt": now,
+		},
+	}
 
-    // ✅ ใช้ FindOneAndUpdate เพื่อให้ได้ _id กลับมาแน่นอนทุกครั้ง
-    opts := options.FindOneAndUpdate().
-        SetUpsert(true).
-        SetReturnDocument(options.After)
+	// ✅ ใช้ FindOneAndUpdate เพื่อให้ได้ _id กลับมาแน่นอนทุกครั้ง
+	opts := options.FindOneAndUpdate().
+		SetUpsert(true).
+		SetReturnDocument(options.After)
 
-    var updated bson.M
-    if err := almColl.FindOneAndUpdate(cctx, filter, up, opts).Decode(&updated); err != nil {
-        log.Error().Err(err).Msg("❌ Failed to upsert kcontrol_alarms (FindOneAndUpdate)")
-        return
-    }
+	var updated bson.M
+	if err := almColl.FindOneAndUpdate(cctx, filter, up, opts).Decode(&updated); err != nil {
+		log.Error().Err(err).Msg("❌ Failed to upsert kcontrol_alarms (FindOneAndUpdate)")
+		return
+	}
 
-    id, ok := updated["_id"].(primitive.ObjectID)
-    if !ok {
-        // กันพลาด: _id ไม่ใช่ ObjectID (unlikely) แต่ถ้าเจอจะได้ไม่ publish แบบมั่ว
-        log.Error().
-            Interface("_id", updated["_id"]).
-            Msg("❌ kcontrol_alarms _id is not ObjectID; skip mqtt publish")
-        return
-    }
+	id, ok := updated["_id"].(primitive.ObjectID)
+	if !ok {
+		// กันพลาด: _id ไม่ใช่ ObjectID (unlikely) แต่ถ้าเจอจะได้ไม่ publish แบบมั่ว
+		log.Error().
+			Interface("_id", updated["_id"]).
+			Msg("❌ kcontrol_alarms _id is not ObjectID; skip mqtt publish")
+		return
+	}
 
-    log.Debug().
-        Str("hwId", msg.HwID).
-        Str("id", id.Hex()).
-        Msg("✅ Alarm upserted to kcontrol_alarms")
+	log.Debug().
+		Str("hwId", msg.HwID).
+		Str("id", id.Hex()).
+		Msg("✅ Alarm upserted to kcontrol_alarms")
 
-    // ---------- 4) publish public MQTT alarm result ----------
-    out := map[string]any{
-        "id":  id.Hex(),
-        "hwId":     msg.HwID,
-        "sensor":   msg.Sensor,
-        "cycleId":  cycleId,
-        "status":   "active",
-        "message":  message,
-        "datetime": dt,       // time.Time -> marshal เป็น RFC3339
-        "updatedAt": now,
-    }
+	// ---------- 4) publish public MQTT alarm result ----------
+	out := map[string]any{
+		"id":        id.Hex(),
+		"hwId":      msg.HwID,
+		"sensor":    msg.Sensor,
+		"cycleId":   cycleId,
+		"status":    "active",
+		"message":   message,
+		"datetime":  dt, // time.Time -> marshal เป็น RFC3339
+		"updatedAt": now,
+	}
 
-    // อยากแนบ metadata device ก็ได้ (เลือกเท่าที่จำเป็น)
-    out["device"] = map[string]any{
-        "id":       device.ID,
-        "name":     device.Name,
-        "district": device.District,
-        "lat":      device.Lat,
-        "lng":      device.Lng,
-        "brand":    device.Brand,
-    }
+	// อยากแนบ metadata device ก็ได้ (เลือกเท่าที่จำเป็น)
+	out["device"] = map[string]any{
+		"id":       device.ID,
+		"name":     device.Name,
+		"district": device.District,
+		"lat":      device.Lat,
+		"lng":      device.Lng,
+		"brand":    device.Brand,
+	}
 
-    payload, err := json.Marshal(out)
-    if err != nil {
-        log.Error().Err(err).Msg("❌ Marshal alarmResult payload failed")
-        return
-    }
+	payload, err := json.Marshal(out)
+	if err != nil {
+		log.Error().Err(err).Msg("❌ Marshal alarmResult payload failed")
+		return
+	}
 
-    if err := kcontrolmsg.PublishToMQTT("kcontrol.alarmResult", string(payload)); err != nil {
-        log.Error().Err(err).Str("topic", "kcontrol.alarmResult").Msg("❌ MQTT publish alarmResult failed")
-        return
-    }
+	if err := kcontrolmsg.PublishToMQTT("kcontrol.alarmResult", string(payload)); err != nil {
+		log.Error().Err(err).Str("topic", "kcontrol.alarmResult").Msg("❌ MQTT publish alarmResult failed")
+		return
+	}
 
-    log.Debug().
-        Str("topic", "kcontrol.alarmResult").
-        Str("hwId", msg.HwID).
-        Str("id", id.Hex()).
-        Msg("📤 Alarm result published to MQTT")
+	log.Debug().
+		Str("topic", "kcontrol.alarmResult").
+		Str("hwId", msg.HwID).
+		Str("id", id.Hex()).
+		Msg("📤 Alarm result published to MQTT")
 }
 
 func HandleSensor(ctx context.Context, msg kctrlmod.SensorMessage) {

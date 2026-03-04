@@ -201,9 +201,15 @@ func handleBinaryFrame(ctx context.Context, log zerolog.Logger, eventType string
 
 // -------------------- JSON Events (CallLog/Info/Status) --------------------
 
-func HandleCallLog(ctx context.Context, dataAny any) error   { return insertJSONEvent(ctx, "call_log", dataAny) }
-func HandleDeviceInfo(ctx context.Context, dataAny any) error { return insertJSONEvent(ctx, "device_info", dataAny) }
-func HandleStatus(ctx context.Context, dataAny any) error     { return insertJSONEvent(ctx, "status", dataAny) }
+func HandleCallLog(ctx context.Context, dataAny any) error {
+	return insertJSONEvent(ctx, "call_log", dataAny)
+}
+func HandleDeviceInfo(ctx context.Context, dataAny any) error {
+	return insertJSONEvent(ctx, "device_info", dataAny)
+}
+func HandleStatus(ctx context.Context, dataAny any) error {
+	return insertJSONEvent(ctx, "status", dataAny)
+}
 
 func insertJSONEvent(ctx context.Context, eventType string, dataAny any) error {
 	now := time.Now().UTC()

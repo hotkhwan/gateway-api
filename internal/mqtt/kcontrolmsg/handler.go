@@ -28,10 +28,9 @@ func MessageHandler(client mqtt.Client, msg mqtt.Message) {
 
 	// ✅NO retained message alarm topic ตอน subscribe/reconnect
 	if msg.Retained() && msg.Topic() == "kcontrol.alarms" {
-	log.Debug().Str("topic", msg.Topic()).Msg("🟡 Retained alarms, skip")
-	return
+		log.Debug().Str("topic", msg.Topic()).Msg("🟡 Retained alarms, skip")
+		return
 	}
-
 
 	topic := msg.Topic()
 	payload := msg.Payload()
