@@ -161,20 +161,6 @@ definitions:
       status:
         type: boolean
     type: object
-  atapi.ATASyncResponse:
-    properties:
-      code:
-        example: ATA_SYNC_OK
-        type: string
-      detail:
-        $ref: '#/definitions/atasvc.SyncResult'
-      message:
-        example: ATA devices/channels synced
-        type: string
-      status:
-        example: true
-        type: boolean
-    type: object
   atapi.StreamDetails:
     properties:
       channelId:
@@ -213,26 +199,6 @@ definitions:
     type: object
   atapi.SyncRequest:
     type: object
-  atasvc.SyncResult:
-    properties:
-      channels:
-        type: integer
-      channelsSample:
-        items:
-          additionalProperties: {}
-          type: object
-        type: array
-      devices:
-        type: integer
-      inserted:
-        type: integer
-      perDeviceCounts:
-        additionalProperties:
-          type: integer
-        type: object
-      updated:
-        type: integer
-    type: object
   authmod.MenuGrant:
     properties:
       create:
@@ -242,6 +208,15 @@ definitions:
       read:
         description: flatten fields for FE
         type: boolean
+    type: object
+  authmod.OAuthCallbackRequest:
+    properties:
+      code:
+        type: string
+      hwId:
+        type: string
+      redirectUri:
+        type: string
     type: object
   authmod.PermissionsBlock:
     properties:
@@ -310,124 +285,162 @@ definitions:
       status:
         type: boolean
     type: object
-  authzmod.FactoryForceRequest:
+  authzapi.AssignUsersRequest:
     properties:
-      force:
-        example: true
+      users:
+        items:
+          $ref: '#/definitions/authzsvc.OUAssignUser'
+        type: array
+    type: object
+  authzapi.CreateOrgUnitBody:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      parentId:
+        type: string
+    type: object
+  authzapi.InviteUsersRequest:
+    properties:
+      users:
+        items:
+          properties:
+            role:
+              type: string
+            userId:
+              type: string
+          type: object
+        type: array
+    type: object
+  authzapi.OUBulkResponse:
+    properties:
+      code:
+        type: string
+      details:
+        items:
+          $ref: '#/definitions/authzsvc.OUBulkResult'
+        type: array
+      message:
+        type: string
+      status:
         type: boolean
     type: object
-  authzmod.GrantResourceRequest:
+  authzapi.RemoveUsersRequest:
     properties:
-      assignedGroupId:
-        description: '→ relation: assigned_group'
-        type: string
-      assignedRoleId:
-        description: '→ relation: assigned_role'
-        type: string
-      crud:
-        description: เช่น "c", "cru", "crd", ใช้ใน attribute:crud
-        type: string
-      editorUserIds:
-        description: '→ relation: editor'
+      users:
         items:
-          type: string
-        type: array
-      ownerUserId:
-        description: "\U0001F4A1 Relations"
-        type: string
-      resourceId:
-        type: string
-      type:
-        description: "\U0001F4A1 Attributes"
-        type: string
-      viewerUserIds:
-        description: '→ relation: viewer'
-        items:
-          type: string
+          $ref: '#/definitions/authzsvc.OURemoveUser'
         type: array
     type: object
-  authzmod.PermissionCheckRequest:
+  authzapi.UpdateOrgUnitBody:
     properties:
-      entity:
-        properties:
-          id:
-            type: string
-          type:
-            description: เช่น "resource"
-            type: string
-        required:
-        - id
-        - type
-        type: object
-      metadata:
-        properties:
-          depth:
-            type: integer
-          schema_version:
-            type: string
-          snap_token:
-            type: string
-        required:
-        - depth
-        type: object
-      permission:
+      description:
         type: string
-      subject:
-        properties:
-          id:
-            type: string
-          type:
-            description: เช่น "user", "group", "role"
-            type: string
-        required:
-        - id
-        - type
-        type: object
-    required:
-    - entity
-    - metadata
-    - permission
-    - subject
+      name:
+        type: string
+      parentId:
+        type: string
     type: object
-  authzmod.PublishItem:
+  authzapi.createMenuProfileBody:
     properties:
-      crud:
-        description: '["c","r","u","d"] หรือ ["read","update",...]'
+      description:
+        type: string
+      menus:
+        description: '["kcontrol","dashboard",...]'
         items:
           type: string
         type: array
-      public:
+      name:
+        type: string
+      relations:
+        description: '["viewer","creator",...] default ["viewer"]'
+        items:
+          type: string
+        type: array
+      status:
         type: boolean
-      relationship:
-        description: |-
-          รูปแบบ subject ตรง ๆ เช่น "role:PF_OFFICE" หรือ "group:g_inno"
-          (ใช้แทน subjectType+subjectId แบบใหม่)
-        type: string
-      resourceId:
-        description: รหัส resource เช่น "menu_dashboard_global", "device:xxx"
-        type: string
-      subjectId:
-        type: string
-      subjectType:
-        description: รองรับ legacy payload แบบเก่า
-        type: string
     type: object
-  authzmod.PublishProfileRequest:
+  authzapi.createPermProfileBody:
     properties:
-      items:
-        items:
-          $ref: '#/definitions/authzmod.PublishItem'
-        type: array
-      note:
+      description:
         type: string
-    type: object
-  authzmod.RevokeResourceRequest:
-    properties:
-      entityIds:
+      name:
+        type: string
+      relations:
         items:
           type: string
         type: array
-      entityType:
+      status:
+        type: boolean
+    type: object
+  authzapi.updateMenuProfileBody:
+    properties:
+      description:
+        type: string
+      menus:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      orgUnits:
+        description: nil = not provided (keep old), [] = clear/reset, [...] = set
+        items:
+          type: string
+        type: array
+      relations:
+        items:
+          type: string
+        type: array
+      status:
+        type: boolean
+    type: object
+  authzapi.updatePermProfileBody:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      orgUnits:
+        description: flat string IDs — nil = not provided (keep old), [] = clear,
+          ["id"] = set
+        items:
+          type: string
+        type: array
+      relations:
+        items:
+          type: string
+        type: array
+      resourceGroups:
+        items:
+          type: string
+        type: array
+      status:
+        type: boolean
+    type: object
+  authzsvc.OUAssignUser:
+    properties:
+      role:
+        description: member | admin
+        type: string
+      userId:
+        type: string
+    type: object
+  authzsvc.OUBulkResult:
+    properties:
+      error:
+        type: string
+      role:
+        type: string
+      success:
+        type: boolean
+      userId:
+        type: string
+    type: object
+  authzsvc.OURemoveUser:
+    properties:
+      userId:
         type: string
     type: object
   dashmod.UpdateBlacklistReq:
@@ -466,9 +479,7 @@ definitions:
         type: string
       brand:
         type: string
-      dateTimeCreate:
-        type: string
-      dateTimeUpdate:
+      createAt:
         type: string
       district:
         type: string
@@ -500,6 +511,8 @@ definitions:
         type: string
       status:
         type: boolean
+      updateAt:
+        type: string
       url:
         type: string
       user:
@@ -600,6 +613,62 @@ definitions:
       type:
         type: string
     type: object
+  devsyncmod.ATASyncResponse:
+    properties:
+      code:
+        example: ATA_SYNC_OK
+        type: string
+      detail:
+        $ref: '#/definitions/devsyncmod.SyncResult'
+      message:
+        example: ATA devices/channels synced
+        type: string
+      status:
+        example: true
+        type: boolean
+    type: object
+  devsyncmod.IBOCSyncResponse:
+    properties:
+      code:
+        type: string
+      detail:
+        $ref: '#/definitions/devsyncmod.SyncResult'
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+  devsyncmod.SVMSSyncResponse:
+    properties:
+      code:
+        type: string
+      detail:
+        $ref: '#/definitions/devsyncmod.SyncResult'
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+  devsyncmod.SyncResult:
+    properties:
+      channels:
+        type: integer
+      channelsSample:
+        items:
+          additionalProperties: {}
+          type: object
+        type: array
+      devices:
+        type: integer
+      inserted:
+        type: integer
+      perDeviceCounts:
+        additionalProperties:
+          type: integer
+        type: object
+      updated:
+        type: integer
+    type: object
   gmod.AcceptedResponse:
     properties:
       code:
@@ -671,6 +740,30 @@ definitions:
         example: duplicate key
         type: string
     type: object
+  gmod.DemoteFromOwnerResponse:
+    properties:
+      code:
+        type: string
+      details:
+        properties:
+          demotedAt:
+            type: integer
+          newRole:
+            description: '"member" or "admin"'
+            type: string
+          orgId:
+            type: string
+          previousRole:
+            description: '"owner"'
+            type: string
+          userId:
+            type: string
+        type: object
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
   gmod.DeviceResponse:
     properties:
       details:
@@ -735,6 +828,8 @@ definitions:
         type: string
       locale:
         type: string
+      mapLocation:
+        $ref: '#/definitions/gmod.MapLocation'
       permissions:
         $ref: '#/definitions/authmod.PermissionsBlock'
       preferred_username:
@@ -747,6 +842,36 @@ definitions:
         type: string
       username:
         type: string
+      zoomLevel:
+        type: integer
+    type: object
+  gmod.InviteUserRequest:
+    properties:
+      role:
+        description: '"member" | "admin"'
+        type: string
+      userId:
+        type: string
+    type: object
+  gmod.InviteUserResponse:
+    properties:
+      code:
+        type: string
+      details:
+        properties:
+          invited:
+            type: boolean
+          orgId:
+            type: string
+          role:
+            type: string
+          userId:
+            type: string
+        type: object
+      message:
+        type: string
+      status:
+        type: boolean
     type: object
   gmod.JobInfo:
     properties:
@@ -756,6 +881,13 @@ definitions:
         type: string
       traceID:
         type: string
+    type: object
+  gmod.MapLocation:
+    properties:
+      lat:
+        type: number
+      lng:
+        type: number
     type: object
   gmod.Member:
     properties:
@@ -781,6 +913,43 @@ definitions:
       pagination:
         $ref: '#/definitions/gmod.Pagination'
       status:
+        type: boolean
+    type: object
+  gmod.NotFoundResponse:
+    properties:
+      code:
+        type: string
+      message:
+        example: Resource not found
+        type: string
+      status:
+        type: boolean
+    type: object
+  gmod.OrgListResponse:
+    properties:
+      code:
+        type: string
+      details: {}
+      message:
+        type: string
+      pagination:
+        $ref: '#/definitions/gmod.Pagination'
+      status:
+        type: boolean
+    type: object
+  gmod.PaginatedResponse:
+    properties:
+      code:
+        example: SUCCESS
+        type: string
+      details: {}
+      message:
+        example: profiles fetched
+        type: string
+      pagination:
+        $ref: '#/definitions/gmod.Pagination'
+      status:
+        example: true
         type: boolean
     type: object
   gmod.Pagination:
@@ -810,12 +979,33 @@ definitions:
         example: true
         type: boolean
     type: object
+  gmod.PromoteToOwnerResponse:
+    properties:
+      code:
+        type: string
+      details:
+        properties:
+          orgId:
+            type: string
+          promotedAt:
+            type: integer
+          role:
+            description: '"owner"'
+            type: string
+          userId:
+            type: string
+        type: object
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
   gmod.Response:
     properties:
       code:
         example: SUCCESS
         type: string
-      data: {}
+      detail: {}
       message:
         example: Operation completed
         type: string
@@ -838,9 +1028,15 @@ definitions:
     properties:
       code:
         type: string
-      data: {}
+      detail: {}
       message:
         type: string
+      status:
+        type: boolean
+    type: object
+  gmod.SuccessDetailResponseAny:
+    properties:
+      detail: {}
       status:
         type: boolean
     type: object
@@ -849,6 +1045,32 @@ definitions:
       detail:
         $ref: '#/definitions/gmod.IntrospectDetail'
       status:
+        type: boolean
+    type: object
+  gmod.SuccessDetailResponseMenuAccess:
+    properties:
+      code:
+        example: SUCCESS
+        type: string
+      detail: {}
+      message:
+        example: accessible menus fetched
+        type: string
+      status:
+        example: true
+        type: boolean
+    type: object
+  gmod.SuccessDetailResponseResourceAccess:
+    properties:
+      code:
+        example: SUCCESS
+        type: string
+      detail: {}
+      message:
+        example: accessible cameras fetched
+        type: string
+      status:
+        example: true
         type: boolean
     type: object
   gmod.SuccessDetailResponseWithMSG:
@@ -919,6 +1141,31 @@ definitions:
     properties:
       code:
         type: string
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+  gmod.TransferBillingOwnershipRequest:
+    properties:
+      newBillingOwnerId:
+        type: string
+    type: object
+  gmod.TransferBillingOwnershipResponse:
+    properties:
+      code:
+        type: string
+      details:
+        properties:
+          newOwnerId:
+            type: string
+          orgId:
+            type: string
+          previousOwnerId:
+            type: string
+          transferredAt:
+            type: integer
+        type: object
       message:
         type: string
       status:
@@ -1062,14 +1309,35 @@ definitions:
       updated:
         type: integer
     type: object
+  kctrlmod.AlarmActor:
+    properties:
+      actorId:
+        type: string
+      actorIp:
+        type: string
+      actorName:
+        type: string
+    type: object
   kctrlmod.AlarmResponseItem:
     properties:
+      acknowledged:
+        type: boolean
+      acknowledgedAt:
+        type: string
+      acknowledgedBy:
+        $ref: '#/definitions/kctrlmod.AlarmActor'
+      alarmAt:
+        type: integer
       brand:
+        type: string
+      cycleId:
         type: string
       datetime:
         type: string
       district:
         type: string
+      elapsed:
+        type: number
       hwId:
         type: string
       id:
@@ -1081,6 +1349,40 @@ definitions:
       message:
         type: string
       name:
+        type: string
+      sensor:
+        type: integer
+      sop:
+        items:
+          $ref: '#/definitions/kctrlmod.AlarmSopStep'
+        type: array
+      startedAt:
+        type: integer
+      status:
+        description: ✅ moved out of detail
+        type: string
+    type: object
+  kctrlmod.AlarmSopStep:
+    properties:
+      actorId:
+        type: string
+      actorIp:
+        type: string
+      actorName:
+        type: string
+      createdAt:
+        description: RFC3339
+        type: string
+      description:
+        type: string
+      detail:
+        additionalProperties: {}
+        type: object
+      stepId:
+        type: string
+      stepStatus:
+        type: string
+      type:
         type: string
     type: object
   kctrlmod.ControlMessage:
@@ -1144,9 +1446,13 @@ definitions:
         type: boolean
       brand:
         type: string
+      code:
+        type: string
       dateTimeCreate:
         type: string
       dateTimeUpdate:
+        type: string
+      description:
         type: string
       district:
         type: string
@@ -1207,6 +1513,10 @@ definitions:
         type: string
       offThresholdMs:
         type: integer
+      owner:
+        type: string
+      phone:
+        type: string
       sensor:
         description: 'สำหรับ Frontend: sensor[] ที่ map จาก interval_IN_* (id/name/values)'
         items:
@@ -1294,6 +1604,20 @@ definitions:
       status:
         example: true
         type: boolean
+    type: object
+  kctrlmod.ResolvedAlarmRequest:
+    properties:
+      autoCloseOpenSteps:
+        description: 'optional: ถ้า true จะ append SOP update ปิด step inProgress
+          ทั้งหมด'
+        type: boolean
+      description:
+        description: 'default: "ปิดงาน"'
+        type: string
+      detail:
+        additionalProperties: {}
+        description: result/note/attachments/etc.
+        type: object
     type: object
   kctrlmod.Stats:
     properties:
@@ -1827,6 +2151,53 @@ definitions:
       type:
         type: string
     type: object
+  subscripmod.ActivateEnterpriseRequest:
+    properties:
+      licenseKey:
+        example: ENT-XXXX-XXXX-XXXX
+        type: string
+      limits:
+        $ref: '#/definitions/subscripmod.SubscriptionLimits'
+    type: object
+  subscripmod.BillingCycle:
+    enum:
+    - none
+    - monthly
+    - quarterly
+    - yearly
+    type: string
+    x-enum-varnames:
+    - BillingCycleNone
+    - BillingCycleMonthly
+    - BillingCycleQuarterly
+    - BillingCycleYearly
+  subscripmod.SubscriptionLimits:
+    properties:
+      maxOrganizationsPerTenant:
+        type: integer
+      maxPayloadBytes:
+        type: integer
+      orgCacheTtlSec:
+        type: integer
+      perIpPerMin:
+        type: integer
+      perOrgBurst:
+        type: integer
+      perOrgPerSec:
+        type: integer
+      storageQuotaBytes:
+        type: integer
+    type: object
+  subscripmod.UpdatePlanRequest:
+    properties:
+      billingCycle:
+        allOf:
+        - $ref: '#/definitions/subscripmod.BillingCycle'
+        example: monthly
+      planId:
+        example: premium
+        type: string
+    type: object
   systemmod.EdgeCreateReq:
     properties:
       apiKey:
@@ -1872,6 +2243,20 @@ definitions:
         example: true
         type: boolean
     type: object
+  systemmod.EdgeSSOURLDetail:
+    properties:
+      ssoUrl:
+        type: string
+    type: object
+  systemmod.EdgeSSOURLSuccessResponse:
+    properties:
+      code:
+        type: string
+      detail:
+        $ref: '#/definitions/systemmod.EdgeSSOURLDetail'
+      status:
+        type: boolean
+    type: object
   systemmod.EdgeUpdateReq:
     properties:
       apiKey: {}
@@ -1914,6 +2299,13 @@ definitions:
     properties:
       description:
         type: string
+    type: object
+  usrmod.BatchGetUsersRequest:
+    properties:
+      userIds:
+        items:
+          type: string
+        type: array
     type: object
   usrmod.ChangePasswordRequest:
     properties:
@@ -2039,6 +2431,1145 @@ info:
   title: Klynx API v2
   version: "1.0"
 paths:
+  /api/v1/orgs:
+    get:
+      description: Return organizations that current user can access (via FGA lookup)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.OrgListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List organizations for current user
+      tags:
+      - Authorization
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create organization
+      tags:
+      - Authorization
+  /api/v1/orgs/{id}:
+    delete:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete organization
+      tags:
+      - Authorization
+    patch:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Update organization
+      tags:
+      - Authorization
+  /api/v1/orgs/{id}/ingest:
+    get:
+      description: Returns ingest endpoint, masked secret, and rate limit config
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get ingest config for an organization (admin only)
+      tags:
+      - Authorization
+  /api/v1/orgs/{id}/ingest/rotateSecret:
+    post:
+      description: Generates a new HMAC signing key and returns the masked version
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Rotate ingest secret for an organization (admin only)
+      tags:
+      - Authorization
+  /api/v1/orgs/{id}/invite:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: orgId
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/gmod.InviteUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.InviteUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Invite user to organization
+      tags:
+      - Authorization
+  /api/v1/orgs/{id}/owners/{userId}:
+    delete:
+      description: Demote an owner to member or admin with invariant checks + race
+        protection
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID to demote
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: New role (member or admin)
+        in: query
+        name: newRole
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.DemoteFromOwnerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Demote an owner to member or admin
+      tags:
+      - Authorization
+    post:
+      description: Promote a member to owner with invariant checks + race protection
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID to promote
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PromoteToOwnerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Promote a member to owner
+      tags:
+      - Authorization
+  /api/v1/orgs/{id}/transfer-billing-ownership:
+    post:
+      consumes:
+      - application/json
+      description: Transfer billing ownership - only current billingOwnerId or owners
+        can transfer
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Transfer request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/gmod.TransferBillingOwnershipRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.TransferBillingOwnershipResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Transfer billing ownership to another user
+      tags:
+      - Authorization
+  /api/v1/orgs/menu/access:
+    get:
+      description: Returns menu IDs the caller can access via their OrgUnit membership
+        and active MenuPermissionProfiles.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseMenuAccess'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List menus accessible to the current user
+      tags:
+      - MemberAccess
+  /api/v1/orgs/menu/list:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all available menus
+      tags:
+      - MenuPermissionProfile
+  /api/v1/orgs/menu/permissions:
+    get:
+      parameters:
+      - description: page (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: items per page (default 10)
+        in: query
+        name: perPages
+        type: integer
+      - description: search keyword
+        in: query
+        name: search
+        type: string
+      - description: sort field (default createdAt)
+        in: query
+        name: sortField
+        type: string
+      - description: 'sort order: asc|desc (default desc)'
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PaginatedResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List menu permission profiles
+      tags:
+      - MenuPermissionProfile
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.createMenuProfileBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create menu permission profile
+      tags:
+      - MenuPermissionProfile
+  /api/v1/orgs/menu/permissions/{id}:
+    delete:
+      parameters:
+      - description: profileId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete menu permission profile
+      tags:
+      - MenuPermissionProfile
+    get:
+      parameters:
+      - description: profileId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get menu permission profile by ID
+      tags:
+      - MenuPermissionProfile
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: profileId
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.updateMenuProfileBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update menu permission profile
+      tags:
+      - MenuPermissionProfile
+  /api/v1/orgs/resource/access:
+    get:
+      description: Returns paginated cameras the caller can access via OrgUnit membership
+        and active ResourcePermissionProfiles, enriched with the union of Permify
+        relations (viewer, editor, …).
+      parameters:
+      - description: Filter by resource type (e.g. camera)
+        in: query
+        name: resourceType
+        type: string
+      - description: Search camera name
+        in: query
+        name: search
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 10)
+        in: query
+        name: perPages
+        type: integer
+      - description: Sort field (default createAt)
+        in: query
+        name: sortField
+        type: string
+      - description: 'Sort order: asc | desc (default desc)'
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseResourceAccess'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List cameras accessible to the current user
+      tags:
+      - MemberAccess
+  /api/v1/orgs/resource/permissions:
+    get:
+      parameters:
+      - description: page (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: items per page (default 10)
+        in: query
+        name: perPages
+        type: integer
+      - description: search keyword
+        in: query
+        name: search
+        type: string
+      - description: sort field (default createdAt)
+        in: query
+        name: sortField
+        type: string
+      - description: 'sort order: asc|desc (default desc)'
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PaginatedResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List resource permission profiles
+      tags:
+      - ResourcePermissionProfile
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.createPermProfileBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create resource permission profile
+      tags:
+      - ResourcePermissionProfile
+  /api/v1/orgs/resource/permissions/{id}:
+    delete:
+      parameters:
+      - description: profileId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete resource permission profile
+      tags:
+      - ResourcePermissionProfile
+    get:
+      parameters:
+      - description: profileId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get resource permission profile by ID
+      tags:
+      - ResourcePermissionProfile
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: profileId
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.updatePermProfileBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update resource permission profile
+      tags:
+      - ResourcePermissionProfile
+  /api/v1/orgs/units:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.CreateOrgUnitBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageCreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create org unit
+      tags:
+      - OrgUnit
+  /api/v1/orgs/units/{id}:
+    delete:
+      parameters:
+      - description: unitId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete org unit
+      tags:
+      - OrgUnit
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: unitId
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.UpdateOrgUnitBody'
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Update org unit
+      tags:
+      - OrgUnit
+  /api/v1/orgs/units/{id}/members:
+    patch:
+      consumes:
+      - application/json
+      description: Bulk remove users from an OrgUnit (organization admin only)
+      parameters:
+      - description: Active Organization ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: OrgUnit ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Remove users payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.RemoveUsersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authzapi.OUBulkResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove users from OrgUnit
+      tags:
+      - Authorization
+    post:
+      consumes:
+      - application/json
+      description: Bulk assign users into an OrgUnit (organization admin only)
+      parameters:
+      - description: Active Organization ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: OrgUnit ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Assign users payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.AssignUsersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authzapi.OUBulkResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Assign users to OrgUnit
+      tags:
+      - Authorization
+  /api/v1/orgs/units/tree:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get org unit tree (root nodes only)
+      tags:
+      - OrgUnit
+  /api/v1/orgs/units/tree-debug:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 'Debug: Get org unit tree with raw data'
+      tags:
+      - OrgUnit
+  /api/v1/orgs/units/tree/{id}:
+    get:
+      parameters:
+      - description: unitId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get org unit node with immediate children (1 level only)
+      tags:
+      - OrgUnit
+  /api/v1/orgs/users/members:
+    get:
+      description: Return list of members in active organization (admin only)
+      parameters:
+      - description: Active Organization ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.OrgListResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List organization members
+      tags:
+      - Authorization
+  /api/v1/orgs/users/remove:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.InviteUsersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove users from organization
+      tags:
+      - Authorization
+  /api/v1/subscriptions/bootstrap:
+    post:
+      description: Creates a default freemium subscription for the tenant if not already
+        exists
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bootstrap subscription
+      tags:
+      - Subscription
+  /api/v1/subscriptions/enterprise/activate:
+    post:
+      consumes:
+      - application/json
+      description: Activates enterprise plan using a license key
+      parameters:
+      - description: Enterprise activation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/subscripmod.ActivateEnterpriseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Activate enterprise
+      tags:
+      - Subscription
+  /api/v1/subscriptions/me:
+    get:
+      description: Returns the tenant's current subscription plan and limits
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get my subscription
+      tags:
+      - Subscription
+  /api/v1/subscriptions/plan:
+    patch:
+      consumes:
+      - application/json
+      description: Updates the tenant's subscription to a different plan (admin only)
+      parameters:
+      - description: Plan update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/subscripmod.UpdatePlanRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update subscription plan
+      tags:
+      - Subscription
   /ata/stream/{channelId}:
     get:
       consumes:
@@ -2093,7 +3624,7 @@ paths:
         "200":
           description: Sync result
           schema:
-            $ref: '#/definitions/atapi.ATASyncResponse'
+            $ref: '#/definitions/devsyncmod.ATASyncResponse'
         "500":
           description: Internal Server Error – config or DB error
           schema:
@@ -2302,18 +3833,47 @@ paths:
         "400":
           description: Bad Request
           schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Introspect JWT Token (Local JWKS Verify)
+      tags:
+      - Auth
+  /auth/oauth/callback:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: OAuth callback payload
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/authmod.OAuthCallbackRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authmod.SigninResponse'
+        "400":
+          description: Bad Request
+          schema:
             $ref: '#/definitions/gmod.BadRequestResponse'
         "401":
           description: Unauthorized
           schema:
             $ref: '#/definitions/gmod.UnauthorizedResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.InternalErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Introspect JWT Token (Local JWKS Verify)
+      summary: OAuth callback exchange (authorization_code -> tokens)
       tags:
       - Auth
   /auth/refreshToken:
@@ -2444,267 +4004,6 @@ paths:
       summary: Signout
       tags:
       - Auth
-  /authz/healthz:
-    get:
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.InternalErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Health check for Permify
-      tags:
-      - Authz
-  /authz/permission/check:
-    post:
-      consumes:
-      - application/json
-      description: Check if the user has permission to perform an action on a resource
-      parameters:
-      - description: Permission check request
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/authzmod.PermissionCheckRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Permission check result
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-        "400":
-          description: Invalid request body
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-      security:
-      - BearerAuth: []
-      summary: Check User Permission
-      tags:
-      - Authz
-  /authz/permission/check/batch:
-    post:
-      consumes:
-      - application/json
-      description: Check multiple permissions in a single request
-      parameters:
-      - description: Batch permission check requests
-        in: body
-        name: body
-        required: true
-        schema:
-          items:
-            $ref: '#/definitions/authzmod.PermissionCheckRequest'
-          type: array
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Batch permission check results
-          schema:
-            items:
-              additionalProperties: true
-              type: object
-            type: array
-        "400":
-          description: Invalid request body
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-      security:
-      - BearerAuth: []
-      summary: Batch permission check
-      tags:
-      - Authz
-  /authz/profiles/{code}/publish:
-    post:
-      consumes:
-      - application/json
-      description: Replace profile items and create new version for given code
-      parameters:
-      - description: Profile code
-        in: path
-        name: code
-        required: true
-        type: string
-      - description: Publish profile payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/authzmod.PublishProfileRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
-      security:
-      - BearerAuth: []
-      summary: Publish profile as new version
-      tags:
-      - Authz
-  /authz/relationships:
-    get:
-      responses:
-        "400":
-          description: Bad Request – invalid query
-          schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
-        "500":
-          description: Internal Server Error – failed to call Permify
-          schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
-      security:
-      - BearerAuth: []
-  /authz/resource/grant:
-    post:
-      consumes:
-      - application/json
-      description: Grant owner, editor, viewer, assigned group/role, and attributes
-        (type, crud) to a resource entity
-      parameters:
-      - description: Grant resource permission payload
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/authzmod.GrantResourceRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Resource granted successfully
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-        "400":
-          description: Invalid input or missing fields
-          schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
-        "500":
-          description: Internal error from Permify
-          schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
-      security:
-      - BearerAuth: []
-      summary: Grant permission relationships to resource
-      tags:
-      - Authz
-  /authz/resource/revoke:
-    post:
-      consumes:
-      - application/json
-      description: Revoke grant owner, editor, viewer, assigned group/role, and attributes
-        (type, crud) from a resource entity
-      parameters:
-      - description: Revoke grant resource permission payload
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/authzmod.RevokeResourceRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Resource revoke granted successfully
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-        "400":
-          description: Invalid input or missing fields
-          schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
-        "500":
-          description: Internal error from Permify
-          schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
-      security:
-      - BearerAuth: []
-      summary: Revoke grant permission relationships to resource
-      tags:
-      - Authz
-  /authz/schema/apply:
-    post:
-      consumes:
-      - application/json
-      description: Apply schema.perm to Permify and sync relationships from MongoDB
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Schema applied & relationships synced successfully
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-      security:
-      - BearerAuth: []
-      summary: Apply Permify Schema & Sync Relationships
-      tags:
-      - Authz
-  /authz/tuples/factoryResetTenant:
-    post:
-      consumes:
-      - application/json
-      description: 'Danger: delete ALL relationships (tuples) in this tenant. Intended
-        for dev/staging only.'
-      parameters:
-      - description: Require {\
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/authzmod.FactoryForceRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
-      security:
-      - BearerAuth: []
-      summary: Factory reset all Permify tuples for current tenant (DEV ONLY)
-      tags:
-      - Authz
   /bi/signUrl:
     get:
       consumes:
@@ -2981,6 +4280,49 @@ paths:
       summary: Upload device template
       tags:
       - Devices
+  /events/{orgId}:
+    post:
+      consumes:
+      - application/json
+      description: POST event payload from device/3rd-party. Rate limited per org
+        + IP.
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "413":
+          description: Request Entity Too Large
+          schema:
+            additionalProperties: true
+            type: object
+        "429":
+          description: Too Many Requests
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Ingest raw event (no JWT, hot path)
+      tags:
+      - Ingest
   /groups:
     get:
       consumes:
@@ -3667,6 +5009,14 @@ paths:
         in: query
         name: hwid
         type: string
+      - description: Filter by datetime range (RFC3339 format, e.g., 2023-01-02T15:04:05Z/2023-01-03T15:04:05Z)
+        in: query
+        name: datetime
+        type: string
+      - description: Filter unacknowledged alarms only (true|false)
+        in: query
+        name: unacked
+        type: string
       produces:
       - application/json
       responses:
@@ -3714,6 +5064,79 @@ paths:
       summary: Delete an alarm event (hard delete)
       tags:
       - Kcontrol
+    get:
+      consumes:
+      - application/json
+      description: Returns a single alarm document from kcontrol_alarms by its Mongo
+        ObjectID (excluding soft-deleted)
+      parameters:
+      - description: Alarm ID (Mongo ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/kctrlmod.AlarmResponseItem'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Kcontrol alarm by ID
+      tags:
+      - Kcontrol
+  /kcontrol/alarms/{id}/resolved:
+    patch:
+      consumes:
+      - application/json
+      description: Mark alarm as resolved and append SOP resolve step (append-only).
+        Optionally auto-close inProgress SOP steps by appending update steps.
+      parameters:
+      - description: Alarm ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Resolve payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/kctrlmod.ResolvedAlarmRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseWithMSG'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Resolve alarm
+      tags:
+      - KControl Alarms
   /kcontrol/alarms/bulk-delete:
     post:
       consumes:
@@ -5178,6 +6601,35 @@ paths:
       summary: Create a new member in a group
       tags:
       - Members
+  /members/{groupId}:
+    get:
+      description: Return member detail by ID
+      parameters:
+      - description: member ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get member by ID
+      tags:
+      - members
   /members/{id}:
     get:
       description: Return member detail by ID
@@ -5523,6 +6975,58 @@ paths:
       summary: Bulk create resources
       tags:
       - Resources
+  /system/edge/{edgeType}/sso/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: edge type
+        enum:
+        - ata
+        - svms
+        - iboc
+        in: path
+        name: edgeType
+        required: true
+        type: string
+      - description: Mongo ObjectId of edge
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: play
+        description: address target (default play)
+        in: query
+        name: address
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/systemmod.EdgeSSOURLSuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.BadRequestResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.UnauthorizedResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.NotFoundResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get edge SSO URL (decrypt passEnc then base64 encode password)
+      tags:
+      - System Edge
   /system/edge/{id}:
     delete:
       consumes:
@@ -5825,8 +7329,16 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get list of users from Keycloak
+      description: Get list of users from Keycloak (supports userIds filter)
       parameters:
+      - description: Comma-separated user IDs (e.g. userIds=id1,id2,id3)
+        in: query
+        name: userIds
+        type: string
+      - description: Repeatable user ID (e.g. userId=id1&userId=id2)
+        in: query
+        name: userId
+        type: string
       - description: Page number
         in: query
         name: page
@@ -5844,7 +7356,7 @@ paths:
         name: search
         type: string
       - default: username
-        description: 'Sort field: username|email|firstName|lastName'
+        description: 'Sort field: username|email|firstName|lastName|createdAt'
         in: query
         name: sortField
         type: string
@@ -5873,7 +7385,6 @@ paths:
           schema:
             $ref: '#/definitions/gmod.ErrorResponse'
       security:
-      - BearerAuth: []
       - BearerAuth: []
       summary: List Keycloak users
       tags:
@@ -6071,6 +7582,42 @@ paths:
       security:
       - BearerAuth: []
       summary: Change user password
+      tags:
+      - Users
+  /users/batch:
+    post:
+      consumes:
+      - application/json
+      description: Get multiple Keycloak users by userIds (POST body)
+      parameters:
+      - description: User IDs
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/usrmod.BatchGetUsersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usrmod.PaginationSuccessUsers'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Batch get users by IDs
       tags:
       - Users
   /watchlist:
