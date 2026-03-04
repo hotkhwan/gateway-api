@@ -20,8 +20,8 @@ import (
 func VideoDelete(ctx context.Context, id primitive.ObjectID) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"github.com/hotkhwan/gateway-api/kschsvc",      // tracerName
-		"search.VideoDelete", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/kschsvc", // tracerName
+		"search.VideoDelete",                      // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kschsvc", "VideoDelete",
 	)
 	defer end()

@@ -22,8 +22,8 @@ import (
 func HandleDetect(parent context.Context, msg kaimod.Detection) {
 	ctx, end, log := traceutil.StartLite(
 		parent,
-		"github.com/hotkhwan/gateway-api/kaisvc",        // tracerName
-		"grpsvc.HandleDetect", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/kaisvc", // tracerName
+		"grpsvc.HandleDetect",                    // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kaisvc", "HandleDetect",
 	)
 	defer end()

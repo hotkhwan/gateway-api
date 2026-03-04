@@ -3,11 +3,11 @@ package kwatapi
 
 import (
 	"errors"
-	"io"
 	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/kwatmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"io"
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"

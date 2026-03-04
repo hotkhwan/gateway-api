@@ -76,8 +76,8 @@ func SoftDeleteMany(ctx context.Context, collection string, filter bson.M, opts 
 }
 
 func SoftDeleteOne(ctx context.Context, collection string, filter bson.M, opts SoftDeleteOptions) (*mongo.UpdateResult, error) {
-    set, unset := buildSoftDeleteOps(opts)
-    return UpdateOneOps(ctx, collection, filter, set, unset)
+	set, unset := buildSoftDeleteOps(opts)
+	return UpdateOneOps(ctx, collection, filter, set, unset)
 }
 
 // ReviveMany: ใช้ตอน re-appear เพื่อปลุกให้ active

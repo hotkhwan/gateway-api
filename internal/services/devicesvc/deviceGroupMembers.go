@@ -273,11 +273,11 @@ type ListInGroupParams struct {
 }
 
 type ListCamerasInGroupResult struct {
-	Items       []devmod.CameraDTO
+	Items        []devmod.CameraDTO
 	TotalRecords int64
-	TotalPages  int
-	Page        int
-	PerPage     int
+	TotalPages   int
+	Page         int
+	PerPage      int
 }
 
 type ResourceGroupWithRelation struct {

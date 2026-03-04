@@ -16,17 +16,17 @@ import (
 
 // Discord Webhook request/response structures
 type DiscordWebhookRequest struct {
-	Content  string              `json:"content"`
-	Username string              `json:"username,omitempty"`
-	Embeds   []DiscordEmbed     `json:"embeds,omitempty"`
+	Content  string         `json:"content"`
+	Username string         `json:"username,omitempty"`
+	Embeds   []DiscordEmbed `json:"embeds,omitempty"`
 }
 
 type DiscordEmbed struct {
-	Title       string                 `json:"title"`
-	Description string                 `json:"description"`
-	Color       int                    `json:"color"`
-	Fields      []DiscordEmbedField    `json:"fields,omitempty"`
-	Timestamp   string                 `json:"timestamp,omitempty"`
+	Title       string              `json:"title"`
+	Description string              `json:"description"`
+	Color       int                 `json:"color"`
+	Fields      []DiscordEmbedField `json:"fields,omitempty"`
+	Timestamp   string              `json:"timestamp,omitempty"`
 }
 
 type DiscordEmbedField struct {
@@ -153,13 +153,13 @@ func (c *Client) buildWebhookRequest(eventData map[string]interface{}) DiscordWe
 		Color:       color,
 		Fields: []DiscordEmbedField{
 			{
-				Name:  "Event Type",
-				Value: eventType,
+				Name:   "Event Type",
+				Value:  eventType,
 				Inline: true,
 			},
 			{
-				Name:  "Event ID",
-				Value: eventId,
+				Name:   "Event ID",
+				Value:  eventId,
 				Inline: true,
 			},
 		},

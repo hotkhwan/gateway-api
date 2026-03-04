@@ -17,8 +17,8 @@ import (
 func DeleteMember(ctx context.Context, memberId string) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"github.com/hotkhwan/gateway-api/memsvc",        // tracerName
-		"memsvc.DeleteMember", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/memsvc", // tracerName
+		"memsvc.DeleteMember",                    // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"memsvc", "DeleteMember",
 	)
 	defer end()

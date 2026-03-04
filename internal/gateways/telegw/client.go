@@ -17,7 +17,7 @@ import (
 // Telegram Bot API request/response structures
 type TelegramMessageRequest struct {
 	ChatID    string `json:"chat_id"`
-	Text       string `json:"text"`
+	Text      string `json:"text"`
 	ParseMode string `json:"parse_mode,omitempty"`
 }
 
@@ -70,7 +70,7 @@ func (c *Client) Send(ctx context.Context, event interface{}, payload []byte) er
 
 	telegramReq := TelegramMessageRequest{
 		ChatID:    c.config.ChatId,
-		Text:       messageText,
+		Text:      messageText,
 		ParseMode: "HTML",
 	}
 

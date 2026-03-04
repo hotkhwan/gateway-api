@@ -5,10 +5,10 @@ package authsvc
 import (
 	"context"
 	"fmt"
-	"io"
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/utils/authutil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
+	"io"
 	"net/http"
 	"os"
 	"time"

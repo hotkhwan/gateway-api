@@ -81,21 +81,21 @@ type CameraDTO struct {
 // ============================================================
 
 type CreateCameraInput struct {
-	CamID                 string
-	TenantID              string
-	OrgID                 string
-	CallerID              string
-	Name                  string
-	User                  string
-	Password              string
-	URL                   string
-	IP                    string
-	District              string
-	Lat                   float64
-	Lng                   float64
-	AtaWsFlvUrl           string
-	Brand                 string
-	Roi                   []interface{}
+	CamID         string
+	TenantID      string
+	OrgID         string
+	CallerID      string
+	Name          string
+	User          string
+	Password      string
+	URL           string
+	IP            string
+	District      string
+	Lat           float64
+	Lng           float64
+	AtaWsFlvUrl   string
+	Brand         string
+	Roi           []interface{}
 	MapVisibility string // inherit | forcePublic | forcePrivate
 }
 
@@ -104,14 +104,14 @@ type CreateCameraInput struct {
 // ============================================================
 
 type UpdateCameraInput struct {
-	Name                  string
-	User                  string
-	Password              string
-	URL                   string
-	District              string
-	Lat                   float64
-	Lng                   float64
-	Roi                   []interface{}
+	Name          string
+	User          string
+	Password      string
+	URL           string
+	District      string
+	Lat           float64
+	Lng           float64
+	Roi           []interface{}
 	MapVisibility string
 }
 

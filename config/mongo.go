@@ -12,14 +12,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
 type MongoBootstrapFn func(ctx context.Context) error
+
 var (
-	MongoClient *mongo.Client
-	DB          *mongo.Database
+	MongoClient    *mongo.Client
+	DB             *mongo.Database
 	mongoBootFnsMu sync.Mutex
 	mongoBootFns   []MongoBootstrapFn
 )
-
 
 func InitMongo() {
 	log := logger.Boot("mongoDB", "config-InitMongo")
@@ -60,7 +61,7 @@ func InitMongo() {
 	if err := runMongoBootstraps(ctx); err != nil {
 		log.Fatal().Err(err).Msg("Mongo bootstrap failed")
 	}
-	
+
 	log.Info().Msg("✅ MongoDB connected to " + dbName)
 }
 

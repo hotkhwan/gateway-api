@@ -3,9 +3,9 @@ package aiutil
 
 import (
 	"bytes"
-	"io"
 	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/models/kaimod"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"

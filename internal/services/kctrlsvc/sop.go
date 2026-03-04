@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-
 func AppendAlarmSop(ctx context.Context, alarmId string, req kctrlmod.SopStepRequest, c *fiber.Ctx) error {
 	traceCtx, end, _ := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kctrlsvc", "alarms.AppendAlarmSop", "kctrlsvc", "AppendAlarmSop")
 	defer end()
@@ -75,7 +74,7 @@ func AppendAlarmSop(ctx context.Context, alarmId string, req kctrlmod.SopStepReq
 		},
 		"$push": bson.M{
 			"sop": bson.M{
-				"$each": []any{step},
+				"$each":  []any{step},
 				"$slice": -10,
 			},
 		},

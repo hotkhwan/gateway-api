@@ -39,7 +39,7 @@ func (r *EventManagementRepo) FindByEventId(
 	err := stomongo.FindOne(ctx, "event_management", bson.M{
 		"tenantId": tenantId,
 		"orgId":    orgId,
-		"eventId":   eventId,
+		"eventId":  eventId,
 	}, &result)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {

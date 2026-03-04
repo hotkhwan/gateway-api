@@ -25,8 +25,8 @@ import (
 func VideoList(ctx context.Context, page, perPages int, filters map[string]string, sortField, sortOrder string) ([]kschmod.VideoResponse, gmod.Pagination, error) {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"github.com/hotkhwan/gateway-api/kschsvc",    // tracerName
-		"search.VideoList", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/kschsvc", // tracerName
+		"search.VideoList",                        // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kschsvc", "VideoList",
 	)
 	defer end()

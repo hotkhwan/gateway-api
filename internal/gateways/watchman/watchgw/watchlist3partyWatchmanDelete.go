@@ -4,8 +4,8 @@ package watchgw
 import (
 	"context"
 	"fmt"
-	"io"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
+	"io"
 	"net/http"
 	"os"
 	"time"

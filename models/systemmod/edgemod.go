@@ -115,11 +115,11 @@ type EdgeConfig struct {
 }
 
 type EdgeSSOURLDetail struct {
-  SSOUrl string `json:"ssoUrl"`
+	SSOUrl string `json:"ssoUrl"`
 }
 
 type EdgeSSOURLSuccessResponse struct {
-  Code   string          `json:"code"`
-  Detail EdgeSSOURLDetail `json:"detail"`
-  Status bool            `json:"status"`
+	Code   string           `json:"code"`
+	Detail EdgeSSOURLDetail `json:"detail"`
+	Status bool             `json:"status"`
 }
