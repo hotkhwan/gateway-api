@@ -6,11 +6,11 @@ import (
 	"sort"
 	"time"
 
-	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
+	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
+	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/models/authzmod"
-	"github.com/hotkhwan/gateway-api/internal/logger"
 )
 
 // MigrateExistingOrgs migrates existing organizations to have owners
@@ -197,8 +197,8 @@ func writeTuples(ctx context.Context, authzClient authzgw.Client, tenantId strin
 func updateOrg(ctx context.Context, repo *authzrepo.OrgRepo, org *authzmod.Organization) error {
 	return repo.Update(ctx, org.OrgId, map[string]interface{}{
 		"billingOwnerId":    org.BillingOwnerId,
-		"isOrphaned":       org.IsOrphaned,
+		"isOrphaned":        org.IsOrphaned,
 		"membershipVersion": org.MembershipVersion,
-		"updatedAt":        org.UpdatedAt,
+		"updatedAt":         org.UpdatedAt,
 	})
 }

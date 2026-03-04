@@ -18,9 +18,9 @@ import (
 
 type ApprovalService struct {
 	eventMgmtRepo    *eventmgmtrepo.EventManagementRepo
-	eventDetailsRepo  *eventdetailsrepo.EventDetailsRepo
-	redis             *redis.Client
-	logger            zerolog.Logger
+	eventDetailsRepo *eventdetailsrepo.EventDetailsRepo
+	redis            *redis.Client
+	logger           zerolog.Logger
 }
 
 func NewApprovalService(
@@ -33,10 +33,10 @@ func NewApprovalService(
 		panic("ApprovalService: eventMgmtRepo, eventDetailsRepo, redis and logger are required")
 	}
 	return &ApprovalService{
-		eventMgmtRepo:   eventMgmtRepo,
+		eventMgmtRepo:    eventMgmtRepo,
 		eventDetailsRepo: eventDetailsRepo,
-		redis:          redis,
-		logger:         logger,
+		redis:            redis,
+		logger:           logger,
 	}
 }
 
@@ -383,9 +383,9 @@ func (s *ApprovalService) normalizeEvent(
 ) (json.RawMessage, error) {
 	// Build normalized result
 	result := map[string]interface{}{
-		"eventType": eventType,
+		"eventType":  eventType,
 		"normalized": true,
-		"rawData":   rawBody,
+		"rawData":    rawBody,
 	}
 
 	// Future enhancement: Apply event type specific templates

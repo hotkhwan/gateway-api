@@ -12,7 +12,7 @@ import (
 
 // DashboardStatsResponse สรุปสถิติจาก event_details
 type DashboardStatsResponse struct {
-	ApprovedCount int             `json:"approvedCount"`
+	ApprovedCount int            `json:"approvedCount"`
 	ByEventType   map[string]int `json:"byEventType"`
 	ByPriority    map[string]int `json:"byPriority"`
 }
@@ -45,9 +45,9 @@ func (r *EventDetailsRepo) GetStatsForDashboard(
 			{Key: "$group", Value: bson.M{
 				"_id": bson.M{
 					"eventType": "$eventType",
-					"priority":   "$priority",
+					"priority":  "$priority",
 				},
-				"count":     bson.M{"$sum": 1},
+				"count": bson.M{"$sum": 1},
 			}},
 		},
 	}
@@ -55,7 +55,7 @@ func (r *EventDetailsRepo) GetStatsForDashboard(
 	type aggResult struct {
 		ID struct {
 			EventType string `bson:"eventType"`
-			Priority   string `bson:"priority"`
+			Priority  string `bson:"priority"`
 		} `bson:"_id"`
 		Count int `bson:"count"`
 	}
@@ -67,8 +67,8 @@ func (r *EventDetailsRepo) GetStatsForDashboard(
 
 	response := &DashboardStatsResponse{
 		ApprovedCount: 0,
-		ByEventType: make(map[string]int),
-		ByPriority:  make(map[string]int),
+		ByEventType:   make(map[string]int),
+		ByPriority:    make(map[string]int),
 	}
 
 	for _, result := range aggResults {

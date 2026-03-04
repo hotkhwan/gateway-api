@@ -19,8 +19,8 @@ import (
 func WatchlistDelete(ctx context.Context, idOrIdCard string) error {
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"github.com/hotkhwan/gateway-api/kwatsvc",             // tracerName
-		"watchlist.WatchlistDelete", // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
+		"github.com/hotkhwan/gateway-api/kwatsvc", // tracerName
+		"watchlist.WatchlistDelete",               // spanName (แนะนำให้ prefix ด้วยแพ็กเกจ)
 		"kwatsvc", "WatchlistDelete",
 	)
 	defer end()

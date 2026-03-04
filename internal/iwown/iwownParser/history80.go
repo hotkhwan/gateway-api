@@ -142,7 +142,9 @@ func parseHistory80Outer(payload []byte) (seq uint64, blob []byte, okOuter bool)
 }
 
 // parseHistory80InnerRecords expects a stream of repeated:
-//   field=1 bytes  (each bytes is a record message)
+//
+//	field=1 bytes  (each bytes is a record message)
+//
 // Any non-matching field will be skipped.
 func parseHistory80InnerRecords(blob []byte) []History80Record {
 	var out []History80Record

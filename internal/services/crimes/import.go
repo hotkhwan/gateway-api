@@ -29,8 +29,8 @@ func ImportCrimesFile(ctx context.Context, path string, coll *mongo.Collection) 
 	// ✅ start span + logger
 	ctx, end, log := traceutil.StartLite(
 		ctx,
-		"github.com/hotkhwan/gateway-api/crimes",            // tracerName
-		"crimes.ImportCrimesFile", // spanName
+		"github.com/hotkhwan/gateway-api/crimes", // tracerName
+		"crimes.ImportCrimesFile",                // spanName
 		"crimes", "ImportCrimesFile",
 	)
 	defer end()

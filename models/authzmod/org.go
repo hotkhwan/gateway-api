@@ -9,10 +9,10 @@ import (
 
 // OrgIngestConfig เก็บ config สำหรับ hot-path ingest endpoint /events/{orgId}
 type OrgIngestConfig struct {
-	IngestKey        string `bson:"ingestKey"`        // random secret (HMAC signing key)
+	IngestKey         string `bson:"ingestKey"`         // random secret (HMAC signing key)
 	SignatureRequired bool   `bson:"signatureRequired"` // require X-Signature header
-	RateLimitPerSec  int    `bson:"rateLimitPerSec"`   // max req/sec per org (default 10)
-	RateLimitBurst   int    `bson:"rateLimitBurst"`    // burst allowance (default 20)
+	RateLimitPerSec   int    `bson:"rateLimitPerSec"`   // max req/sec per org (default 10)
+	RateLimitBurst    int    `bson:"rateLimitBurst"`    // burst allowance (default 20)
 }
 
 type Organization struct {

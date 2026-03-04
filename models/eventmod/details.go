@@ -9,16 +9,16 @@ import (
 
 // EventDetail represents approved/normalized events
 type EventDetail struct {
-	ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	EventId        string             `bson:"eventId" json:"eventId"`
-	TenantId       string             `bson:"tenantId" json:"tenantId"`
-	OrgId          string             `bson:"orgId" json:"orgId"`
+	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	EventId  string             `bson:"eventId" json:"eventId"`
+	TenantId string             `bson:"tenantId" json:"tenantId"`
+	OrgId    string             `bson:"orgId" json:"orgId"`
 
 	// Normalized metadata
-	Name           string  `bson:"name" json:"name"`
-	Lat            float64 `bson:"lat" json:"lat"`
-	Lng            float64 `bson:"lng" json:"lng"`
-	EventType      string  `bson:"eventType" json:"eventType"`
+	Name      string  `bson:"name" json:"name"`
+	Lat       float64 `bson:"lat" json:"lat"`
+	Lng       float64 `bson:"lng" json:"lng"`
+	EventType string  `bson:"eventType" json:"eventType"`
 
 	// Normalized data (based on event type template)
 	NormalizedData json.RawMessage `bson:"normalizedData" json:"normalizedData"`

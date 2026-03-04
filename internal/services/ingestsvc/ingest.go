@@ -38,22 +38,22 @@ type RawEvent struct {
 
 // IngestResult คือ response กลับ client
 type IngestResult struct {
-	EventId     string  `json:"eventId"`
+	EventId     string    `json:"eventId"`
 	ReceivedAt  time.Time `json:"receivedAt"`
-	DeviceKey   string  `json:"deviceKey,omitempty"`   // Canonical device key (e.g., "camera:cam-001")
-	Locked      bool   `json:"locked,omitempty"`       // True if device has pending event
-	LockMessage string `json:"lockMessage,omitempty"` // Lock reason if locked
+	DeviceKey   string    `json:"deviceKey,omitempty"`   // Canonical device key (e.g., "camera:cam-001")
+	Locked      bool      `json:"locked,omitempty"`      // True if device has pending event
+	LockMessage string    `json:"lockMessage,omitempty"` // Lock reason if locked
 }
 
 // cachedOrgPolicy เก็บ effective policy สำหรับ ingest (includes tenantId)
 type cachedOrgPolicy struct {
-	Exists           bool   `json:"exists"`
-	TenantId         string `json:"tenantId"`
-	MaxPayloadBytes  int64  `json:"maxPayloadBytes"`
-	RateLimitPerSec  int    `json:"rateLimitPerSec"`
-	RateLimitBurst   int    `json:"rateLimitBurst"`
-	PerIpPerMin      int    `json:"perIpPerMin"`
-	OrgCacheTtlSec   int64  `json:"orgCacheTtlSec"`
+	Exists          bool   `json:"exists"`
+	TenantId        string `json:"tenantId"`
+	MaxPayloadBytes int64  `json:"maxPayloadBytes"`
+	RateLimitPerSec int    `json:"rateLimitPerSec"`
+	RateLimitBurst  int    `json:"rateLimitBurst"`
+	PerIpPerMin     int    `json:"perIpPerMin"`
+	OrgCacheTtlSec  int64  `json:"orgCacheTtlSec"`
 }
 
 // localEmergencyLimiter provides per-process emergency limiting when Redis is down
@@ -81,13 +81,13 @@ func (l *localEmergencyLimiter) Check(key string, limit int) bool {
 // ไม่มี auth, ไม่ยุ่ง Permify
 // Updated to use subscription-based limits and event management
 type IngestService struct {
-	orgRepo         *authzrepo.OrgRepo
-	eventMgmtRepo   *eventmgmtrepo.EventManagementRepo
+	orgRepo          *authzrepo.OrgRepo
+	eventMgmtRepo    *eventmgmtrepo.EventManagementRepo
 	eventDetailsRepo *eventdetailsrepo.EventDetailsRepo
-	subSvc          *subscriptionsvc.SubscriptionService
-	redis           *redis.Client
-	localOrg        *localEmergencyLimiter
-	logger          zerolog.Logger
+	subSvc           *subscriptionsvc.SubscriptionService
+	redis            *redis.Client
+	localOrg         *localEmergencyLimiter
+	logger           zerolog.Logger
 }
 
 func NewIngestService(
@@ -102,13 +102,13 @@ func NewIngestService(
 		panic("IngestService: orgRepo, eventMgmtRepo, eventDetailsRepo, subSvc, redis and logger are required")
 	}
 	return &IngestService{
-		orgRepo:         orgRepo,
-		eventMgmtRepo:   eventMgmtRepo,
+		orgRepo:          orgRepo,
+		eventMgmtRepo:    eventMgmtRepo,
 		eventDetailsRepo: eventDetailsRepo,
-		subSvc:          subSvc,
-		redis:           redis,
-		localOrg:        newLocalEmergencyLimiter(),
-		logger:          logger,
+		subSvc:           subSvc,
+		redis:            redis,
+		localOrg:         newLocalEmergencyLimiter(),
+		logger:           logger,
 	}
 }
 
@@ -170,13 +170,13 @@ func (s *IngestService) resolveOrgPolicy(ctx context.Context, orgId string) (*ca
 	}
 
 	policy := &cachedOrgPolicy{
-		Exists:           true,
-		TenantId:         org.TenantId,
-		MaxPayloadBytes:  limits.MaxPayloadBytes,
-		RateLimitPerSec:  rateLimitPerSec,
-		RateLimitBurst:   rateLimitBurst,
-		PerIpPerMin:      limits.PerIpPerMin,
-		OrgCacheTtlSec:   limits.OrgCacheTtlSec,
+		Exists:          true,
+		TenantId:        org.TenantId,
+		MaxPayloadBytes: limits.MaxPayloadBytes,
+		RateLimitPerSec: rateLimitPerSec,
+		RateLimitBurst:  rateLimitBurst,
+		PerIpPerMin:     limits.PerIpPerMin,
+		OrgCacheTtlSec:  limits.OrgCacheTtlSec,
 	}
 
 	s.logger.Debug().
@@ -385,8 +385,8 @@ func (s *IngestService) Ingest(
 			Msg("device has pending event, rejecting new event")
 
 		return &IngestResult{
-			EventId:    eventId,
-			ReceivedAt: receivedAt,
+			EventId:     eventId,
+			ReceivedAt:  receivedAt,
 			DeviceKey:   deviceKey,
 			Locked:      true,
 			LockMessage: fmt.Sprintf("Device has pending event: %s", pendingEventId),
@@ -394,24 +394,24 @@ func (s *IngestService) Ingest(
 	}
 
 	pendingEvent := &eventmod.EventManagement{
-		EventId:      eventId,
-		TenantId:     policy.TenantId,
-		OrgId:        orgId,
-		Name:         fmt.Sprintf("Event %s", eventId[:8]),
-		Lat:          0,
-		Lng:          0,
-		EventType:    suggestedType,
-		Status:       false,
-		StatusName:   "pending",
-		RawBody:      json.RawMessage(body),
-		ContentType:  contentType,
-		SourceIp:     sourceIp,
+		EventId:       eventId,
+		TenantId:      policy.TenantId,
+		OrgId:         orgId,
+		Name:          fmt.Sprintf("Event %s", eventId[:8]),
+		Lat:           0,
+		Lng:           0,
+		EventType:     suggestedType,
+		Status:        false,
+		StatusName:    "pending",
+		RawBody:       json.RawMessage(body),
+		ContentType:   contentType,
+		SourceIp:      sourceIp,
 		SuggestedType: suggestedType,
-		DeviceRef:    deviceRef,
-		DeviceKey:    deviceKey,
-		RawAliases:   rawAliases,
-		CreatedAt:    receivedAt,
-		UpdatedAt:    receivedAt,
+		DeviceRef:     deviceRef,
+		DeviceKey:     deviceKey,
+		RawAliases:    rawAliases,
+		CreatedAt:     receivedAt,
+		UpdatedAt:     receivedAt,
 	}
 
 	if err := s.eventMgmtRepo.Insert(ctx, pendingEvent); err != nil {

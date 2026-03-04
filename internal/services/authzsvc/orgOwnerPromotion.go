@@ -287,8 +287,8 @@ func (s *OrganizationService) DemoteUserFromOwner(
 			// Note: We skip version check here since we just updated it
 			if err := s.orgRepo.Update(ctx, orgId, map[string]interface{}{
 				"billingOwnerId": newBillingOwnerId,
-				"updatedBy":    callerUserId,
-				"updatedAt":    org.UpdatedAt,
+				"updatedBy":      callerUserId,
+				"updatedAt":      org.UpdatedAt,
 			}); err != nil {
 				log.Error().Err(err).Msg("failed to update billing owner")
 			}

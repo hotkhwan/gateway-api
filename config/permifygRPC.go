@@ -62,8 +62,8 @@ func InitPermifygRPC() {
 	defer cancel()
 
 	resp, err := PermifyClient.Schema.List(ctx, &permify_payload.SchemaListRequest{
-		TenantId:  PermifyTenantID,
-		PageSize:  1,
+		TenantId: PermifyTenantID,
+		PageSize: 1,
 	})
 	if err != nil || len(resp.Schemas) == 0 {
 		log.Warn().Err(err).Msg("⚠️ Failed to fetch schema version")

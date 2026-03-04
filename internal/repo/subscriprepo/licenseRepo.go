@@ -17,9 +17,9 @@ import (
 )
 
 var (
-	ErrLicenseNotFound        = errors.New("license key not found")
+	ErrLicenseNotFound         = errors.New("license key not found")
 	ErrLicenseAlreadyActivated = errors.New("license key already activated")
-	ErrLicenseRevoked         = errors.New("license key has been revoked")
+	ErrLicenseRevoked          = errors.New("license key has been revoked")
 )
 
 type LicenseRepo struct {
@@ -90,10 +90,10 @@ func (r *LicenseRepo) MarkLicenseActivated(
 
 	update := bson.M{
 		"$set": bson.M{
-			"status":       subscripmod.LicenseStatusActivated,
-			"tenantId":     tenantId,
-			"activatedAt":  activatedAt,
-			"updatedAt":    now,
+			"status":      subscripmod.LicenseStatusActivated,
+			"tenantId":    tenantId,
+			"activatedAt": activatedAt,
+			"updatedAt":   now,
 		},
 	}
 

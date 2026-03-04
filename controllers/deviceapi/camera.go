@@ -41,16 +41,16 @@ func (ctrl *CameraController) mustLocals(c *fiber.Ctx) (tenantId, orgId, callerU
 }
 
 type CreateCameraRequest struct {
-	Name                  string        `json:"name"`
-	User                  string        `json:"user"`
-	Password              string        `json:"password"`
-	URL                   string        `json:"url"`
-	District              string        `json:"district"`
-	Lat                   float64       `json:"lat"`
-	Lng                   float64       `json:"lng"`
-	AtaWsFlvUrl           string        `json:"ataWsFlvUrl,omitempty"`
-	Brand                 string        `json:"brand,omitempty"`
-	Roi                   []interface{} `json:"roi,omitempty"`
+	Name          string        `json:"name"`
+	User          string        `json:"user"`
+	Password      string        `json:"password"`
+	URL           string        `json:"url"`
+	District      string        `json:"district"`
+	Lat           float64       `json:"lat"`
+	Lng           float64       `json:"lng"`
+	AtaWsFlvUrl   string        `json:"ataWsFlvUrl,omitempty"`
+	Brand         string        `json:"brand,omitempty"`
+	Roi           []interface{} `json:"roi,omitempty"`
 	MapVisibility string        `json:"mapVisibility"`
 }
 
@@ -115,14 +115,14 @@ func (ctrl *CameraController) GetByID(c *fiber.Ctx) error {
 }
 
 type UpdateCameraRequest struct {
-	Name                  string        `json:"name"`
-	User                  string        `json:"user"`
-	Password              string        `json:"password"`
-	URL                   string        `json:"url"`
-	District              string        `json:"district"`
-	Lat                   float64       `json:"lat"`
-	Lng                   float64       `json:"lng"`
-	Roi                   []interface{} `json:"roi,omitempty"`
+	Name          string        `json:"name"`
+	User          string        `json:"user"`
+	Password      string        `json:"password"`
+	URL           string        `json:"url"`
+	District      string        `json:"district"`
+	Lat           float64       `json:"lat"`
+	Lng           float64       `json:"lng"`
+	Roi           []interface{} `json:"roi,omitempty"`
 	MapVisibility string        `json:"mapVisibility"`
 }
 

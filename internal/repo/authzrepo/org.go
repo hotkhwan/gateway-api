@@ -39,13 +39,13 @@ func (r *OrgRepo) GetByOrgId(ctx context.Context, orgId string) (*authzmod.Organ
 // Returns true if updated, false if version mismatch (race detected)
 func (r *OrgRepo) UpdateMembershipVersion(ctx context.Context, orgId string, oldVersion, newVersion int) (bool, error) {
 	filter := bson.M{
-		"orgId": orgId,
+		"orgId":             orgId,
 		"membershipVersion": oldVersion,
 	}
 	update := bson.M{
 		"$set": bson.M{
 			"membershipVersion": newVersion,
-			"updatedAt": bson.M{"$currentDate": true},
+			"updatedAt":         bson.M{"$currentDate": true},
 		},
 	}
 	result, err := r.col.UpdateOne(ctx, filter, update)

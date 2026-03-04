@@ -11,41 +11,41 @@ import (
 type BillingCycle string
 
 const (
-	BillingCycleNone     BillingCycle = "none"
-	BillingCycleMonthly  BillingCycle = "monthly"
+	BillingCycleNone      BillingCycle = "none"
+	BillingCycleMonthly   BillingCycle = "monthly"
 	BillingCycleQuarterly BillingCycle = "quarterly"
-	BillingCycleYearly   BillingCycle = "yearly"
+	BillingCycleYearly    BillingCycle = "yearly"
 )
 
 // SubscriptionStatus defines subscription status
 type SubscriptionStatus string
 
 const (
-	SubscriptionStatusActive   SubscriptionStatus = "active"
-	SubscriptionStatusInactive SubscriptionStatus = "inactive"
+	SubscriptionStatusActive    SubscriptionStatus = "active"
+	SubscriptionStatusInactive  SubscriptionStatus = "inactive"
 	SubscriptionStatusSuspended SubscriptionStatus = "suspended"
-	SubscriptionStatusExpired  SubscriptionStatus = "expired"
+	SubscriptionStatusExpired   SubscriptionStatus = "expired"
 )
 
 // SubscriptionLimits defines rate and quota limits
 type SubscriptionLimits struct {
-	OrgCacheTtlSec        int64  `bson:"orgCacheTtlSec" json:"orgCacheTtlSec"`
-	MaxPayloadBytes       int64  `bson:"maxPayloadBytes" json:"maxPayloadBytes"`
-	PerOrgPerSec          int    `bson:"perOrgPerSec" json:"perOrgPerSec"`
-	PerOrgBurst           int    `bson:"perOrgBurst" json:"perOrgBurst"`
-	PerIpPerMin           int    `bson:"perIpPerMin" json:"perIpPerMin"`
-	StorageQuotaBytes     int64  `bson:"storageQuotaBytes" json:"storageQuotaBytes"`
-	MaxOrganizationsPerTenant int `bson:"maxOrganizationsPerTenant" json:"maxOrganizationsPerTenant"`
+	OrgCacheTtlSec            int64 `bson:"orgCacheTtlSec" json:"orgCacheTtlSec"`
+	MaxPayloadBytes           int64 `bson:"maxPayloadBytes" json:"maxPayloadBytes"`
+	PerOrgPerSec              int   `bson:"perOrgPerSec" json:"perOrgPerSec"`
+	PerOrgBurst               int   `bson:"perOrgBurst" json:"perOrgBurst"`
+	PerIpPerMin               int   `bson:"perIpPerMin" json:"perIpPerMin"`
+	StorageQuotaBytes         int64 `bson:"storageQuotaBytes" json:"storageQuotaBytes"`
+	MaxOrganizationsPerTenant int   `bson:"maxOrganizationsPerTenant" json:"maxOrganizationsPerTenant"`
 }
 
 // Subscription represents a tenant's subscription
 type Subscription struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty"`
-	IDString  string              `bson:"id,omitempty" json:"id"` // external stable id
+	ID       primitive.ObjectID `bson:"_id,omitempty"`
+	IDString string             `bson:"id,omitempty" json:"id"` // external stable id
 
-	TenantId    string              `bson:"tenantId"`
-	PlanId      string              `bson:"planId"`
-	Status      SubscriptionStatus  `bson:"status"`
+	TenantId     string             `bson:"tenantId"`
+	PlanId       string             `bson:"planId"`
+	Status       SubscriptionStatus `bson:"status"`
 	BillingCycle BillingCycle       `bson:"billingCycle"`
 
 	// Period for billing (null for lifetime plans)

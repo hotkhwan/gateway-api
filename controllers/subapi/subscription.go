@@ -50,9 +50,9 @@ func (ctrl *SubscriptionController) BootstrapSubscription(c *fiber.Ctx) error {
 		"status":  true,
 		"detail": fiber.Map{
 			"subscriptionId": sub.IDString,
-			"planId":        sub.PlanId,
-			"status":        sub.Status,
-			"billingCycle":  sub.BillingCycle,
+			"planId":         sub.PlanId,
+			"status":         sub.Status,
+			"billingCycle":   sub.BillingCycle,
 		},
 	})
 }
@@ -91,12 +91,12 @@ func (ctrl *SubscriptionController) GetMySubscription(c *fiber.Ctx) error {
 		"detail": fiber.Map{
 			"planId":                    limits.PlanId,
 			"maxPayloadBytes":           limits.MaxPayloadBytes,
-			"perOrgPerSec":             limits.PerOrgPerSec,
-			"perOrgBurst":              limits.PerOrgBurst,
-			"perIpPerMin":              limits.PerIpPerMin,
-			"storageQuotaBytes":        limits.StorageQuotaBytes,
+			"perOrgPerSec":              limits.PerOrgPerSec,
+			"perOrgBurst":               limits.PerOrgBurst,
+			"perIpPerMin":               limits.PerIpPerMin,
+			"storageQuotaBytes":         limits.StorageQuotaBytes,
 			"maxOrganizationsPerTenant": limits.MaxOrganizationsPerTenant,
-			"orgCacheTtlSec":          limits.OrgCacheTtlSec,
+			"orgCacheTtlSec":            limits.OrgCacheTtlSec,
 		},
 	})
 }
@@ -124,8 +124,8 @@ func (ctrl *SubscriptionController) UpdatePlan(c *fiber.Ctx) error {
 
 	// Parse request
 	var req struct {
-		PlanId       string                      `json:"planId"`
-		BillingCycle subscripmod.BillingCycle  `json:"billingCycle"`
+		PlanId       string                   `json:"planId"`
+		BillingCycle subscripmod.BillingCycle `json:"billingCycle"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(gmod.ApiErrorResponse{
@@ -177,7 +177,7 @@ func (ctrl *SubscriptionController) ActivateEnterprise(c *fiber.Ctx) error {
 
 	// Parse request
 	var req struct {
-		LicenseKey string                        `json:"licenseKey"`
+		LicenseKey string                          `json:"licenseKey"`
 		Limits     *subscripmod.SubscriptionLimits `json:"limits,omitempty"`
 	}
 	if err := c.BodyParser(&req); err != nil {

@@ -16,7 +16,7 @@ type OrganizationController struct {
 }
 
 type CreateOrgRequest struct {
-	Name        string `json:"name"`
+	Name        string  `json:"name"`
 	Description *string `json:"description,omitempty"`
 }
 
@@ -226,7 +226,7 @@ func (ctrl *OrganizationController) GetIngestConfig(c *fiber.Ctx) error {
 		Code:    gmod.CodeSuccess,
 		Status:  true,
 		Message: "ingest config fetched",
-		Detail:    cfg,
+		Detail:  cfg,
 	})
 }
 
@@ -275,7 +275,7 @@ func (ctrl *OrganizationController) RotateIngestSecret(c *fiber.Ctx) error {
 		Code:    gmod.CodeSuccess,
 		Status:  true,
 		Message: "ingest secret rotated",
-		Detail:    cfg,
+		Detail:  cfg,
 	})
 }
 
