@@ -46,7 +46,7 @@ jobs:
           cp go.mod go.mod.backup
           cp go.sum go.sum.backup
           go mod tidy
-          if diff -u go.mod.backup go.mod || diff -u go.sum.backup go.sum; then
+          if ! diff -u go.mod.backup go.mod > /dev/null || ! diff -u go.sum.backup go.sum > /dev/null; then
             echo "go mod files need tidying"
             exit 1
           fi
