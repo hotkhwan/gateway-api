@@ -2,10 +2,13 @@ package eventmod
 
 // EventUpdateInput represents metadata updates for an event
 type EventUpdateInput struct {
-	Name      string  `json:"name,omitempty"`
-	Lat       float64 `json:"lat,omitempty"`
-	Lng       float64 `json:"lng,omitempty"`
-	EventType string  `json:"eventType,omitempty"`
+	Name        string   `json:"name,omitempty"`
+	Description  *string   `json:"description,omitempty"`
+	Lat         float64  `json:"lat,omitempty"`
+	Lng         float64  `json:"lng,omitempty"`
+	EventType   string    `json:"eventType,omitempty"`
+	Priority     string    `json:"priority,omitempty"`  // "low", "medium", "high"
+	Tags        []string  `json:"tags,omitempty"`      // e.g., ["LPR", "FACE", "IOT"]
 }
 
 // ListEventsInput represents list events query parameters

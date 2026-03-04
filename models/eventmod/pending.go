@@ -9,8 +9,8 @@ import (
 
 // DeviceIdentity represents normalized device reference
 type DeviceIdentity struct {
-	Type string `json:"type" json:"type"`   // "camera", "sensor", "face", "device"
-	ID   string `json:"id" json:"id"`     // device identifier
+	Type string `json:"type"`   // "camera", "sensor", "face", "device"
+	ID   string `json:"id"`     // device identifier
 }
 
 // EventManagement represents pending events awaiting approval
@@ -21,10 +21,13 @@ type EventManagement struct {
 	OrgId        string             `bson:"orgId" json:"orgId"`
 
 	// Editable metadata (by admin)
-	Name      string  `bson:"name" json:"name"`
-	Lat       float64 `bson:"lat" json:"lat"`
-	Lng       float64 `bson:"lng" json:"lng"`
-	EventType string  `bson:"eventType" json:"eventType"` // LPR_Brand, FACE_Brand, camera_Brand, IOT_Brand, etc.
+	Name        string   `bson:"name" json:"name"`
+	Description  *string   `bson:"description,omitempty" json:"description,omitempty"`
+	Lat         float64  `bson:"lat" json:"lat"`
+	Lng         float64  `bson:"lng" json:"lng"`
+	EventType   string    `bson:"eventType" json:"eventType"` // LPR_Brand, FACE_Brand, camera_Brand, IOT_Brand, etc.
+	Priority     string    `bson:"priority,omitempty" json:"priority,omitempty"`  // "low", "medium", "high"
+	Tags        []string  `bson:"tags,omitempty" json:"tags,omitempty"`      // e.g., ["LPR", "FACE", "IOT"]
 
 	// Approval status
 	Status     bool   `bson:"status" json:"status"`           // false = pending, true = approved

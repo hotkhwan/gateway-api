@@ -303,6 +303,9 @@ func (s *ApprovalService) UpdatePendingEvent(
 	if updates.Name != "" {
 		pending.Name = updates.Name
 	}
+	if updates.Description != nil {
+		pending.Description = updates.Description
+	}
 	if !math.IsNaN(updates.Lat) {
 		pending.Lat = updates.Lat
 	}
@@ -311,6 +314,12 @@ func (s *ApprovalService) UpdatePendingEvent(
 	}
 	if updates.EventType != "" {
 		pending.EventType = updates.EventType
+	}
+	if updates.Priority != "" {
+		pending.Priority = updates.Priority
+	}
+	if updates.Tags != nil {
+		pending.Tags = updates.Tags
 	}
 
 	// 3) Update

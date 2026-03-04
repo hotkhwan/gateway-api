@@ -42,10 +42,10 @@ func (ctrl *EventDetailsController) ListApprovedEvents(c *fiber.Ctx) error {
 
 	result, err := ctrl.service.ListApproved(c.UserContext(), &input)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeInternalError,
-			Message: err.Error(),
-			Status:  false,
+		return c.Status(500).JSON(fiber.Map{
+			"code":    "INTERNAL_ERROR",
+			"message": "internal server error",
+			"status":  false,
 		})
 	}
 

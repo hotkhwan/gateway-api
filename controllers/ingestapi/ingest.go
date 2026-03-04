@@ -77,7 +77,7 @@ func (ctrl *IngestController) Ingest(c *fiber.Ctx) error {
 		default:
 			return c.Status(500).JSON(fiber.Map{
 				"code":    "INTERNAL_ERROR",
-				"message": "failed to ingest event",
+				"message": "internal server error",
 				"status":  false,
 			})
 		}
