@@ -108,7 +108,7 @@ func (ctrl *SubscriptionController) GetMySubscription(c *fiber.Ctx) error {
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
-// @Param        request body subscriptionsvc.UpdatePlanRequest true "Plan update request"
+// @Param        request body subscripmod.UpdatePlanRequest true "Plan update request"
 // @Success      200 {object} gmod.SuccessDetailResponseAny
 // @Failure      400 {object} gmod.ApiErrorResponse
 // @Failure      403 {object} gmod.ApiErrorResponse
@@ -162,7 +162,7 @@ func (ctrl *SubscriptionController) UpdatePlan(c *fiber.Ctx) error {
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
-// @Param        request body subscriptionsvc.ActivateEnterpriseRequest true "Enterprise activation request"
+// @Param        request body subscripmod.ActivateEnterpriseRequest true "Enterprise activation request"
 // @Success      200 {object} gmod.SuccessDetailResponseAny
 // @Failure      400 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse

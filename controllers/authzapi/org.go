@@ -501,7 +501,7 @@ func (ctrl *OrganizationController) DemoteFromOwner(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Organization ID"
-// @Param body body TransferBillingOwnershipRequest true "Transfer request"
+// @Param body body gmod.TransferBillingOwnershipRequest true "Transfer request"
 // @Success 200 {object} gmod.TransferBillingOwnershipResponse
 // @Failure 400 {object} gmod.ApiErrorResponse
 // @Failure 401 {object} gmod.ApiErrorResponse

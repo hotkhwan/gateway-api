@@ -235,16 +235,16 @@ func (ctrl *MenuPermissionsProfileController) List(c *fiber.Ctx) error {
 		totalPages = 1
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "menu permission profiles fetched",
-		"status":  true,
-		"details": profiles,
-		"pagination": fiber.Map{
-			"page":         page,
-			"perPages":     perPages,
-			"totalRecords": total,
-			"totalPages":   totalPages,
+	return c.JSON(gmod.PaginatedResponse{
+		Code:    gmod.CodeSuccess,
+		Message: "menu permission profiles fetched",
+		Status:  true,
+		Details: profiles,
+		Pagination: gmod.Pagination{
+			Page:         page,
+			PerPages:     perPages,
+			TotalRecords: int(total),
+			TotalPages:   totalPages,
 		},
 	})
 }
