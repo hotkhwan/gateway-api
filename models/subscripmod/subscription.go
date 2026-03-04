@@ -61,3 +61,15 @@ type Subscription struct {
 	CreatedAt time.Time `bson:"createdAt"`
 	UpdatedAt time.Time `bson:"updatedAt"`
 }
+
+// UpdatePlanRequest is the request body for updating subscription plan
+type UpdatePlanRequest struct {
+	PlanId       string       `json:"planId" example:"premium"`
+	BillingCycle BillingCycle `json:"billingCycle" example:"monthly"`
+}
+
+// ActivateEnterpriseRequest is the request body for activating enterprise plan
+type ActivateEnterpriseRequest struct {
+	LicenseKey string              `json:"licenseKey" example:"ENT-XXXX-XXXX-XXXX"`
+	Limits     *SubscriptionLimits `json:"limits,omitempty"`
+}

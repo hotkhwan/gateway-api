@@ -18,7 +18,7 @@ import (
 // @Produce      json
 // @Param        id    path   string  true  "Alarm ID"
 // @Param        body  body   kctrlmod.ResolvedAlarmRequest  true  "Resolve payload"
-// @Success      200   {object}  gmod.SuccessDetailResponse
+// @Success      200   {object}  gmod.SuccessDetailResponseWithMSG
 // @Failure      400   {object}  gmod.ErrorResponse
 // @Failure      500   {object}  gmod.ErrorResponse
 // @Router       /kcontrol/alarms/{id}/resolved [patch]

@@ -15,7 +15,7 @@ import (
 // @Summary Sync ATA devices/channels by Edge ID
 // @Tags ATA
 // @Param edgeId path string true "Mongo ObjectId of ATA Edge"
-// @Success 200 {object} ATASyncResponse
+// @Success 200 {object} devsyncmod.ATASyncResponse
 // @Failure 400 {object} gmod.ErrorMessageResponse
 // @Failure 404 {object} gmod.ErrorMessageResponse
 // @Failure 500 {object} gmod.ErrorMessageResponse

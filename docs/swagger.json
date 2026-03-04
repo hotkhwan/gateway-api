@@ -8,6 +8,1799 @@
     },
     "basePath": "/api/v1",
     "paths": {
+        "/api/v1/orgs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Return organizations that current user can access (via FGA lookup)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "List organizations for current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.OrgListResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "Create organization",
+                "responses": {}
+            }
+        },
+        "/api/v1/orgs/menu/access": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns menu IDs the caller can access via their OrgUnit membership and active MenuPermissionProfiles.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MemberAccess"
+                ],
+                "summary": "List menus accessible to the current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseMenuAccess"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/menu/list": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MenuPermissionProfile"
+                ],
+                "summary": "List all available menus",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseAny"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/menu/permissions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MenuPermissionProfile"
+                ],
+                "summary": "List menu permission profiles",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "page (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "items per page (default 10)",
+                        "name": "perPages",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "search keyword",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "sort field (default createdAt)",
+                        "name": "sortField",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "sort order: asc|desc (default desc)",
+                        "name": "sortOrder",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.PaginatedResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MenuPermissionProfile"
+                ],
+                "summary": "Create menu permission profile",
+                "parameters": [
+                    {
+                        "description": "payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/authzapi.createMenuProfileBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseAny"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/menu/permissions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MenuPermissionProfile"
+                ],
+                "summary": "Get menu permission profile by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "profileId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseAny"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MenuPermissionProfile"
+                ],
+                "summary": "Delete menu permission profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "profileId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MenuPermissionProfile"
+                ],
+                "summary": "Update menu permission profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "profileId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/authzapi.updateMenuProfileBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseAny"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/resource/access": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns paginated cameras the caller can access via OrgUnit membership and active ResourcePermissionProfiles, enriched with the union of Permify relations (viewer, editor, …).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MemberAccess"
+                ],
+                "summary": "List cameras accessible to the current user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by resource type (e.g. camera)",
+                        "name": "resourceType",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search camera name",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default 10)",
+                        "name": "perPages",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort field (default createAt)",
+                        "name": "sortField",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order: asc | desc (default desc)",
+                        "name": "sortOrder",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseResourceAccess"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/resource/permissions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ResourcePermissionProfile"
+                ],
+                "summary": "List resource permission profiles",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "page (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "items per page (default 10)",
+                        "name": "perPages",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "search keyword",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "sort field (default createdAt)",
+                        "name": "sortField",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "sort order: asc|desc (default desc)",
+                        "name": "sortOrder",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.PaginatedResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ResourcePermissionProfile"
+                ],
+                "summary": "Create resource permission profile",
+                "parameters": [
+                    {
+                        "description": "payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/authzapi.createPermProfileBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseAny"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/resource/permissions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ResourcePermissionProfile"
+                ],
+                "summary": "Get resource permission profile by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "profileId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseAny"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ResourcePermissionProfile"
+                ],
+                "summary": "Delete resource permission profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "profileId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ResourcePermissionProfile"
+                ],
+                "summary": "Update resource permission profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "profileId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/authzapi.updatePermProfileBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseAny"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/units": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "OrgUnit"
+                ],
+                "summary": "Create org unit",
+                "parameters": [
+                    {
+                        "description": "payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/authzapi.CreateOrgUnitBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageCreateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/units/tree": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "OrgUnit"
+                ],
+                "summary": "Get org unit tree (root nodes only)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/units/tree-debug": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "OrgUnit"
+                ],
+                "summary": "Debug: Get org unit tree with raw data",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/units/tree/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "OrgUnit"
+                ],
+                "summary": "Get org unit node with immediate children (1 level only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "unitId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/units/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "OrgUnit"
+                ],
+                "summary": "Delete org unit",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "unitId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "OrgUnit"
+                ],
+                "summary": "Update org unit",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "unitId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/authzapi.UpdateOrgUnitBody"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/api/v1/orgs/units/{id}/members": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Bulk assign users into an OrgUnit (organization admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "Assign users to OrgUnit",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Organization ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "OrgUnit ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Assign users payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/authzapi.AssignUsersRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/authzapi.OUBulkResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Bulk remove users from an OrgUnit (organization admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "Remove users from OrgUnit",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Organization ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "OrgUnit ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Remove users payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/authzapi.RemoveUsersRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/authzapi.OUBulkResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/users/members": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Return list of members in active organization (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "List organization members",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Organization ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.OrgListResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/users/remove": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "Remove users from organization",
+                "parameters": [
+                    {
+                        "description": "payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/authzapi.InviteUsersRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "Delete organization",
+                "responses": {}
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "Update organization",
+                "responses": {}
+            }
+        },
+        "/api/v1/orgs/{id}/ingest": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns ingest endpoint, masked secret, and rate limit config",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "Get ingest config for an organization (admin only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/{id}/ingest/rotateSecret": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generates a new HMAC signing key and returns the masked version",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "Rotate ingest secret for an organization (admin only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/{id}/invite": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "Invite user to organization",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "orgId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gmod.InviteUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.InviteUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/{id}/owners/{userId}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Promote a member to owner with invariant checks + race protection",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "Promote a member to owner",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID to promote",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.PromoteToOwnerResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Demote an owner to member or admin with invariant checks + race protection",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "Demote an owner to member or admin",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID to demote",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "New role (member or admin)",
+                        "name": "newRole",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.DemoteFromOwnerResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/orgs/{id}/transfer-billing-ownership": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transfer billing ownership - only current billingOwnerId or owners can transfer",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization"
+                ],
+                "summary": "Transfer billing ownership to another user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Transfer request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gmod.TransferBillingOwnershipRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.TransferBillingOwnershipResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/subscriptions/bootstrap": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a default freemium subscription for the tenant if not already exists",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "Bootstrap subscription",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseAny"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/subscriptions/enterprise/activate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Activates enterprise plan using a license key",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "Activate enterprise",
+                "parameters": [
+                    {
+                        "description": "Enterprise activation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/subscripmod.ActivateEnterpriseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseAny"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/subscriptions/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the tenant's current subscription plan and limits",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "Get my subscription",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseAny"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/subscriptions/plan": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates the tenant's subscription to a different plan (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "Update subscription plan",
+                "parameters": [
+                    {
+                        "description": "Plan update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/subscripmod.UpdatePlanRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseAny"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/ata/stream/{channelId}": {
             "get": {
                 "security": [
@@ -95,7 +1888,7 @@
                     "200": {
                         "description": "Sync result",
                         "schema": {
-                            "$ref": "#/definitions/atapi.ATASyncResponse"
+                            "$ref": "#/definitions/devsyncmod.ATASyncResponse"
                         }
                     },
                     "500": {
@@ -410,6 +2203,57 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/oauth/callback": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "OAuth callback exchange (authorization_code -\u003e tokens)",
+                "parameters": [
+                    {
+                        "description": "OAuth callback payload",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/authmod.OAuthCallbackRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/authmod.SigninResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
                             "$ref": "#/definitions/gmod.BadRequestResponse"
                         }
                     },
@@ -417,12 +2261,6 @@
                         "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/gmod.UnauthorizedResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.InternalErrorResponse"
                         }
                     }
                 }
@@ -626,418 +2464,6 @@
                         "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/gmod.UnauthorizedResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/authz/healthz": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "tags": [
-                    "Authz"
-                ],
-                "summary": "Health check for Permify",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.InternalErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/authz/permission/check": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Check if the user has permission to perform an action on a resource",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authz"
-                ],
-                "summary": "Check User Permission",
-                "parameters": [
-                    {
-                        "description": "Permission check request",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/authzmod.PermissionCheckRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Permission check result",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/authz/permission/check/batch": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Check multiple permissions in a single request",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authz"
-                ],
-                "summary": "Batch permission check",
-                "parameters": [
-                    {
-                        "description": "Batch permission check requests",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/authzmod.PermissionCheckRequest"
-                            }
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Batch permission check results",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "additionalProperties": true
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/authz/profiles/{code}/publish": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Replace profile items and create new version for given code",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authz"
-                ],
-                "summary": "Publish profile as new version",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Profile code",
-                        "name": "code",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Publish profile payload",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/authzmod.PublishProfileRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ErrorMessageResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ErrorMessageResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/authz/relationships": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "responses": {
-                    "400": {
-                        "description": "Bad Request – invalid query",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ErrorMessageResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error – failed to call Permify",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ErrorMessageResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/authz/resource/grant": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Grant owner, editor, viewer, assigned group/role, and attributes (type, crud) to a resource entity",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authz"
-                ],
-                "summary": "Grant permission relationships to resource",
-                "parameters": [
-                    {
-                        "description": "Grant resource permission payload",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/authzmod.GrantResourceRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Resource granted successfully",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid input or missing fields",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ErrorMessageResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal error from Permify",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ErrorMessageResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/authz/resource/revoke": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Revoke grant owner, editor, viewer, assigned group/role, and attributes (type, crud) from a resource entity",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authz"
-                ],
-                "summary": "Revoke grant permission relationships to resource",
-                "parameters": [
-                    {
-                        "description": "Revoke grant resource permission payload",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/authzmod.RevokeResourceRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Resource revoke granted successfully",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid input or missing fields",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ErrorMessageResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal error from Permify",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ErrorMessageResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/authz/schema/apply": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Apply schema.perm to Permify and sync relationships from MongoDB",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authz"
-                ],
-                "summary": "Apply Permify Schema \u0026 Sync Relationships",
-                "responses": {
-                    "200": {
-                        "description": "Schema applied \u0026 relationships synced successfully",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/authz/tuples/factoryResetTenant": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Danger: delete ALL relationships (tuples) in this tenant. Intended for dev/staging only.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authz"
-                ],
-                "summary": "Factory reset all Permify tuples for current tenant (DEV ONLY)",
-                "parameters": [
-                    {
-                        "description": "Require {\\",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/authzmod.FactoryForceRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ErrorMessageResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ErrorMessageResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ErrorMessageResponse"
                         }
                     }
                 }
@@ -1471,6 +2897,67 @@
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/gmod.InternalErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/events/{orgId}": {
+            "post": {
+                "description": "POST event payload from device/3rd-party. Rate limited per org + IP.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ingest"
+                ],
+                "summary": "Ingest raw event (no JWT, hot path)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "orgId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -2345,6 +3832,18 @@
                         "description": "Filter by hardware id",
                         "name": "hwid",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by datetime range (RFC3339 format, e.g., 2023-01-02T15:04:05Z/2023-01-03T15:04:05Z)",
+                        "name": "datetime",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter unacknowledged alarms only (true|false)",
+                        "name": "unacked",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -2469,6 +3968,59 @@
             }
         },
         "/kcontrol/alarms/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a single alarm document from kcontrol_alarms by its Mongo ObjectID (excluding soft-deleted)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Kcontrol"
+                ],
+                "summary": "Get Kcontrol alarm by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Alarm ID (Mongo ObjectID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/kctrlmod.AlarmResponseItem"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.BadRequestResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "delete": {
                 "security": [
                     {
@@ -2515,6 +4067,64 @@
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/gmod.InternalErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/kcontrol/alarms/{id}/resolved": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mark alarm as resolved and append SOP resolve step (append-only). Optionally auto-close inProgress SOP steps by appending update steps.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "KControl Alarms"
+                ],
+                "summary": "Resolve alarm",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Alarm ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Resolve payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/kctrlmod.ResolvedAlarmRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseWithMSG"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
                         }
                     }
                 }
@@ -4863,6 +6473,52 @@
                 }
             }
         },
+        "/members/{groupId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Return member detail by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "members"
+                ],
+                "summary": "Get member by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "member ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorMessageResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.InternalErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/members/{id}": {
             "get": {
                 "security": [
@@ -5466,6 +7122,85 @@
                 }
             }
         },
+        "/system/edge/{edgeType}/sso/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System Edge"
+                ],
+                "summary": "Get edge SSO URL (decrypt passEnc then base64 encode password)",
+                "parameters": [
+                    {
+                        "enum": [
+                            "ata",
+                            "svms",
+                            "iboc"
+                        ],
+                        "type": "string",
+                        "description": "edge type",
+                        "name": "edgeType",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Mongo ObjectId of edge",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "play",
+                        "description": "address target (default play)",
+                        "name": "address",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/systemmod.EdgeSSOURLSuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.BadRequestResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.UnauthorizedResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.NotFoundResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.InternalErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/system/edge/{id}": {
             "delete": {
                 "security": [
@@ -5871,12 +7606,9 @@
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "Get list of users from Keycloak",
+                "description": "Get list of users from Keycloak (supports userIds filter)",
                 "consumes": [
                     "application/json"
                 ],
@@ -5888,6 +7620,18 @@
                 ],
                 "summary": "List Keycloak users",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma-separated user IDs (e.g. userIds=id1,id2,id3)",
+                        "name": "userIds",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Repeatable user ID (e.g. userId=id1\u0026userId=id2)",
+                        "name": "userId",
+                        "in": "query"
+                    },
                     {
                         "type": "integer",
                         "description": "Page number",
@@ -5915,7 +7659,7 @@
                     {
                         "type": "string",
                         "default": "username",
-                        "description": "Sort field: username|email|firstName|lastName",
+                        "description": "Sort field: username|email|firstName|lastName|createdAt",
                         "name": "sortField",
                         "in": "query"
                     },
@@ -5991,6 +7735,63 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/batch": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get multiple Keycloak users by userIds (POST body)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Batch get users by IDs",
+                "parameters": [
+                    {
+                        "description": "User IDs",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/usrmod.BatchGetUsersRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/usrmod.PaginationSuccessUsers"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/gmod.ErrorResponse"
                         }
@@ -6856,26 +8657,6 @@
                 }
             }
         },
-        "atapi.ATASyncResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string",
-                    "example": "ATA_SYNC_OK"
-                },
-                "detail": {
-                    "$ref": "#/definitions/atasvc.SyncResult"
-                },
-                "message": {
-                    "type": "string",
-                    "example": "ATA devices/channels synced"
-                },
-                "status": {
-                    "type": "boolean",
-                    "example": true
-                }
-            }
-        },
         "atapi.StreamDetails": {
             "type": "object",
             "properties": {
@@ -6929,36 +8710,6 @@
         "atapi.SyncRequest": {
             "type": "object"
         },
-        "atasvc.SyncResult": {
-            "type": "object",
-            "properties": {
-                "channels": {
-                    "type": "integer"
-                },
-                "channelsSample": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "additionalProperties": {}
-                    }
-                },
-                "devices": {
-                    "type": "integer"
-                },
-                "inserted": {
-                    "type": "integer"
-                },
-                "perDeviceCounts": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "integer"
-                    }
-                },
-                "updated": {
-                    "type": "integer"
-                }
-            }
-        },
         "authmod.MenuGrant": {
             "type": "object",
             "properties": {
@@ -6971,6 +8722,20 @@
                 "read": {
                     "description": "flatten fields for FE",
                     "type": "boolean"
+                }
+            }
+        },
+        "authmod.OAuthCallbackRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "hwId": {
+                    "type": "string"
+                },
+                "redirectUri": {
+                    "type": "string"
                 }
             }
         },
@@ -7074,174 +8839,242 @@
                 }
             }
         },
-        "authzmod.FactoryForceRequest": {
+        "authzapi.AssignUsersRequest": {
             "type": "object",
             "properties": {
-                "force": {
-                    "type": "boolean",
-                    "example": true
-                }
-            }
-        },
-        "authzmod.GrantResourceRequest": {
-            "type": "object",
-            "properties": {
-                "assignedGroupId": {
-                    "description": "→ relation: assigned_group",
-                    "type": "string"
-                },
-                "assignedRoleId": {
-                    "description": "→ relation: assigned_role",
-                    "type": "string"
-                },
-                "crud": {
-                    "description": "เช่น \"c\", \"cru\", \"crd\", ใช้ใน attribute:crud",
-                    "type": "string"
-                },
-                "editorUserIds": {
-                    "description": "→ relation: editor",
+                "users": {
                     "type": "array",
                     "items": {
-                        "type": "string"
-                    }
-                },
-                "ownerUserId": {
-                    "description": "💡 Relations",
-                    "type": "string"
-                },
-                "resourceId": {
-                    "type": "string"
-                },
-                "type": {
-                    "description": "💡 Attributes",
-                    "type": "string"
-                },
-                "viewerUserIds": {
-                    "description": "→ relation: viewer",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/authzsvc.OUAssignUser"
                     }
                 }
             }
         },
-        "authzmod.PermissionCheckRequest": {
+        "authzapi.CreateOrgUnitBody": {
             "type": "object",
-            "required": [
-                "entity",
-                "metadata",
-                "permission",
-                "subject"
-            ],
             "properties": {
-                "entity": {
-                    "type": "object",
-                    "required": [
-                        "id",
-                        "type"
-                    ],
-                    "properties": {
-                        "id": {
-                            "type": "string"
-                        },
-                        "type": {
-                            "description": "เช่น \"resource\"",
-                            "type": "string"
-                        }
-                    }
-                },
-                "metadata": {
-                    "type": "object",
-                    "required": [
-                        "depth"
-                    ],
-                    "properties": {
-                        "depth": {
-                            "type": "integer"
-                        },
-                        "schema_version": {
-                            "type": "string"
-                        },
-                        "snap_token": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "permission": {
+                "description": {
                     "type": "string"
                 },
-                "subject": {
-                    "type": "object",
-                    "required": [
-                        "id",
-                        "type"
-                    ],
-                    "properties": {
-                        "id": {
-                            "type": "string"
-                        },
-                        "type": {
-                            "description": "เช่น \"user\", \"group\", \"role\"",
-                            "type": "string"
+                "name": {
+                    "type": "string"
+                },
+                "parentId": {
+                    "type": "string"
+                }
+            }
+        },
+        "authzapi.InviteUsersRequest": {
+            "type": "object",
+            "properties": {
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "role": {
+                                "type": "string"
+                            },
+                            "userId": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
             }
         },
-        "authzmod.PublishItem": {
+        "authzapi.OUBulkResponse": {
             "type": "object",
             "properties": {
-                "crud": {
-                    "description": "[\"c\",\"r\",\"u\",\"d\"] หรือ [\"read\",\"update\",...]",
+                "code": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/authzsvc.OUBulkResult"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "authzapi.RemoveUsersRequest": {
+            "type": "object",
+            "properties": {
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/authzsvc.OURemoveUser"
+                    }
+                }
+            }
+        },
+        "authzapi.UpdateOrgUnitBody": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parentId": {
+                    "type": "string"
+                }
+            }
+        },
+        "authzapi.createMenuProfileBody": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "menus": {
+                    "description": "[\"kcontrol\",\"dashboard\",...]",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
-                "public": {
+                "name": {
+                    "type": "string"
+                },
+                "relations": {
+                    "description": "[\"viewer\",\"creator\",...] default [\"viewer\"]",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "authzapi.createPermProfileBody": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "relations": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "authzapi.updateMenuProfileBody": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "menus": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "orgUnits": {
+                    "description": "nil = not provided (keep old), [] = clear/reset, [...] = set",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "relations": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "authzapi.updatePermProfileBody": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "orgUnits": {
+                    "description": "flat string IDs — nil = not provided (keep old), [] = clear, [\"id\"] = set",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "relations": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "resourceGroups": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "authzsvc.OUAssignUser": {
+            "type": "object",
+            "properties": {
+                "role": {
+                    "description": "member | admin",
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "authzsvc.OUBulkResult": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "success": {
                     "type": "boolean"
                 },
-                "relationship": {
-                    "description": "รูปแบบ subject ตรง ๆ เช่น \"role:PF_OFFICE\" หรือ \"group:g_inno\"\n(ใช้แทน subjectType+subjectId แบบใหม่)",
-                    "type": "string"
-                },
-                "resourceId": {
-                    "description": "รหัส resource เช่น \"menu_dashboard_global\", \"device:xxx\"",
-                    "type": "string"
-                },
-                "subjectId": {
-                    "type": "string"
-                },
-                "subjectType": {
-                    "description": "รองรับ legacy payload แบบเก่า",
+                "userId": {
                     "type": "string"
                 }
             }
         },
-        "authzmod.PublishProfileRequest": {
+        "authzsvc.OURemoveUser": {
             "type": "object",
             "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/authzmod.PublishItem"
-                    }
-                },
-                "note": {
-                    "type": "string"
-                }
-            }
-        },
-        "authzmod.RevokeResourceRequest": {
-            "type": "object",
-            "properties": {
-                "entityIds": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "entityType": {
+                "userId": {
                     "type": "string"
                 }
             }
@@ -7301,10 +9134,7 @@
                 "brand": {
                     "type": "string"
                 },
-                "dateTimeCreate": {
-                    "type": "string"
-                },
-                "dateTimeUpdate": {
+                "createAt": {
                     "type": "string"
                 },
                 "district": {
@@ -7351,6 +9181,9 @@
                 },
                 "status": {
                     "type": "boolean"
+                },
+                "updateAt": {
+                    "type": "string"
                 },
                 "url": {
                     "type": "string"
@@ -7497,6 +9330,90 @@
                 }
             }
         },
+        "devsyncmod.ATASyncResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "ATA_SYNC_OK"
+                },
+                "detail": {
+                    "$ref": "#/definitions/devsyncmod.SyncResult"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "ATA devices/channels synced"
+                },
+                "status": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "devsyncmod.IBOCSyncResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "detail": {
+                    "$ref": "#/definitions/devsyncmod.SyncResult"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "devsyncmod.SVMSSyncResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "detail": {
+                    "$ref": "#/definitions/devsyncmod.SyncResult"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "devsyncmod.SyncResult": {
+            "type": "object",
+            "properties": {
+                "channels": {
+                    "type": "integer"
+                },
+                "channelsSample": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": {}
+                    }
+                },
+                "devices": {
+                    "type": "integer"
+                },
+                "inserted": {
+                    "type": "integer"
+                },
+                "perDeviceCounts": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "updated": {
+                    "type": "integer"
+                }
+            }
+        },
         "gmod.AcceptedResponse": {
             "type": "object",
             "properties": {
@@ -7599,6 +9516,42 @@
                 }
             }
         },
+        "gmod.DemoteFromOwnerResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "object",
+                    "properties": {
+                        "demotedAt": {
+                            "type": "integer"
+                        },
+                        "newRole": {
+                            "description": "\"member\" or \"admin\"",
+                            "type": "string"
+                        },
+                        "orgId": {
+                            "type": "string"
+                        },
+                        "previousRole": {
+                            "description": "\"owner\"",
+                            "type": "string"
+                        },
+                        "userId": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
         "gmod.DeviceResponse": {
             "type": "object",
             "properties": {
@@ -7697,6 +9650,9 @@
                 "locale": {
                     "type": "string"
                 },
+                "mapLocation": {
+                    "$ref": "#/definitions/gmod.MapLocation"
+                },
                 "permissions": {
                     "$ref": "#/definitions/authmod.PermissionsBlock"
                 },
@@ -7714,6 +9670,52 @@
                 },
                 "username": {
                     "type": "string"
+                },
+                "zoomLevel": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gmod.InviteUserRequest": {
+            "type": "object",
+            "properties": {
+                "role": {
+                    "description": "\"member\" | \"admin\"",
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "gmod.InviteUserResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "object",
+                    "properties": {
+                        "invited": {
+                            "type": "boolean"
+                        },
+                        "orgId": {
+                            "type": "string"
+                        },
+                        "role": {
+                            "type": "string"
+                        },
+                        "userId": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "boolean"
                 }
             }
         },
@@ -7728,6 +9730,17 @@
                 },
                 "traceID": {
                     "type": "string"
+                }
+            }
+        },
+        "gmod.MapLocation": {
+            "type": "object",
+            "properties": {
+                "lat": {
+                    "type": "number"
+                },
+                "lng": {
+                    "type": "number"
                 }
             }
         },
@@ -7768,6 +9781,60 @@
                 },
                 "status": {
                     "type": "boolean"
+                }
+            }
+        },
+        "gmod.NotFoundResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Resource not found"
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "gmod.OrgListResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "details": {},
+                "message": {
+                    "type": "string"
+                },
+                "pagination": {
+                    "$ref": "#/definitions/gmod.Pagination"
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "gmod.PaginatedResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "SUCCESS"
+                },
+                "details": {},
+                "message": {
+                    "type": "string",
+                    "example": "profiles fetched"
+                },
+                "pagination": {
+                    "$ref": "#/definitions/gmod.Pagination"
+                },
+                "status": {
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
@@ -7812,6 +9879,38 @@
                 }
             }
         },
+        "gmod.PromoteToOwnerResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "object",
+                    "properties": {
+                        "orgId": {
+                            "type": "string"
+                        },
+                        "promotedAt": {
+                            "type": "integer"
+                        },
+                        "role": {
+                            "description": "\"owner\"",
+                            "type": "string"
+                        },
+                        "userId": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
         "gmod.Response": {
             "type": "object",
             "properties": {
@@ -7819,7 +9918,7 @@
                     "type": "string",
                     "example": "SUCCESS"
                 },
-                "data": {},
+                "detail": {},
                 "message": {
                     "type": "string",
                     "example": "Operation completed"
@@ -7853,10 +9952,19 @@
                 "code": {
                     "type": "string"
                 },
-                "data": {},
+                "detail": {},
                 "message": {
                     "type": "string"
                 },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "gmod.SuccessDetailResponseAny": {
+            "type": "object",
+            "properties": {
+                "detail": {},
                 "status": {
                     "type": "boolean"
                 }
@@ -7870,6 +9978,42 @@
                 },
                 "status": {
                     "type": "boolean"
+                }
+            }
+        },
+        "gmod.SuccessDetailResponseMenuAccess": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "SUCCESS"
+                },
+                "detail": {},
+                "message": {
+                    "type": "string",
+                    "example": "accessible menus fetched"
+                },
+                "status": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "gmod.SuccessDetailResponseResourceAccess": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "SUCCESS"
+                },
+                "detail": {},
+                "message": {
+                    "type": "string",
+                    "example": "accessible cameras fetched"
+                },
+                "status": {
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
@@ -7969,6 +10113,45 @@
             "properties": {
                 "code": {
                     "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "gmod.TransferBillingOwnershipRequest": {
+            "type": "object",
+            "properties": {
+                "newBillingOwnerId": {
+                    "type": "string"
+                }
+            }
+        },
+        "gmod.TransferBillingOwnershipResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "object",
+                    "properties": {
+                        "newOwnerId": {
+                            "type": "string"
+                        },
+                        "orgId": {
+                            "type": "string"
+                        },
+                        "previousOwnerId": {
+                            "type": "string"
+                        },
+                        "transferredAt": {
+                            "type": "integer"
+                        }
+                    }
                 },
                 "message": {
                     "type": "string"
@@ -8183,10 +10366,39 @@
                 }
             }
         },
+        "kctrlmod.AlarmActor": {
+            "type": "object",
+            "properties": {
+                "actorId": {
+                    "type": "string"
+                },
+                "actorIp": {
+                    "type": "string"
+                },
+                "actorName": {
+                    "type": "string"
+                }
+            }
+        },
         "kctrlmod.AlarmResponseItem": {
             "type": "object",
             "properties": {
+                "acknowledged": {
+                    "type": "boolean"
+                },
+                "acknowledgedAt": {
+                    "type": "string"
+                },
+                "acknowledgedBy": {
+                    "$ref": "#/definitions/kctrlmod.AlarmActor"
+                },
+                "alarmAt": {
+                    "type": "integer"
+                },
                 "brand": {
+                    "type": "string"
+                },
+                "cycleId": {
                     "type": "string"
                 },
                 "datetime": {
@@ -8194,6 +10406,9 @@
                 },
                 "district": {
                     "type": "string"
+                },
+                "elapsed": {
+                    "type": "number"
                 },
                 "hwId": {
                     "type": "string"
@@ -8211,6 +10426,56 @@
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "sensor": {
+                    "type": "integer"
+                },
+                "sop": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/kctrlmod.AlarmSopStep"
+                    }
+                },
+                "startedAt": {
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "✅ moved out of detail",
+                    "type": "string"
+                }
+            }
+        },
+        "kctrlmod.AlarmSopStep": {
+            "type": "object",
+            "properties": {
+                "actorId": {
+                    "type": "string"
+                },
+                "actorIp": {
+                    "type": "string"
+                },
+                "actorName": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "description": "RFC3339",
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "detail": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "stepId": {
+                    "type": "string"
+                },
+                "stepStatus": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -8304,10 +10569,16 @@
                 "brand": {
                     "type": "string"
                 },
+                "code": {
+                    "type": "string"
+                },
                 "dateTimeCreate": {
                     "type": "string"
                 },
                 "dateTimeUpdate": {
+                    "type": "string"
+                },
+                "description": {
                     "type": "string"
                 },
                 "district": {
@@ -8400,6 +10671,12 @@
                 },
                 "offThresholdMs": {
                     "type": "integer"
+                },
+                "owner": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
                 },
                 "sensor": {
                     "description": "สำหรับ Frontend: sensor[] ที่ map จาก interval_IN_* (id/name/values)",
@@ -8532,6 +10809,24 @@
                 "status": {
                     "type": "boolean",
                     "example": true
+                }
+            }
+        },
+        "kctrlmod.ResolvedAlarmRequest": {
+            "type": "object",
+            "properties": {
+                "autoCloseOpenSteps": {
+                    "description": "optional: ถ้า true จะ append SOP update ปิด step inProgress ทั้งหมด",
+                    "type": "boolean"
+                },
+                "description": {
+                    "description": "default: \"ปิดงาน\"",
+                    "type": "string"
+                },
+                "detail": {
+                    "description": "result/note/attachments/etc.",
+                    "type": "object",
+                    "additionalProperties": {}
                 }
             }
         },
@@ -9322,6 +11617,76 @@
                 }
             }
         },
+        "subscripmod.ActivateEnterpriseRequest": {
+            "type": "object",
+            "properties": {
+                "licenseKey": {
+                    "type": "string",
+                    "example": "ENT-XXXX-XXXX-XXXX"
+                },
+                "limits": {
+                    "$ref": "#/definitions/subscripmod.SubscriptionLimits"
+                }
+            }
+        },
+        "subscripmod.BillingCycle": {
+            "type": "string",
+            "enum": [
+                "none",
+                "monthly",
+                "quarterly",
+                "yearly"
+            ],
+            "x-enum-varnames": [
+                "BillingCycleNone",
+                "BillingCycleMonthly",
+                "BillingCycleQuarterly",
+                "BillingCycleYearly"
+            ]
+        },
+        "subscripmod.SubscriptionLimits": {
+            "type": "object",
+            "properties": {
+                "maxOrganizationsPerTenant": {
+                    "type": "integer"
+                },
+                "maxPayloadBytes": {
+                    "type": "integer"
+                },
+                "orgCacheTtlSec": {
+                    "type": "integer"
+                },
+                "perIpPerMin": {
+                    "type": "integer"
+                },
+                "perOrgBurst": {
+                    "type": "integer"
+                },
+                "perOrgPerSec": {
+                    "type": "integer"
+                },
+                "storageQuotaBytes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "subscripmod.UpdatePlanRequest": {
+            "type": "object",
+            "properties": {
+                "billingCycle": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/subscripmod.BillingCycle"
+                        }
+                    ],
+                    "example": "monthly"
+                },
+                "planId": {
+                    "type": "string",
+                    "example": "premium"
+                }
+            }
+        },
         "systemmod.EdgeCreateReq": {
             "type": "object",
             "properties": {
@@ -9387,6 +11752,28 @@
                 }
             }
         },
+        "systemmod.EdgeSSOURLDetail": {
+            "type": "object",
+            "properties": {
+                "ssoUrl": {
+                    "type": "string"
+                }
+            }
+        },
+        "systemmod.EdgeSSOURLSuccessResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "detail": {
+                    "$ref": "#/definitions/systemmod.EdgeSSOURLDetail"
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
         "systemmod.EdgeUpdateReq": {
             "type": "object",
             "properties": {
@@ -9448,6 +11835,17 @@
             "properties": {
                 "description": {
                     "type": "string"
+                }
+            }
+        },
+        "usrmod.BatchGetUsersRequest": {
+            "type": "object",
+            "properties": {
+                "userIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

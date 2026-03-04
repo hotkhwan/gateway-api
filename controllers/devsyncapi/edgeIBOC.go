@@ -14,7 +14,7 @@ import (
 // @Summary Sync IBOC devices/channels by Edge ID
 // @Tags IBOC
 // @Param edgeId path string true "Mongo ObjectId of IBOC Edge"
-// @Success 200 {object} IBOCSyncResponse
+// @Success 200 {object} devsyncmod.IBOCSyncResponse
 // @Failure 400 {object} gmod.ErrorMessageResponse
 // @Failure 404 {object} gmod.ErrorMessageResponse
 // @Failure 500 {object} gmod.ErrorMessageResponse
