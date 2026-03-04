@@ -5,7 +5,6 @@ WORKDIR /app
 
 ENV GOPROXY=direct
 
-# ติดตั้ง swag สำหรับ generate docs ก่อน build
 RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 COPY go.mod go.sum ./
@@ -13,8 +12,7 @@ RUN go mod tidy
 
 COPY . .
 
-# Generate swagger docs (ถ้าไม่ใช้ลบบรรทัดนี้ออก)
-RUN swag init
+RUN swag init -g main.go -o ./docs
 
 # Build แบบ Production
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
@@ -25,13 +23,10 @@ FROM docker.io/library/alpine:3.19
 
 WORKDIR /app
 
-# ติดตั้ง ca-certificates (ถ้าเรียก HTTPS ภายนอก)
 RUN apk --no-cache add ca-certificates tzdata
 
-# Copy แค่ binary จาก builder
 COPY --from=builder /app/app .
 
-# Copy ไฟล์ที่จำเป็น (เช่น .env, config, static files)
 # COPY --from=builder /app/.env .
 # COPY --from=builder /app/static ./static
 
