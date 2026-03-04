@@ -455,8 +455,8 @@ func (s *IngestService) processAutoApprovedEvent(
 	receivedAt time.Time,
 	sourceIp string,
 	body []byte,
-	rawAliases json.RawMessage,
-	deviceRef *eventmod.DeviceIdentity,
+	_ json.RawMessage,
+	_ *eventmod.DeviceIdentity,
 ) error {
 	now := time.Now().UTC()
 
@@ -527,7 +527,7 @@ func (s *IngestService) processAutoApprovedEvent(
 // For now, returns raw data with metadata
 // Future: Apply type-specific normalization templates
 func (s *IngestService) normalizeEvent(eventType string, rawBody json.RawMessage) (json.RawMessage, error) {
-	result := map[string]interface{}{
+	result := map[string]any{
 		"eventType":  eventType,
 		"normalized": true,
 		"rawData":    rawBody,
@@ -540,7 +540,7 @@ func (s *IngestService) normalizeEvent(eventType string, rawBody json.RawMessage
 // Returns suggested event type based on payload patterns
 func (s *IngestService) detectEventType(body []byte) string {
 	// Parse raw body to extract hints
-	var raw map[string]interface{}
+	var raw map[string]any
 	if err := json.Unmarshal(body, &raw); err != nil {
 		return "unknown"
 	}
