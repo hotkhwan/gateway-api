@@ -224,6 +224,14 @@ type SuccessDetailResponseWithMSG struct {
 	Detail  interface{} `json:"detail,omitempty"`
 }
 
+// SuccessDetailsResponse is a response with details (plural) field
+type SuccessDetailsResponse struct {
+	Code    string      `json:"code" example:"SUCCESS"`
+	Message string      `json:"message" example:"resource created successfully"`
+	Status  bool        `json:"status" example:"true"`
+	Details interface{} `json:"details"`
+}
+
 type SuccessDetailResponse[T any] struct {
 	Detail T    `json:"detail"`
 	Status bool `json:"status"`
@@ -259,6 +267,12 @@ type UnauthorizedResponse struct {
 	Status  bool   `json:"status"`
 }
 
+type NotFoundResponse struct {
+	Code    string `json:"code"`
+	Message string `json:"message" example:"Resource not found"`
+	Status  bool   `json:"status"`
+}
+
 type SuccessDetailResponseIntrospect struct {
 	Detail IntrospectDetail `json:"detail"`
 	Status bool             `json:"status"`
@@ -278,6 +292,15 @@ type SuccessDetailResponseResourceAccess struct {
 	Message string      `json:"message" example:"accessible cameras fetched"`
 	Status  bool        `json:"status" example:"true"`
 	Detail  interface{} `json:"detail"`
+}
+
+// PaginatedResponse is a response with pagination metadata
+type PaginatedResponse struct {
+	Code       string      `json:"code" example:"SUCCESS"`
+	Message    string      `json:"message" example:"profiles fetched"`
+	Status     bool        `json:"status" example:"true"`
+	Details    interface{} `json:"details"`
+	Pagination Pagination  `json:"pagination"`
 }
 
 type ApiErrorResponse struct {

@@ -40,7 +40,7 @@ func (ctrl *ResourceGroupController) mustLocals(c *fiber.Ctx) (tenantId, orgId, 
 // @Accept       json
 // @Produce      json
 // @Param        body  body      CreateResourceGroupRequest  true  "payload"
-// @Success      201   {object}  gmod.ApiSuccessResponse
+// @Success      201   {object}  gmod.SuccessDetailsResponse
 // @Failure      400   {object}  gmod.ApiErrorResponse
 // @Failure      403   {object}  gmod.ApiErrorResponse
 // @Failure      409   {object}  gmod.ApiErrorResponse
@@ -90,11 +90,11 @@ func (ctrl *ResourceGroupController) Create(c *fiber.Ctx) error {
 
 	log.Info().Str("groupId", group.GroupID).Msg("✅ ResourceGroup created")
 
-	return c.Status(201).JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "resource group created successfully",
-		"status":  true,
-		"details": group,
+	return c.Status(201).JSON(gmod.SuccessDetailsResponse{
+		Code:    gmod.CodeSuccess,
+		Message: "resource group created successfully",
+		Status:  true,
+		Details: group,
 	})
 }
 
@@ -110,7 +110,7 @@ func (ctrl *ResourceGroupController) Create(c *fiber.Ctx) error {
 // @Param        perPages      query  int     false  "per page"  default(10)
 // @Param        sortField     query  string  false  "sort field"
 // @Param        sortOrder     query  string  false  "asc|desc"
-// @Success      200  {object}  gmod.ApiSuccessResponse
+// @Success      200  {object}  gmod.PaginatedResponse
 // @Router       /api/v1/resources/groups [get]
 // ============================================================
 
@@ -134,16 +134,16 @@ func (ctrl *ResourceGroupController) List(c *fiber.Ctx) error {
 	perPages := c.QueryInt("perPages", 10)
 	totalPages := (int(total) + perPages - 1) / perPages
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "resource groups fetched successfully",
-		"status":  true,
-		"details": groups,
-		"pagination": fiber.Map{
-			"page":         c.QueryInt("page", 1),
-			"perPages":     perPages,
-			"totalRecords": total,
-			"totalPages":   totalPages,
+	return c.JSON(gmod.PaginatedResponse{
+		Code:    gmod.CodeSuccess,
+		Message: "resource groups fetched successfully",
+		Status:  true,
+		Details: groups,
+		Pagination: gmod.Pagination{
+			Page:         c.QueryInt("page", 1),
+			PerPages:     perPages,
+			TotalRecords: int(total),
+			TotalPages:   totalPages,
 		},
 	})
 }
@@ -213,7 +213,7 @@ func (ctrl *ResourceGroupController) Update(c *fiber.Ctx) error {
 // @Tags         ResourceGroups
 // @Security     BearerAuth
 // @Param        id   path  string  true  "groupId"
-// @Success      200  {object}  gmod.ApiSuccessResponse
+// @Success      200  {object}  gmod.SuccessMessageResponse
 // @Failure      403  {object}  gmod.ApiErrorResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/resources/groups/{id} [delete]
@@ -235,10 +235,10 @@ func (ctrl *ResourceGroupController) Delete(c *fiber.Ctx) error {
 	}
 
 	log.Info().Str("groupId", groupId).Msg("✅ ResourceGroup deleted")
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "resource group deleted successfully",
-		"status":  true,
+	return c.JSON(gmod.SuccessMessageResponse{
+		Code:    gmod.CodeSuccess,
+		Message: "resource group deleted successfully",
+		Status:  true,
 	})
 }
 

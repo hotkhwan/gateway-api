@@ -105,8 +105,8 @@ func (ctrl *OrgUnitController) ListMembers(c *fiber.Ctx) error {
 // @Param id path string true "OrgUnit ID"
 // @Param body body AssignUsersRequest true "Assign users payload"
 // @Success 200 {object} OUBulkResponse
-// @Failure 400 {object} fiber.Map
-// @Failure 403 {object} fiber.Map
+// @Failure 400 {object} gmod.ApiErrorResponse
+// @Failure 403 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/units/{id}/members [post]
 func (ctrl *OrgUnitController) AssignMembers(c *fiber.Ctx) error {
 
@@ -165,8 +165,8 @@ func (ctrl *OrgUnitController) AssignMembers(c *fiber.Ctx) error {
 // @Param id path string true "OrgUnit ID"
 // @Param body body RemoveUsersRequest true "Remove users payload"
 // @Success 200 {object} OUBulkResponse
-// @Failure 400 {object} fiber.Map
-// @Failure 403 {object} fiber.Map
+// @Failure 400 {object} gmod.ApiErrorResponse
+// @Failure 403 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/units/{id}/members [patch]
 func (ctrl *OrgUnitController) RemoveMembers(c *fiber.Ctx) error {
 
