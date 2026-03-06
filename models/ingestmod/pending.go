@@ -1,4 +1,4 @@
-package eventmod
+package ingestmod
 
 import (
 	"encoding/json"

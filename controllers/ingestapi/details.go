@@ -1,17 +1,17 @@
-package eventapi
+package ingestapi
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/hotkhwan/gateway-api/internal/services/eventsvc"
-	"github.com/hotkhwan/gateway-api/models/eventmod"
+	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
+	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 )
 
 type EventDetailsController struct {
-	service *eventsvc.ApprovalService
+	service *ingestsvc.ApprovalService
 }
 
-func NewEventDetailsController(service *eventsvc.ApprovalService) *EventDetailsController {
+func NewEventDetailsController(service *ingestsvc.ApprovalService) *EventDetailsController {
 	if service == nil {
 		panic("ApprovalService required")
 	}
@@ -30,7 +30,7 @@ func (ctrl *EventDetailsController) mustLocals(c *fiber.Ctx) (tenantId, orgId, c
 func (ctrl *EventDetailsController) ListApprovedEvents(c *fiber.Ctx) error {
 	tenantId, orgId, _ := ctrl.mustLocals(c)
 
-	input := eventmod.ListEventsInput{
+	input := ingestmod.ListEventsInput{
 		TenantId:  tenantId,
 		OrgId:     orgId,
 		EventType: c.Query("eventType", ""),
@@ -76,7 +76,7 @@ func (ctrl *EventDetailsController) GetApprovedEvent(c *fiber.Ctx) error {
 	event, err := ctrl.service.GetApprovedEvent(c.UserContext(), tenantId, orgId, eventId)
 	if err != nil {
 		code := gmod.CodeInternalError
-		if err == eventsvc.ErrEventNotFound {
+		if err == ingestsvc.ErrEventNotFound {
 			code = gmod.CodeNotFound
 		}
 		return c.Status(mapCodeToStatus(code)).JSON(gmod.ApiErrorResponse{

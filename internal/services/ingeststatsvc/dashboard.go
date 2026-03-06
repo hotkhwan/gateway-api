@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hotkhwan/gateway-api/internal/repo/eventdetailsrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/eventmgmtrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/rs/zerolog"
 )
@@ -18,14 +18,14 @@ var (
 )
 
 type DashboardStatsService struct {
-	eventMgmtRepo    *eventmgmtrepo.EventManagementRepo
-	eventDetailsRepo *eventdetailsrepo.EventDetailsRepo
+	eventMgmtRepo    *ingestmgmtrepo.EventManagementRepo
+	eventDetailsRepo *ingestdetailsrepo.EventDetailsRepo
 	logger           zerolog.Logger
 }
 
 func NewDashboardStatsService(
-	eventMgmtRepo *eventmgmtrepo.EventManagementRepo,
-	eventDetailsRepo *eventdetailsrepo.EventDetailsRepo,
+	eventMgmtRepo *ingestmgmtrepo.EventManagementRepo,
+	eventDetailsRepo *ingestdetailsrepo.EventDetailsRepo,
 	logger zerolog.Logger,
 ) *DashboardStatsService {
 	return &DashboardStatsService{

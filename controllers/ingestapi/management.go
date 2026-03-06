@@ -1,18 +1,18 @@
-package eventapi
+package ingestapi
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/hotkhwan/gateway-api/internal/services/eventsvc"
-	"github.com/hotkhwan/gateway-api/models/eventmod"
+	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
+	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 )
 
 type EventManagementController struct {
-	service *eventsvc.ApprovalService
+	service *ingestsvc.ApprovalService
 }
 
-func NewEventManagementController(service *eventsvc.ApprovalService) *EventManagementController {
+func NewEventManagementController(service *ingestsvc.ApprovalService) *EventManagementController {
 	if service == nil {
 		panic("ApprovalService required")
 	}
@@ -31,7 +31,7 @@ func (ctrl *EventManagementController) mustLocals(c *fiber.Ctx) (tenantId, orgId
 func (ctrl *EventManagementController) ListPendingEvents(c *fiber.Ctx) error {
 	tenantId, orgId, _ := ctrl.mustLocals(c)
 
-	input := eventmod.ListEventsInput{
+	input := ingestmod.ListEventsInput{
 		TenantId:   tenantId,
 		OrgId:      orgId,
 		StatusName: c.Query("status", "all"), // default: all (shows pending|approved|rejected)
@@ -78,7 +78,7 @@ func (ctrl *EventManagementController) GetPendingEvent(c *fiber.Ctx) error {
 	event, err := ctrl.service.GetPendingEvent(c.UserContext(), tenantId, orgId, eventId)
 	if err != nil {
 		code := gmod.CodeInternalError
-		if err == eventsvc.ErrEventNotFound {
+		if err == ingestsvc.ErrEventNotFound {
 			code = gmod.CodeNotFound
 		}
 		return c.Status(mapCodeToStatusMgmt(code)).JSON(gmod.ApiErrorResponse{
@@ -102,7 +102,7 @@ func (ctrl *EventManagementController) UpdatePendingEvent(c *fiber.Ctx) error {
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	eventId := c.Params("eventId")
 
-	var body eventmod.EventUpdateInput
+	var body ingestmod.EventUpdateInput
 	if err := c.BodyParser(&body); err != nil {
 		return c.Status(400).JSON(gmod.ApiErrorResponse{
 			Code:    gmod.CodeBadRequest,
@@ -118,9 +118,9 @@ func (ctrl *EventManagementController) UpdatePendingEvent(c *fiber.Ctx) error {
 	); err != nil {
 		code := gmod.CodeInternalError
 		switch err {
-		case eventsvc.ErrEventNotFound:
+		case ingestsvc.ErrEventNotFound:
 			code = gmod.CodeNotFound
-		case eventsvc.ErrEventAlreadyApproved:
+		case ingestsvc.ErrEventAlreadyApproved:
 			code = gmod.CodeConflict
 		}
 		return c.Status(mapCodeToStatusMgmt(code)).JSON(gmod.ApiErrorResponse{
@@ -139,7 +139,7 @@ func (ctrl *EventManagementController) ApproveEvent(c *fiber.Ctx) error {
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	eventId := c.Params("eventId")
 
-	var body eventmod.EventUpdateInput
+	var body ingestmod.EventUpdateInput
 	// Optional metadata update during approval
 	c.BodyParser(&body)
 
@@ -151,9 +151,9 @@ func (ctrl *EventManagementController) ApproveEvent(c *fiber.Ctx) error {
 	if err != nil {
 		code := gmod.CodeInternalError
 		switch err {
-		case eventsvc.ErrEventNotFound:
+		case ingestsvc.ErrEventNotFound:
 			code = gmod.CodeNotFound
-		case eventsvc.ErrEventAlreadyApproved, eventsvc.ErrEventAlreadyRejected:
+		case ingestsvc.ErrEventAlreadyApproved, ingestsvc.ErrEventAlreadyRejected:
 			code = gmod.CodeConflict
 		}
 		return c.Status(mapCodeToStatusMgmt(code)).JSON(gmod.ApiErrorResponse{
@@ -178,9 +178,9 @@ func (ctrl *EventManagementController) RejectEvent(c *fiber.Ctx) error {
 	); err != nil {
 		code := gmod.CodeInternalError
 		switch err {
-		case eventsvc.ErrEventNotFound:
+		case ingestsvc.ErrEventNotFound:
 			code = gmod.CodeNotFound
-		case eventsvc.ErrEventAlreadyApproved:
+		case ingestsvc.ErrEventAlreadyApproved:
 			code = gmod.CodeConflict
 		}
 		return c.Status(mapCodeToStatusMgmt(code)).JSON(gmod.ApiErrorResponse{
@@ -205,9 +205,9 @@ func (ctrl *EventManagementController) DeletePendingEvent(c *fiber.Ctx) error {
 	); err != nil {
 		code := gmod.CodeInternalError
 		switch err {
-		case eventsvc.ErrEventNotFound:
+		case ingestsvc.ErrEventNotFound:
 			code = gmod.CodeNotFound
-		case eventsvc.ErrEventAlreadyApproved:
+		case ingestsvc.ErrEventAlreadyApproved:
 			code = gmod.CodeConflict
 		}
 		return c.Status(mapCodeToStatusMgmt(code)).JSON(gmod.ApiErrorResponse{

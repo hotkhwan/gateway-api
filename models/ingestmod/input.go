@@ -1,4 +1,4 @@
-package eventmod
+package ingestmod
 
 // EventUpdateInput represents metadata updates for an event
 type EventUpdateInput struct {
