@@ -15,7 +15,8 @@ import (
 )
 
 var (
-	ErrNotFound = errors.New("event not found")
+	ErrNotFound           = errors.New("event not found")
+	ErrDuplicateDeviceKey = errors.New("device already has a pending event")
 )
 
 type EventManagementRepo struct{}
@@ -24,10 +25,17 @@ func NewEventManagementRepo() *EventManagementRepo {
 	return &EventManagementRepo{}
 }
 
-// Insert stores a new pending event
+// Insert stores a new pending event.
+// Returns ErrDuplicateDeviceKey if the unique index fires (device already has a pending event).
 func (r *EventManagementRepo) Insert(ctx context.Context, event *ingestmod.EventManagement) error {
 	_, err := stomongo.InsertOne(ctx, "event_management", event)
-	return err
+	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return ErrDuplicateDeviceKey
+		}
+		return err
+	}
+	return nil
 }
 
 // FindByEventId finds a pending event by eventId
@@ -183,10 +191,25 @@ func (r *EventManagementRepo) EnsureIndexes(ctx context.Context) error {
 		{
 			Keys: bson.D{{Key: "createdAt", Value: -1}},
 		},
-		// Partial unique index for device pending lock (only applies to pending status)
+		// Partial unique index for device pending lock.
+		// Applies ONLY to documents where statusName=="pending" AND deviceKey is non-empty.
+		// Excludes null/empty deviceKey so anonymous events (no device ID) never conflict.
+		// NOTE: if the old index (without deviceKey filter) exists in MongoDB, drop it first:
+		//   db.event_management.dropIndex("tenantId_1_orgId_1_deviceKey_1_statusName_1")
 		{
-			Keys:    bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "deviceKey", Value: 1}, {Key: "statusName", Value: 1}},
-			Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.M{"statusName": "pending"}),
+			Keys: bson.D{
+				{Key: "tenantId", Value: 1},
+				{Key: "orgId", Value: 1},
+				{Key: "deviceKey", Value: 1},
+				{Key: "statusName", Value: 1},
+			},
+			Options: options.Index().
+				SetUnique(true).
+				SetName("idx_device_pending_lock").
+				SetPartialFilterExpression(bson.M{
+					"statusName": "pending",
+					"deviceKey":  bson.M{"$gt": ""},
+				}),
 		},
 	}
 

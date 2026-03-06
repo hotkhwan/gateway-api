@@ -81,6 +81,11 @@ var auditPrefixes = []auditPath{
 	{"/system", "systemSvc"},
 	// ✅ Users
 	{"/users", "users"},
+	// ✅ Ingest
+	{"/ingest/mappingTemplates", "ingestMappingTemplates"},
+	{"/ingest/management/bulk", "ingestManagementBulk"},
+	{"/ingest/management", "ingestManagement"},
+	{"/ingest/dlq", "ingestDlq"},
 }
 
 /* =========================================

@@ -316,12 +316,14 @@ log.Info().Msg("indexes_ensured")
 | Level | When to use |
 |---|---|
 | `TRACE` | (dev only via `logger.Dev`) every branch, every variable |
-| `DEBUG` | Key function inputs/outputs, template match result |
-| `INFO` | Lifecycle milestones: event received, approved, published to Kafka |
-| `WARN` | Expected failures: mapping validation failed, retry triggered |
-| `ERROR` | Unrecoverable: DB write failed, Kafka publish failed |
+| `DEBUG` | Reads (list/get), hot-path per-event ingest, template match result |
+| `INFO` | Mutations: approve, reject, delete, create/update/delete template, bulk ops |
+| `WARN` | Expected client/state errors: not found, conflict, rate limit, gate blocked, missing fields |
+| `ERROR` | System failures: DB write failed, Kafka publish failed |
 
-**Rule: log once at boundary.**  
+**Ingest hot-path rule:** every per-event log in `POST /events/:orgId` and auto-match fingerprint paths uses `Debug` to avoid production noise at high throughput.
+
+**Rule: log once at boundary.**
 Service returns clean error → controller logs + responds. Never log the same error in both layers.
 
 ```go
@@ -365,11 +367,38 @@ Use `traceutil` from `utils/traceutil/`:
 
 ```go
 // utils/traceutil/scope.go — lightweight span helper
-ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/services/ingestsvc", "approve", "ingestsvc", "Approve")
+ctx, end, log := traceutil.StartLite(
+    c.UserContext(),
+    "gateway.ingestapi",
+    "GetIngestDashboard",
+    "ingestapi",
+    "GetIngestDashboard",
+)
 defer end()
+
+แล้ว service layer ควรใช้ child span
+เช่น
+
+func (s *DashboardStatsService) GetIngestDashboardStats(
+    ctx context.Context,
+    input *ingestmod.GetIngestDashboardInput,
+) (*Stats, error) {
+
+    ctx, end, log := traceutil.StartLite(
+        ctx,
+        "gateway.ingeststatsvc",
+        "GetIngestDashboardStats",
+        "ingeststatsvc",
+        "GetIngestDashboardStats",
+    )
+    defer end()
+
+    ...
 
 log.Info().Str("eventId", id).Msg("approval_started")
 ```
+
+
 
 `StartLite` returns:
 - `ctx` — child context with active span
@@ -533,10 +562,13 @@ func (h *IngestManagementHandler) List(c *fiber.Ctx) error {
 Group by domain + sub-resource:
 
 ```
-ingest-management
-ingest-mapping-templates
-ingest-dlq
-ingest-bulk
+ingest                   ← hot-path event ingestion (no auth)
+ingest-management        ← pending event CRUD + approve/reject/delete
+ingest-bulk              ← bulk approve/reject/delete/applyTemplate
+ingest-details           ← approved canonical event read endpoints
+ingest-mapping-templates ← mapping template CRUD
+ingest-dashboard         ← aggregated stats
+ingest-dlq               ← dead-letter queue (future)
 ```
 
 ### Generate docs
@@ -873,19 +905,44 @@ external device
   → POST /events/:orgId
   → event_management (statusName: "pending")
 
-operator maps fieldMappings
+      ┌─ fingerprint match? (Redis cache of org templates)
+      │     YES → auto-apply template field mappings
+      │           → auto-approve (ApproveEvent with updates)
+      │           → Kafka raw.events  ──────────────────────┐
+      │                                                       │
+      └─ NO  → operator reviews pending event               │
+                 │                                            │
+                 ├─ manual: PATCH /:eventId (set eventType)  │
+                 │  POST /:eventId/approve                    │
+                 │  (approval gate: eventType required)       │
+                 │  → Kafka raw.events  ─────────────────────┤
+                 │                                            │
+                 └─ bulk:  POST /management/bulk/approve      │
+                           POST /management/bulk/applyTemplate│
+                           → Kafka raw.events  ───────────────┘
 
-  → POST /ingest/management/:eventId/approve
-    (validate required targets)
-  → Kafka raw.events
-
-  → normalizer
-  → canonical_events (MongoDB)
+  → normalizer service consumes raw.events
+  → builds CanonicalEvent → canonical_events (MongoDB)
   → S3 binary storage
 
   → delivery workers
   → webhook / retry / DLQ
 ```
+
+### Fingerprint auto-match flow
+
+1. `IngestService.Ingest` receives raw payload, stores as pending event.
+2. `TemplateMatcher.Match` looks up org templates from Redis fingerprint cache.
+3. On cache miss → loads templates from MongoDB, refreshes cache.
+4. If a template `match` rule hits → `ApplyMappings` extracts `eventType`, `name`, lat/lng.
+5. `ApprovalService.ApproveEvent` called with mapped updates → approval gate runs → publishes to `raw.events`.
+6. On no match → event stays pending, operator resolves manually or via bulk.
+
+### Bulk flow
+
+- Up to 100 event IDs per request.
+- `BulkApplyTemplate` loads the template once, applies mappings per event, auto-approves each.
+- Per-event partial success: `BulkResult.Succeeded` + `BulkResult.Failed` returned regardless of individual failures.
 
 ---
 

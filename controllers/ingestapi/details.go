@@ -1,10 +1,13 @@
+// controllers/ingestapi/details.go
 package ingestapi
 
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
-	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/ingestmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 type EventDetailsController struct {
@@ -25,9 +28,26 @@ func (ctrl *EventDetailsController) mustLocals(c *fiber.Ctx) (tenantId, orgId, c
 	return
 }
 
-// ListApprovedEvents lists approved events
-// GET /api/v1/ingest/details
+// ListApprovedEvents godoc
+// @Summary      List approved events
+// @Description  Returns paginated list of approved ingest events, optionally filtered by eventType.
+// @Tags         ingest-details
+// @Security     BearerAuth
+// @Produce      json
+// @Param        X-Active-Org  header    string  true   "Active Org ID"
+// @Param        eventType     query     string  false  "Filter by event type"
+// @Param        page          query     int     false  "Page number"    default(1)
+// @Param        perPage       query     int     false  "Items per page" default(10)
+// @Param        sortField     query     string  false  "Sort field"     default(approvedAt)
+// @Param        sortOrder     query     string  false  "Sort order"     default(desc)
+// @Success      200  {object}  gmod.PaginatedResponse
+// @Failure      401  {object}  gmod.ApiErrorResponse
+// @Failure      500  {object}  gmod.ApiErrorResponse
+// @Router       /api/v1/ingest/details [get]
 func (ctrl *EventDetailsController) ListApprovedEvents(c *fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "EventDetailsController.ListApprovedEvents", "ingestapi", "ListApprovedEvents")
+	defer end()
+
 	tenantId, orgId, _ := ctrl.mustLocals(c)
 
 	input := ingestmod.ListEventsInput{
@@ -40,13 +60,17 @@ func (ctrl *EventDetailsController) ListApprovedEvents(c *fiber.Ctx) error {
 		SortOrder: c.Query("sortOrder", "desc"),
 	}
 
-	result, err := ctrl.service.ListApproved(c.UserContext(), &input)
+	// Debug — read-only list query
+	log.Debug().
+		Str("orgId", orgId).
+		Str("eventType", input.EventType).
+		Int("page", input.Page).
+		Msg("📥 [ListApprovedEvents] list approved events")
+
+	result, err := ctrl.service.ListApproved(ctx, &input)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"code":    "INTERNAL_ERROR",
-			"message": "internal server error",
-			"status":  false,
-		})
+		log.Error().Err(err).Str("orgId", orgId).Msg("❌ [ListApprovedEvents] failed to list events")
+		return httputil.FailInternal(c, "failed to list approved events")
 	}
 
 	pagination := gmod.Pagination{
@@ -58,6 +82,9 @@ func (ctrl *EventDetailsController) ListApprovedEvents(c *fiber.Ctx) error {
 		SortOrder:    input.SortOrder,
 	}
 
+	// Debug — read-only result
+	log.Debug().Str("orgId", orgId).Int64("total", result.Total).Msg("✅ [ListApprovedEvents] events fetched")
+
 	return c.JSON(fiber.Map{
 		"code":       gmod.CodeSuccess,
 		"message":    "events fetched successfully",
@@ -67,53 +94,41 @@ func (ctrl *EventDetailsController) ListApprovedEvents(c *fiber.Ctx) error {
 	})
 }
 
-// GetApprovedEvent gets a single approved event
-// GET /api/v1/ingest/details/:eventId
+// GetApprovedEvent godoc
+// @Summary      Get approved event
+// @Description  Returns a single approved ingest event by ID.
+// @Tags         ingest-details
+// @Security     BearerAuth
+// @Produce      json
+// @Param        X-Active-Org  header    string  true  "Active Org ID"
+// @Param        eventId       path      string  true  "Event ID"
+// @Success      200  {object}  gmod.SuccessDataResponse
+// @Failure      401  {object}  gmod.ApiErrorResponse
+// @Failure      404  {object}  gmod.ApiErrorResponse
+// @Failure      500  {object}  gmod.ApiErrorResponse
+// @Router       /api/v1/ingest/details/{eventId} [get]
 func (ctrl *EventDetailsController) GetApprovedEvent(c *fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "EventDetailsController.GetApprovedEvent", "ingestapi", "GetApprovedEvent")
+	defer end()
+
 	tenantId, orgId, _ := ctrl.mustLocals(c)
 	eventId := c.Params("eventId")
 
-	event, err := ctrl.service.GetApprovedEvent(c.UserContext(), tenantId, orgId, eventId)
+	// Debug — read-only single fetch
+	log.Debug().Str("orgId", orgId).Str("eventId", eventId).Msg("📥 [GetApprovedEvent] get event")
+
+	event, err := ctrl.service.GetApprovedEvent(ctx, tenantId, orgId, eventId)
 	if err != nil {
-		code := gmod.CodeInternalError
 		if err == ingestsvc.ErrEventNotFound {
-			code = gmod.CodeNotFound
+			log.Warn().Str("orgId", orgId).Str("eventId", eventId).Msg("❌ [GetApprovedEvent] event not found")
+			return httputil.FailNotFound(c, "event not found")
 		}
-		return c.Status(mapCodeToStatus(code)).JSON(gmod.ApiErrorResponse{
-			Code:    code,
-			Message: err.Error(),
-			Status:  false,
-		})
+		log.Error().Err(err).Str("orgId", orgId).Str("eventId", eventId).Msg("❌ [GetApprovedEvent] internal error")
+		return httputil.FailInternal(c, "failed to get event")
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "event fetched successfully",
-		"status":  true,
-		"detail":  event,
-	})
-}
+	// Debug — read-only result
+	log.Debug().Str("orgId", orgId).Str("eventId", eventId).Msg("✅ [GetApprovedEvent] event fetched")
 
-// Helper function to map error codes to HTTP status
-func mapCodeToStatus(code string) int {
-	switch code {
-	case gmod.CodeBadRequest:
-		return fiber.StatusBadRequest
-	case gmod.CodeUnauthorized:
-		return fiber.StatusUnauthorized
-	case gmod.CodeForbidden:
-		return fiber.StatusForbidden
-	case gmod.CodeNotFound:
-		return fiber.StatusNotFound
-	case gmod.CodeConflict:
-		return fiber.StatusConflict
-	case gmod.CodeTooMany:
-		return fiber.StatusTooManyRequests
-	case gmod.CodeUnavailable:
-		return fiber.StatusServiceUnavailable
-	case gmod.CodeTimeout:
-		return fiber.StatusRequestTimeout
-	default:
-		return fiber.StatusInternalServerError
-	}
+	return httputil.Ok(c, event, "event fetched successfully")
 }

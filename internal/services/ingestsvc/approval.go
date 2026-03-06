@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/hotkhwan/gateway-api/config"
@@ -12,6 +11,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 )
@@ -40,13 +40,17 @@ func NewApprovalService(
 	}
 }
 
-// ApproveEvent approves a pending event and moves it to event_details
+// ApproveEvent approves a pending event and moves it to event_details.
+// Gate check → canonical event build → store → Kafka publish (raw.events).
 func (s *ApprovalService) ApproveEvent(
 	ctx context.Context,
 	tenantId, orgId, eventId, approvedBy string,
 	updates *ingestmod.EventUpdateInput,
 ) (*ingestmod.EventDetail, error) {
-	// 1) Get pending event
+	ctx, end, log := traceutil.StartLite(ctx, "gateway.ingestsvc", "ApprovalService.ApproveEvent", "ingestsvc", "ApproveEvent")
+	defer end()
+
+	// 1) Fetch pending event
 	pending, err := s.eventMgmtRepo.FindByEventId(ctx, tenantId, orgId, eventId)
 	if err != nil {
 		if err == ingestmgmtrepo.ErrNotFound {
@@ -55,24 +59,31 @@ func (s *ApprovalService) ApproveEvent(
 		return nil, err
 	}
 
-	if pending.Status {
-		return nil, ErrEventAlreadyApproved
-	}
-
 	if pending.StatusName == "rejected" {
 		return nil, ErrEventAlreadyRejected
 	}
 
-	// 2) Apply metadata updates if provided
+	// 2) Approval gate — validate event is ready for approval
+	if err := runApprovalGate(pending); err != nil {
+		log.Warn().
+			Str("tenantId", tenantId).
+			Str("orgId", orgId).
+			Str("eventId", eventId).
+			Err(err).
+			Msg("❌ [ApproveEvent] approval gate blocked")
+		return nil, err
+	}
+
+	// 3) Apply metadata updates if provided
 	if updates != nil {
 		if updates.Name != "" {
 			pending.Name = updates.Name
 		}
-		if !math.IsNaN(updates.Lat) {
-			pending.Lat = updates.Lat
+		if updates.Lat != nil {
+			pending.Lat = *updates.Lat
 		}
-		if !math.IsNaN(updates.Lng) {
-			pending.Lng = updates.Lng
+		if updates.Lng != nil {
+			pending.Lng = *updates.Lng
 		}
 		if updates.EventType != "" {
 			pending.EventType = updates.EventType
@@ -80,14 +91,15 @@ func (s *ApprovalService) ApproveEvent(
 		pending.UpdatedAt = time.Now().UTC()
 	}
 
-	// 3) Normalize event data
-	normalizedData, err := s.normalizeEvent(ctx, pending.EventType, pending.RawBody)
+	// 4) Build canonical event
+	now := time.Now().UTC()
+	canonical := buildCanonicalEvent(pending, now)
+	normalizedData, err := json.Marshal(canonical)
 	if err != nil {
-		return nil, fmt.Errorf("normalization failed: %w", err)
+		return nil, fmt.Errorf("failed to build canonical event: %w", err)
 	}
 
-	// 4) Create approved event detail
-	now := time.Now().UTC()
+	// 5) Create approved event detail
 	eventDetail := &ingestmod.EventDetail{
 		EventId:        pending.EventId,
 		TenantId:       pending.TenantId,
@@ -105,12 +117,12 @@ func (s *ApprovalService) ApproveEvent(
 		PendingEventId: pending.ID,
 	}
 
-	// 5) Store in event_details
+	// 6) Store in event_details
 	if err := s.eventDetailsRepo.Insert(ctx, eventDetail); err != nil {
 		return nil, fmt.Errorf("failed to store approved event: %w", err)
 	}
 
-	// 6) Update pending event status
+	// 7) Update pending event status
 	pending.Status = true
 	pending.StatusName = "approved"
 	pending.ApprovedBy = approvedBy
@@ -120,61 +132,64 @@ func (s *ApprovalService) ApproveEvent(
 		return nil, fmt.Errorf("failed to update pending event: %w", err)
 	}
 
-	// 7) Send to Kafka (normalized topic)
-	topic := config.TopicEnv("KAFKA_TOPIC_NORMALIZED_EVENTS", "normalized.events")
-	payload, _ := json.Marshal(eventDetail)
-	if err := config.SendToKafkaWithCtx(ctx, topic, orgId, payload, nil); err != nil {
-		// Log error but don't block approval
-		s.logger.Error().
-			Str("tenantId", tenantId).
-			Str("orgId", orgId).
-			Str("eventId", eventId).
-			Err(err).
-			Msg("kafka send failed (non-blocking)")
-	}
+	// 8) Publish CanonicalEvent to raw.events (traced, non-blocking)
+	s.publishCanonicalEvent(ctx, canonical, orgId, eventId)
 
-	// 8) Update Redis cache
+	// 9) Update Redis cache
 	if err := cacheevt.SetEventStatusApproved(ctx, tenantId, eventId); err != nil {
-		s.logger.Warn().
+		log.Warn().
 			Str("tenantId", tenantId).
 			Str("eventId", eventId).
 			Err(err).
-			Msg("failed to update Redis cache (non-critical)")
+			Msg("⚠️ [ApproveEvent] failed to update Redis cache (non-critical)")
 	}
 
-	// 9) Set device:eventType approval cache for auto-processing future events
-	// This allows future events from the same device:eventType to skip approval
-	if pending.DeviceKey != "" && pending.EventType != "" {
+	// 10) Set device:eventType approval cache for auto-processing future events
+	// 10) Cache device:eventType approved for auto-processing future events.
+	//     Cache both the final eventType AND the original suggestedType (auto-detected),
+	//     since new events are classified by suggestedType, not the admin-overridden eventType.
+	if pending.DeviceKey != "" && pending.DeviceRef != nil {
 		deviceKey := pending.DeviceRef.Type + ":" + pending.DeviceRef.ID
-		if err := cacheevt.SetDeviceEventTypeApproved(ctx, tenantId, deviceKey, pending.EventType); err != nil {
-			s.logger.Warn().
-				Str("tenantId", tenantId).
-				Str("deviceKey", deviceKey).
-				Str("eventType", pending.EventType).
-				Err(err).
-				Msg("failed to set device:eventType approval cache (non-critical)")
+		for _, et := range uniqueStrings(pending.EventType, pending.SuggestedType) {
+			if et == "" {
+				continue
+			}
+			if err := cacheevt.SetDeviceEventTypeApproved(ctx, tenantId, deviceKey, et); err != nil {
+				log.Warn().
+					Str("tenantId", tenantId).
+					Str("deviceKey", deviceKey).
+					Str("eventType", et).
+					Err(err).
+					Msg("⚠️ [ApproveEvent] failed to set device:eventType approval cache (non-critical)")
+			}
 		}
 	}
+
+	log.Info().
+		Str("tenantId", tenantId).
+		Str("orgId", orgId).
+		Str("eventId", eventId).
+		Str("approvedBy", approvedBy).
+		Msg("✅ [ApproveEvent] event approved")
 
 	return eventDetail, nil
 }
 
-// RejectEvent marks a pending event as rejected
+// RejectEvent marks a pending event as rejected.
 func (s *ApprovalService) RejectEvent(
 	ctx context.Context,
 	tenantId, orgId, eventId, rejectedBy string,
 ) error {
-	// 1) Get pending event
+	ctx, end, log := traceutil.StartLite(ctx, "gateway.ingestsvc", "ApprovalService.RejectEvent", "ingestsvc", "RejectEvent")
+	defer end()
+
+	// 1) Fetch pending event
 	pending, err := s.eventMgmtRepo.FindByEventId(ctx, tenantId, orgId, eventId)
 	if err != nil {
 		if err == ingestmgmtrepo.ErrNotFound {
 			return ErrEventNotFound
 		}
 		return err
-	}
-
-	if pending.Status {
-		return ErrEventAlreadyApproved
 	}
 
 	// 2) Update status
@@ -188,23 +203,50 @@ func (s *ApprovalService) RejectEvent(
 		return fmt.Errorf("failed to update event: %w", err)
 	}
 
-	// 3) Update Redis cache
+	// 3) Update Redis event status cache
 	if err := cacheevt.SetEventStatusRejected(ctx, tenantId, eventId); err != nil {
-		s.logger.Warn().
+		log.Warn().
 			Str("tenantId", tenantId).
 			Str("eventId", eventId).
 			Err(err).
-			Msg("failed to update Redis cache (non-critical)")
+			Msg("⚠️ [RejectEvent] failed to update Redis cache (non-critical)")
 	}
+
+	// 4) Clear device:eventType auto-approval cache so future events re-enter the pending queue.
+	//    Required when rejecting a previously-approved event that had its device cached.
+	if pending.DeviceKey != "" && pending.EventType != "" {
+		deviceKey := pending.DeviceKey
+		if pending.DeviceRef != nil {
+			deviceKey = pending.DeviceRef.Type + ":" + pending.DeviceRef.ID
+		}
+		if err := cacheevt.InvalidateDeviceEventTypeApproval(ctx, tenantId, deviceKey, pending.EventType); err != nil {
+			log.Warn().
+				Str("tenantId", tenantId).
+				Str("deviceKey", deviceKey).
+				Str("eventType", pending.EventType).
+				Err(err).
+				Msg("⚠️ [RejectEvent] failed to invalidate device:eventType approval cache (non-critical)")
+		}
+	}
+
+	log.Info().
+		Str("tenantId", tenantId).
+		Str("orgId", orgId).
+		Str("eventId", eventId).
+		Str("rejectedBy", rejectedBy).
+		Msg("✅ [RejectEvent] event rejected")
 
 	return nil
 }
 
-// ListPending lists pending events with pagination
+// ListPending lists pending events with pagination.
 func (s *ApprovalService) ListPending(
 	ctx context.Context,
 	input *ingestmod.ListEventsInput,
 ) (*ingestmod.PaginatedResult, error) {
+	ctx, end, _ := traceutil.StartLite(ctx, "gateway.ingestsvc", "ApprovalService.ListPending", "ingestsvc", "ListPending")
+	defer end()
+
 	if input.Page < 1 {
 		input.Page = 1
 	}
@@ -238,19 +280,24 @@ func (s *ApprovalService) ListPending(
 	}, nil
 }
 
-// GetPendingEvent gets a single pending event
+// GetPendingEvent gets a single pending event.
 func (s *ApprovalService) GetPendingEvent(
 	ctx context.Context,
 	tenantId, orgId, eventId string,
 ) (*ingestmod.EventManagement, error) {
+	ctx, end, _ := traceutil.StartLite(ctx, "gateway.ingestsvc", "ApprovalService.GetPendingEvent", "ingestsvc", "GetPendingEvent")
+	defer end()
 	return s.eventMgmtRepo.FindByEventId(ctx, tenantId, orgId, eventId)
 }
 
-// ListApproved lists approved events with pagination
+// ListApproved lists approved events with pagination.
 func (s *ApprovalService) ListApproved(
 	ctx context.Context,
 	input *ingestmod.ListEventsInput,
 ) (*ingestmod.PaginatedResult, error) {
+	ctx, end, _ := traceutil.StartLite(ctx, "gateway.ingestsvc", "ApprovalService.ListApproved", "ingestsvc", "ListApproved")
+	defer end()
+
 	if input.Page < 1 {
 		input.Page = 1
 	}
@@ -283,11 +330,14 @@ func (s *ApprovalService) ListApproved(
 	}, nil
 }
 
-// GetApprovedEvent gets a single approved event
+// GetApprovedEvent gets a single approved event.
 func (s *ApprovalService) GetApprovedEvent(
 	ctx context.Context,
 	tenantId, orgId, eventId string,
 ) (*ingestmod.EventDetail, error) {
+	ctx, end, _ := traceutil.StartLite(ctx, "gateway.ingestsvc", "ApprovalService.GetApprovedEvent", "ingestsvc", "GetApprovedEvent")
+	defer end()
+
 	event, err := s.eventDetailsRepo.FindByEventId(ctx, tenantId, orgId, eventId)
 	if err != nil {
 		if err == ingestdetailsrepo.ErrNotFound {
@@ -298,13 +348,16 @@ func (s *ApprovalService) GetApprovedEvent(
 	return event, nil
 }
 
-// UpdatePendingEvent updates a pending event's metadata
+// UpdatePendingEvent updates a pending event's metadata.
 func (s *ApprovalService) UpdatePendingEvent(
 	ctx context.Context,
 	tenantId, orgId, eventId, callerUserId string,
 	updates *ingestmod.EventUpdateInput,
 ) error {
-	// 1) Get pending event
+	ctx, end, log := traceutil.StartLite(ctx, "gateway.ingestsvc", "ApprovalService.UpdatePendingEvent", "ingestsvc", "UpdatePendingEvent")
+	defer end()
+
+	// 1) Fetch pending event
 	pending, err := s.eventMgmtRepo.FindByEventId(ctx, tenantId, orgId, eventId)
 	if err != nil {
 		if err == ingestmgmtrepo.ErrNotFound {
@@ -320,11 +373,11 @@ func (s *ApprovalService) UpdatePendingEvent(
 	if updates.Description != nil {
 		pending.Description = updates.Description
 	}
-	if !math.IsNaN(updates.Lat) {
-		pending.Lat = updates.Lat
+	if updates.Lat != nil {
+		pending.Lat = *updates.Lat
 	}
-	if !math.IsNaN(updates.Lng) {
-		pending.Lng = updates.Lng
+	if updates.Lng != nil {
+		pending.Lng = *updates.Lng
 	}
 	if updates.EventType != "" {
 		pending.EventType = updates.EventType
@@ -336,21 +389,25 @@ func (s *ApprovalService) UpdatePendingEvent(
 		pending.Tags = updates.Tags
 	}
 
-	// 3) Update
+	// 3) Persist
 	if err := s.eventMgmtRepo.Update(ctx, pending.ID.Hex(), pending); err != nil {
+		log.Error().Str("orgId", orgId).Str("eventId", eventId).Err(err).Msg("❌ [UpdatePendingEvent] db update failed")
 		return err
 	}
 
-	// 4) Invalidate Redis cache (optional - can be kept for pending)
+	// 4) Invalidate Redis cache
 	return cacheevt.InvalidateEventStatus(ctx, tenantId, eventId)
 }
 
-// DeletePendingEvent deletes a pending event
+// DeletePendingEvent deletes a pending or rejected event.
 func (s *ApprovalService) DeletePendingEvent(
 	ctx context.Context,
 	tenantId, orgId, eventId, callerUserId string,
 ) error {
-	// 1) Get pending event
+	ctx, end, log := traceutil.StartLite(ctx, "gateway.ingestsvc", "ApprovalService.DeletePendingEvent", "ingestsvc", "DeletePendingEvent")
+	defer end()
+
+	// 1) Fetch pending event
 	pending, err := s.eventMgmtRepo.FindByEventId(ctx, tenantId, orgId, eventId)
 	if err != nil {
 		if err == ingestmgmtrepo.ErrNotFound {
@@ -359,13 +416,9 @@ func (s *ApprovalService) DeletePendingEvent(
 		return err
 	}
 
-	// 2) Can only delete pending or rejected events
-	if pending.Status {
-		return ErrEventAlreadyApproved
-	}
-
 	// 3) Delete
 	if err := s.eventMgmtRepo.Delete(ctx, pending.ID.Hex()); err != nil {
+		log.Error().Str("orgId", orgId).Str("eventId", eventId).Err(err).Msg("❌ [DeletePendingEvent] delete failed")
 		return err
 	}
 
@@ -373,24 +426,87 @@ func (s *ApprovalService) DeletePendingEvent(
 	return cacheevt.InvalidateEventStatus(ctx, tenantId, eventId)
 }
 
-// normalizeEvent applies normalization to raw data
-// For now, returns raw data with metadata
-// Future: Apply type-specific normalization templates
-func (s *ApprovalService) normalizeEvent(
-	_ context.Context,
-	eventType string,
-	rawBody json.RawMessage,
-) (json.RawMessage, error) {
-	// Build normalized result
-	result := map[string]interface{}{
-		"eventType":  eventType,
-		"normalized": true,
-		"rawData":    rawBody,
+// ============================================================
+// Kafka publish
+// ============================================================
+
+// publishCanonicalEvent publishes a CanonicalEvent to raw.events (traced, non-blocking).
+// The raw.events topic is consumed by the normalizer service which produces to normalized.events.
+func (s *ApprovalService) publishCanonicalEvent(ctx context.Context, canonical *ingestmod.CanonicalEvent, orgId, eventId string) {
+	kCtx, kEnd, kLog := traceutil.StartLite(ctx, "gateway.ingestsvc", "ApprovalService.kafkaPublish", "ingestsvc", "kafkaPublish")
+	defer kEnd()
+
+	topic := config.TopicEnv("KAFKA_TOPIC_RAW_EVENTS", "raw.events")
+	payload, err := json.Marshal(canonical)
+	if err != nil {
+		kLog.Error().Str("eventId", eventId).Err(err).Msg("❌ [kafkaPublish] marshal failed")
+		return
 	}
 
-	// Future enhancement: Apply event type specific templates
-	// This is where you would add logic to transform the raw data
-	// based on the event type (LPR_Brand, FACE_Brand, etc.)
+	headers := map[string]string{
+		"eventType": canonical.EventType,
+		"orgId":     orgId,
+	}
 
-	return json.Marshal(result)
+	if err := config.SendToKafkaWithCtx(kCtx, topic, orgId, payload, headers); err != nil {
+		kLog.Error().
+			Str("topic", topic).
+			Str("orgId", orgId).
+			Str("eventId", eventId).
+			Err(err).
+			Msg("❌ [kafkaPublish] send failed (non-blocking)")
+		return
+	}
+
+	kLog.Info().
+		Str("topic", topic).
+		Str("orgId", orgId).
+		Str("eventId", eventId).
+		Str("eventType", canonical.EventType).
+		Msg("✅ [kafkaPublish] CanonicalEvent published to raw.events")
+}
+
+// ============================================================
+// Canonical event builder
+// ============================================================
+
+// buildCanonicalEvent constructs a CanonicalEvent from a pending event.
+// Published to raw.events; consumed by the downstream normalizer service.
+func buildCanonicalEvent(pending *ingestmod.EventManagement, now time.Time) *ingestmod.CanonicalEvent {
+	deviceId := ""
+	deviceType := ""
+	if pending.DeviceRef != nil {
+		deviceId = pending.DeviceRef.ID
+		deviceType = pending.DeviceRef.Type
+	}
+
+	return &ingestmod.CanonicalEvent{
+		EventId:    pending.EventId,
+		EventType:  pending.EventType,
+		OccurredAt: pending.CreatedAt,
+		Source: ingestmod.SourceInfo{
+			DeviceId:   deviceId,
+			DeviceType: deviceType,
+			OrgId:      pending.OrgId,
+		},
+		Location: ingestmod.LocationInfo{
+			Lat: pending.Lat,
+			Lng: pending.Lng,
+		},
+		Payload:   pending.RawBody,
+		CreatedAt: now,
+	}
+}
+
+// uniqueStrings returns the input strings deduplicated and preserving order.
+func uniqueStrings(vals ...string) []string {
+	seen := make(map[string]struct{}, len(vals))
+	out := make([]string, 0, len(vals))
+	for _, v := range vals {
+		if _, ok := seen[v]; !ok {
+			seen[v] = struct{}{}
+			out = append(out, v)
+		}
+	}
+	return out
 }

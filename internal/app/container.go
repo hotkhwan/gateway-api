@@ -16,6 +16,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicerepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingestrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/targetrepo"
@@ -25,6 +26,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/services/ingeststatsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/templatesvc"
 )
 
 // ============================================================
@@ -73,6 +75,12 @@ type Container struct {
 	DashboardStatsService     *ingeststatsvc.DashboardStatsService
 	IngestDashboardController *ingestapi.IngestDashboardController
 
+	// ===== Mapping Template domain =====
+	TemplateController *ingestapi.TemplateController
+
+	// ===== Bulk Operations domain =====
+	BulkController *ingestapi.BulkController
+
 	// ===== Subscription domain =====
 	SubscriptionService    *subscriptionsvc.SubscriptionService
 	SubscriptionController *subapi.SubscriptionController
@@ -92,6 +100,8 @@ func NewContainer() *Container {
 	c.buildIngest()
 	c.buildEvents()
 	c.buildTargets()
+	c.buildTemplate()
+	c.buildBulk()
 	return c
 }
 
@@ -180,7 +190,20 @@ func (c *Container) buildIngest() {
 	orgRepo := authzrepo.NewOrgRepo(config.DB)
 	eventMgmtRepo := ingestmgmtrepo.NewEventManagementRepo()
 	eventDetailsRepo := ingestdetailsrepo.NewEventDetailsRepo()
-	c.IngestService = ingestsvc.NewIngestService(orgRepo, eventMgmtRepo, eventDetailsRepo, c.SubscriptionService, config.Redis, logger.WithMeta("ingest", "container"))
+
+	// PR5: fingerprint template matcher (shared with buildTemplate)
+	templateRepo := ingestrepo.NewMappingTemplateRepo()
+	tmplMatcher := ingestsvc.NewTemplateMatcher(templateRepo, logger.WithMeta("ingest", "template-matcher"))
+
+	c.IngestService = ingestsvc.NewIngestService(
+		orgRepo,
+		eventMgmtRepo,
+		eventDetailsRepo,
+		c.SubscriptionService,
+		config.Redis,
+		tmplMatcher,
+		logger.WithMeta("ingest", "container"),
+	)
 	c.IngestController = ingestapi.NewIngestController(c.IngestService)
 }
 
@@ -228,4 +251,25 @@ func (c *Container) buildEvents() {
 		logger.WithMeta("ingest", "dashboard"),
 	)
 	c.IngestDashboardController = ingestapi.NewIngestDashboardController(c.DashboardStatsService)
+}
+
+// ============================================================
+// buildTemplate — Mapping Template domain
+// ============================================================
+
+func (c *Container) buildTemplate() {
+	templateRepo := ingestrepo.NewMappingTemplateRepo()
+	svc := templatesvc.NewTemplateService(templateRepo)
+	c.TemplateController = ingestapi.NewTemplateController(svc)
+}
+
+// ============================================================
+// buildBulk — Bulk Operations domain (PR6)
+// ============================================================
+
+func (c *Container) buildBulk() {
+	templateRepo := ingestrepo.NewMappingTemplateRepo()
+	tmplMatcher := ingestsvc.NewTemplateMatcher(templateRepo, logger.WithMeta("bulk", "template-matcher"))
+	svc := ingestsvc.NewBulkService(c.ApprovalService, tmplMatcher, templateRepo, logger.WithMeta("bulk", "service"))
+	c.BulkController = ingestapi.NewBulkController(svc)
 }
