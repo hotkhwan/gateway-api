@@ -467,27 +467,69 @@ func main() {
 
 > **Goal:** Events that fail delivery (webhook timeout, consumer error, max retries exceeded)
 > land in `dlq_events` MongoDB collection with full context for replay/debugging.
+> DLQ behaviour (enable/disable, retry count, retry delay) is configured **per MappingTemplate**.
 > API to list, inspect, retry, and replay DLQ messages.
 
-### DLQ Model (already in baseline)
+### DLQ config — per MappingTemplate
+
+Each `MappingTemplate` carries a `DLQ DLQConfig` field that controls DLQ behaviour for events
+matched by that template. When no template is matched, global defaults apply.
+
+```go
+// models/ingestmod/mappingTemplate.go
+type DLQConfig struct {
+    Enabled             bool `json:"enabled"             bson:"enabled"`             // false = skip DLQ for this template
+    MaxRetries          int  `json:"maxRetries"          bson:"maxRetries"`          // 0 = no retry; default 3
+    RetryTimeoutSeconds int  `json:"retryTimeoutSeconds" bson:"retryTimeoutSeconds"` // delay between retries; default 60
+}
+```
+
+**Example template body (create/update API):**
+
+```json
+{
+  "name": "LPR Camera — HQ Gate",
+  "match": { "deviceType": "camera", "eventType": "lpr.detected" },
+  "mappings": [],
+  "dlq": {
+    "enabled": true,
+    "maxRetries": 5,
+    "retryTimeoutSeconds": 120
+  }
+}
+```
+
+**Defaults when `dlq` is omitted or template is unmatched:**
+
+| Field | Default |
+|-------|---------|
+| `enabled` | `true` |
+| `maxRetries` | `3` |
+| `retryTimeoutSeconds` | `60` |
+
+---
+
+### DLQ Model
 
 ```go
 // models/ingestmod/dlq.go
 type DLQMessage struct {
-    MessageId   string         `json:"messageId"   bson:"messageId"`
-    EventId     string         `json:"eventId"     bson:"eventId"`
-    TenantId    string         `json:"tenantId"    bson:"tenantId"`
-    OrgId       string         `json:"orgId"       bson:"orgId"`
-    Topic       string         `json:"topic"       bson:"topic"`       // which Kafka topic failed
-    Stage       string         `json:"stage"       bson:"stage"`       // "normalize" | "deliver" | "webhook"
-    Reason      string         `json:"reason"      bson:"reason"`
-    Payload     map[string]any `json:"payload"     bson:"payload"`     // original message payload
-    RetryCount  int            `json:"retryCount"  bson:"retryCount"`
-    MaxRetries  int            `json:"maxRetries"  bson:"maxRetries"`
-    Status      string         `json:"status"      bson:"status"`      // "pending" | "retrying" | "resolved" | "abandoned"
-    LastErrorAt time.Time      `json:"lastErrorAt" bson:"lastErrorAt"`
-    CreatedAt   time.Time      `json:"createdAt"   bson:"createdAt"`
-    UpdatedAt   time.Time      `json:"updatedAt"   bson:"updatedAt"`
+    MessageId           string         `json:"messageId"            bson:"messageId"`
+    EventId             string         `json:"eventId"              bson:"eventId"`
+    TenantId            string         `json:"tenantId"             bson:"tenantId"`
+    OrgId               string         `json:"orgId"                bson:"orgId"`
+    TemplateId          string         `json:"templateId,omitempty" bson:"templateId,omitempty"` // source template
+    Topic               string         `json:"topic"                bson:"topic"`                // Kafka topic that failed
+    Stage               string         `json:"stage"                bson:"stage"`                // "normalize" | "deliver" | "webhook"
+    Reason              string         `json:"reason"               bson:"reason"`
+    Payload             map[string]any `json:"payload"              bson:"payload"`
+    RetryCount          int            `json:"retryCount"           bson:"retryCount"`
+    MaxRetries          int            `json:"maxRetries"           bson:"maxRetries"`            // from template.DLQ.MaxRetries
+    RetryTimeoutSeconds int            `json:"retryTimeoutSeconds"  bson:"retryTimeoutSeconds"`  // from template.DLQ.RetryTimeoutSeconds
+    Status              string         `json:"status"               bson:"status"`               // "pending" | "retrying" | "resolved" | "abandoned"
+    LastErrorAt         time.Time      `json:"lastErrorAt"          bson:"lastErrorAt"`
+    CreatedAt           time.Time      `json:"createdAt"            bson:"createdAt"`
+    UpdatedAt           time.Time      `json:"updatedAt"            bson:"updatedAt"`
 }
 ```
 
@@ -609,25 +651,48 @@ func (s *DLQService) Abandon(ctx, tenantId, orgId, messageId string) error
 
 ### How DLQ is triggered (from Normalizer consumer)
 
+DLQ config is resolved from the matched template. If the template has `dlq.enabled = false`,
+the message is **dropped silently** (no DLQ entry). If no template was matched, global defaults apply.
+
 ```go
 // internal/kafka/normalizedcons/consumer.go
+
+// resolveDLQConfig returns DLQConfig from matched template, or defaults if nil/unmatched.
+func resolveDLQConfig(tmpl *ingestmod.MappingTemplate) ingestmod.DLQConfig {
+    const defaultMaxRetries = 3
+    const defaultRetryTimeout = 60
+    if tmpl == nil {
+        return ingestmod.DLQConfig{Enabled: true, MaxRetries: defaultMaxRetries, RetryTimeoutSeconds: defaultRetryTimeout}
+    }
+    cfg := tmpl.DLQ
+    if cfg.MaxRetries == 0 { cfg.MaxRetries = defaultMaxRetries }
+    if cfg.RetryTimeoutSeconds == 0 { cfg.RetryTimeoutSeconds = defaultRetryTimeout }
+    return cfg
+}
+
 func handleRawEvent(...) error {
     ...
     if err := eventDetailsRepo.Insert(ctx, eventDetail); err != nil {
-        // Write to DLQ instead of endless retry
+        dlqCfg := resolveDLQConfig(matchedTemplate)
+        if !dlqCfg.Enabled {
+            logger.Warn().Str("eventId", canonical.EventId).Msg("DLQ disabled for template, dropping failed event")
+            return nil
+        }
         _ = dlqRepo.Insert(ctx, &ingestmod.DLQMessage{
-            MessageId:  uuid.NewString(),
-            EventId:    canonical.EventId,
-            TenantId:   tenantId,
-            OrgId:      orgId,
-            Topic:      "raw.events",
-            Stage:      "normalize",
-            Reason:     err.Error(),
-            Payload:    rawPayloadMap,
-            RetryCount: 0,
-            MaxRetries: 3,
-            Status:     "pending",
-            CreatedAt:  time.Now().UTC(),
+            MessageId:           uuid.NewString(),
+            EventId:             canonical.EventId,
+            TenantId:            tenantId,
+            OrgId:               orgId,
+            TemplateId:          canonical.TemplateId,
+            Topic:               "raw.events",
+            Stage:               "normalize",
+            Reason:              err.Error(),
+            Payload:             rawPayloadMap,
+            RetryCount:          0,
+            MaxRetries:          dlqCfg.MaxRetries,
+            RetryTimeoutSeconds: dlqCfg.RetryTimeoutSeconds,
+            Status:              "pending",
+            CreatedAt:           time.Now().UTC(),
         })
         return nil  // ack message — DLQ handles retry
     }
@@ -643,10 +708,14 @@ func handleRawEvent(...) error {
 
 ### Acceptance criteria
 
-- [ ] Failed normalizer messages appear in `dlq_events` collection
+- [ ] `MappingTemplate.DLQ` fields (`enabled`, `maxRetries`, `retryTimeoutSeconds`) persisted in MongoDB
+- [ ] Template create/update API accepts `dlq` object; omitted fields fall back to defaults
+- [ ] Failed normalizer messages appear in `dlq_events` collection with `maxRetries` + `retryTimeoutSeconds` from template
+- [ ] Template with `dlq.enabled: false` → failed events are dropped (no DLQ entry, WARN logged)
+- [ ] `DLQMessage.retryTimeoutSeconds` respected by retry scheduler (next retry = `lastErrorAt + retryTimeoutSeconds`)
 - [ ] `GET /dlq` lists DLQ messages with filter/pagination
 - [ ] `GET /dlq/stats` returns counts by stage and status
-- [ ] `POST /dlq/:id/retry` re-publishes to Kafka, increments `retryCount`
+- [ ] `POST /dlq/:id/retry` re-publishes to Kafka, increments `retryCount`; blocked if `retryTimeoutSeconds` not elapsed
 - [ ] `POST /dlq/:id/replay` re-publishes to `raw.events` (full re-process)
 - [ ] `POST /dlq/:id/abandon` sets `status: "abandoned"`
 - [ ] TTL index auto-cleans resolved/abandoned after 30 days
