@@ -7,7 +7,6 @@ import (
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/controllers/authzapi"
 	"github.com/hotkhwan/gateway-api/controllers/deviceapi"
-	"github.com/hotkhwan/gateway-api/controllers/eventapi"
 	"github.com/hotkhwan/gateway-api/controllers/ingestapi"
 	"github.com/hotkhwan/gateway-api/controllers/subapi"
 	"github.com/hotkhwan/gateway-api/controllers/targetapi"
@@ -16,15 +15,14 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicerepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/eventdetailsrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/eventmgmtrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/targetrepo"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
-	"github.com/hotkhwan/gateway-api/internal/services/eventsvc"
-	"github.com/hotkhwan/gateway-api/internal/services/ingeststatsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/ingeststatsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
 )
@@ -67,9 +65,9 @@ type Container struct {
 	IngestController *ingestapi.IngestController
 
 	// ===== Event Management domain =====
-	ApprovalService           *eventsvc.ApprovalService
-	EventManagementController *eventapi.EventManagementController
-	EventDetailsController    *eventapi.EventDetailsController
+	ApprovalService           *ingestsvc.ApprovalService
+	EventManagementController *ingestapi.EventManagementController
+	EventDetailsController    *ingestapi.EventDetailsController
 
 	// ===== Ingest Dashboard domain =====
 	DashboardStatsService     *ingeststatsvc.DashboardStatsService
@@ -180,8 +178,8 @@ func (c *Container) buildDevice() {
 
 func (c *Container) buildIngest() {
 	orgRepo := authzrepo.NewOrgRepo(config.DB)
-	eventMgmtRepo := eventmgmtrepo.NewEventManagementRepo()
-	eventDetailsRepo := eventdetailsrepo.NewEventDetailsRepo()
+	eventMgmtRepo := ingestmgmtrepo.NewEventManagementRepo()
+	eventDetailsRepo := ingestdetailsrepo.NewEventDetailsRepo()
 	c.IngestService = ingestsvc.NewIngestService(orgRepo, eventMgmtRepo, eventDetailsRepo, c.SubscriptionService, config.Redis, logger.WithMeta("ingest", "container"))
 	c.IngestController = ingestapi.NewIngestController(c.IngestService)
 }
@@ -211,17 +209,17 @@ func (c *Container) buildTargets() {
 // ============================================================
 
 func (c *Container) buildEvents() {
-	eventMgmtRepo := eventmgmtrepo.NewEventManagementRepo()
-	eventDetailsRepo := eventdetailsrepo.NewEventDetailsRepo()
+	eventMgmtRepo := ingestmgmtrepo.NewEventManagementRepo()
+	eventDetailsRepo := ingestdetailsrepo.NewEventDetailsRepo()
 
-	c.ApprovalService = eventsvc.NewApprovalService(
+	c.ApprovalService = ingestsvc.NewApprovalService(
 		eventMgmtRepo,
 		eventDetailsRepo,
 		config.Redis,
 		logger.WithMeta("event", "approval"),
 	)
-	c.EventManagementController = eventapi.NewEventManagementController(c.ApprovalService)
-	c.EventDetailsController = eventapi.NewEventDetailsController(c.ApprovalService)
+	c.EventManagementController = ingestapi.NewEventManagementController(c.ApprovalService)
+	c.EventDetailsController = ingestapi.NewEventDetailsController(c.ApprovalService)
 
 	// Dashboard Stats Service
 	c.DashboardStatsService = ingeststatsvc.NewDashboardStatsService(

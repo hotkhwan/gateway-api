@@ -1,4 +1,4 @@
-package eventsvc
+package ingestsvc
 
 import "errors"
 

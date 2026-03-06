@@ -1,11 +1,11 @@
-package eventmgmtrepo
+package ingestmgmtrepo
 
 import (
 	"context"
 	"errors"
 
 	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
-	"github.com/hotkhwan/gateway-api/models/eventmod"
+	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -25,7 +25,7 @@ func NewEventManagementRepo() *EventManagementRepo {
 }
 
 // Insert stores a new pending event
-func (r *EventManagementRepo) Insert(ctx context.Context, event *eventmod.EventManagement) error {
+func (r *EventManagementRepo) Insert(ctx context.Context, event *ingestmod.EventManagement) error {
 	_, err := stomongo.InsertOne(ctx, "event_management", event)
 	return err
 }
@@ -34,8 +34,8 @@ func (r *EventManagementRepo) Insert(ctx context.Context, event *eventmod.EventM
 func (r *EventManagementRepo) FindByEventId(
 	ctx context.Context,
 	tenantId, orgId, eventId string,
-) (*eventmod.EventManagement, error) {
-	var result eventmod.EventManagement
+) (*ingestmod.EventManagement, error) {
+	var result ingestmod.EventManagement
 	err := stomongo.FindOne(ctx, "event_management", bson.M{
 		"tenantId": tenantId,
 		"orgId":    orgId,
@@ -58,7 +58,7 @@ func (r *EventManagementRepo) ListPending(
 	eventType string, // optional filter
 	page, perPage int,
 	sortField, sortOrder string,
-) ([]*eventmod.EventManagement, *gmod.Pagination, error) {
+) ([]*ingestmod.EventManagement, *gmod.Pagination, error) {
 	filter := bson.M{"tenantId": tenantId, "orgId": orgId}
 	if statusName != "all" {
 		filter["statusName"] = statusName
@@ -78,7 +78,7 @@ func (r *EventManagementRepo) ListPending(
 		sort = append(sort, bson.E{Key: "createdAt", Value: -1})
 	}
 
-	var result []*eventmod.EventManagement
+	var result []*ingestmod.EventManagement
 	pagination, err := stomongo.FindWithPagination(
 		ctx,
 		"event_management",
@@ -102,7 +102,7 @@ func (r *EventManagementRepo) ListPending(
 func (r *EventManagementRepo) Update(
 	ctx context.Context,
 	id string,
-	event *eventmod.EventManagement,
+	event *ingestmod.EventManagement,
 ) error {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -139,8 +139,8 @@ func (r *EventManagementRepo) Update(
 func (r *EventManagementRepo) FindByDeviceKey(
 	ctx context.Context,
 	tenantId, orgId, deviceKey string,
-) (*eventmod.EventManagement, error) {
-	var result eventmod.EventManagement
+) (*ingestmod.EventManagement, error) {
+	var result ingestmod.EventManagement
 	err := stomongo.FindOne(ctx, "event_management", bson.M{
 		"tenantId":   tenantId,
 		"orgId":      orgId,

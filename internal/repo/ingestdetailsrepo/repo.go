@@ -1,11 +1,11 @@
-package eventdetailsrepo
+package ingestdetailsrepo
 
 import (
 	"context"
 	"errors"
 
 	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
-	"github.com/hotkhwan/gateway-api/models/eventmod"
+	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -24,7 +24,7 @@ func NewEventDetailsRepo() *EventDetailsRepo {
 }
 
 // Insert stores an approved event
-func (r *EventDetailsRepo) Insert(ctx context.Context, event *eventmod.EventDetail) error {
+func (r *EventDetailsRepo) Insert(ctx context.Context, event *ingestmod.EventDetail) error {
 	_, err := stomongo.InsertOne(ctx, "event_details", event)
 	return err
 }
@@ -33,8 +33,8 @@ func (r *EventDetailsRepo) Insert(ctx context.Context, event *eventmod.EventDeta
 func (r *EventDetailsRepo) FindByEventId(
 	ctx context.Context,
 	tenantId, orgId, eventId string,
-) (*eventmod.EventDetail, error) {
-	var result eventmod.EventDetail
+) (*ingestmod.EventDetail, error) {
+	var result ingestmod.EventDetail
 	err := stomongo.FindOne(ctx, "event_details", bson.M{
 		"tenantId": tenantId,
 		"orgId":    orgId,
@@ -56,7 +56,7 @@ func (r *EventDetailsRepo) ListApproved(
 	eventType string, // optional filter
 	page, perPage int,
 	sortField, sortOrder string,
-) ([]*eventmod.EventDetail, *gmod.Pagination, error) {
+) ([]*ingestmod.EventDetail, *gmod.Pagination, error) {
 	filter := bson.M{"tenantId": tenantId, "orgId": orgId}
 	if eventType != "" {
 		filter["eventType"] = eventType
@@ -73,7 +73,7 @@ func (r *EventDetailsRepo) ListApproved(
 		sort = append(sort, bson.E{Key: "approvedAt", Value: -1})
 	}
 
-	var result []*eventmod.EventDetail
+	var result []*ingestmod.EventDetail
 	pagination, err := stomongo.FindWithPagination(
 		ctx,
 		"event_details",

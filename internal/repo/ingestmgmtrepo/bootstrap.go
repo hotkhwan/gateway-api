@@ -1,4 +1,4 @@
-package eventmgmtrepo
+package ingestmgmtrepo
 
 import (
 	"context"

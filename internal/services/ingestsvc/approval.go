@@ -1,4 +1,4 @@
-package eventsvc
+package ingestsvc
 
 import (
 	"context"
@@ -9,23 +9,23 @@ import (
 
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/repo/cacheevt"
-	"github.com/hotkhwan/gateway-api/internal/repo/eventdetailsrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/eventmgmtrepo"
-	"github.com/hotkhwan/gateway-api/models/eventmod"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
+	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 )
 
 type ApprovalService struct {
-	eventMgmtRepo    *eventmgmtrepo.EventManagementRepo
-	eventDetailsRepo *eventdetailsrepo.EventDetailsRepo
+	eventMgmtRepo    *ingestmgmtrepo.EventManagementRepo
+	eventDetailsRepo *ingestdetailsrepo.EventDetailsRepo
 	redis            *redis.Client
 	logger           zerolog.Logger
 }
 
 func NewApprovalService(
-	eventMgmtRepo *eventmgmtrepo.EventManagementRepo,
-	eventDetailsRepo *eventdetailsrepo.EventDetailsRepo,
+	eventMgmtRepo *ingestmgmtrepo.EventManagementRepo,
+	eventDetailsRepo *ingestdetailsrepo.EventDetailsRepo,
 	redis *redis.Client,
 	logger zerolog.Logger,
 ) *ApprovalService {
@@ -44,12 +44,12 @@ func NewApprovalService(
 func (s *ApprovalService) ApproveEvent(
 	ctx context.Context,
 	tenantId, orgId, eventId, approvedBy string,
-	updates *eventmod.EventUpdateInput,
-) (*eventmod.EventDetail, error) {
+	updates *ingestmod.EventUpdateInput,
+) (*ingestmod.EventDetail, error) {
 	// 1) Get pending event
 	pending, err := s.eventMgmtRepo.FindByEventId(ctx, tenantId, orgId, eventId)
 	if err != nil {
-		if err == eventmgmtrepo.ErrNotFound {
+		if err == ingestmgmtrepo.ErrNotFound {
 			return nil, ErrEventNotFound
 		}
 		return nil, err
@@ -88,7 +88,7 @@ func (s *ApprovalService) ApproveEvent(
 
 	// 4) Create approved event detail
 	now := time.Now().UTC()
-	eventDetail := &eventmod.EventDetail{
+	eventDetail := &ingestmod.EventDetail{
 		EventId:        pending.EventId,
 		TenantId:       pending.TenantId,
 		OrgId:          pending.OrgId,
@@ -167,7 +167,7 @@ func (s *ApprovalService) RejectEvent(
 	// 1) Get pending event
 	pending, err := s.eventMgmtRepo.FindByEventId(ctx, tenantId, orgId, eventId)
 	if err != nil {
-		if err == eventmgmtrepo.ErrNotFound {
+		if err == ingestmgmtrepo.ErrNotFound {
 			return ErrEventNotFound
 		}
 		return err
@@ -203,8 +203,8 @@ func (s *ApprovalService) RejectEvent(
 // ListPending lists pending events with pagination
 func (s *ApprovalService) ListPending(
 	ctx context.Context,
-	input *eventmod.ListEventsInput,
-) (*eventmod.PaginatedResult, error) {
+	input *ingestmod.ListEventsInput,
+) (*ingestmod.PaginatedResult, error) {
 	if input.Page < 1 {
 		input.Page = 1
 	}
@@ -230,7 +230,7 @@ func (s *ApprovalService) ListPending(
 		return nil, err
 	}
 
-	return &eventmod.PaginatedResult{
+	return &ingestmod.PaginatedResult{
 		Items:       items,
 		Total:       int64(pagination.TotalRecords),
 		TotalPages:  pagination.TotalPages,
@@ -242,15 +242,15 @@ func (s *ApprovalService) ListPending(
 func (s *ApprovalService) GetPendingEvent(
 	ctx context.Context,
 	tenantId, orgId, eventId string,
-) (*eventmod.EventManagement, error) {
+) (*ingestmod.EventManagement, error) {
 	return s.eventMgmtRepo.FindByEventId(ctx, tenantId, orgId, eventId)
 }
 
 // ListApproved lists approved events with pagination
 func (s *ApprovalService) ListApproved(
 	ctx context.Context,
-	input *eventmod.ListEventsInput,
-) (*eventmod.PaginatedResult, error) {
+	input *ingestmod.ListEventsInput,
+) (*ingestmod.PaginatedResult, error) {
 	if input.Page < 1 {
 		input.Page = 1
 	}
@@ -275,7 +275,7 @@ func (s *ApprovalService) ListApproved(
 		return nil, err
 	}
 
-	return &eventmod.PaginatedResult{
+	return &ingestmod.PaginatedResult{
 		Items:       items,
 		Total:       int64(pagination.TotalRecords),
 		TotalPages:  pagination.TotalPages,
@@ -287,10 +287,10 @@ func (s *ApprovalService) ListApproved(
 func (s *ApprovalService) GetApprovedEvent(
 	ctx context.Context,
 	tenantId, orgId, eventId string,
-) (*eventmod.EventDetail, error) {
+) (*ingestmod.EventDetail, error) {
 	event, err := s.eventDetailsRepo.FindByEventId(ctx, tenantId, orgId, eventId)
 	if err != nil {
-		if err == eventdetailsrepo.ErrNotFound {
+		if err == ingestdetailsrepo.ErrNotFound {
 			return nil, ErrEventNotFound
 		}
 		return nil, err
@@ -302,12 +302,12 @@ func (s *ApprovalService) GetApprovedEvent(
 func (s *ApprovalService) UpdatePendingEvent(
 	ctx context.Context,
 	tenantId, orgId, eventId, callerUserId string,
-	updates *eventmod.EventUpdateInput,
+	updates *ingestmod.EventUpdateInput,
 ) error {
 	// 1) Get pending event
 	pending, err := s.eventMgmtRepo.FindByEventId(ctx, tenantId, orgId, eventId)
 	if err != nil {
-		if err == eventmgmtrepo.ErrNotFound {
+		if err == ingestmgmtrepo.ErrNotFound {
 			return ErrEventNotFound
 		}
 		return err
@@ -353,7 +353,7 @@ func (s *ApprovalService) DeletePendingEvent(
 	// 1) Get pending event
 	pending, err := s.eventMgmtRepo.FindByEventId(ctx, tenantId, orgId, eventId)
 	if err != nil {
-		if err == eventmgmtrepo.ErrNotFound {
+		if err == ingestmgmtrepo.ErrNotFound {
 			return ErrEventNotFound
 		}
 		return err

@@ -1,4 +1,4 @@
-package eventdetailsrepo
+package ingestdetailsrepo
 
 import (
 	"context"
