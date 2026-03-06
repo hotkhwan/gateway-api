@@ -1,12 +1,10 @@
-// internal/services/ingestsvc/errors.go
-package ingestsvc
+package eventsvc
 
 import "errors"
 
 var (
-	ErrOrgNotFound             = errors.New("org not found or disabled")
-	ErrRateLimited             = errors.New("rate limit exceeded")
-	ErrPayloadTooLarge         = errors.New("payload too large")
-	ErrEmptyBody               = errors.New("request body is empty")
-	ErrSubscriptionUnavailable = errors.New("subscription temporarily unavailable")
+	ErrEventNotFound        = errors.New("event not found")
+	ErrEventAlreadyApproved = errors.New("event already approved")
+	ErrEventAlreadyRejected = errors.New("event already rejected")
+	ErrInvalidEventType     = errors.New("invalid event type")
 )
