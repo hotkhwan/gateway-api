@@ -4,8 +4,8 @@ package ingestmod
 type EventUpdateInput struct {
 	Name        string   `json:"name,omitempty"`
 	Description *string  `json:"description,omitempty"`
-	Lat         float64  `json:"lat,omitempty"`
-	Lng         float64  `json:"lng,omitempty"`
+	Lat         *float64 `json:"lat,omitempty"`
+	Lng         *float64 `json:"lng,omitempty"`
 	EventType   string   `json:"eventType,omitempty"`
 	Priority    string   `json:"priority,omitempty"` // "low", "medium", "high"
 	Tags        []string `json:"tags,omitempty"`     // e.g., ["LPR", "FACE", "IOT"]

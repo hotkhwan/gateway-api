@@ -23,10 +23,14 @@ func NewEventDetailsRepo() *EventDetailsRepo {
 	return &EventDetailsRepo{}
 }
 
-// Insert stores an approved event
+// Insert stores an approved event and sets the generated _id back on the struct.
 func (r *EventDetailsRepo) Insert(ctx context.Context, event *ingestmod.EventDetail) error {
-	_, err := stomongo.InsertOne(ctx, "event_details", event)
-	return err
+	id, err := stomongo.InsertOne(ctx, "event_details", event)
+	if err != nil {
+		return err
+	}
+	event.ID = id
+	return nil
 }
 
 // FindByEventId finds an approved event by eventId

@@ -1,11 +1,16 @@
+// controllers/ingestapi/dashboard.go
 package ingestapi
 
 import (
 	"errors"
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/hotkhwan/gateway-api/internal/services/ingeststatsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 type IngestDashboardController struct {
@@ -16,46 +21,73 @@ func NewIngestDashboardController(service *ingeststatsvc.DashboardStatsService) 
 	return &IngestDashboardController{service: service}
 }
 
-// GetIngestDashboard ดึงข้อมูล ingest dashboard stats
-// GET /api/v1/ingest/dashboard?startDate=2026-01-20T00:00:00Z&endDate=2026-01-20T16:59:59Z&status=pending&eventType=LPR_Brand
+// GetIngestDashboard godoc
+// @Summary      Get ingest dashboard stats
+// @Description  Returns aggregated ingest statistics filtered by date range, status, and event type.
+// @Tags         ingest-dashboard
+// @Security     BearerAuth
+// @Produce      json
+// @Param        X-Active-Org  header    string  true   "Active Org ID"
+// @Param        dateTime      query     string  false  "Date range: from,to (RFC3339 UTC, e.g. 2026-03-01T00:00:00Z,2026-03-06T23:59:59Z)"
+// @Param        status        query     string  false  "Filter by status (all|pending|approved|rejected)"  default(all)
+// @Param        eventType     query     string  false  "Filter by event type"
+// @Success      200  {object}  gmod.SuccessDataResponse
+// @Failure      400  {object}  gmod.ApiErrorResponse
+// @Failure      401  {object}  gmod.ApiErrorResponse
+// @Failure      500  {object}  gmod.ApiErrorResponse
+// @Router       /api/v1/ingest/dashboard [get]
 func (ctrl *IngestDashboardController) GetIngestDashboard(c *fiber.Ctx) error {
-	// Get tenant/org from JWT locals
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "IngestDashboardController.GetIngestDashboard", "ingestapi", "GetIngestDashboard")
+	defer end()
+
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
+
+	// Parse dateTime=from,to (RFC3339 UTC)
+	startDate, endDate := "", ""
+	if dt := c.Query("dateTime", ""); dt != "" {
+		parts := strings.SplitN(dt, ",", 2)
+		if len(parts) == 2 {
+			startDate = strings.TrimSpace(parts[0])
+			endDate = strings.TrimSpace(parts[1])
+		}
+	}
 
 	input := &ingestmod.GetIngestDashboardInput{
 		TenantId:  tenantId,
 		OrgId:     orgId,
-		StartDate: c.Query("startDate", ""),
-		EndDate:   c.Query("endDate", ""),
-		Status:    c.Query("status", "all"), // all, pending, approved, rejected
+		StartDate: startDate,
+		EndDate:   endDate,
+		Status:    c.Query("status", "all"),
 		EventType: c.Query("eventType", ""),
 	}
 
-	stats, err := ctrl.service.GetIngestDashboardStats(c.UserContext(), input)
-	if err != nil {
-		// Map error to appropriate status code
-		var httpStatus int
-		var code string
+	// Debug — read-only query
+	log.Debug().
+		Str("orgId", orgId).
+		Str("startDate", input.StartDate).
+		Str("endDate", input.EndDate).
+		Str("status", input.Status).
+		Str("eventType", input.EventType).
+		Msg("📥 [GetIngestDashboard] fetching dashboard stats")
 
+	stats, err := ctrl.service.GetIngestDashboardStats(ctx, input)
+	if err != nil {
 		switch {
 		case errors.Is(err, ingeststatsvc.ErrInvalidDateRange):
-			httpStatus = fiber.StatusBadRequest
-			code = gmod.CodeBadRequest
+			log.Warn().Str("orgId", orgId).Err(err).Msg("❌ [GetIngestDashboard] invalid date range")
+			return httputil.FailBadRequest(c, "invalid date range: "+err.Error())
 		case errors.Is(err, ingeststatsvc.ErrDateRangeTooLong):
-			httpStatus = fiber.StatusBadRequest
-			code = gmod.CodeBadRequest
+			log.Warn().Str("orgId", orgId).Err(err).Msg("❌ [GetIngestDashboard] date range too long")
+			return httputil.FailBadRequest(c, "date range too long: "+err.Error())
 		default:
-			httpStatus = fiber.StatusInternalServerError
-			code = gmod.CodeInternalError
+			log.Error().Err(err).Str("orgId", orgId).Msg("❌ [GetIngestDashboard] internal error")
+			return httputil.FailInternal(c, "failed to get dashboard stats")
 		}
-
-		return c.Status(httpStatus).JSON(gmod.ApiErrorResponse{
-			Code:    code,
-			Message: "failed to get dashboard stats: " + err.Error(),
-			Status:  false,
-		})
 	}
+
+	// Debug — read-only result
+	log.Debug().Str("orgId", orgId).Msg("✅ [GetIngestDashboard] stats fetched")
 
 	return c.JSON(fiber.Map{
 		"code":    gmod.CodeSuccess,

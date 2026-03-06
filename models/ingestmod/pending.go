@@ -1,3 +1,4 @@
+// models/ingestmod/pending.go
 package ingestmod
 
 import (
@@ -6,6 +7,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
 
 // DeviceIdentity represents normalized device reference
 type DeviceIdentity struct {
@@ -38,10 +40,13 @@ type EventManagement struct {
 	DeviceKey  string          `bson:"deviceKey,omitempty" json:"deviceKey,omitempty"`   // "camera:cam-001", "device:dev-001" (canonical key for locking)
 	RawAliases json.RawMessage `bson:"rawAliases,omitempty" json:"rawAliases,omitempty"` // Original raw field mapping
 
-	// Raw event data
-	RawBody     json.RawMessage `bson:"rawBody" json:"rawBody"`
-	ContentType string          `bson:"contentType" json:"contentType"`
-	SourceIp    string          `bson:"sourceIp" json:"sourceIp"`
+	// Raw event data — stored as BSON document (not binary)
+	RawBody     map[string]any `bson:"rawBody" json:"rawBody"`
+	ContentType string         `bson:"contentType" json:"contentType"`
+	SourceIp    string         `bson:"sourceIp" json:"sourceIp"`
+
+	// Fingerprint for template matching: vendor|protocol|deviceType|subType|eventType|schemaVersion|keyHash
+	Fingerprint string `bson:"fingerprint,omitempty" json:"fingerprint,omitempty"`
 
 	// Auto-detection suggestion
 	SuggestedType string `bson:"suggestedType,omitempty" json:"suggestedType,omitempty"`
@@ -53,4 +58,23 @@ type EventManagement struct {
 	// Admin action
 	ApprovedBy string    `bson:"approvedBy,omitempty" json:"approvedBy,omitempty"`
 	ApprovedAt time.Time `bson:"approvedAt,omitempty" json:"approvedAt,omitempty"`
+}
+
+// PendingEvent — new canonical shape for event_management collection (PR2+)
+// Replaces EventManagement once ingestrepo/ingestsvc are migrated (PR3)
+//
+// statusName values: "pending" | "mapped" | "approved" | "rejected"
+type PendingEvent struct {
+	EventId       string         `json:"eventId"               bson:"eventId"`
+	OrgId         string         `json:"orgId"                 bson:"orgId"`
+	EventType     string         `json:"eventType"             bson:"eventType"`
+	RawBody       map[string]any `json:"rawBody"               bson:"rawBody"`
+	FieldMappings []FieldMapping `json:"fieldMappings"         bson:"fieldMappings"`
+	TemplateId    *string        `json:"templateId,omitempty"  bson:"templateId,omitempty"`
+	Fingerprint   string         `json:"fingerprint,omitempty" bson:"fingerprint,omitempty"`
+	StatusName    string         `json:"statusName"            bson:"statusName"`
+	SourceIp      string         `json:"sourceIp,omitempty"    bson:"sourceIp,omitempty"`
+	ContentType   string         `json:"contentType,omitempty" bson:"contentType,omitempty"`
+	CreatedAt     time.Time      `json:"createdAt"             bson:"createdAt"`
+	UpdatedAt     time.Time      `json:"updatedAt"             bson:"updatedAt"`
 }
