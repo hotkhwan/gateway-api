@@ -41,10 +41,12 @@ type LocationInfo struct {
 // published to Kafka normalized.events after geo enrichment.
 // Normalizer computes Geo + GeoCell from location.lat / location.lng.
 type NormalizedEvent struct {
-	EventId    string    `json:"eventId"    bson:"eventId"`
-	TenantId   string    `json:"tenantId"   bson:"tenantId"`
-	EventType  string    `json:"eventType"  bson:"eventType"`
-	OccurredAt time.Time `json:"occurredAt" bson:"occurredAt"`
+	EventId       string    `json:"eventId"                    bson:"eventId"`
+	TenantId      string    `json:"tenantId"                   bson:"tenantId"`
+	EventType     string    `json:"eventType"                  bson:"eventType"`
+	EventClass    string    `json:"eventClass,omitempty"       bson:"eventClass,omitempty"`
+	EventSeverity string    `json:"eventSeverity,omitempty"    bson:"eventSeverity,omitempty"`
+	OccurredAt    time.Time `json:"occurredAt"                 bson:"occurredAt"`
 
 	Source    SourceInfo    `json:"source"    bson:"source"`
 	Ownership OwnershipInfo `json:"ownership" bson:"ownership"`

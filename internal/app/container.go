@@ -12,6 +12,7 @@ import (
 	"github.com/hotkhwan/gateway-api/controllers/targetapi"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
+	"github.com/hotkhwan/gateway-api/internal/kafka/deliverycons"
 	"github.com/hotkhwan/gateway-api/internal/kafka/normalizedcons"
 	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
@@ -88,6 +89,9 @@ type Container struct {
 	// ===== Normalizer consumer deps =====
 	NormalizerDeps normalizedcons.ConsumerDeps
 
+	// ===== Delivery consumer deps =====
+	DeliveryDeps deliverycons.ConsumerDeps
+
 	// ===== Bulk Operations domain =====
 	BulkController *ingestapi.BulkController
 
@@ -114,6 +118,7 @@ func NewContainer() *Container {
 	c.buildBulk()
 	c.buildNormalizer()
 	c.buildDLQ()
+	c.buildDeliveryConsumer()
 	return c
 }
 
@@ -233,7 +238,7 @@ func (c *Container) buildSubscription() {
 
 func (c *Container) buildTargets() {
 	repo := targetrepo.NewTargetRepo()
-	c.TargetService = targetsvc.NewTargetService(repo, c.AuthzClient)
+	c.TargetService = targetsvc.NewTargetService(repo, c.AuthzClient, c.SubscriptionService)
 	c.TargetController = targetapi.NewTargetController(c.TargetService)
 }
 
@@ -306,5 +311,18 @@ func (c *Container) buildNormalizer() {
 		GeoCfg:           normalizedcons.DefaultGeoConfig(),
 		S3BucketKey:      os.Getenv("S3_EVENTS_BUCKET_KEY"),
 		Logger:           logger.WithMeta("normalizer", "consumer"),
+	}
+}
+
+// ============================================================
+// buildDeliveryConsumer — Delivery consumer deps
+// ============================================================
+
+func (c *Container) buildDeliveryConsumer() {
+	c.DeliveryDeps = deliverycons.ConsumerDeps{
+		TargetRepo:   targetrepo.NewTargetRepo(),
+		TemplateRepo: ingestrepo.NewMappingTemplateRepo(),
+		DLQRepo:      dlqrepo.NewDLQRepo(),
+		Logger:       logger.WithMeta("delivery", "consumer"),
 	}
 }

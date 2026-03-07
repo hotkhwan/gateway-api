@@ -141,3 +141,21 @@ func (r *TargetRepo) CountByOrg(ctx context.Context, tenantId, orgId string) (in
 		"orgId":    orgId,
 	})
 }
+
+// CountByTypeAndOrg returns the number of targets of a specific type in an org.
+func (r *TargetRepo) CountByTypeAndOrg(ctx context.Context, tenantId, orgId, targetType string) (int64, error) {
+	return stomongo.Count(ctx, r.collection, bson.M{
+		"tenantId": tenantId,
+		"orgId":    orgId,
+		"type":     targetType,
+	})
+}
+
+// CountMessageChannelsByOrg returns the total number of line+discord+telegram targets in an org.
+func (r *TargetRepo) CountMessageChannelsByOrg(ctx context.Context, tenantId, orgId string) (int64, error) {
+	return stomongo.Count(ctx, r.collection, bson.M{
+		"tenantId": tenantId,
+		"orgId":    orgId,
+		"type":     bson.M{"$in": []string{"line", "discord", "telegram"}},
+	})
+}

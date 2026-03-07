@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "ingest-api-collection-v1",
+    "_postman_id": "ingest-api-collection-v2",
     "name": "Ingest API",
-    "description": "Gateway API — Ingest pipeline endpoints.\n\nVariables (set in Environment or Collection):\n- `urlapi`        — e.g. https://gateway.aisom.cloud/api/v1  (includes /api/v1)\n- `baseUrl`       — e.g. https://gateway.aisom.cloud          (root, for /events only)\n- `access_token`  — Bearer JWT from Keycloak\n- `orgId`         — Active org UUID\n- `eventId`       — Auto-captured from GET management list/single\n- `templateId`    — Auto-captured from GET mappingTemplates list/single",
+    "description": "Gateway API — Ingest pipeline endpoints.\n\nVariables (set in Environment or Collection):\n- `urlapi`        — e.g. https://gateway.aisom.cloud/api/v1  (includes /api/v1)\n- `baseUrl`       — e.g. https://gateway.aisom.cloud          (root, for /events only)\n- `access_token`  — Bearer JWT from Keycloak\n- `orgId`         — Active org UUID\n- `eventId`       — Auto-captured from GET management list/single\n- `templateId`    — Auto-captured from GET mappingTemplates list/single\n- `targetId`      — Delivery target UUID (from delivery_targets collection)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -11,7 +11,8 @@
     { "key": "access_token", "value": "",                                   "type": "string" },
     { "key": "orgId",        "value": "",                                   "type": "string" },
     { "key": "eventId",      "value": "",                                   "type": "string" },
-    { "key": "templateId",   "value": "",                                   "type": "string" }
+    { "key": "templateId",   "value": "",                                   "type": "string" },
+    { "key": "targetId",     "value": "",                                   "type": "string" }
   ],
   "item": [
     {
@@ -146,7 +147,7 @@
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
               { "key": "X-Active-Org",  "value": "{{orgId}}" }
             ],
-            "description": "Returns paginated list of pending ingest events.\nAuto-saves first eventId from response → {{eventId}}"
+            "description": "Returns paginated list of pending ingest events.\nAuto-saves first eventId from response."
           },
           "event": [
             {
@@ -178,7 +179,7 @@
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
               { "key": "X-Active-Org",  "value": "{{orgId}}" }
             ],
-            "description": "Returns a single pending event by ID.\nAuto-saves eventId → {{eventId}}"
+            "description": "Returns a single pending event by ID."
           },
           "event": [
             {
@@ -398,7 +399,7 @@
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
               { "key": "X-Active-Org",  "value": "{{orgId}}" }
             ],
-            "description": "Returns paginated list of approved canonical events.\nAuto-saves first eventId → {{eventId}}"
+            "description": "Returns paginated list of approved canonical events."
           },
           "event": [
             {
@@ -437,7 +438,7 @@
     },
     {
       "name": "Mapping Templates",
-      "description": "Mapping template CRUD. Requires Bearer JWT + X-Active-Org.",
+      "description": "Mapping template CRUD with classification rules and delivery target binding.\nRequires Bearer JWT + X-Active-Org.\n\nclassificationRules: derives canonical eventClass/eventSeverity from payload fields.\ndeliveryTargets: binds targets with optional payload filter, eventClasses, eventSeverities whitelist.\nmessageTemplates: locale-aware notification text (key-based selection via messageTemplateKey).\ndlq: per-template dead-letter queue configuration.\n\neventClass enum: unknown, anonymous, whitelist, watchlist, vip, blacklist, redlist, custom\neventSeverity enum: none, info, warning, critical",
       "item": [
         {
           "name": "GET /ingest/mappingTemplates — List templates",
@@ -459,7 +460,7 @@
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
               { "key": "X-Active-Org",  "value": "{{orgId}}" }
             ],
-            "description": "Returns paginated list of mapping templates.\nAuto-saves first templateId → {{templateId}}"
+            "description": "Returns paginated list of mapping templates."
           },
           "event": [
             {
@@ -479,7 +480,7 @@
           ]
         },
         {
-          "name": "POST /ingest/mappingTemplates — Create template",
+          "name": "POST /ingest/mappingTemplates — Create full template (classification + delivery)",
           "request": {
             "method": "POST",
             "url": {
@@ -494,10 +495,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Camera Temperature Alert\",\n  \"match\": {\n    \"deviceType\": \"camera\"\n  },\n  \"mappings\": [\n    { \"sourcePath\": \"deviceId\",     \"targetPath\": \"deviceId\",     \"required\": true },\n    { \"sourcePath\": \"temperature\",  \"targetPath\": \"eventType\",    \"required\": true },\n    { \"sourcePath\": \"location.lat\", \"targetPath\": \"location.lat\", \"required\": false },\n    { \"sourcePath\": \"location.lng\", \"targetPath\": \"location.lng\", \"required\": false }\n  ]\n}",
+              "raw": "{\n  \"name\": \"LPR Security Alert\",\n  \"match\": {\n    \"deviceId\": \"DEV-001\"\n  },\n  \"mappings\": [\n    { \"sourcePath\": \"deviceId\",     \"targetPath\": \"deviceId\",     \"required\": true },\n    { \"sourcePath\": \"deviceType\",   \"targetPath\": \"eventType\",    \"required\": true },\n    { \"sourcePath\": \"location.lat\", \"targetPath\": \"location.lat\", \"required\": false },\n    { \"sourcePath\": \"location.lng\", \"targetPath\": \"location.lng\", \"required\": false }\n  ],\n  \"classificationRules\": [\n    {\n      \"name\": \"blacklistCritical\",\n      \"when\": [\n        { \"field\": \"payload.listType\", \"operator\": \"eq\", \"values\": [\"3\"] }\n      ],\n      \"set\": { \"eventClass\": \"blacklist\", \"eventSeverity\": \"critical\" },\n      \"order\": 1\n    },\n    {\n      \"name\": \"watchlistWarning\",\n      \"when\": [\n        { \"field\": \"payload.listType\", \"operator\": \"eq\", \"values\": [\"2\"] }\n      ],\n      \"set\": { \"eventClass\": \"watchlist\", \"eventSeverity\": \"warning\" },\n      \"order\": 2\n    }\n  ],\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"{{targetId}}\"\n    },\n    {\n      \"targetId\": \"line-security-id\",\n      \"eventClasses\": [\"blacklist\", \"watchlist\"],\n      \"eventSeverities\": [\"warning\", \"critical\"],\n      \"messageTemplateKey\": \"securityAlertTh\"\n    }\n  ],\n  \"dlq\": {\n    \"enabled\": true,\n    \"maxRetries\": 3,\n    \"retryTimeoutSeconds\": 60\n  },\n  \"defaultLocale\": \"th\",\n  \"messageTemplates\": [\n    {\n      \"key\": \"securityAlertTh\",\n      \"channelType\": \"line\",\n      \"locale\": \"th\",\n      \"title\": \"[{{.eventSeverity}}] {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\\nLocation: lat={{.location.lat}}, lng={{.location.lng}}\"\n    },\n    {\n      \"key\": \"criticalAlertEn\",\n      \"channelType\": \"discord\",\n      \"locale\": \"en\",\n      \"title\": \"CRITICAL: {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\"\n    }\n  ]\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "description": "Creates a new mapping template. name is required.\nAuto-saves templateId → {{templateId}}"
+            "description": "Creates a mapping template with full classification + delivery setup.\n\nclassificationRules: evaluated in order, first match sets eventClass/eventSeverity.\ndeliveryTargets: webhook (no eventClasses/eventSeverities = accepts all), message channel (with eventClasses/eventSeverities + messageTemplateKey).\nmessageTemplates: key-based selection by messageTemplateKey from deliveryTargets."
           },
           "event": [
             {
@@ -528,7 +529,7 @@
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
               { "key": "X-Active-Org",  "value": "{{orgId}}" }
             ],
-            "description": "Returns a single mapping template by ID.\nAuto-saves templateId → {{templateId}}"
+            "description": "Returns a single mapping template by ID (includes classificationRules, deliveryTargets, messageTemplates, dlq)."
           },
           "event": [
             {
@@ -547,7 +548,139 @@
           ]
         },
         {
-          "name": "PATCH /ingest/mappingTemplates/:templateId — Update template",
+          "name": "PATCH — Add classificationRules",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"classificationRules\": [\n    {\n      \"name\": \"blacklistCritical\",\n      \"when\": [\n        { \"field\": \"payload.listType\", \"operator\": \"eq\", \"values\": [\"3\"] }\n      ],\n      \"set\": { \"eventClass\": \"blacklist\", \"eventSeverity\": \"critical\" },\n      \"order\": 1\n    },\n    {\n      \"name\": \"watchlistWarning\",\n      \"when\": [\n        { \"field\": \"payload.listType\", \"operator\": \"eq\", \"values\": [\"2\"] }\n      ],\n      \"set\": { \"eventClass\": \"watchlist\", \"eventSeverity\": \"warning\" },\n      \"order\": 2\n    },\n    {\n      \"name\": \"boolBlacklist\",\n      \"when\": [\n        { \"field\": \"payload.blacklist\", \"operator\": \"eq\", \"values\": [\"true\"] }\n      ],\n      \"set\": { \"eventClass\": \"blacklist\", \"eventSeverity\": \"critical\" },\n      \"order\": 3\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sets classificationRules on a template.\nRules evaluated in order (ascending). First match sets eventClass/eventSeverity.\nDefaults if no rule matches: eventClass=unknown, eventSeverity=none.\n\neventClass enum: unknown, anonymous, whitelist, watchlist, vip, blacklist, redlist, custom\neventSeverity enum: none, info, warning, critical"
+          }
+        },
+        {
+          "name": "PATCH — Webhook deliveryTarget (accepts all events)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"{{targetId}}\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Webhook target that accepts ALL events (no eventClasses/eventSeverities filter).\nWebhook sends raw normalized event JSON."
+          }
+        },
+        {
+          "name": "PATCH — LINE target (blacklist/watchlist + warning/critical)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"{{targetId}}\",\n      \"eventClasses\": [\"blacklist\", \"watchlist\"],\n      \"eventSeverities\": [\"warning\", \"critical\"],\n      \"messageTemplateKey\": \"securityAlertTh\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "LINE target that only receives blacklist/watchlist events with warning/critical severity.\nmessageTemplateKey selects the specific MessageTemplate by key for rendering."
+          }
+        },
+        {
+          "name": "PATCH — Discord target (critical only)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"discord-target-id\",\n      \"eventSeverities\": [\"critical\"],\n      \"messageTemplateKey\": \"criticalAlertEn\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Discord target that only receives critical severity events.\nAll eventClasses accepted (empty = no filter)."
+          }
+        },
+        {
+          "name": "PATCH — Combined: webhook + LINE + Discord targets",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"{{targetId}}\"\n    },\n    {\n      \"targetId\": \"line-target-id\",\n      \"eventClasses\": [\"blacklist\", \"watchlist\"],\n      \"eventSeverities\": [\"warning\", \"critical\"],\n      \"messageTemplateKey\": \"securityAlertTh\"\n    },\n    {\n      \"targetId\": \"discord-target-id\",\n      \"eventSeverities\": [\"critical\"],\n      \"messageTemplateKey\": \"criticalAlertEn\"\n    }\n  ],\n  \"messageTemplates\": [\n    {\n      \"key\": \"securityAlertTh\",\n      \"channelType\": \"line\",\n      \"locale\": \"th\",\n      \"title\": \"[{{.eventSeverity}}] {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\\nLocation: lat={{.location.lat}}, lng={{.location.lng}}\"\n    },\n    {\n      \"key\": \"criticalAlertEn\",\n      \"channelType\": \"discord\",\n      \"locale\": \"en\",\n      \"title\": \"CRITICAL: {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Full delivery setup: webhook (all events) + LINE (blacklist/watchlist, warning/critical) + Discord (critical only).\n\nDispatch flow:\n1. classificationRules derive eventClass/eventSeverity\n2. Each target evaluates: payload filter -> eventClasses -> eventSeverities\n3. webhook sends raw JSON, LINE/Discord render via messageTemplateKey"
+          }
+        },
+        {
+          "name": "PATCH — Update DLQ + messageTemplates",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dlq\": {\n    \"enabled\": true,\n    \"maxRetries\": 5,\n    \"retryTimeoutSeconds\": 120\n  },\n  \"defaultLocale\": \"th\",\n  \"messageTemplates\": [\n    {\n      \"key\": \"securityAlertTh\",\n      \"channelType\": \"line\",\n      \"locale\": \"th\",\n      \"title\": \"[{{.eventSeverity}}] {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\\nEvent: {{.eventType}}\"\n    },\n    {\n      \"key\": \"securityAlertEn\",\n      \"channelType\": \"line\",\n      \"locale\": \"en\",\n      \"title\": \"[{{.eventSeverity}}] {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\\nLocation: lat={{.location.lat}}, lng={{.location.lng}}\"\n    },\n    {\n      \"key\": \"criticalAlertEn\",\n      \"channelType\": \"discord\",\n      \"locale\": \"en\",\n      \"title\": \"CRITICAL: {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Updates DLQ config and message templates.\nEach messageTemplate now has a key for messageTemplateKey selection.\nRender context includes: {{.eventClass}}, {{.eventSeverity}}, {{.eventType}}, {{.source.*}}, {{.location.*}}, {{.payload.*}}"
+          }
+        },
+        {
+          "name": "PATCH — Update name + mappings",
           "request": {
             "method": "PATCH",
             "url": {
@@ -565,7 +698,7 @@
               "raw": "{\n  \"name\": \"Camera Temperature Alert v2\",\n  \"mappings\": [\n    { \"sourcePath\": \"deviceId\",     \"targetPath\": \"deviceId\",     \"required\": true },\n    { \"sourcePath\": \"location.lat\", \"targetPath\": \"location.lat\", \"required\": false },\n    { \"sourcePath\": \"location.lng\", \"targetPath\": \"location.lng\", \"required\": false }\n  ]\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "description": "Patches a mapping template. Only provided fields are updated. Invalidates fingerprint cache immediately."
+            "description": "Patches name and mappings on a mapping template. Only provided fields are updated. Invalidates fingerprint cache immediately."
           }
         },
         {

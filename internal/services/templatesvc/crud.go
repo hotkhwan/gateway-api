@@ -34,13 +34,20 @@ func (s *TemplateService) Create(ctx context.Context, orgId string, in *CreateTe
 
 	now := time.Now().UTC()
 	t := &ingestmod.MappingTemplate{
-		TemplateId: uuid.NewString(),
-		OrgId:      orgId,
-		Name:       in.Name,
-		Match:      in.Match,
-		Mappings:   in.Mappings,
-		CreatedAt:  now,
-		UpdatedAt:  now,
+		TemplateId:       uuid.NewString(),
+		OrgId:            orgId,
+		Name:             in.Name,
+		Match:            in.Match,
+		Mappings:         in.Mappings,
+		DefaultLocale:       in.DefaultLocale,
+		MessageTemplates:    in.MessageTemplates,
+		ClassificationRules: in.ClassificationRules,
+		DeliveryTargets:     in.DeliveryTargets,
+		CreatedAt:        now,
+		UpdatedAt:        now,
+	}
+	if in.DLQ != nil {
+		t.DLQ = *in.DLQ
 	}
 	if t.Mappings == nil {
 		t.Mappings = []ingestmod.FieldMapping{}
@@ -122,6 +129,21 @@ func (s *TemplateService) Update(ctx context.Context, orgId, templateId string, 
 	}
 	if in.Mappings != nil {
 		set["mappings"] = in.Mappings
+	}
+	if in.DLQ != nil {
+		set["dlq"] = *in.DLQ
+	}
+	if in.DefaultLocale != nil {
+		set["defaultLocale"] = *in.DefaultLocale
+	}
+	if in.MessageTemplates != nil {
+		set["messageTemplates"] = in.MessageTemplates
+	}
+	if in.ClassificationRules != nil {
+		set["classificationRules"] = in.ClassificationRules
+	}
+	if in.DeliveryTargets != nil {
+		set["deliveryTargets"] = in.DeliveryTargets
 	}
 	if len(set) == 0 {
 		return nil // nothing to update

@@ -124,7 +124,16 @@ func (m *TemplateMatcher) ApplyMappings(rawBody map[string]any, mappings []inges
 			}
 			continue
 		}
-		setNestedValue(mapped, fm.TargetPath, applyTransform(val, fm.Transform))
+		transformed := applyTransform(val, fm.Transform)
+		setNestedValue(mapped, fm.TargetPath, transformed)
+
+		// Generate <targetPath>_label when ValueCodes are defined.
+		if len(fm.ValueCodes) > 0 {
+			key := fmt.Sprintf("%v", transformed)
+			if label, ok := fm.ValueCodes[key]; ok {
+				setNestedValue(mapped, fm.TargetPath+"_label", label)
+			}
+		}
 	}
 	return mapped, missingFields
 }
