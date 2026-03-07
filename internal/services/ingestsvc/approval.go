@@ -94,21 +94,23 @@ func (s *ApprovalService) ApproveEvent(
 	// 4) Build canonical event
 	now := time.Now().UTC()
 	canonical := buildCanonicalEvent(pending, now)
-	normalizedData, err := json.Marshal(canonical)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build canonical event: %w", err)
-	}
 
 	// 5) Create approved event detail
 	eventDetail := &ingestmod.EventDetail{
-		EventId:        pending.EventId,
-		TenantId:       pending.TenantId,
-		OrgId:          pending.OrgId,
-		Name:           pending.Name,
-		Lat:            pending.Lat,
-		Lng:            pending.Lng,
-		EventType:      pending.EventType,
-		NormalizedData: normalizedData,
+		EventId:  pending.EventId,
+		TenantId: pending.TenantId,
+		OrgId:    pending.OrgId,
+		Name:     pending.Name,
+		Lat:      pending.Lat,
+		Lng:      pending.Lng,
+		EventType: pending.EventType,
+		NormalizedData: map[string]any{
+			"eventType":  pending.EventType,
+			"occurredAt": pending.CreatedAt,
+			"source":     canonical.Source,
+			"location":   canonical.Location,
+			"payload":    pending.RawBody,
+		},
 		SourceIp:       pending.SourceIp,
 		IngestedAt:     pending.CreatedAt,
 		ApprovedAt:     now,
@@ -444,8 +446,10 @@ func (s *ApprovalService) publishCanonicalEvent(ctx context.Context, canonical *
 	}
 
 	headers := map[string]string{
+		"eventId":   eventId,
 		"eventType": canonical.EventType,
 		"orgId":     orgId,
+		"tenantId":  canonical.TenantId,
 	}
 
 	if err := config.SendToKafkaWithCtx(kCtx, topic, orgId, payload, headers); err != nil {
@@ -482,6 +486,7 @@ func buildCanonicalEvent(pending *ingestmod.EventManagement, now time.Time) *ing
 
 	return &ingestmod.CanonicalEvent{
 		EventId:    pending.EventId,
+		TenantId:   pending.TenantId,
 		EventType:  pending.EventType,
 		OccurredAt: pending.CreatedAt,
 		Source: ingestmod.SourceInfo{

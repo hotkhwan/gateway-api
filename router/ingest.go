@@ -73,11 +73,12 @@ func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
 
 		// ---------- DLQ ----------
 		r.Route("/dlq", func(dlq fiber.Router) {
-			dlq.Get("/", notImplemented)        // PR7+
-			dlq.Get("/stats", notImplemented)   // PR7+
-			dlq.Get("/:id", notImplemented)     // PR7+
-			dlq.Post("/retry", notImplemented)  // PR7+
-			dlq.Post("/replay", notImplemented) // PR7+
+			dlq.Get("/", c.DLQController.ListDLQ)
+			dlq.Get("/stats", c.DLQController.GetDLQStats)
+			dlq.Get("/:id", c.DLQController.GetDLQMessage)
+			dlq.Post("/:id/retry", c.DLQController.RetryDLQ)
+			dlq.Post("/:id/replay", c.DLQController.ReplayDLQ)
+			dlq.Post("/:id/abandon", c.DLQController.AbandonDLQ)
 		})
 
 		// ---------- Details (canonical approved events — existing) ----------
