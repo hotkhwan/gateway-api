@@ -34,17 +34,17 @@ func (s *TemplateService) Create(ctx context.Context, orgId string, in *CreateTe
 
 	now := time.Now().UTC()
 	t := &ingestmod.MappingTemplate{
-		TemplateId:       uuid.NewString(),
-		OrgId:            orgId,
-		Name:             in.Name,
-		Match:            in.Match,
-		Mappings:         in.Mappings,
+		TemplateId:          uuid.NewString(),
+		OrgId:               orgId,
+		Name:                in.Name,
+		Match:               in.Match,
+		Mappings:            in.Mappings,
 		DefaultLocale:       in.DefaultLocale,
 		MessageTemplates:    in.MessageTemplates,
 		ClassificationRules: in.ClassificationRules,
 		DeliveryTargets:     in.DeliveryTargets,
-		CreatedAt:        now,
-		UpdatedAt:        now,
+		CreatedAt:           now,
+		UpdatedAt:           now,
 	}
 	if in.DLQ != nil {
 		t.DLQ = *in.DLQ

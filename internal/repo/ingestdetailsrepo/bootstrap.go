@@ -10,4 +10,3 @@ func init() {
 		return NewEventDetailsRepo().EnsureIndexes(ctx)
 	})
 }
-
