@@ -22,11 +22,11 @@ type ConsumerDeps struct {
 
 // GeoConfig controls geo enrichment behaviour in the normalizer.
 type GeoConfig struct {
-	DefaultCountry string                    // "TH"
-	AdminLevel     int                       // 1 = province
-	IdScheme       string                    // "ISO_3166_2"
-	GeoCellScheme  string                    // "geohash"
-	GeoCellPrec    int                       // 5 = ~5km²
+	DefaultCountry string // "TH"
+	AdminLevel     int    // 1 = province
+	IdScheme       string // "ISO_3166_2"
+	GeoCellScheme  string // "geohash"
+	GeoCellPrec    int    // 5 = ~5km²
 	BoundaryIndex  geoboundary.BoundaryQuerier
 }
 

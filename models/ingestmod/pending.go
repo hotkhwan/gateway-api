@@ -8,7 +8,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-
 // DeviceIdentity represents normalized device reference
 type DeviceIdentity struct {
 	Type string `json:"type"` // "camera", "sensor", "face", "device"

@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
-	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/ingestmod"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

@@ -271,7 +271,7 @@ func main() {
 	router.RegisterHookIwownAPI(iwownapi)
 
 	// go func() {
-	// 	interval := utils.GetEnvDurationSec("KCTRL_WATCHDOG_INTERVAL", 5) // default 5s 
+	// 	interval := utils.GetEnvDurationSec("KCTRL_WATCHDOG_INTERVAL", 5) // default 5s
 	// 	log := logger.WithMeta("bootstrap", "watchdog")
 
 	// 	log.Info().
