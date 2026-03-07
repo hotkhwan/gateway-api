@@ -11,6 +11,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
 	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/repo/targetrepo"
+	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
 	"github.com/hotkhwan/gateway-api/models/authzmod"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -56,13 +57,14 @@ type ListTargetInput struct {
 type TargetService struct {
 	repo        *targetrepo.TargetRepo
 	authzClient authzgw.Client
+	subSvc      *subscriptionsvc.SubscriptionService
 }
 
-func NewTargetService(repo *targetrepo.TargetRepo, authzClient authzgw.Client) *TargetService {
+func NewTargetService(repo *targetrepo.TargetRepo, authzClient authzgw.Client, subSvc *subscriptionsvc.SubscriptionService) *TargetService {
 	if repo == nil || authzClient == nil {
 		panic("TargetService: repo and authzClient required")
 	}
-	return &TargetService{repo: repo, authzClient: authzClient}
+	return &TargetService{repo: repo, authzClient: authzClient, subSvc: subSvc}
 }
 
 // validTargetTypes ตรวจ type ก่อน insert
@@ -102,6 +104,16 @@ func (s *TargetService) Create(ctx context.Context, input CreateTargetInput) (*a
 
 	if err := s.checkAdmin(ctx, input.TenantId, input.OrgId, input.UserId); err != nil {
 		return nil, err
+	}
+
+	// Quota check — enforce plan limits before creating
+	if s.subSvc != nil {
+		if err := s.subSvc.ValidateDeliveryTargetQuota(ctx, input.TenantId, input.OrgId, input.Type, s.repo); err != nil {
+			if errors.Is(err, subscriptionsvc.ErrDeliveryQuotaExceeded) {
+				return nil, ErrPlanLimitExceeded
+			}
+			return nil, err
+		}
 	}
 
 	exists, err := s.repo.ExistsByNameInOrg(ctx, input.TenantId, input.OrgId, input.Name, "")

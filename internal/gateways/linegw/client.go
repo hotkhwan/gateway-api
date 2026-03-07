@@ -14,18 +14,34 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// LINE Message API request/response structures
-type LineMessageRequest struct {
+// LINE Messaging API endpoints
+const (
+	lineAPIPush      = "https://api.line.me/v2/bot/message/push"
+	lineAPIMulticast = "https://api.line.me/v2/bot/message/multicast"
+	lineAPIBroadcast = "https://api.line.me/v2/bot/message/broadcast"
+)
+
+// LINE Message API request structures
+type linePushRequest struct {
 	To       string        `json:"to"`
-	Messages []LineMessage `json:"messages"`
+	Messages []lineMessage `json:"messages"`
 }
 
-type LineMessage struct {
+type lineMulticastRequest struct {
+	To       []string      `json:"to"`
+	Messages []lineMessage `json:"messages"`
+}
+
+type lineBroadcastRequest struct {
+	Messages []lineMessage `json:"messages"`
+}
+
+type lineMessage struct {
 	Type string `json:"type"`
 	Text string `json:"text"`
 }
 
-type LineErrorResponse struct {
+type lineErrorResponse struct {
 	Message string `json:"message"`
 	Details []struct {
 		Message  string `json:"message"`
@@ -38,6 +54,7 @@ type Client struct {
 	config authzmod.TargetConfig
 	client *http.Client
 	logger zerolog.Logger
+	token  string
 }
 
 // NewClient creates a new LINE client
@@ -56,86 +73,121 @@ func NewClient(config authzmod.TargetConfig) *Client {
 	}
 }
 
-// Send sends an event to LINE Messaging API
+// Send sends an event to LINE Messaging API.
+// Routing: len(To)==0 → broadcast, len(To)==1 → push, len(To)>1 → multicast.
 func (c *Client) Send(ctx context.Context, event interface{}, payload []byte) error {
-	if c.config.ChannelAccessToken == "" {
+	token := c.config.ChannelAccessToken
+	if token == "" {
+		token = c.config.ChannelAccessTokenRef
+	}
+	if token == "" {
 		return fmt.Errorf("LINE channel access token is empty")
 	}
+	c.token = token
 
-	// Parse event to get message content
-	var eventData map[string]interface{}
-	if err := json.Unmarshal(payload, &eventData); err != nil {
-		return fmt.Errorf("failed to parse event payload: %w", err)
+	// Build message text from rendered payload (title + body) or fallback
+	msgText := buildMessageText(payload)
+	messages := []lineMessage{{Type: "text", Text: msgText}}
+
+	recipients := c.config.To
+
+	switch {
+	case len(recipients) == 0:
+		// Broadcast to all followers
+		return c.broadcast(ctx, messages)
+	case len(recipients) == 1:
+		// Push to single user
+		return c.push(ctx, recipients[0], messages)
+	default:
+		// Multicast to multiple users (max 500 per API call)
+		return c.multicast(ctx, recipients, messages)
 	}
+}
 
-	// Build LINE message
-	messageText := c.buildMessageText(eventData)
-
-	lineReq := LineMessageRequest{
-		To: c.config.To,
-		Messages: []LineMessage{
-			{
-				Type: "text",
-				Text: messageText,
-			},
-		},
+func (c *Client) push(ctx context.Context, to string, messages []lineMessage) error {
+	body, _ := json.Marshal(linePushRequest{To: to, Messages: messages})
+	err := c.doRequest(ctx, lineAPIPush, body)
+	if err == nil {
+		c.logger.Debug().Str("to", to).Msg("LINE push sent")
 	}
+	return err
+}
 
-	// Marshal request
-	reqBody, err := json.Marshal(lineReq)
-	if err != nil {
-		return fmt.Errorf("failed to marshal LINE request: %w", err)
+func (c *Client) multicast(ctx context.Context, to []string, messages []lineMessage) error {
+	// LINE multicast supports max 500 recipients per call
+	const batchSize = 500
+	for i := 0; i < len(to); i += batchSize {
+		end := i + batchSize
+		if end > len(to) {
+			end = len(to)
+		}
+		batch := to[i:end]
+		body, _ := json.Marshal(lineMulticastRequest{To: batch, Messages: messages})
+		if err := c.doRequest(ctx, lineAPIMulticast, body); err != nil {
+			return fmt.Errorf("multicast batch %d-%d: %w", i, end-1, err)
+		}
 	}
+	c.logger.Debug().Int("recipients", len(to)).Msg("LINE multicast sent")
+	return nil
+}
 
-	// Create HTTP request
-	req, err := http.NewRequestWithContext(
-		ctx,
-		"POST",
-		"https://api.line.me/v2/bot/message/push",
-		bytes.NewReader(reqBody),
-	)
+func (c *Client) broadcast(ctx context.Context, messages []lineMessage) error {
+	body, _ := json.Marshal(lineBroadcastRequest{Messages: messages})
+	err := c.doRequest(ctx, lineAPIBroadcast, body)
+	if err == nil {
+		c.logger.Debug().Msg("LINE broadcast sent")
+	}
+	return err
+}
+
+func (c *Client) doRequest(ctx context.Context, url string, body []byte) error {
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("failed to create LINE request: %w", err)
 	}
-
-	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.config.ChannelAccessToken)
+	req.Header.Set("Authorization", "Bearer "+c.token)
 
-	// Send request
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send LINE message: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// Check response status
 	if resp.StatusCode != http.StatusOK {
-		var errResp LineErrorResponse
+		var errResp lineErrorResponse
 		if err := json.NewDecoder(resp.Body).Decode(&errResp); err == nil {
-			return fmt.Errorf("LINE API error: %s - %s", errResp.Message, errResp.Details)
+			return fmt.Errorf("LINE API error (%d): %s - %v", resp.StatusCode, errResp.Message, errResp.Details)
 		}
-		return fmt.Errorf("LINE API returned non-success status: %d", resp.StatusCode)
+		return fmt.Errorf("LINE API returned status %d", resp.StatusCode)
 	}
-
-	c.logger.Debug().
-		Str("to", c.config.To).
-		Int("statusCode", resp.StatusCode).
-		Msg("LINE message sent successfully")
-
 	return nil
 }
 
-// buildMessageText formats the event for LINE messaging
-func (c *Client) buildMessageText(eventData map[string]interface{}) string {
-	var eventType, eventId string
-
-	if v, ok := eventData["eventType"].(string); ok {
-		eventType = v
-	}
-	if v, ok := eventData["eventId"].(string); ok {
-		eventId = v
+// buildMessageText extracts title/body from the rendered payload envelope.
+// If the payload has "title" and "body" (from buildMessagePayload), use those.
+// Otherwise fall back to a simple event summary.
+func buildMessageText(payload []byte) string {
+	var data map[string]any
+	if err := json.Unmarshal(payload, &data); err != nil {
+		return string(payload)
 	}
 
-	return fmt.Sprintf("🔔 New Event\nType: %s\nID: %s", eventType, eventId)
+	title, _ := data["title"].(string)
+	body, _ := data["body"].(string)
+
+	if title != "" && body != "" {
+		return fmt.Sprintf("%s\n%s", title, body)
+	}
+	if body != "" {
+		return body
+	}
+	if title != "" {
+		return title
+	}
+
+	// Fallback: basic event info
+	eventType, _ := data["eventType"].(string)
+	eventId, _ := data["eventId"].(string)
+	return fmt.Sprintf("New Event\nType: %s\nID: %s", eventType, eventId)
 }

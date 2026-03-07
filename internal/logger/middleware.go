@@ -13,11 +13,21 @@ func FiberLogger() fiber.Handler {
 		err := c.Next()
 		lat := time.Since(start)
 
+		status := c.Response().StatusCode()
 		log := FromCtx(c.UserContext(), "http", "request")
-		log.Info().
+
+		ev := log.Info()
+		// Downgrade successful GET/HEAD reads to Debug to reduce polling noise
+		if c.Method() == fiber.MethodGet || c.Method() == fiber.MethodHead {
+			if status >= 200 && status < 300 {
+				ev = log.Debug()
+			}
+		}
+
+		ev.
 			Str("method", c.Method()).
 			Str("path", c.OriginalURL()).
-			Int("status", c.Response().StatusCode()).
+			Int("status", status).
 			Str("ip", c.IP()).
 			Dur("latency", lat).
 			Str("userAgent", string(c.Request().Header.UserAgent())).

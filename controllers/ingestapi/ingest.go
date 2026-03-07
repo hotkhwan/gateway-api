@@ -7,6 +7,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 type IngestController struct {
@@ -21,84 +23,104 @@ func NewIngestController(svc *ingestsvc.IngestService) *IngestController {
 }
 
 // Ingest godoc
-// @Summary Ingest raw event (no JWT, hot path)
-// @Description POST event payload from device/3rd-party. Rate limited per org + IP.
-// @Tags Ingest
-// @Accept json
-// @Produce json
-// @Param orgId path string true "Organization ID"
-// @Success 202 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
-// @Failure 404 {object} map[string]interface{}
-// @Failure 413 {object} map[string]interface{}
-// @Failure 429 {object} map[string]interface{}
-// @Router /events/{orgId} [post]
+// @Summary      Ingest raw event
+// @Description  POST event payload from device or 3rd-party. No JWT required. Rate limited per org + IP.
+// @Tags         ingest
+// @Accept       json
+// @Produce      json
+// @Param        orgId  path      string  true  "Organization ID"
+// @Success      202    {object}  gmod.SuccessDataResponse
+// @Failure      400    {object}  gmod.ApiErrorResponse
+// @Failure      404    {object}  gmod.ApiErrorResponse
+// @Failure      413    {object}  gmod.ApiErrorResponse
+// @Failure      423    {object}  gmod.ApiErrorResponse
+// @Failure      429    {object}  gmod.ApiErrorResponse
+// @Failure      500    {object}  gmod.ApiErrorResponse
+// @Router       /events/{orgId} [post]
 func (ctrl *IngestController) Ingest(c *fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "IngestController.Ingest", "ingestapi", "Ingest")
+	defer end()
+
 	orgId := strings.TrimSpace(c.Params("orgId"))
 	if orgId == "" {
-		return c.Status(400).JSON(fiber.Map{
-			"code":    "BAD_REQUEST",
-			"message": "orgId is required",
-			"status":  false,
-		})
+		log.Warn().Msg("❌ [Ingest] missing orgId")
+		return httputil.FailBadRequest(c, "orgId is required")
 	}
 
 	body := c.Body()
 	sourceIp := c.IP()
 	contentType := c.Get("Content-Type", "application/json")
 
-	result, err := ctrl.service.Ingest(c.UserContext(), orgId, sourceIp, contentType, body)
+	// Debug — hot path: every request logs at Debug to avoid production noise
+	log.Debug().
+		Str("orgId", orgId).
+		Str("sourceIp", sourceIp).
+		Str("contentType", contentType).
+		Int("bodySize", len(body)).
+		Msg("📥 [Ingest] incoming event")
+
+	result, err := ctrl.service.Ingest(ctx, orgId, sourceIp, contentType, body)
 	if err != nil {
 		switch {
 		case errors.Is(err, ingestsvc.ErrOrgNotFound):
-			return c.Status(404).JSON(fiber.Map{
-				"code":    "NOT_FOUND",
-				"message": "organization not found",
-				"status":  false,
-			})
+			log.Warn().Str("orgId", orgId).Msg("❌ [Ingest] org not found")
+			return httputil.FailNotFound(c, "organization not found")
 		case errors.Is(err, ingestsvc.ErrRateLimited):
-			return c.Status(429).JSON(fiber.Map{
-				"code":    "TOO_MANY_REQUESTS",
-				"message": "rate limit exceeded",
-				"status":  false,
-			})
+			log.Warn().Str("orgId", orgId).Str("sourceIp", sourceIp).Msg("❌ [Ingest] rate limited")
+			return httputil.FailTooMany(c, "rate limit exceeded")
 		case errors.Is(err, ingestsvc.ErrPayloadTooLarge):
-			return c.Status(413).JSON(fiber.Map{
-				"code":    "PAYLOAD_TOO_LARGE",
-				"message": "payload exceeds 256KB limit",
-				"status":  false,
-			})
+			log.Warn().Str("orgId", orgId).Int("bodySize", len(body)).Msg("❌ [Ingest] payload too large")
+			return httputil.Fail(c, fiber.StatusRequestEntityTooLarge, "PAYLOAD_TOO_LARGE", "payload exceeds limit")
 		case errors.Is(err, ingestsvc.ErrEmptyBody):
-			return c.Status(400).JSON(fiber.Map{
-				"code":    "BAD_REQUEST",
-				"message": "request body is empty",
-				"status":  false,
-			})
+			log.Warn().Str("orgId", orgId).Msg("❌ [Ingest] empty body")
+			return httputil.FailBadRequest(c, "request body is empty")
+		case errors.Is(err, ingestsvc.ErrTemplateMismatch):
+			log.Warn().Str("orgId", orgId).Msg("❌ [Ingest] no matching template for approved device")
+			return httputil.Fail(c, fiber.StatusUnprocessableEntity, "TEMPLATE_MISMATCH", "no matching template found, please configure a mapping template for this device")
 		default:
-			return c.Status(500).JSON(fiber.Map{
-				"code":    "INTERNAL_ERROR",
-				"message": "internal server error",
-				"status":  false,
-			})
+			log.Error().Err(err).Str("orgId", orgId).Msg("❌ [Ingest] internal error")
+			return httputil.FailInternal(c, "internal server error")
 		}
 	}
 
-	// Check if device is locked (has pending event)
+	// Device pending lock — device already has an unresolved pending event
 	if result.Locked {
-		return c.Status(423).JSON(fiber.Map{
-			"code":           "DEVICE_PENDING_LOCKED",
-			"status":         false,
-			"message":        result.LockMessage,
+		log.Warn().
+			Str("orgId", orgId).
+			Str("deviceKey", result.DeviceKey).
+			Str("pendingEventId", result.EventId).
+			Msg("⚠️ [Ingest] device pending locked")
+		return httputil.Fail(c, fiber.StatusLocked, "DEVICE_PENDING_LOCKED", result.LockMessage, fiber.Map{
 			"deviceKey":      result.DeviceKey,
 			"pendingEventId": result.EventId,
 		})
 	}
 
-	return c.Status(202).JSON(fiber.Map{
-		"code":       "ACCEPTED",
-		"status":     true,
-		"message":    "event accepted",
+	// Event queued in event_management — awaiting admin review + mapping template
+	if result.Pending {
+		log.Debug().
+			Str("orgId", orgId).
+			Str("eventId", result.EventId).
+			Msg("📋 [Ingest] event queued for review")
+		return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
+			"code":    "PENDING_REVIEW",
+			"message": "event queued for review",
+			"status":  true,
+			"detail": fiber.Map{
+				"eventId":    result.EventId,
+				"receivedAt": result.ReceivedAt,
+			},
+		})
+	}
+
+	// Debug — hot path: every accepted event logs at Debug
+	log.Debug().
+		Str("orgId", orgId).
+		Str("eventId", result.EventId).
+		Msg("✅ [Ingest] event accepted")
+
+	return httputil.Accepted(c, fiber.Map{
 		"eventId":    result.EventId,
 		"receivedAt": result.ReceivedAt,
-	})
+	}, "event accepted")
 }

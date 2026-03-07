@@ -20,6 +20,12 @@ func RegisterSubscriptionRoutes(router fiber.Router, c *app.Container) {
 			Effective: middleware.EffectiveGetter(),
 		}))
 
+		// List subscription packages (pricing page)
+		r.Get("/packages", c.SubscriptionController.ListPackages)
+
+		// Get current effective subscription
+		r.Get("/current", c.SubscriptionController.GetCurrentSubscription)
+
 		// Bootstrap subscription
 		r.Post("/bootstrap", c.SubscriptionController.BootstrapSubscription)
 

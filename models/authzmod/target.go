@@ -1,7 +1,15 @@
 // models/authzmod/target.go
 package authzmod
 
-import "time"
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+)
 
 // TargetType constants
 const (
@@ -10,6 +18,68 @@ const (
 	TargetTypeTelegram = "telegram"
 	TargetTypeDiscord  = "discord"
 )
+
+// StringSlice is a []string that can decode from either a BSON string or array.
+// This provides backward compatibility when migrating a field from string → []string.
+type StringSlice []string
+
+func (s StringSlice) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	return bson.MarshalValue([]string(s))
+}
+
+func (s *StringSlice) UnmarshalBSONValue(t bsontype.Type, data []byte) error {
+	switch t {
+	case bsontype.String:
+		str, _, ok := bsoncore.ReadString(data)
+		if !ok {
+			return fmt.Errorf("invalid BSON string")
+		}
+		if str != "" {
+			*s = []string{str}
+		} else {
+			*s = nil
+		}
+		return nil
+	case bsontype.Array:
+		var arr []string
+		if err := bson.Unmarshal(data, &arr); err != nil {
+			// Try raw unmarshal via RawValue
+			rv := bson.RawValue{Type: t, Value: data}
+			return rv.Unmarshal(&arr)
+		}
+		*s = arr
+		return nil
+	case bsontype.Null, bsontype.Undefined:
+		*s = nil
+		return nil
+	default:
+		return fmt.Errorf("cannot decode BSON type %s into StringSlice", t)
+	}
+}
+
+func (s StringSlice) MarshalJSON() ([]byte, error) {
+	return json.Marshal([]string(s))
+}
+
+func (s *StringSlice) UnmarshalJSON(data []byte) error {
+	// Try array first
+	var arr []string
+	if err := json.Unmarshal(data, &arr); err == nil {
+		*s = arr
+		return nil
+	}
+	// Try single string
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		if str != "" {
+			*s = []string{str}
+		} else {
+			*s = nil
+		}
+		return nil
+	}
+	return fmt.Errorf("cannot unmarshal %s into StringSlice", string(data))
+}
 
 // TargetConfig เป็น flat union — field ที่ใช้ขึ้นกับ type
 type TargetConfig struct {
@@ -21,8 +91,9 @@ type TargetConfig struct {
 	TimeoutMs      int               `bson:"timeoutMs,omitempty"     json:"timeoutMs,omitempty"`
 
 	// line
-	ChannelAccessToken string `bson:"channelAccessToken,omitempty" json:"channelAccessToken,omitempty"`
-	To                 string `bson:"to,omitempty"                 json:"to,omitempty"`
+	ChannelAccessToken    string      `bson:"channelAccessToken,omitempty"    json:"channelAccessToken,omitempty"`
+	ChannelAccessTokenRef string      `bson:"channelAccessTokenRef,omitempty" json:"channelAccessTokenRef,omitempty"`
+	To                    StringSlice `bson:"to,omitempty"                    json:"to,omitempty"`
 
 	// telegram
 	BotToken string `bson:"botToken,omitempty" json:"botToken,omitempty"`
