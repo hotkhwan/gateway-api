@@ -36,7 +36,7 @@ func NewIngestController(svc *ingestsvc.IngestService) *IngestController {
 // @Failure      423    {object}  gmod.ApiErrorResponse
 // @Failure      429    {object}  gmod.ApiErrorResponse
 // @Failure      500    {object}  gmod.ApiErrorResponse
-// @Router       /events/{orgId} [post]
+// @Router       /events/{orgId}/{sourceFamily} [post]
 func (ctrl *IngestController) Ingest(c *fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "IngestController.Ingest", "ingestapi", "Ingest")
 	defer end()
@@ -47,6 +47,12 @@ func (ctrl *IngestController) Ingest(c *fiber.Ctx) error {
 		return httputil.FailBadRequest(c, "orgId is required")
 	}
 
+	sourceFamily := strings.TrimSpace(c.Params("sourceFamily"))
+	if sourceFamily == "" {
+		log.Warn().Msg("❌ [Ingest] missing sourceFamily")
+		return httputil.FailBadRequest(c, "sourceFamily is required")
+	}
+
 	body := c.Body()
 	sourceIp := c.IP()
 	contentType := c.Get("Content-Type", "application/json")
@@ -54,12 +60,13 @@ func (ctrl *IngestController) Ingest(c *fiber.Ctx) error {
 	// Debug — hot path: every request logs at Debug to avoid production noise
 	log.Debug().
 		Str("orgId", orgId).
+		Str("sourceFamily", sourceFamily).
 		Str("sourceIp", sourceIp).
 		Str("contentType", contentType).
 		Int("bodySize", len(body)).
 		Msg("📥 [Ingest] incoming event")
 
-	result, err := ctrl.service.Ingest(ctx, orgId, sourceIp, contentType, body)
+	result, err := ctrl.service.Ingest(ctx, orgId, sourceFamily, sourceIp, contentType, body)
 	if err != nil {
 		switch {
 		case errors.Is(err, ingestsvc.ErrOrgNotFound):

@@ -72,8 +72,13 @@ type MessageTemplate struct {
 type MappingTemplate struct {
 	TemplateId          string                   `json:"templateId"                        bson:"templateId"`
 	OrgId               string                   `json:"orgId"                             bson:"orgId"`
+	SourceFamily        string                   `json:"sourceFamily,omitempty"            bson:"sourceFamily,omitempty"`
+	FinalEventType      string                   `json:"finalEventType,omitempty"          bson:"finalEventType,omitempty"`
 	Name                string                   `json:"name"                              bson:"name"`
 	Match               MatchRule                `json:"match"                             bson:"match"`
+	MatchAll            []MatchCondition         `json:"matchAll,omitempty"                bson:"matchAll,omitempty"`
+	MatchAny            []MatchCondition         `json:"matchAny,omitempty"                bson:"matchAny,omitempty"`
+	Priority            int                      `json:"priority,omitempty"                bson:"priority,omitempty"`
 	Mappings            []FieldMapping           `json:"mappings"                          bson:"mappings"`
 	DLQ                 DLQConfig                `json:"dlq"                               bson:"dlq"`
 	DefaultLocale       string                   `json:"defaultLocale,omitempty"           bson:"defaultLocale,omitempty"`
@@ -84,7 +89,14 @@ type MappingTemplate struct {
 	UpdatedAt           time.Time                `json:"updatedAt"                         bson:"updatedAt"`
 }
 
-// MatchRule defines criteria used to auto-bind a template to an incoming event.
+// MatchCondition — V2 condition for matchAll/matchAny template matching.
+type MatchCondition struct {
+	Field    string   `json:"field"    bson:"field"`    // e.g. "raw.type", "raw.typeValue"
+	Operator string   `json:"operator" bson:"operator"` // "eq" | "in" | "contains" | "prefix"
+	Values   []string `json:"values"   bson:"values"`   // values to match against
+}
+
+// MatchRule defines criteria used to auto-bind a template to an incoming event (V1 legacy).
 // Fingerprint matching uses: vendor|protocol|deviceType|deviceId|subType|eventType|rawSchemaVersion|rawBodyKeyHash
 type MatchRule struct {
 	Vendor           string `json:"vendor,omitempty"           bson:"vendor,omitempty"`

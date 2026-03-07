@@ -13,9 +13,9 @@ import (
 )
 
 // RegisterIngestEventsRoutes — hot path, no JWT, no audit
-// POST /events/:orgId
+// POST /events/:orgId/:sourceFamily
 func RegisterIngestEventsRoutes(app fiber.Router, c *app.Container) {
-	app.Post("/events/:orgId", c.IngestController.Ingest)
+	app.Post("/events/:orgId/:sourceFamily", c.IngestController.Ingest)
 }
 
 func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
@@ -62,6 +62,14 @@ func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
 			mgmt.Delete("/:eventId", c.EventManagementController.DeletePendingEvent)
 		})
 
+		// ---------- Source Profiles ----------
+		r.Route("/sourceProfiles", func(sp fiber.Router) {
+			sp.Get("/", c.SourceProfileController.List)
+			sp.Post("/", c.SourceProfileController.Create)
+			sp.Get("/:sourceFamily", c.SourceProfileController.Get)
+			sp.Patch("/:sourceFamily", c.SourceProfileController.Update)
+		})
+
 		// ---------- Mapping Templates ----------
 		r.Route("/mappingTemplates", func(tmpl fiber.Router) {
 			tmpl.Get("/", c.TemplateController.List)
@@ -69,6 +77,21 @@ func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
 			tmpl.Get("/:templateId", c.TemplateController.Get)
 			tmpl.Patch("/:templateId", c.TemplateController.Update)
 			tmpl.Delete("/:templateId", c.TemplateController.Delete)
+		})
+
+		// ---------- Device Management ----------
+		r.Route("/deviceManagement", func(dm fiber.Router) {
+			dm.Get("/", c.DeviceMgmtController.List)
+			dm.Post("/", c.DeviceMgmtController.Create)
+			dm.Get("/:id", c.DeviceMgmtController.Get)
+			dm.Patch("/:id", c.DeviceMgmtController.Update)
+		})
+
+		// ---------- Template Reviews ----------
+		r.Route("/templateReviews", func(tr fiber.Router) {
+			tr.Get("/", c.TemplateReviewController.List)
+			tr.Get("/:id", c.TemplateReviewController.Get)
+			tr.Post("/:id/archive", c.TemplateReviewController.Archive)
 		})
 
 		// ---------- DLQ ----------
