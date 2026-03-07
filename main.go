@@ -13,6 +13,8 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/configruntime"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/optionsrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingestrepo"
 	_ "github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/klivesvc"
@@ -159,7 +161,15 @@ func main() {
 	go kwatchcons.StartWatchlistConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_KWATCH_TOPIC", "kwatch.watchlist"))
 	go kwatchcons.StartWatchlistConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_KWATCH_SYNC_TOPIC", "kwatch.watchlist.sync"))
 	go iwowncons.StartKafkaIwownConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_TOPIC_IWOWN", "kwatch4g.iwown"))
-	go normalizedcons.StartKafkaNormalizedEventConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_TOPIC_NORMALIZED_EVENTS", "normalized.events"))
+	go normalizedcons.StartDeliveryConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_TOPIC_NORMALIZED_EVENTS", "normalized.events"))
+
+	go normalizedcons.StartNormalizerConsumer(ctx, normalizedcons.ConsumerDeps{
+		EventDetailsRepo: ingestdetailsrepo.NewEventDetailsRepo(),
+		TemplateRepo:     ingestrepo.NewMappingTemplateRepo(),
+		GeoCfg:           normalizedcons.DefaultGeoConfig(),
+		S3BucketKey:      os.Getenv("S3_EVENTS_BUCKET_KEY"),
+		Logger:           logger.WithMeta("normalizer", "consumer"),
+	})
 
 	app := fiber.New(fiber.Config{
 		ReadBufferSize: 16 * 1024,

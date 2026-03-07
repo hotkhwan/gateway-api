@@ -1,7 +1,6 @@
 package ingestmod
 
 import (
-	"encoding/json"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -21,7 +20,7 @@ type EventDetail struct {
 	EventType string  `bson:"eventType" json:"eventType"`
 
 	// Normalized data (based on event type template)
-	NormalizedData json.RawMessage `bson:"normalizedData" json:"normalizedData"`
+	NormalizedData map[string]any `bson:"normalizedData" json:"normalizedData"`
 
 	// Source tracking
 	SourceIp   string    `bson:"sourceIp" json:"sourceIp"`

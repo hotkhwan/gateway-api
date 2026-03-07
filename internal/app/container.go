@@ -12,9 +12,11 @@ import (
 	"github.com/hotkhwan/gateway-api/controllers/targetapi"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
+	"github.com/hotkhwan/gateway-api/internal/kafka/normalizedcons"
 	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicerepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/dlqrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
@@ -25,6 +27,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/ingeststatsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/dlqsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/templatesvc"
 )
@@ -78,6 +81,13 @@ type Container struct {
 	// ===== Mapping Template domain =====
 	TemplateController *ingestapi.TemplateController
 
+	// ===== DLQ domain =====
+	DLQService    *dlqsvc.DLQService
+	DLQController *ingestapi.DLQController
+
+	// ===== Normalizer consumer deps =====
+	NormalizerDeps normalizedcons.ConsumerDeps
+
 	// ===== Bulk Operations domain =====
 	BulkController *ingestapi.BulkController
 
@@ -102,6 +112,8 @@ func NewContainer() *Container {
 	c.buildTargets()
 	c.buildTemplate()
 	c.buildBulk()
+	c.buildNormalizer()
+	c.buildDLQ()
 	return c
 }
 
@@ -189,16 +201,14 @@ func (c *Container) buildDevice() {
 func (c *Container) buildIngest() {
 	orgRepo := authzrepo.NewOrgRepo(config.DB)
 	eventMgmtRepo := ingestmgmtrepo.NewEventManagementRepo()
-	eventDetailsRepo := ingestdetailsrepo.NewEventDetailsRepo()
 
-	// PR5: fingerprint template matcher (shared with buildTemplate)
+	// fingerprint template matcher (shared with buildTemplate)
 	templateRepo := ingestrepo.NewMappingTemplateRepo()
 	tmplMatcher := ingestsvc.NewTemplateMatcher(templateRepo, logger.WithMeta("ingest", "template-matcher"))
 
 	c.IngestService = ingestsvc.NewIngestService(
 		orgRepo,
 		eventMgmtRepo,
-		eventDetailsRepo,
 		c.SubscriptionService,
 		config.Redis,
 		tmplMatcher,
@@ -272,4 +282,29 @@ func (c *Container) buildBulk() {
 	tmplMatcher := ingestsvc.NewTemplateMatcher(templateRepo, logger.WithMeta("bulk", "template-matcher"))
 	svc := ingestsvc.NewBulkService(c.ApprovalService, tmplMatcher, templateRepo, logger.WithMeta("bulk", "service"))
 	c.BulkController = ingestapi.NewBulkController(svc)
+}
+
+// ============================================================
+// buildDLQ — DLQ service + controller
+// ============================================================
+
+func (c *Container) buildDLQ() {
+	repo := dlqrepo.NewDLQRepo()
+	c.DLQService = dlqsvc.NewDLQService(repo, logger.WithMeta("dlq", "service"))
+	c.DLQController = ingestapi.NewDLQController(c.DLQService)
+}
+
+// ============================================================
+// buildNormalizer — Normalizer consumer deps
+// ============================================================
+
+func (c *Container) buildNormalizer() {
+	c.NormalizerDeps = normalizedcons.ConsumerDeps{
+		EventDetailsRepo: ingestdetailsrepo.NewEventDetailsRepo(),
+		TemplateRepo:     ingestrepo.NewMappingTemplateRepo(),
+		DLQRepo:          dlqrepo.NewDLQRepo(),
+		GeoCfg:           normalizedcons.DefaultGeoConfig(),
+		S3BucketKey:      os.Getenv("S3_EVENTS_BUCKET_KEY"),
+		Logger:           logger.WithMeta("normalizer", "consumer"),
+	}
 }

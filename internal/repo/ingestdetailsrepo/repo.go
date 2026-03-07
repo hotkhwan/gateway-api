@@ -3,10 +3,11 @@ package ingestdetailsrepo
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
-	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/models/ingestmod"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -31,6 +32,26 @@ func (r *EventDetailsRepo) Insert(ctx context.Context, event *ingestmod.EventDet
 	}
 	event.ID = id
 	return nil
+}
+
+// Upsert stores a NormalizedEvent idempotently (insert or replace by eventId).
+// Used by the Normalizer consumer to write event_details from raw.events.
+func (r *EventDetailsRepo) Upsert(ctx context.Context, event *ingestmod.NormalizedEvent) error {
+	// Convert struct to bson.M via marshal/unmarshal so bson tags are respected
+	raw, err := bson.Marshal(event)
+	if err != nil {
+		return err
+	}
+	var doc bson.M
+	if err := bson.Unmarshal(raw, &doc); err != nil {
+		return err
+	}
+	delete(doc, "_id")
+
+	filter := bson.M{"eventId": event.EventId}
+	onInsert := bson.M{"createdAt": time.Now().UTC()}
+	_, err = stomongo.UpsertByFilter(ctx, "event_details", filter, doc, onInsert)
+	return err
 }
 
 // FindByEventId finds an approved event by eventId
@@ -100,15 +121,30 @@ func (r *EventDetailsRepo) ListApproved(
 // EnsureIndexes creates indexes for performance
 func (r *EventDetailsRepo) EnsureIndexes(ctx context.Context) error {
 	indexes := []mongo.IndexModel{
+		// Unique lookup by eventId
 		{
-			Keys:    bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "eventId", Value: 1}},
+			Keys:    bson.D{{Key: "eventId", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
+		// Standard list by tenant/org
 		{
-			Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "eventType", Value: 1}, {Key: "approvedAt", Value: -1}},
+			Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "occurredAt", Value: -1}},
 		},
+		// Event type filter
 		{
-			Keys: bson.D{{Key: "approvedAt", Value: -1}},
+			Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "eventType", Value: 1}, {Key: "occurredAt", Value: -1}},
+		},
+		// Geo cell lookup (heat maps)
+		{
+			Keys: bson.D{{Key: "geoCell.cell", Value: 1}, {Key: "tenantId", Value: 1}},
+		},
+		// Admin area filter (wildcard covers all admin codes)
+		{
+			Keys: bson.D{{Key: "byAdminArea.$**", Value: 1}},
+		},
+		// Country + admin level filter (dashboard by province)
+		{
+			Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "geo.countryCode", Value: 1}, {Key: "geo.adminCode", Value: 1}, {Key: "occurredAt", Value: -1}},
 		},
 	}
 

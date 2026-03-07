@@ -12,7 +12,6 @@ import (
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/cacheevt"
-	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
@@ -82,40 +81,37 @@ func (l *localEmergencyLimiter) Check(key string, limit int) bool {
 // ไม่มี auth, ไม่ยุ่ง Permify
 // Updated to use subscription-based limits and event management
 type IngestService struct {
-	orgRepo          *authzrepo.OrgRepo
-	eventMgmtRepo    *ingestmgmtrepo.EventManagementRepo
-	eventDetailsRepo *ingestdetailsrepo.EventDetailsRepo
-	subSvc           *subscriptionsvc.SubscriptionService
-	redis            *redis.Client
-	localOrg         *localEmergencyLimiter
-	tmplMatcher      *TemplateMatcher // PR5: fingerprint auto-match
-	logger           zerolog.Logger
+	orgRepo       *authzrepo.OrgRepo
+	eventMgmtRepo *ingestmgmtrepo.EventManagementRepo
+	subSvc        *subscriptionsvc.SubscriptionService
+	redis         *redis.Client
+	localOrg      *localEmergencyLimiter
+	tmplMatcher   *TemplateMatcher // fingerprint auto-match
+	logger        zerolog.Logger
 }
 
 func NewIngestService(
 	orgRepo *authzrepo.OrgRepo,
 	eventMgmtRepo *ingestmgmtrepo.EventManagementRepo,
-	eventDetailsRepo *ingestdetailsrepo.EventDetailsRepo,
 	subSvc *subscriptionsvc.SubscriptionService,
 	redis *redis.Client,
 	tmplMatcher *TemplateMatcher,
 	logger zerolog.Logger,
 ) *IngestService {
-	if orgRepo == nil || eventMgmtRepo == nil || eventDetailsRepo == nil || subSvc == nil || redis == nil {
-		panic("IngestService: orgRepo, eventMgmtRepo, eventDetailsRepo, subSvc, redis are required")
+	if orgRepo == nil || eventMgmtRepo == nil || subSvc == nil || redis == nil {
+		panic("IngestService: orgRepo, eventMgmtRepo, subSvc, redis are required")
 	}
 	if tmplMatcher == nil {
 		panic("IngestService: tmplMatcher is required")
 	}
 	return &IngestService{
-		orgRepo:          orgRepo,
-		eventMgmtRepo:    eventMgmtRepo,
-		eventDetailsRepo: eventDetailsRepo,
-		subSvc:           subSvc,
-		redis:            redis,
-		localOrg:         newLocalEmergencyLimiter(),
-		tmplMatcher:      tmplMatcher,
-		logger:           logger,
+		orgRepo:       orgRepo,
+		eventMgmtRepo: eventMgmtRepo,
+		subSvc:        subSvc,
+		redis:         redis,
+		localOrg:      newLocalEmergencyLimiter(),
+		tmplMatcher:   tmplMatcher,
+		logger:        logger,
 	}
 }
 
@@ -370,18 +366,11 @@ func (s *IngestService) Ingest(
 				ctx,
 				policy.TenantId, orgId, deviceKey, suggestedType,
 				eventId, receivedAt, sourceIp,
-				rawBody, tmpl,
+				rawBody, tmpl, deviceRef,
 			); err != nil {
-				// Non-fatal: fall through to auto-approved path
-				s.logger.Error().Err(err).
-					Str("orgId", orgId).
-					Str("tenantId", policy.TenantId).
-					Str("eventId", eventId).
-					Str("templateId", tmpl.TemplateId).
-					Msg("template-mapped processing failed, falling through to auto-approved")
-			} else {
-				return &IngestResult{EventId: eventId, ReceivedAt: receivedAt}, nil
+				return nil, err
 			}
+			return &IngestResult{EventId: eventId, ReceivedAt: receivedAt}, nil
 		}
 
 		// Approved device but no matching template — reject without forwarding
@@ -499,11 +488,9 @@ func (s *IngestService) Ingest(
 	return &IngestResult{EventId: eventId, ReceivedAt: receivedAt, Pending: true}, nil
 }
 
-// processTemplateMappedEvent applies a matched mapping template to rawBody,
-// stores the result directly in event_details (bypassing the pending queue),
-// and publishes to the normalized Kafka topic.
-//
-// Audit: structured log entry written with templateId + eventId on every call.
+// processTemplateMappedEvent applies a matched mapping template to rawBody
+// and publishes a CanonicalEvent to raw.events.
+// The Normalizer consumer handles writing to event_details + S3.
 func (s *IngestService) processTemplateMappedEvent(
 	ctx context.Context,
 	tenantId, orgId, deviceKey, eventType, eventId string,
@@ -511,13 +498,10 @@ func (s *IngestService) processTemplateMappedEvent(
 	sourceIp string,
 	rawBody map[string]any,
 	tmpl *ingestmod.MappingTemplate,
+	deviceRef *ingestmod.DeviceIdentity,
 ) error {
-	now := time.Now().UTC()
-
-	// 1) Apply field mappings
+	// 1) Apply field mappings (to extract lat/lng and occurredAt only)
 	mapped, missingRequired := s.tmplMatcher.ApplyMappings(rawBody, tmpl.Mappings)
-
-	// Audit: log missing required fields (non-blocking)
 	if len(missingRequired) > 0 {
 		s.logger.Warn().
 			Str("tenantId", tenantId).
@@ -528,81 +512,70 @@ func (s *IngestService) processTemplateMappedEvent(
 			Msg("[TemplateMapped] required fields missing in rawBody")
 	}
 
-	// 2) Build normalizedData — mapped fields + raw fallback
-	normalizedPayload := map[string]any{
-		"eventType":  eventType,
-		"normalized": true,
-		"source":     "fingerprint-template",
-		"templateId": tmpl.TemplateId,
-		"fields":     mapped,
-		"rawData":    rawBody,
-	}
-	normalizedData, err := json.Marshal(normalizedPayload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal normalized data: %w", err)
-	}
-
-	// 3) Resolve lat/lng from mapped fields (targets: "location.lat" / "location.lng")
+	// 2) Resolve lat/lng from mapped fields
 	lat, _ := getNestedValue(mapped, "location.lat")
 	lng, _ := getNestedValue(mapped, "location.lng")
 	latF, _ := lat.(float64)
 	lngF, _ := lng.(float64)
 
-	// 4) Store in event_details
-	eventDetail := &ingestmod.EventDetail{
-		EventId:        eventId,
-		TenantId:       tenantId,
-		OrgId:          orgId,
-		Name:           fmt.Sprintf("Event %s (template:%s)", eventId[:8], tmpl.TemplateId),
-		Lat:            latF,
-		Lng:            lngF,
-		EventType:      eventType,
-		NormalizedData: normalizedData,
-		SourceIp:       sourceIp,
-		IngestedAt:     receivedAt,
-		ApprovedAt:     now,
-		CreatedAt:      now,
-		UpdatedAt:      now,
-	}
-	if err := s.eventDetailsRepo.Insert(ctx, eventDetail); err != nil {
-		return fmt.Errorf("failed to store template-mapped event: %w", err)
+	// 3) Resolve occurredAt from mapped fields (fallback: receivedAt)
+	occurredAt := receivedAt
+	if ts, ok := getNestedValue(mapped, "occurredAt"); ok {
+		if t, ok2 := ts.(time.Time); ok2 {
+			occurredAt = t
+		}
 	}
 
-	// 5) Publish to normalized Kafka topic
-	topic := config.TopicEnv("KAFKA_TOPIC_NORMALIZED_EVENTS", "normalized.events")
-	payload, _ := json.Marshal(eventDetail)
-	if err := config.SendToKafkaWithCtx(ctx, topic, orgId, payload, nil); err != nil {
+	// 4) Build CanonicalEvent for raw.events
+	deviceId := ""
+	deviceType := ""
+	if deviceRef != nil {
+		deviceId = deviceRef.ID
+		deviceType = deviceRef.Type
+	}
+	canonical := &ingestmod.CanonicalEvent{
+		EventId:    eventId,
+		TenantId:   tenantId,
+		EventType:  eventType,
+		OccurredAt: occurredAt,
+		Source: ingestmod.SourceInfo{
+			DeviceId:   deviceId,
+			DeviceType: deviceType,
+			OrgId:      orgId,
+		},
+		Location:   ingestmod.LocationInfo{Lat: latF, Lng: lngF},
+		Payload:    rawBody, // raw payload — normalizer applies template again
+		TemplateId: tmpl.TemplateId,
+		CreatedAt:  time.Now().UTC(),
+	}
+
+	// 5) Publish to raw.events — normalizer writes to event_details
+	topic := config.TopicEnv("KAFKA_TOPIC_RAW_EVENTS", "raw.events")
+	payload, _ := json.Marshal(canonical)
+	headers := map[string]string{
+		"eventId":    eventId,
+		"eventType":  eventType,
+		"orgId":      orgId,
+		"tenantId":   tenantId,
+		"templateId": tmpl.TemplateId,
+	}
+	if err := config.SendToKafkaWithCtx(ctx, topic, orgId, payload, headers); err != nil {
 		s.logger.Error().
 			Str("tenantId", tenantId).
 			Str("orgId", orgId).
 			Str("eventId", eventId).
 			Str("templateId", tmpl.TemplateId).
 			Err(err).
-			Msg("[TemplateMapped] Kafka send failed (non-blocking)")
+			Msg("[TemplateMapped] kafka publish to raw.events failed")
+		return fmt.Errorf("kafka publish failed: %w", err)
 	}
 
-	// 6) Cache as approved
-	if err := cacheevt.SetEventStatusApproved(ctx, tenantId, eventId); err != nil {
-		s.logger.Warn().
-			Str("tenantId", tenantId).
-			Str("eventId", eventId).
-			Err(err).
-			Msg("[TemplateMapped] failed to cache event status (non-critical)")
-	}
-
-	// 7) Cache device:eventType so future events also skip pending
+	// 6) Cache device:eventType approval for future events
 	if deviceKey != "" {
-		if err := cacheevt.SetDeviceEventTypeApproved(ctx, tenantId, deviceKey, eventType); err != nil {
-			s.logger.Warn().
-				Str("tenantId", tenantId).
-				Str("deviceKey", deviceKey).
-				Str("eventType", eventType).
-				Err(err).
-				Msg("[TemplateMapped] failed to cache device:eventType approval (non-critical)")
-		}
+		_ = cacheevt.SetDeviceEventTypeApproved(ctx, tenantId, deviceKey, eventType)
 	}
+	_ = cacheevt.SetEventStatusApproved(ctx, tenantId, eventId)
 
-	// Debug — hot path: template mapping result per event
 	s.logger.Debug().
 		Str("tenantId", tenantId).
 		Str("orgId", orgId).
@@ -611,102 +584,9 @@ func (s *IngestService) processTemplateMappedEvent(
 		Str("templateName", tmpl.Name).
 		Str("deviceKey", deviceKey).
 		Str("eventType", eventType).
-		Int("mappedFields", len(mapped)).
-		Int("missingRequired", len(missingRequired)).
-		Msg("[TemplateMapped] event auto-mapped successfully")
+		Msg("[TemplateMapped] published to raw.events")
 
 	return nil
-}
-
-// processAutoApprovedEvent handles events that have pre-approved device:eventType
-// Normalizes, stores in event_details, and sends to Kafka
-func (s *IngestService) processAutoApprovedEvent(
-	ctx context.Context,
-	tenantId, orgId, deviceKey, eventType, eventId string,
-	receivedAt time.Time,
-	sourceIp string,
-	body []byte,
-	_ json.RawMessage,
-	_ *ingestmod.DeviceIdentity,
-) error {
-	now := time.Now().UTC()
-
-	// 1) Decode + normalize event data
-	autoRawBody, _ := decodeRawBody(body)
-	normalizedData, err := s.normalizeEvent(eventType, autoRawBody)
-	if err != nil {
-		return fmt.Errorf("normalization failed: %w", err)
-	}
-
-	// 2) Create approved event detail
-	eventDetail := &ingestmod.EventDetail{
-		EventId:        eventId,
-		TenantId:       tenantId,
-		OrgId:          orgId,
-		Name:           fmt.Sprintf("Event %s (Auto-approved)", eventId[:8]),
-		Lat:            0,
-		Lng:            0,
-		EventType:      eventType,
-		NormalizedData: normalizedData,
-		SourceIp:       sourceIp,
-		IngestedAt:     receivedAt,
-		ApprovedAt:     now,
-		CreatedAt:      now,
-		UpdatedAt:      now,
-	}
-
-	// 3) Store in event_details
-	if err := s.eventDetailsRepo.Insert(ctx, eventDetail); err != nil {
-		return fmt.Errorf("failed to store approved event: %w", err)
-	}
-
-	// 4) Send to Kafka (normalized topic)
-	topic := config.TopicEnv("KAFKA_TOPIC_NORMALIZED_EVENTS", "normalized.events")
-	payload, _ := json.Marshal(eventDetail)
-	if err := config.SendToKafkaWithCtx(ctx, topic, orgId, payload, nil); err != nil {
-		// Log error but don't block processing
-		s.logger.Error().
-			Str("tenantId", tenantId).
-			Str("orgId", orgId).
-			Str("eventId", eventId).
-			Str("deviceKey", deviceKey).
-			Str("eventType", eventType).
-			Err(err).
-			Msg("kafka send failed (non-blocking)")
-	}
-
-	// 5) Cache event status as approved
-	if err := cacheevt.SetEventStatusApproved(ctx, tenantId, eventId); err != nil {
-		s.logger.Warn().
-			Str("tenantId", tenantId).
-			Str("eventId", eventId).
-			Err(err).
-			Msg("failed to update Redis cache (non-critical)")
-	}
-
-	// Debug — hot path: auto-approved events are high frequency
-	s.logger.Debug().
-		Str("tenantId", tenantId).
-		Str("orgId", orgId).
-		Str("eventId", eventId).
-		Str("deviceKey", deviceKey).
-		Str("eventType", eventType).
-		Msg("auto-approved event processed successfully")
-
-	return nil
-}
-
-// normalizeEvent normalizes raw event data
-// For now, returns raw data with metadata
-// Future: Apply type-specific normalization templates
-func (s *IngestService) normalizeEvent(eventType string, rawBody map[string]any) (json.RawMessage, error) {
-	result := map[string]any{
-		"eventType":  eventType,
-		"normalized": true,
-		"rawData":    rawBody,
-	}
-
-	return json.Marshal(result)
 }
 
 // detectEventType auto-detects event type from raw body
