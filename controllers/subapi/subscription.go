@@ -18,6 +18,71 @@ func NewSubscriptionController(svc *subscriptionsvc.SubscriptionService) *Subscr
 	return &SubscriptionController{svc: svc}
 }
 
+// ListPackages returns all public subscription packages (pricing page)
+// @Summary      List subscription packages
+// @Description  Returns all active subscription packages ordered by sortOrder. Used for pricing/upgrade UI.
+// @Tags         Subscription
+// @Security     BearerAuth
+// @Produce      json
+// @Param        locale      query  string  false  "Locale for i18n fields"  default(en)
+// @Param        publicOnly  query  bool    false  "Return only public packages"  default(true)
+// @Success      200 {object} gmod.SuccessDetailResponseAny
+// @Failure      500 {object} gmod.ApiErrorResponse
+// @Router       /api/v1/subscriptions/packages [get]
+func (ctrl *SubscriptionController) ListPackages(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	publicOnly := c.QueryBool("publicOnly", true)
+
+	packages, err := ctrl.svc.ListPackages(ctx, publicOnly)
+	if err != nil {
+		return c.Status(500).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeInternalError,
+			Message: "failed to list packages",
+			Status:  false,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code":    gmod.CodeSuccess,
+		"message": "packages fetched",
+		"status":  true,
+		"details": packages,
+	})
+}
+
+// GetCurrentSubscription returns the tenant's effective subscription (plan + overrides resolved)
+// @Summary      Get current subscription
+// @Description  Returns the effective subscription with resolved limits (package + overrides merged)
+// @Tags         Subscription
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200 {object} gmod.SuccessDetailResponseAny
+// @Failure      404 {object} gmod.ApiErrorResponse
+// @Failure      500 {object} gmod.ApiErrorResponse
+// @Router       /api/v1/subscriptions/current [get]
+func (ctrl *SubscriptionController) GetCurrentSubscription(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	tenantId, _ := c.Locals("tenantId").(string)
+
+	eff, err := ctrl.svc.GetCurrentEffective(ctx, tenantId)
+	if err != nil {
+		return c.Status(500).JSON(gmod.ApiErrorResponse{
+			Code:    gmod.CodeInternalError,
+			Message: "failed to get current subscription",
+			Status:  false,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code":    gmod.CodeSuccess,
+		"message": "current subscription fetched",
+		"status":  true,
+		"detail":  eff,
+	})
+}
+
 // BootstrapSubscription creates default freemium subscription if tenant doesn't have one
 // @Summary      Bootstrap subscription
 // @Description  Creates a default freemium subscription for the tenant if not already exists

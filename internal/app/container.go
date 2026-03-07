@@ -7,26 +7,30 @@ import (
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/controllers/authzapi"
 	"github.com/hotkhwan/gateway-api/controllers/deviceapi"
-	"github.com/hotkhwan/gateway-api/controllers/eventapi"
 	"github.com/hotkhwan/gateway-api/controllers/ingestapi"
 	"github.com/hotkhwan/gateway-api/controllers/subapi"
 	"github.com/hotkhwan/gateway-api/controllers/targetapi"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
+	"github.com/hotkhwan/gateway-api/internal/kafka/deliverycons"
+	"github.com/hotkhwan/gateway-api/internal/kafka/normalizedcons"
 	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicerepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/eventdetailsrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/eventmgmtrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/dlqrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingestrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/targetrepo"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
-	"github.com/hotkhwan/gateway-api/internal/services/eventsvc"
-	"github.com/hotkhwan/gateway-api/internal/services/ingeststatsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/ingeststatsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/dlqsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/templatesvc"
 )
 
 // ============================================================
@@ -67,13 +71,29 @@ type Container struct {
 	IngestController *ingestapi.IngestController
 
 	// ===== Event Management domain =====
-	ApprovalService           *eventsvc.ApprovalService
-	EventManagementController *eventapi.EventManagementController
-	EventDetailsController    *eventapi.EventDetailsController
+	ApprovalService           *ingestsvc.ApprovalService
+	EventManagementController *ingestapi.EventManagementController
+	EventDetailsController    *ingestapi.EventDetailsController
 
 	// ===== Ingest Dashboard domain =====
 	DashboardStatsService     *ingeststatsvc.DashboardStatsService
 	IngestDashboardController *ingestapi.IngestDashboardController
+
+	// ===== Mapping Template domain =====
+	TemplateController *ingestapi.TemplateController
+
+	// ===== DLQ domain =====
+	DLQService    *dlqsvc.DLQService
+	DLQController *ingestapi.DLQController
+
+	// ===== Normalizer consumer deps =====
+	NormalizerDeps normalizedcons.ConsumerDeps
+
+	// ===== Delivery consumer deps =====
+	DeliveryDeps deliverycons.ConsumerDeps
+
+	// ===== Bulk Operations domain =====
+	BulkController *ingestapi.BulkController
 
 	// ===== Subscription domain =====
 	SubscriptionService    *subscriptionsvc.SubscriptionService
@@ -94,6 +114,11 @@ func NewContainer() *Container {
 	c.buildIngest()
 	c.buildEvents()
 	c.buildTargets()
+	c.buildTemplate()
+	c.buildBulk()
+	c.buildNormalizer()
+	c.buildDLQ()
+	c.buildDeliveryConsumer()
 	return c
 }
 
@@ -180,9 +205,20 @@ func (c *Container) buildDevice() {
 
 func (c *Container) buildIngest() {
 	orgRepo := authzrepo.NewOrgRepo(config.DB)
-	eventMgmtRepo := eventmgmtrepo.NewEventManagementRepo()
-	eventDetailsRepo := eventdetailsrepo.NewEventDetailsRepo()
-	c.IngestService = ingestsvc.NewIngestService(orgRepo, eventMgmtRepo, eventDetailsRepo, c.SubscriptionService, config.Redis, logger.WithMeta("ingest", "container"))
+	eventMgmtRepo := ingestmgmtrepo.NewEventManagementRepo()
+
+	// fingerprint template matcher (shared with buildTemplate)
+	templateRepo := ingestrepo.NewMappingTemplateRepo()
+	tmplMatcher := ingestsvc.NewTemplateMatcher(templateRepo, logger.WithMeta("ingest", "template-matcher"))
+
+	c.IngestService = ingestsvc.NewIngestService(
+		orgRepo,
+		eventMgmtRepo,
+		c.SubscriptionService,
+		config.Redis,
+		tmplMatcher,
+		logger.WithMeta("ingest", "container"),
+	)
 	c.IngestController = ingestapi.NewIngestController(c.IngestService)
 }
 
@@ -202,7 +238,7 @@ func (c *Container) buildSubscription() {
 
 func (c *Container) buildTargets() {
 	repo := targetrepo.NewTargetRepo()
-	c.TargetService = targetsvc.NewTargetService(repo, c.AuthzClient)
+	c.TargetService = targetsvc.NewTargetService(repo, c.AuthzClient, c.SubscriptionService)
 	c.TargetController = targetapi.NewTargetController(c.TargetService)
 }
 
@@ -211,17 +247,17 @@ func (c *Container) buildTargets() {
 // ============================================================
 
 func (c *Container) buildEvents() {
-	eventMgmtRepo := eventmgmtrepo.NewEventManagementRepo()
-	eventDetailsRepo := eventdetailsrepo.NewEventDetailsRepo()
+	eventMgmtRepo := ingestmgmtrepo.NewEventManagementRepo()
+	eventDetailsRepo := ingestdetailsrepo.NewEventDetailsRepo()
 
-	c.ApprovalService = eventsvc.NewApprovalService(
+	c.ApprovalService = ingestsvc.NewApprovalService(
 		eventMgmtRepo,
 		eventDetailsRepo,
 		config.Redis,
 		logger.WithMeta("event", "approval"),
 	)
-	c.EventManagementController = eventapi.NewEventManagementController(c.ApprovalService)
-	c.EventDetailsController = eventapi.NewEventDetailsController(c.ApprovalService)
+	c.EventManagementController = ingestapi.NewEventManagementController(c.ApprovalService)
+	c.EventDetailsController = ingestapi.NewEventDetailsController(c.ApprovalService)
 
 	// Dashboard Stats Service
 	c.DashboardStatsService = ingeststatsvc.NewDashboardStatsService(
@@ -230,4 +266,63 @@ func (c *Container) buildEvents() {
 		logger.WithMeta("ingest", "dashboard"),
 	)
 	c.IngestDashboardController = ingestapi.NewIngestDashboardController(c.DashboardStatsService)
+}
+
+// ============================================================
+// buildTemplate — Mapping Template domain
+// ============================================================
+
+func (c *Container) buildTemplate() {
+	templateRepo := ingestrepo.NewMappingTemplateRepo()
+	svc := templatesvc.NewTemplateService(templateRepo)
+	c.TemplateController = ingestapi.NewTemplateController(svc)
+}
+
+// ============================================================
+// buildBulk — Bulk Operations domain (PR6)
+// ============================================================
+
+func (c *Container) buildBulk() {
+	templateRepo := ingestrepo.NewMappingTemplateRepo()
+	tmplMatcher := ingestsvc.NewTemplateMatcher(templateRepo, logger.WithMeta("bulk", "template-matcher"))
+	svc := ingestsvc.NewBulkService(c.ApprovalService, tmplMatcher, templateRepo, logger.WithMeta("bulk", "service"))
+	c.BulkController = ingestapi.NewBulkController(svc)
+}
+
+// ============================================================
+// buildDLQ — DLQ service + controller
+// ============================================================
+
+func (c *Container) buildDLQ() {
+	repo := dlqrepo.NewDLQRepo()
+	c.DLQService = dlqsvc.NewDLQService(repo, logger.WithMeta("dlq", "service"))
+	c.DLQController = ingestapi.NewDLQController(c.DLQService)
+}
+
+// ============================================================
+// buildNormalizer — Normalizer consumer deps
+// ============================================================
+
+func (c *Container) buildNormalizer() {
+	c.NormalizerDeps = normalizedcons.ConsumerDeps{
+		EventDetailsRepo: ingestdetailsrepo.NewEventDetailsRepo(),
+		TemplateRepo:     ingestrepo.NewMappingTemplateRepo(),
+		DLQRepo:          dlqrepo.NewDLQRepo(),
+		GeoCfg:           normalizedcons.DefaultGeoConfig(),
+		S3BucketKey:      os.Getenv("S3_EVENTS_BUCKET_KEY"),
+		Logger:           logger.WithMeta("normalizer", "consumer"),
+	}
+}
+
+// ============================================================
+// buildDeliveryConsumer — Delivery consumer deps
+// ============================================================
+
+func (c *Container) buildDeliveryConsumer() {
+	c.DeliveryDeps = deliverycons.ConsumerDeps{
+		TargetRepo:   targetrepo.NewTargetRepo(),
+		TemplateRepo: ingestrepo.NewMappingTemplateRepo(),
+		DLQRepo:      dlqrepo.NewDLQRepo(),
+		Logger:       logger.WithMeta("delivery", "consumer"),
+	}
 }

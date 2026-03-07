@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hotkhwan/gateway-api/internal/repo/eventdetailsrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/eventmgmtrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/rs/zerolog"
 )
@@ -18,14 +18,14 @@ var (
 )
 
 type DashboardStatsService struct {
-	eventMgmtRepo    *eventmgmtrepo.EventManagementRepo
-	eventDetailsRepo *eventdetailsrepo.EventDetailsRepo
+	eventMgmtRepo    *ingestmgmtrepo.EventManagementRepo
+	eventDetailsRepo *ingestdetailsrepo.EventDetailsRepo
 	logger           zerolog.Logger
 }
 
 func NewDashboardStatsService(
-	eventMgmtRepo *eventmgmtrepo.EventManagementRepo,
-	eventDetailsRepo *eventdetailsrepo.EventDetailsRepo,
+	eventMgmtRepo *ingestmgmtrepo.EventManagementRepo,
+	eventDetailsRepo *ingestdetailsrepo.EventDetailsRepo,
 	logger zerolog.Logger,
 ) *DashboardStatsService {
 	return &DashboardStatsService{
@@ -187,7 +187,7 @@ func (s *DashboardStatsService) buildAdminArea1Buckets(
 	return buckets, nil
 }
 
-// getRecentEvents ดึง events ล่าสุด
+// getRecentEvents ดึง events ล่าสุดจาก event_details
 func (s *DashboardStatsService) getRecentEvents(
 	ctx context.Context,
 	tenantId, orgId string,
@@ -195,30 +195,7 @@ func (s *DashboardStatsService) getRecentEvents(
 	status, eventType string,
 	limit int,
 ) ([]ingestmod.RecentEventSummary, error) {
-	// สำหรับเบื้องต้น เราจะ query จาก event_management ก่อน
-	events, err := s.eventMgmtRepo.GetRecentEvents(ctx, tenantId, orgId, start, end, status, eventType, limit)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert to RecentEventSummary
-	summaries := make([]ingestmod.RecentEventSummary, 0, len(events))
-	for _, e := range events {
-		summaries = append(summaries, ingestmod.RecentEventSummary{
-			ID:        e.ID,
-			EventId:   e.EventId,
-			Name:      e.Name,
-			EventType: e.EventType,
-			Status:    e.Status,
-			Priority:  e.Priority,
-			CreatedAt: e.CreatedAt,
-			Lat:       e.Lat,
-			Lng:       e.Lng,
-			SourceIp:  e.SourceIp,
-		})
-	}
-
-	return summaries, nil
+	return s.eventDetailsRepo.GetRecentEvents(ctx, tenantId, orgId, start, end, eventType, limit)
 }
 
 // parseDateTimeRange parse ISO 8601 datetime range

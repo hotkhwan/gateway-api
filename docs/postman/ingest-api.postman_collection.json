@@ -1,0 +1,723 @@
+{
+  "info": {
+    "_postman_id": "ingest-api-collection-v2",
+    "name": "Ingest API",
+    "description": "Gateway API — Ingest pipeline endpoints.\n\nVariables (set in Environment or Collection):\n- `urlapi`        — e.g. https://gateway.aisom.cloud/api/v1  (includes /api/v1)\n- `baseUrl`       — e.g. https://gateway.aisom.cloud          (root, for /events only)\n- `access_token`  — Bearer JWT from Keycloak\n- `orgId`         — Active org UUID\n- `eventId`       — Auto-captured from GET management list/single\n- `templateId`    — Auto-captured from GET mappingTemplates list/single\n- `targetId`      — Delivery target UUID (from delivery_targets collection)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "urlapi",       "value": "https://gateway.aisom.cloud/api/v1", "type": "string" },
+    { "key": "baseUrl",      "value": "https://gateway.aisom.cloud",        "type": "string" },
+    { "key": "access_token", "value": "",                                   "type": "string" },
+    { "key": "orgId",        "value": "",                                   "type": "string" },
+    { "key": "eventId",      "value": "",                                   "type": "string" },
+    { "key": "templateId",   "value": "",                                   "type": "string" },
+    { "key": "targetId",     "value": "",                                   "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Ingest",
+      "description": "Hot-path event ingestion. No JWT required. Rate-limited per org + IP.\nNote: /events/:orgId is at root (no /api/v1 prefix) — uses {{baseUrl}}.",
+      "item": [
+        {
+          "name": "POST /events/:orgId — Ingest raw event",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/events/{{orgId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "{{orgId}}"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"DEV-001\",\n  \"deviceType\": \"camera\",\n  \"temperature\": 36.6,\n  \"location\": {\n    \"lat\": 13.7563,\n    \"lng\": 100.5018\n  },\n  \"ts\": \"2026-03-06T10:00:00Z\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "POST raw event payload from device or 3rd-party. Returns 202 Accepted with eventId. Returns 423 Locked if device already has an unresolved pending event."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.detail && json.detail.eventId) {",
+                  "    pm.collectionVariables.set('eventId', json.detail.eventId);",
+                  "    console.log('eventId set:', json.detail.eventId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ingest Config",
+      "description": "Org-level ingest configuration. Requires Bearer JWT + X-Active-Org.",
+      "item": [
+        {
+          "name": "GET /ingest — Get ingest config",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", ""]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns ingest configuration for the active org."
+          }
+        },
+        {
+          "name": "POST /ingest/rotateSecret — Rotate ingest secret",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/ingest/rotateSecret",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "rotateSecret"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Rotates the ingest webhook secret for the active org."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "description": "Ingest statistics dashboard. Requires Bearer JWT + X-Active-Org.",
+      "item": [
+        {
+          "name": "GET /ingest/dashboard — Get dashboard stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/dashboard?dateTime=2026-03-01T00:00:00Z,2026-03-06T23:59:59Z&status=all",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "dashboard"],
+              "query": [
+                { "key": "dateTime",  "value": "2026-03-01T00:00:00Z,2026-03-06T23:59:59Z", "description": "from,to RFC3339 UTC" },
+                { "key": "status",    "value": "all",                                        "description": "all | pending | approved | rejected" },
+                { "key": "eventType", "value": "",                                           "description": "Optional filter", "disabled": true }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns aggregated ingest statistics.\ndateTime format: from,to (RFC3339 UTC)\nExample: 2026-03-01T00:00:00Z,2026-03-06T23:59:59Z"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Management",
+      "description": "Pending event management (list, get, update, approve, reject, delete). Requires Bearer JWT + X-Active-Org.",
+      "item": [
+        {
+          "name": "GET /ingest/management — List pending events",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/management?page=1&perPages=10&sortField=createdAt&sortOrder=desc",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "management"],
+              "query": [
+                { "key": "page",      "value": "1" },
+                { "key": "perPages",  "value": "10" },
+                { "key": "sortField", "value": "createdAt" },
+                { "key": "sortOrder", "value": "desc" },
+                { "key": "search",    "value": "", "disabled": true },
+                { "key": "eventType", "value": "", "disabled": true },
+                { "key": "status",    "value": "pending", "disabled": true }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns paginated list of pending ingest events.\nAuto-saves first eventId from response."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.details && json.details.length > 0) {",
+                  "    var id = json.details[0].eventId;",
+                  "    pm.collectionVariables.set('eventId', id);",
+                  "    console.log('eventId set from list:', id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /ingest/management/:eventId — Get pending event",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/management/{{eventId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "management", "{{eventId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns a single pending event by ID."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.detail && json.detail.eventId) {",
+                  "    pm.collectionVariables.set('eventId', json.detail.eventId);",
+                  "    console.log('eventId set from get:', json.detail.eventId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /ingest/management/:eventId — Update pending event",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/management/{{eventId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "management", "{{eventId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventType\": \"temperature_alert\",\n  \"name\": \"Temperature Alert\",\n  \"lat\": 13.7563,\n  \"lng\": 100.5018,\n  \"note\": \"manually classified\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Updates metadata fields on a pending event (eventType, name, lat, lng, note)."
+          }
+        },
+        {
+          "name": "POST /ingest/management/:eventId/approve — Approve event",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/ingest/management/{{eventId}}/approve",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "management", "{{eventId}}", "approve"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"approved by operator\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Runs approval gate validation (eventType required), builds CanonicalEvent, publishes to raw.events Kafka topic, stores approved event."
+          }
+        },
+        {
+          "name": "POST /ingest/management/:eventId/reject — Reject event",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/ingest/management/{{eventId}}/reject",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "management", "{{eventId}}", "reject"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"invalid event\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Rejects a pending event. Sets status to rejected."
+          }
+        },
+        {
+          "name": "DELETE /ingest/management/:eventId — Delete pending event",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{urlapi}}/ingest/management/{{eventId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "management", "{{eventId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Hard-deletes a pending event."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bulk",
+      "description": "Bulk operations on pending events (up to 100 per request). Requires Bearer JWT + X-Active-Org.",
+      "item": [
+        {
+          "name": "POST /ingest/management/bulk/approve — Bulk approve",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/ingest/management/bulk/approve",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "management", "bulk", "approve"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventIds\": [\n    \"{{eventId}}\"\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Approves up to 100 pending events. Returns per-event succeeded/failed breakdown."
+          }
+        },
+        {
+          "name": "POST /ingest/management/bulk/reject — Bulk reject",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/ingest/management/bulk/reject",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "management", "bulk", "reject"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventIds\": [\n    \"{{eventId}}\"\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Rejects up to 100 pending events. Returns per-event succeeded/failed breakdown."
+          }
+        },
+        {
+          "name": "POST /ingest/management/bulk/delete — Bulk delete",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/ingest/management/bulk/delete",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "management", "bulk", "delete"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventIds\": [\n    \"{{eventId}}\"\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Deletes up to 100 pending events. Returns per-event succeeded/failed breakdown."
+          }
+        },
+        {
+          "name": "POST /ingest/management/bulk/applyTemplate — Bulk apply template",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/ingest/management/bulk/applyTemplate",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "management", "bulk", "applyTemplate"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateId\": \"{{templateId}}\",\n  \"eventIds\": [\n    \"{{eventId}}\"\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Applies a mapping template to up to 100 pending events and auto-approves each one. Returns per-event succeeded/failed breakdown."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Details",
+      "description": "Approved canonical event details. Requires Bearer JWT + X-Active-Org.",
+      "item": [
+        {
+          "name": "GET /ingest/details — List approved events",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/details?page=1&perPage=10&sortField=approvedAt&sortOrder=desc",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "details"],
+              "query": [
+                { "key": "page",      "value": "1" },
+                { "key": "perPage",   "value": "10" },
+                { "key": "sortField", "value": "approvedAt" },
+                { "key": "sortOrder", "value": "desc" },
+                { "key": "eventType", "value": "", "disabled": true }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns paginated list of approved canonical events."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.details && json.details.length > 0) {",
+                  "    var id = json.details[0].eventId;",
+                  "    pm.collectionVariables.set('eventId', id);",
+                  "    console.log('eventId set from details list:', id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /ingest/details/:eventId — Get approved event",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/details/{{eventId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "details", "{{eventId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns a single approved canonical event by ID."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mapping Templates",
+      "description": "Mapping template CRUD with classification rules and delivery target binding.\nRequires Bearer JWT + X-Active-Org.\n\nclassificationRules: derives canonical eventClass/eventSeverity from payload fields.\ndeliveryTargets: binds targets with optional payload filter, eventClasses, eventSeverities whitelist.\nmessageTemplates: locale-aware notification text (key-based selection via messageTemplateKey).\ndlq: per-template dead-letter queue configuration.\n\neventClass enum: unknown, anonymous, whitelist, watchlist, vip, blacklist, redlist, custom\neventSeverity enum: none, info, warning, critical",
+      "item": [
+        {
+          "name": "GET /ingest/mappingTemplates — List templates",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates?page=1&perPages=10&sortField=createdAt&sortOrder=desc",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates"],
+              "query": [
+                { "key": "page",      "value": "1" },
+                { "key": "perPages",  "value": "10" },
+                { "key": "sortField", "value": "createdAt" },
+                { "key": "sortOrder", "value": "desc" },
+                { "key": "search",    "value": "", "disabled": true }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns paginated list of mapping templates."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.details && json.details.length > 0) {",
+                  "    var id = json.details[0].templateId;",
+                  "    pm.collectionVariables.set('templateId', id);",
+                  "    console.log('templateId set from list:', id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /ingest/mappingTemplates — Create full template (classification + delivery)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"LPR Security Alert\",\n  \"match\": {\n    \"deviceId\": \"DEV-001\"\n  },\n  \"mappings\": [\n    { \"sourcePath\": \"deviceId\",     \"targetPath\": \"deviceId\",     \"required\": true },\n    { \"sourcePath\": \"deviceType\",   \"targetPath\": \"eventType\",    \"required\": true },\n    { \"sourcePath\": \"location.lat\", \"targetPath\": \"location.lat\", \"required\": false },\n    { \"sourcePath\": \"location.lng\", \"targetPath\": \"location.lng\", \"required\": false }\n  ],\n  \"classificationRules\": [\n    {\n      \"name\": \"blacklistCritical\",\n      \"when\": [\n        { \"field\": \"payload.listType\", \"operator\": \"eq\", \"values\": [\"3\"] }\n      ],\n      \"set\": { \"eventClass\": \"blacklist\", \"eventSeverity\": \"critical\" },\n      \"order\": 1\n    },\n    {\n      \"name\": \"watchlistWarning\",\n      \"when\": [\n        { \"field\": \"payload.listType\", \"operator\": \"eq\", \"values\": [\"2\"] }\n      ],\n      \"set\": { \"eventClass\": \"watchlist\", \"eventSeverity\": \"warning\" },\n      \"order\": 2\n    }\n  ],\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"{{targetId}}\"\n    },\n    {\n      \"targetId\": \"line-security-id\",\n      \"eventClasses\": [\"blacklist\", \"watchlist\"],\n      \"eventSeverities\": [\"warning\", \"critical\"],\n      \"messageTemplateKey\": \"securityAlertTh\"\n    }\n  ],\n  \"dlq\": {\n    \"enabled\": true,\n    \"maxRetries\": 3,\n    \"retryTimeoutSeconds\": 60\n  },\n  \"defaultLocale\": \"th\",\n  \"messageTemplates\": [\n    {\n      \"key\": \"securityAlertTh\",\n      \"channelType\": \"line\",\n      \"locale\": \"th\",\n      \"title\": \"[{{.eventSeverity}}] {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\\nLocation: lat={{.location.lat}}, lng={{.location.lng}}\"\n    },\n    {\n      \"key\": \"criticalAlertEn\",\n      \"channelType\": \"discord\",\n      \"locale\": \"en\",\n      \"title\": \"CRITICAL: {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Creates a mapping template with full classification + delivery setup.\n\nclassificationRules: evaluated in order, first match sets eventClass/eventSeverity.\ndeliveryTargets: webhook (no eventClasses/eventSeverities = accepts all), message channel (with eventClasses/eventSeverities + messageTemplateKey).\nmessageTemplates: key-based selection by messageTemplateKey from deliveryTargets."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.detail && json.detail.templateId) {",
+                  "    pm.collectionVariables.set('templateId', json.detail.templateId);",
+                  "    console.log('templateId set from create:', json.detail.templateId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /ingest/mappingTemplates/:templateId — Get template",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns a single mapping template by ID (includes classificationRules, deliveryTargets, messageTemplates, dlq)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.detail && json.detail.templateId) {",
+                  "    pm.collectionVariables.set('templateId', json.detail.templateId);",
+                  "    console.log('templateId set from get:', json.detail.templateId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH — Add classificationRules",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"classificationRules\": [\n    {\n      \"name\": \"blacklistCritical\",\n      \"when\": [\n        { \"field\": \"payload.listType\", \"operator\": \"eq\", \"values\": [\"3\"] }\n      ],\n      \"set\": { \"eventClass\": \"blacklist\", \"eventSeverity\": \"critical\" },\n      \"order\": 1\n    },\n    {\n      \"name\": \"watchlistWarning\",\n      \"when\": [\n        { \"field\": \"payload.listType\", \"operator\": \"eq\", \"values\": [\"2\"] }\n      ],\n      \"set\": { \"eventClass\": \"watchlist\", \"eventSeverity\": \"warning\" },\n      \"order\": 2\n    },\n    {\n      \"name\": \"boolBlacklist\",\n      \"when\": [\n        { \"field\": \"payload.blacklist\", \"operator\": \"eq\", \"values\": [\"true\"] }\n      ],\n      \"set\": { \"eventClass\": \"blacklist\", \"eventSeverity\": \"critical\" },\n      \"order\": 3\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sets classificationRules on a template.\nRules evaluated in order (ascending). First match sets eventClass/eventSeverity.\nDefaults if no rule matches: eventClass=unknown, eventSeverity=none.\n\neventClass enum: unknown, anonymous, whitelist, watchlist, vip, blacklist, redlist, custom\neventSeverity enum: none, info, warning, critical"
+          }
+        },
+        {
+          "name": "PATCH — Webhook deliveryTarget (accepts all events)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"{{targetId}}\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Webhook target that accepts ALL events (no eventClasses/eventSeverities filter).\nWebhook sends raw normalized event JSON."
+          }
+        },
+        {
+          "name": "PATCH — LINE target (blacklist/watchlist + warning/critical)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"{{targetId}}\",\n      \"eventClasses\": [\"blacklist\", \"watchlist\"],\n      \"eventSeverities\": [\"warning\", \"critical\"],\n      \"messageTemplateKey\": \"securityAlertTh\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "LINE target that only receives blacklist/watchlist events with warning/critical severity.\nmessageTemplateKey selects the specific MessageTemplate by key for rendering."
+          }
+        },
+        {
+          "name": "PATCH — Discord target (critical only)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"discord-target-id\",\n      \"eventSeverities\": [\"critical\"],\n      \"messageTemplateKey\": \"criticalAlertEn\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Discord target that only receives critical severity events.\nAll eventClasses accepted (empty = no filter)."
+          }
+        },
+        {
+          "name": "PATCH — Combined: webhook + LINE + Discord targets",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"{{targetId}}\"\n    },\n    {\n      \"targetId\": \"line-target-id\",\n      \"eventClasses\": [\"blacklist\", \"watchlist\"],\n      \"eventSeverities\": [\"warning\", \"critical\"],\n      \"messageTemplateKey\": \"securityAlertTh\"\n    },\n    {\n      \"targetId\": \"discord-target-id\",\n      \"eventSeverities\": [\"critical\"],\n      \"messageTemplateKey\": \"criticalAlertEn\"\n    }\n  ],\n  \"messageTemplates\": [\n    {\n      \"key\": \"securityAlertTh\",\n      \"channelType\": \"line\",\n      \"locale\": \"th\",\n      \"title\": \"[{{.eventSeverity}}] {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\\nLocation: lat={{.location.lat}}, lng={{.location.lng}}\"\n    },\n    {\n      \"key\": \"criticalAlertEn\",\n      \"channelType\": \"discord\",\n      \"locale\": \"en\",\n      \"title\": \"CRITICAL: {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Full delivery setup: webhook (all events) + LINE (blacklist/watchlist, warning/critical) + Discord (critical only).\n\nDispatch flow:\n1. classificationRules derive eventClass/eventSeverity\n2. Each target evaluates: payload filter -> eventClasses -> eventSeverities\n3. webhook sends raw JSON, LINE/Discord render via messageTemplateKey"
+          }
+        },
+        {
+          "name": "PATCH — Update DLQ + messageTemplates",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dlq\": {\n    \"enabled\": true,\n    \"maxRetries\": 5,\n    \"retryTimeoutSeconds\": 120\n  },\n  \"defaultLocale\": \"th\",\n  \"messageTemplates\": [\n    {\n      \"key\": \"securityAlertTh\",\n      \"channelType\": \"line\",\n      \"locale\": \"th\",\n      \"title\": \"[{{.eventSeverity}}] {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\\nEvent: {{.eventType}}\"\n    },\n    {\n      \"key\": \"securityAlertEn\",\n      \"channelType\": \"line\",\n      \"locale\": \"en\",\n      \"title\": \"[{{.eventSeverity}}] {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\\nLocation: lat={{.location.lat}}, lng={{.location.lng}}\"\n    },\n    {\n      \"key\": \"criticalAlertEn\",\n      \"channelType\": \"discord\",\n      \"locale\": \"en\",\n      \"title\": \"CRITICAL: {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Updates DLQ config and message templates.\nEach messageTemplate now has a key for messageTemplateKey selection.\nRender context includes: {{.eventClass}}, {{.eventSeverity}}, {{.eventType}}, {{.source.*}}, {{.location.*}}, {{.payload.*}}"
+          }
+        },
+        {
+          "name": "PATCH — Update name + mappings",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Camera Temperature Alert v2\",\n  \"mappings\": [\n    { \"sourcePath\": \"deviceId\",     \"targetPath\": \"deviceId\",     \"required\": true },\n    { \"sourcePath\": \"location.lat\", \"targetPath\": \"location.lat\", \"required\": false },\n    { \"sourcePath\": \"location.lng\", \"targetPath\": \"location.lng\", \"required\": false }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Patches name and mappings on a mapping template. Only provided fields are updated. Invalidates fingerprint cache immediately."
+          }
+        },
+        {
+          "name": "DELETE /ingest/mappingTemplates/:templateId — Delete template",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Deletes a mapping template. Invalidates fingerprint cache immediately."
+          }
+        }
+      ]
+    }
+  ]
+}
