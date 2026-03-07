@@ -9,11 +9,12 @@ import (
 )
 
 var (
-	ErrNotFound     = errors.New("not found")
-	ErrConflict     = errors.New("conflict: name already exists")
-	ErrForbidden    = errors.New("forbidden: insufficient permission")
-	ErrBadRequest   = errors.New("bad request")
-	ErrUnauthorized = errors.New("unauthorized")
+	ErrNotFound          = errors.New("not found")
+	ErrConflict          = errors.New("conflict: name already exists")
+	ErrForbidden         = errors.New("forbidden: insufficient permission")
+	ErrBadRequest        = errors.New("bad request")
+	ErrUnauthorized      = errors.New("unauthorized")
+	ErrPlanLimitExceeded = errors.New("plan limit exceeded")
 )
 
 // MapSvcError แปลง service error → HTTP status + error code
@@ -29,6 +30,8 @@ func MapSvcError(err error) (int, string) {
 		return http.StatusBadRequest, gmod.CodeBadRequest
 	case errors.Is(err, ErrUnauthorized):
 		return http.StatusUnauthorized, gmod.CodeUnauthorized
+	case errors.Is(err, ErrPlanLimitExceeded):
+		return http.StatusPaymentRequired, "PLAN_LIMIT_EXCEEDED"
 	default:
 		return http.StatusInternalServerError, gmod.CodeInternalError
 	}

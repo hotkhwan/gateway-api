@@ -27,15 +27,25 @@ const (
 	SubscriptionStatusExpired   SubscriptionStatus = "expired"
 )
 
-// SubscriptionLimits defines rate and quota limits
+// SubscriptionLimits defines rate, quota, and delivery limits.
+// -1 = unlimited.
 type SubscriptionLimits struct {
-	OrgCacheTtlSec            int64 `bson:"orgCacheTtlSec" json:"orgCacheTtlSec"`
-	MaxPayloadBytes           int64 `bson:"maxPayloadBytes" json:"maxPayloadBytes"`
-	PerOrgPerSec              int   `bson:"perOrgPerSec" json:"perOrgPerSec"`
-	PerOrgBurst               int   `bson:"perOrgBurst" json:"perOrgBurst"`
-	PerIpPerMin               int   `bson:"perIpPerMin" json:"perIpPerMin"`
-	StorageQuotaBytes         int64 `bson:"storageQuotaBytes" json:"storageQuotaBytes"`
+	OrgCacheTtlSec            int64 `bson:"orgCacheTtlSec"            json:"orgCacheTtlSec"`
+	MaxPayloadBytes           int64 `bson:"maxPayloadBytes"           json:"maxPayloadBytes"`
+	PerOrgPerSec              int   `bson:"perOrgPerSec"              json:"perOrgPerSec"`
+	PerOrgBurst               int   `bson:"perOrgBurst"               json:"perOrgBurst"`
+	PerIpPerMin               int   `bson:"perIpPerMin"               json:"perIpPerMin"`
+	StorageQuotaBytes         int64 `bson:"storageQuotaBytes"         json:"storageQuotaBytes"`
 	MaxOrganizationsPerTenant int   `bson:"maxOrganizationsPerTenant" json:"maxOrganizationsPerTenant"`
+	EventsPerMonth            int   `bson:"eventsPerMonth"            json:"eventsPerMonth"`
+	TeamMembers               int   `bson:"teamMembers"               json:"teamMembers"`
+
+	// Delivery target quotas per org (-1 = unlimited)
+	WebhooksPerOrg        int `bson:"webhooksPerOrg"        json:"webhooksPerOrg"`
+	LineTargetsPerOrg     int `bson:"lineTargetsPerOrg"     json:"lineTargetsPerOrg"`
+	DiscordTargetsPerOrg  int `bson:"discordTargetsPerOrg"  json:"discordTargetsPerOrg"`
+	TelegramTargetsPerOrg int `bson:"telegramTargetsPerOrg" json:"telegramTargetsPerOrg"`
+	MessageChannelsPerOrg int `bson:"messageChannelsPerOrg" json:"messageChannelsPerOrg"` // sum of line+discord+telegram per org
 }
 
 // Subscription represents a tenant's subscription

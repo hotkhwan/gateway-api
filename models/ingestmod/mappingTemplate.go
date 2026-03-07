@@ -12,17 +12,76 @@ type DLQConfig struct {
 	RetryTimeoutSeconds int  `json:"retryTimeoutSeconds" bson:"retryTimeoutSeconds"` // seconds between retry attempts (default 60)
 }
 
+// PayloadCondition — one filter predicate applied to a normalized event field.
+// Only "eq" and "in" operators are supported for now.
+type PayloadCondition struct {
+	Field    string   `json:"field"    bson:"field"`    // e.g. "payload.listType"
+	Operator string   `json:"operator" bson:"operator"` // "eq" | "in"
+	Values   []string `json:"values"   bson:"values"`   // list of raw values to match
+}
+
+// ClassificationSet — canonical fields set by a classification rule.
+type ClassificationSet struct {
+	EventClass    string `json:"eventClass,omitempty"    bson:"eventClass,omitempty"`
+	EventSeverity string `json:"eventSeverity,omitempty" bson:"eventSeverity,omitempty"`
+}
+
+// ClassificationRule — derives canonical eventClass/eventSeverity from payload fields.
+// Evaluated in Order (ascending); first matching rule wins.
+// If no rule matches, defaults are eventClass="unknown", eventSeverity="none".
+type ClassificationRule struct {
+	Name  string             `json:"name"            bson:"name"`
+	When  []PayloadCondition `json:"when"            bson:"when"`
+	Set   ClassificationSet  `json:"set"             bson:"set"`
+	Order int                `json:"order,omitempty" bson:"order,omitempty"`
+}
+
+// TemplateDeliveryTarget — binds a DeliveryTarget to a template with optional filters.
+//
+// Filter: payload field conditions (AND logic). Empty = pass all.
+// EventClasses: whitelist of eventClass values this target accepts. Empty = accept all.
+// EventSeverities: whitelist of eventSeverity values this target accepts. Empty = accept all.
+// MessageTemplateKey: key to select a MessageTemplate for message channels (line/discord/telegram).
+//
+//	Webhook targets ignore this field and send raw JSON.
+type TemplateDeliveryTarget struct {
+	TargetId           string             `json:"targetId"                      bson:"targetId"`
+	Filter             []PayloadCondition `json:"filter,omitempty"              bson:"filter,omitempty"`
+	EventClasses       []string           `json:"eventClasses,omitempty"        bson:"eventClasses,omitempty"`
+	EventSeverities    []string           `json:"eventSeverities,omitempty"     bson:"eventSeverities,omitempty"`
+	MessageTemplateKey string             `json:"messageTemplateKey,omitempty"  bson:"messageTemplateKey,omitempty"`
+}
+
+// MessageTemplate — locale-aware notification text for a specific channel type.
+// channelType: "line" | "discord" | "telegram"
+// Go text/template syntax; render context includes .eventId, .eventType, .eventClass, .eventSeverity, .occurredAt, .payload.*, .source.*
+// Fallback chain: TargetConfig.Locale → MappingTemplate.DefaultLocale → "en" → minimal default
+//
+// Key: optional unique identifier within a template for messageTemplateKey selection.
+type MessageTemplate struct {
+	Key         string            `json:"key,omitempty"  bson:"key,omitempty"`
+	ChannelType string            `json:"channelType"    bson:"channelType"`
+	Locale      string            `json:"locale"         bson:"locale"`
+	Title       string            `json:"title"          bson:"title"`
+	Body        string            `json:"body"           bson:"body"`
+	Extras      map[string]string `json:"extras,omitempty" bson:"extras,omitempty"`
+}
+
 // MappingTemplate — collection: mapping_templates
 // Defines how to map rawBody fields to canonical targets for a given device/event signature.
 type MappingTemplate struct {
-	TemplateId string         `json:"templateId" bson:"templateId"`
-	OrgId      string         `json:"orgId"      bson:"orgId"`
-	Name       string         `json:"name"       bson:"name"`
-	Match      MatchRule      `json:"match"      bson:"match"`
-	Mappings   []FieldMapping `json:"mappings"   bson:"mappings"`
-	DLQ        DLQConfig      `json:"dlq"        bson:"dlq"`
-	CreatedAt  time.Time      `json:"createdAt"  bson:"createdAt"`
-	UpdatedAt  time.Time      `json:"updatedAt"  bson:"updatedAt"`
+	TemplateId          string                   `json:"templateId"                        bson:"templateId"`
+	OrgId               string                   `json:"orgId"                             bson:"orgId"`
+	Name                string                   `json:"name"                              bson:"name"`
+	Match               MatchRule                `json:"match"                             bson:"match"`
+	Mappings            []FieldMapping           `json:"mappings"                          bson:"mappings"`
+	DLQ                 DLQConfig                `json:"dlq"                               bson:"dlq"`
+	DefaultLocale       string                   `json:"defaultLocale,omitempty"           bson:"defaultLocale,omitempty"`
+	MessageTemplates    []MessageTemplate        `json:"messageTemplates,omitempty"        bson:"messageTemplates,omitempty"`
+	ClassificationRules []ClassificationRule     `json:"classificationRules,omitempty"     bson:"classificationRules,omitempty"`
+	DeliveryTargets     []TemplateDeliveryTarget `json:"deliveryTargets,omitempty"         bson:"deliveryTargets,omitempty"`
+	CreatedAt           time.Time                `json:"createdAt"                         bson:"createdAt"`
+	UpdatedAt           time.Time                `json:"updatedAt"                         bson:"updatedAt"`
 }
 
 // MatchRule defines criteria used to auto-bind a template to an incoming event.
