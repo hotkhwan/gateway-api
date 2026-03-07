@@ -61,9 +61,9 @@ func (r *EventDetailsRepo) FindByEventId(
 ) (*ingestmod.EventDetail, error) {
 	var result ingestmod.EventDetail
 	err := stomongo.FindOne(ctx, "event_details", bson.M{
-		"tenantId": tenantId,
-		"orgId":    orgId,
-		"eventId":  eventId,
+		"tenantId":     tenantId,
+		"source.orgId": orgId,
+		"eventId":      eventId,
 	}, &result)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -82,7 +82,7 @@ func (r *EventDetailsRepo) ListApproved(
 	page, perPage int,
 	sortField, sortOrder string,
 ) ([]*ingestmod.EventDetail, *gmod.Pagination, error) {
-	filter := bson.M{"tenantId": tenantId, "orgId": orgId}
+	filter := bson.M{"tenantId": tenantId, "source.orgId": orgId}
 	if eventType != "" {
 		filter["eventType"] = eventType
 	}

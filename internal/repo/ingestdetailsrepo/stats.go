@@ -5,9 +5,11 @@ import (
 	"time"
 
 	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
+	"github.com/hotkhwan/gateway-api/models/ingestmod"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // DashboardStatsResponse สรุปสถิติจาก event_details
@@ -25,8 +27,8 @@ func (r *EventDetailsRepo) GetStatsForDashboard(
 	status, eventType string,
 ) (*DashboardStatsResponse, error) {
 	filter := bson.M{
-		"tenantId": tenantId,
-		"orgId":    orgId,
+		"tenantId":     tenantId,
+		"source.orgId": orgId,
 		"approvedAt": bson.M{
 			"$gte": start,
 			"$lt":  end,
@@ -87,4 +89,60 @@ func (r *EventDetailsRepo) GetStatsForDashboard(
 	}
 
 	return response, nil
+}
+
+// GetRecentEvents ดึง events ล่าสุดจาก event_details
+func (r *EventDetailsRepo) GetRecentEvents(
+	ctx context.Context,
+	tenantId, orgId string,
+	start, end time.Time,
+	eventType string,
+	limit int,
+) ([]ingestmod.RecentEventSummary, error) {
+	filter := bson.M{
+		"tenantId":     tenantId,
+		"source.orgId": orgId,
+		"createdAt": bson.M{
+			"$gte": start,
+			"$lt":  end,
+		},
+	}
+
+	if eventType != "" {
+		filter["eventType"] = eventType
+	}
+
+	findOpts := options.Find().
+		SetSort(bson.D{{Key: "createdAt", Value: -1}}).
+		SetLimit(int64(limit))
+
+	type eventDoc struct {
+		ID         string                `bson:"_id" json:"id"`
+		EventId    string                `bson:"eventId" json:"eventId"`
+		EventType  string                `bson:"eventType" json:"eventType"`
+		Location   ingestmod.LocationInfo `bson:"location" json:"location"`
+		Source     ingestmod.SourceInfo   `bson:"source" json:"source"`
+		OccurredAt time.Time             `bson:"occurredAt" json:"occurredAt"`
+		CreatedAt  time.Time             `bson:"createdAt" json:"createdAt"`
+	}
+
+	var docs []eventDoc
+	if err := stomongo.Find(ctx, "event_details", filter, findOpts, &docs); err != nil {
+		return nil, err
+	}
+
+	summaries := make([]ingestmod.RecentEventSummary, 0, len(docs))
+	for _, d := range docs {
+		summaries = append(summaries, ingestmod.RecentEventSummary{
+			ID:        d.ID,
+			EventId:   d.EventId,
+			EventType: d.EventType,
+			Status:    "approved",
+			CreatedAt: d.CreatedAt,
+			Lat:       d.Location.Lat,
+			Lng:       d.Location.Lng,
+		})
+	}
+
+	return summaries, nil
 }
