@@ -23,9 +23,9 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/sourceprofilerepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/templatereviewrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/targetrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/templatereviewrepo"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicemgmtsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
@@ -34,8 +34,8 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/sourceprofilesvc"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
-	"github.com/hotkhwan/gateway-api/internal/services/templatereviewsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/templatereviewsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/templatesvc"
 )
 

@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	prefix   = "tmpl:review:pending:"
-	lockTTL  = 1 * time.Hour
+	prefix  = "tmpl:review:pending:"
+	lockTTL = 1 * time.Hour
 )
 
 func key(tenantId, orgId, sourceFamily, fingerprint string) string {
