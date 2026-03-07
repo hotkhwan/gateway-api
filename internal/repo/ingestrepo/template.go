@@ -165,6 +165,23 @@ func (r *MappingTemplateRepo) FindByMatch(ctx context.Context, orgId, eventType,
 	return &result, nil
 }
 
+// FindBySourceFamily returns all templates for an org + sourceFamily, sorted by priority desc.
+// Used by V2 template matcher to evaluate matchAll/matchAny in Go.
+func (r *MappingTemplateRepo) FindBySourceFamily(ctx context.Context, orgId, sourceFamily string) ([]*ingestmod.MappingTemplate, error) {
+	filter := bson.M{
+		"orgId":        orgId,
+		"sourceFamily": sourceFamily,
+	}
+	opts := options.Find().SetSort(bson.D{{Key: "priority", Value: -1}, {Key: "createdAt", Value: -1}})
+
+	var result []*ingestmod.MappingTemplate
+	err := stomongo.Find(ctx, colTemplate, filter, opts, &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 // EnsureIndexes creates indexes on mapping_templates collection.
 func (r *MappingTemplateRepo) EnsureIndexes(ctx context.Context) error {
 	return stomongo.CreateIndexes(ctx, colTemplate, []mongo.IndexModel{
@@ -175,12 +192,20 @@ func (r *MappingTemplateRepo) EnsureIndexes(ctx context.Context) error {
 		{
 			Keys: bson.D{{Key: "orgId", Value: 1}, {Key: "name", Value: 1}},
 		},
-		// Fingerprint match index (PR5): hot path lookup on every ingest
+		// Fingerprint match index (V1): hot path lookup on every ingest
 		{
 			Keys: bson.D{
 				{Key: "orgId", Value: 1},
 				{Key: "match.eventType", Value: 1},
 				{Key: "match.rawBodyKeyHash", Value: 1},
+			},
+		},
+		// Source family index (V2): template lookup by sourceFamily
+		{
+			Keys: bson.D{
+				{Key: "orgId", Value: 1},
+				{Key: "sourceFamily", Value: 1},
+				{Key: "priority", Value: -1},
 			},
 		},
 		{
