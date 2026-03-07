@@ -16,19 +16,25 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/kafka/normalizedcons"
 	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/devicemgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicerepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/dlqrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/sourceprofilerepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/templatereviewrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/targetrepo"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/devicemgmtsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
 	"github.com/hotkhwan/gateway-api/internal/services/dlqsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/ingeststatsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/sourceprofilesvc"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/templatereviewsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/templatesvc"
 )
@@ -79,8 +85,20 @@ type Container struct {
 	DashboardStatsService     *ingeststatsvc.DashboardStatsService
 	IngestDashboardController *ingestapi.IngestDashboardController
 
+	// ===== Source Profile domain =====
+	SourceProfileService    *sourceprofilesvc.SourceProfileService
+	SourceProfileController *ingestapi.SourceProfileController
+
+	// ===== Device Management domain =====
+	DeviceMgmtService    *devicemgmtsvc.DeviceManagementService
+	DeviceMgmtController *ingestapi.DeviceManagementController
+
 	// ===== Mapping Template domain =====
 	TemplateController *ingestapi.TemplateController
+
+	// ===== Template Review domain =====
+	TemplateReviewService    *templatereviewsvc.TemplateReviewService
+	TemplateReviewController *ingestapi.TemplateReviewController
 
 	// ===== DLQ domain =====
 	DLQService    *dlqsvc.DLQService
@@ -111,6 +129,9 @@ func NewContainer() *Container {
 	c.buildAuthz()
 	c.buildDevice()
 	c.buildSubscription()
+	c.buildSourceProfile()
+	c.buildDeviceManagement()
+	c.buildTemplateReview()
 	c.buildIngest()
 	c.buildEvents()
 	c.buildTargets()
@@ -200,6 +221,36 @@ func (c *Container) buildDevice() {
 }
 
 // ============================================================
+// buildSourceProfile — Source Profile domain
+// ============================================================
+
+func (c *Container) buildSourceProfile() {
+	repo := sourceprofilerepo.NewSourceProfileRepo()
+	c.SourceProfileService = sourceprofilesvc.NewSourceProfileService(repo)
+	c.SourceProfileController = ingestapi.NewSourceProfileController(c.SourceProfileService)
+}
+
+// ============================================================
+// buildDeviceManagement — Device Management domain
+// ============================================================
+
+func (c *Container) buildDeviceManagement() {
+	repo := devicemgmtrepo.NewDeviceManagementRepo()
+	c.DeviceMgmtService = devicemgmtsvc.NewDeviceManagementService(repo)
+	c.DeviceMgmtController = ingestapi.NewDeviceManagementController(c.DeviceMgmtService)
+}
+
+// ============================================================
+// buildTemplateReview — Template Review domain
+// ============================================================
+
+func (c *Container) buildTemplateReview() {
+	repo := templatereviewrepo.NewTemplateReviewRepo()
+	c.TemplateReviewService = templatereviewsvc.NewTemplateReviewService(repo)
+	c.TemplateReviewController = ingestapi.NewTemplateReviewController(c.TemplateReviewService)
+}
+
+// ============================================================
 // buildIngest — hot-path ingest (no JWT)
 // ============================================================
 
@@ -207,7 +258,7 @@ func (c *Container) buildIngest() {
 	orgRepo := authzrepo.NewOrgRepo(config.DB)
 	eventMgmtRepo := ingestmgmtrepo.NewEventManagementRepo()
 
-	// fingerprint template matcher (shared with buildTemplate)
+	// fingerprint template matcher
 	templateRepo := ingestrepo.NewMappingTemplateRepo()
 	tmplMatcher := ingestsvc.NewTemplateMatcher(templateRepo, logger.WithMeta("ingest", "template-matcher"))
 
@@ -217,6 +268,9 @@ func (c *Container) buildIngest() {
 		c.SubscriptionService,
 		config.Redis,
 		tmplMatcher,
+		c.SourceProfileService,
+		c.TemplateReviewService,
+		c.DeviceMgmtService,
 		logger.WithMeta("ingest", "container"),
 	)
 	c.IngestController = ingestapi.NewIngestController(c.IngestService)

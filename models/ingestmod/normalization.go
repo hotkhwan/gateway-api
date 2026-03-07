@@ -7,15 +7,16 @@ import "time"
 // Produced by IngestService (approval path); consumed by the Normalizer consumer.
 // This is the INPUT to the normalizer — NOT the final stored shape.
 type CanonicalEvent struct {
-	EventId    string         `json:"eventId"              bson:"eventId"`
-	TenantId   string         `json:"tenantId"             bson:"tenantId"`
-	EventType  string         `json:"eventType"            bson:"eventType"`
-	OccurredAt time.Time      `json:"occurredAt"           bson:"occurredAt"`
-	Source     SourceInfo     `json:"source"               bson:"source"`
-	Location   LocationInfo   `json:"location"             bson:"location"`
-	Payload    map[string]any `json:"payload"              bson:"payload"`
-	TemplateId string         `json:"templateId,omitempty" bson:"templateId,omitempty"`
-	CreatedAt  time.Time      `json:"createdAt"            bson:"createdAt"`
+	EventId      string         `json:"eventId"              bson:"eventId"`
+	TenantId     string         `json:"tenantId"             bson:"tenantId"`
+	SourceFamily string         `json:"sourceFamily"         bson:"sourceFamily"`
+	EventType    string         `json:"eventType"            bson:"eventType"`
+	OccurredAt   time.Time      `json:"occurredAt"           bson:"occurredAt"`
+	Source       SourceInfo     `json:"source"               bson:"source"`
+	Location     LocationInfo   `json:"location"             bson:"location"`
+	Payload      map[string]any `json:"payload"              bson:"payload"`
+	TemplateId   string         `json:"templateId,omitempty" bson:"templateId,omitempty"`
+	CreatedAt    time.Time      `json:"createdAt"            bson:"createdAt"`
 }
 
 // SourceInfo identifies the originating device.
