@@ -27,12 +27,13 @@ const (
 
 // RawEvent คือ message ที่ส่งเข้า Kafka raw.events
 type RawEvent struct {
-	OrgId       string          `json:"orgId"`
-	EventId     string          `json:"eventId"`
-	ReceivedAt  time.Time       `json:"receivedAt"`
-	RawBody     json.RawMessage `json:"rawBody"`
-	SourceIp    string          `json:"sourceIp"`
-	ContentType string          `json:"contentType,omitempty"`
+	OrgId        string          `json:"orgId"`
+	EventId      string          `json:"eventId"`
+	SourceFamily string          `json:"sourceFamily"`
+	ReceivedAt   time.Time       `json:"receivedAt"`
+	RawBody      json.RawMessage `json:"rawBody"`
+	SourceIp     string          `json:"sourceIp"`
+	ContentType  string          `json:"contentType,omitempty"`
 }
 
 // IngestResult คือ response กลับ client
@@ -78,16 +79,33 @@ func (l *localEmergencyLimiter) Check(key string, limit int) bool {
 }
 
 // IngestService — thin hot-path service
-// ไม่มี auth, ไม่ยุ่ง Permify
-// Updated to use subscription-based limits and event management
+// V2: sourceFamily-based template matching, no device approval
 type IngestService struct {
-	orgRepo       *authzrepo.OrgRepo
-	eventMgmtRepo *ingestmgmtrepo.EventManagementRepo
-	subSvc        *subscriptionsvc.SubscriptionService
-	redis         *redis.Client
-	localOrg      *localEmergencyLimiter
-	tmplMatcher   *TemplateMatcher // fingerprint auto-match
-	logger        zerolog.Logger
+	orgRepo          *authzrepo.OrgRepo
+	eventMgmtRepo    *ingestmgmtrepo.EventManagementRepo
+	subSvc           *subscriptionsvc.SubscriptionService
+	redis            *redis.Client
+	localOrg         *localEmergencyLimiter
+	tmplMatcher      *TemplateMatcher
+	sourceProfileSvc SourceProfileResolver
+	reviewSvc        ReviewCreator
+	deviceMgmtSvc    DeviceResolver
+	logger           zerolog.Logger
+}
+
+// SourceProfileResolver loads source profiles (injected to avoid circular imports).
+type SourceProfileResolver interface {
+	Get(ctx context.Context, sourceFamily string) (*ingestmod.SourceProfile, error)
+}
+
+// ReviewCreator creates template review samples (injected to avoid circular imports).
+type ReviewCreator interface {
+	CreateIfNotExists(ctx context.Context, tenantId, orgId, sourceFamily, fingerprint string, samplePayload map[string]any, suggestedMatchFields []string) string
+}
+
+// DeviceResolver resolves device enrichment data (injected to avoid circular imports).
+type DeviceResolver interface {
+	Resolve(ctx context.Context, tenantId, orgId, sourceFamily, entityType, entityId string) *ingestmod.DeviceManagement
 }
 
 func NewIngestService(
@@ -96,22 +114,28 @@ func NewIngestService(
 	subSvc *subscriptionsvc.SubscriptionService,
 	redis *redis.Client,
 	tmplMatcher *TemplateMatcher,
+	sourceProfileSvc SourceProfileResolver,
+	reviewSvc ReviewCreator,
+	deviceMgmtSvc DeviceResolver,
 	logger zerolog.Logger,
 ) *IngestService {
-	if orgRepo == nil || eventMgmtRepo == nil || subSvc == nil || redis == nil {
-		panic("IngestService: orgRepo, eventMgmtRepo, subSvc, redis are required")
+	if orgRepo == nil || subSvc == nil || redis == nil {
+		panic("IngestService: orgRepo, subSvc, redis are required")
 	}
 	if tmplMatcher == nil {
 		panic("IngestService: tmplMatcher is required")
 	}
 	return &IngestService{
-		orgRepo:       orgRepo,
-		eventMgmtRepo: eventMgmtRepo,
-		subSvc:        subSvc,
-		redis:         redis,
-		localOrg:      newLocalEmergencyLimiter(),
-		tmplMatcher:   tmplMatcher,
-		logger:        logger,
+		orgRepo:          orgRepo,
+		eventMgmtRepo:    eventMgmtRepo,
+		subSvc:           subSvc,
+		redis:            redis,
+		localOrg:         newLocalEmergencyLimiter(),
+		tmplMatcher:      tmplMatcher,
+		sourceProfileSvc: sourceProfileSvc,
+		reviewSvc:        reviewSvc,
+		deviceMgmtSvc:    deviceMgmtSvc,
+		logger:           logger,
 	}
 }
 
@@ -275,10 +299,11 @@ func (s *IngestService) checkRateLimit(
 	return nil
 }
 
-// Ingest is main entry point: validate → rate limit → store pending event
+// Ingest is main entry point (V2): validate → rate limit → template match by sourceFamily → publish or review
 func (s *IngestService) Ingest(
 	ctx context.Context,
 	orgId string,
+	sourceFamily string,
 	sourceIp string,
 	contentType string,
 	body []byte,
@@ -324,166 +349,89 @@ func (s *IngestService) Ingest(
 	eventId := uuid.NewString()
 	receivedAt := time.Now().UTC()
 
-	// 5) Decode rawBody to map (fixes BSON binary storage bug)
+	// 5) Decode rawBody to map
 	rawBody, err := decodeRawBody(body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode raw body: %w", err)
 	}
 
-	// 6) Auto-detect event type + build fingerprint for template matching (PR5)
-	suggestedType := s.detectEventType(body)
+	// 6) Build fingerprint for V2 template matching
 	keyHash := BuildKeyHash(rawBody)
-	fingerprint := BuildFingerprint(suggestedType, rawBody)
+	fingerprint := keyHash // V2 fingerprint is just the key hash — sourceFamily replaces eventType in the lookup
 
-	// 7) Normalize device identity
-	deviceRef, rawAliases, _ := s.normalizeDeviceIdentity(body)
-	deviceKey := s.computeDeviceKey(deviceRef)
-	_ = rawAliases // Store rawAliases but don't use it (for audit purposes)
+	// 7) V2 Template matching: sourceFamily + fingerprint (no device approval needed)
+	tmpl, matched, matchErr := s.tmplMatcher.MatchByFamily(ctx, policy.TenantId, orgId, sourceFamily, fingerprint, rawBody)
+	if matchErr != nil {
+		s.logger.Error().Err(matchErr).
+			Str("orgId", orgId).
+			Str("sourceFamily", sourceFamily).
+			Msg("[Ingest] template match error (non-fatal, creating review)")
+	}
 
-	// 6a) Check if device:eventType is already approved (skip approval flow).
-	// Template matching is intentionally nested here — templates only activate for
-	// pre-approved device:eventType combinations to prevent bypass of the approval flow.
-	rawDeviceType, _ := rawBody["deviceType"].(string)
-	isApproved := cacheevt.IsDeviceEventTypeApproved(ctx, policy.TenantId, deviceKey, suggestedType)
-	if isApproved && deviceKey != "" {
-		// Try template match first for approved events
-		deviceId := ""
-		if deviceRef != nil {
-			deviceId = deviceRef.ID
+	if matched && tmpl != nil {
+		// Determine event type from template
+		eventType := tmpl.FinalEventType
+		if eventType == "" {
+			eventType = s.detectEventType(body)
 		}
-		if tmpl, matched, matchErr := s.tmplMatcher.Match(ctx, orgId, suggestedType, keyHash, rawDeviceType, deviceId); matchErr == nil && matched {
+
+		// Normalize device identity for CanonicalEvent
+		deviceRef, _, _ := s.normalizeDeviceIdentity(body)
+
+		// Apply deviceManagement enrichment
+		if s.deviceMgmtSvc != nil && deviceRef != nil {
+			if enrichment := s.deviceMgmtSvc.Resolve(ctx, policy.TenantId, orgId, sourceFamily, deviceRef.Type, deviceRef.ID); enrichment != nil {
+				if deviceRef.ID == "" && enrichment.DeviceId != "" {
+					deviceRef.ID = enrichment.DeviceId
+				}
+			}
+		}
+
+		s.logger.Debug().
+			Str("orgId", orgId).
+			Str("sourceFamily", sourceFamily).
+			Str("eventId", eventId).
+			Str("templateId", tmpl.TemplateId).
+			Str("eventType", eventType).
+			Msg("[Ingest] V2 template matched, publishing")
+
+		if err := s.processTemplateMappedEvent(
+			ctx,
+			policy.TenantId, orgId, sourceFamily, "", eventType,
+			eventId, receivedAt, sourceIp,
+			rawBody, tmpl, deviceRef,
+		); err != nil {
+			return nil, err
+		}
+
+		return &IngestResult{EventId: eventId, ReceivedAt: receivedAt}, nil
+	}
+
+	// 8) No template match → create templateReview sample
+	var suggestedMatchFields []string
+	if s.sourceProfileSvc != nil {
+		if profile, profErr := s.sourceProfileSvc.Get(ctx, sourceFamily); profErr == nil && profile != nil {
+			suggestedMatchFields = profile.SuggestedMatchFields
+		}
+	}
+
+	if s.reviewSvc != nil {
+		reviewId := s.reviewSvc.CreateIfNotExists(ctx, policy.TenantId, orgId, sourceFamily, fingerprint, rawBody, suggestedMatchFields)
+		if reviewId != "" {
 			s.logger.Debug().
 				Str("orgId", orgId).
-				Str("tenantId", policy.TenantId).
-				Str("eventId", eventId).
-				Str("templateId", tmpl.TemplateId).
-				Str("templateName", tmpl.Name).
-				Str("eventType", suggestedType).
-				Str("keyHash", keyHash).
-				Msg("approved device: fingerprint matched template, auto-mapping event")
-
-			if err := s.processTemplateMappedEvent(
-				ctx,
-				policy.TenantId, orgId, deviceKey, suggestedType,
-				eventId, receivedAt, sourceIp,
-				rawBody, tmpl, deviceRef,
-			); err != nil {
-				return nil, err
-			}
-			return &IngestResult{EventId: eventId, ReceivedAt: receivedAt}, nil
+				Str("sourceFamily", sourceFamily).
+				Str("fingerprint", fingerprint).
+				Str("reviewId", reviewId).
+				Msg("[Ingest] created template review")
 		}
-
-		// Approved device but no matching template — reject without forwarding
-		s.logger.Warn().
-			Str("orgId", orgId).
-			Str("tenantId", policy.TenantId).
-			Str("deviceKey", deviceKey).
-			Str("eventType", suggestedType).
-			Str("keyHash", keyHash).
-			Msg("approved device has no matching template, rejecting event")
-		return nil, ErrTemplateMismatch
-	}
-
-	// 7) Check for device pending lock (same device has pending event)
-	isLocked, pendingEventId, err := s.checkDevicePendingLock(ctx, policy.TenantId, orgId, deviceKey)
-	if err != nil {
-		s.logger.Error().
-			Str("orgId", orgId).
-			Str("tenantId", policy.TenantId).
-			Err(err).
-			Msg("failed to check device pending lock")
-		return nil, fmt.Errorf("failed to check device lock: %w", err)
-	}
-
-	// 8) Build pending event (or return locked response)
-	if isLocked {
-		s.logger.Warn().
-			Str("orgId", orgId).
-			Str("tenantId", policy.TenantId).
-			Str("deviceKey", deviceKey).
-			Str("pendingEventId", pendingEventId).
-			Msg("device has pending event, rejecting new event")
-
-		return &IngestResult{
-			EventId:     eventId,
-			ReceivedAt:  receivedAt,
-			DeviceKey:   deviceKey,
-			Locked:      true,
-			LockMessage: fmt.Sprintf("Device has pending event: %s", pendingEventId),
-		}, nil
-	}
-
-	pendingEvent := &ingestmod.EventManagement{
-		EventId:       eventId,
-		TenantId:      policy.TenantId,
-		OrgId:         orgId,
-		Name:          fmt.Sprintf("Event %s", eventId[:8]),
-		Lat:           0,
-		Lng:           0,
-		EventType:     suggestedType,
-		Status:        false,
-		StatusName:    "pending",
-		RawBody:       rawBody,
-		Fingerprint:   fingerprint,
-		ContentType:   contentType,
-		SourceIp:      sourceIp,
-		SuggestedType: suggestedType,
-		DeviceRef:     deviceRef,
-		DeviceKey:     deviceKey,
-		RawAliases:    rawAliases,
-		CreatedAt:     receivedAt,
-		UpdatedAt:     receivedAt,
-	}
-
-	if err := s.eventMgmtRepo.Insert(ctx, pendingEvent); err != nil {
-		if err == ingestmgmtrepo.ErrDuplicateDeviceKey {
-			// Race condition or index hit — find the existing pending event to return its ID
-			s.logger.Warn().
-				Str("orgId", orgId).
-				Str("tenantId", policy.TenantId).
-				Str("deviceKey", deviceKey).
-				Msg("⚠️ [Ingest] duplicate device key on insert, device already has pending event")
-			existing, findErr := s.eventMgmtRepo.FindByDeviceKey(ctx, policy.TenantId, orgId, deviceKey)
-			pendingId := ""
-			if findErr == nil && existing != nil {
-				pendingId = existing.EventId
-			}
-			return &IngestResult{
-				EventId:     eventId,
-				ReceivedAt:  receivedAt,
-				DeviceKey:   deviceKey,
-				Locked:      true,
-				LockMessage: fmt.Sprintf("Device has pending event: %s", pendingId),
-			}, nil
-		}
-		s.logger.Error().
-			Str("orgId", orgId).
-			Str("tenantId", policy.TenantId).
-			Str("eventId", eventId).
-			Err(err).
-			Msg("failed to store pending event")
-		return nil, fmt.Errorf("failed to store event: %w", err)
-	}
-
-	// 9) Cache event status in Redis
-	if err := cacheevt.SetEventStatusPending(ctx, policy.TenantId, eventId); err != nil {
-		// Log warning but don't fail - this is non-critical
-		s.logger.Warn().
-			Str("orgId", orgId).
-			Str("tenantId", policy.TenantId).
-			Str("eventId", eventId).
-			Err(err).
-			Msg("failed to cache event status in Redis (non-critical)")
 	}
 
 	s.logger.Debug().
 		Str("orgId", orgId).
-		Str("tenantId", policy.TenantId).
-		Str("eventId", eventId).
-		Str("deviceKey", deviceKey).
-		Str("suggestedType", suggestedType).
-		Int64("payloadSize", int64(len(body))).
-		Msg("ingest stored as pending event")
+		Str("sourceFamily", sourceFamily).
+		Str("fingerprint", fingerprint).
+		Msg("[Ingest] no template match, event queued for review")
 
 	return &IngestResult{EventId: eventId, ReceivedAt: receivedAt, Pending: true}, nil
 }
@@ -493,7 +441,7 @@ func (s *IngestService) Ingest(
 // The Normalizer consumer handles writing to event_details + S3.
 func (s *IngestService) processTemplateMappedEvent(
 	ctx context.Context,
-	tenantId, orgId, deviceKey, eventType, eventId string,
+	tenantId, orgId, sourceFamily, deviceKey, eventType, eventId string,
 	receivedAt time.Time,
 	sourceIp string,
 	rawBody map[string]any,
@@ -534,10 +482,11 @@ func (s *IngestService) processTemplateMappedEvent(
 		deviceType = deviceRef.Type
 	}
 	canonical := &ingestmod.CanonicalEvent{
-		EventId:    eventId,
-		TenantId:   tenantId,
-		EventType:  eventType,
-		OccurredAt: occurredAt,
+		EventId:      eventId,
+		TenantId:     tenantId,
+		SourceFamily: sourceFamily,
+		EventType:    eventType,
+		OccurredAt:   occurredAt,
 		Source: ingestmod.SourceInfo{
 			DeviceId:   deviceId,
 			DeviceType: deviceType,
@@ -553,11 +502,12 @@ func (s *IngestService) processTemplateMappedEvent(
 	topic := config.TopicEnv("KAFKA_TOPIC_RAW_EVENTS", "raw.events")
 	payload, _ := json.Marshal(canonical)
 	headers := map[string]string{
-		"eventId":    eventId,
-		"eventType":  eventType,
-		"orgId":      orgId,
-		"tenantId":   tenantId,
-		"templateId": tmpl.TemplateId,
+		"eventId":      eventId,
+		"eventType":    eventType,
+		"sourceFamily": sourceFamily,
+		"orgId":        orgId,
+		"tenantId":     tenantId,
+		"templateId":   tmpl.TemplateId,
 	}
 	if err := config.SendToKafkaWithCtx(ctx, topic, orgId, payload, headers); err != nil {
 		s.logger.Error().
@@ -570,19 +520,16 @@ func (s *IngestService) processTemplateMappedEvent(
 		return fmt.Errorf("kafka publish failed: %w", err)
 	}
 
-	// 6) Cache device:eventType approval for future events
-	if deviceKey != "" {
-		_ = cacheevt.SetDeviceEventTypeApproved(ctx, tenantId, deviceKey, eventType)
-	}
+	// 6) Cache processing state (technical only, not business approval)
 	_ = cacheevt.SetEventStatusApproved(ctx, tenantId, eventId)
 
 	s.logger.Debug().
 		Str("tenantId", tenantId).
 		Str("orgId", orgId).
+		Str("sourceFamily", sourceFamily).
 		Str("eventId", eventId).
 		Str("templateId", tmpl.TemplateId).
 		Str("templateName", tmpl.Name).
-		Str("deviceKey", deviceKey).
 		Str("eventType", eventType).
 		Msg("[TemplateMapped] published to raw.events")
 
