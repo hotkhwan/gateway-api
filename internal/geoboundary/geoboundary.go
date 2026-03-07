@@ -25,14 +25,14 @@ func LoadEmbedded() BoundaryQuerier {
 type thBoundaryIndex struct{}
 
 type provinceEntry struct {
-	code    string  // ISO 3166-2
-	name    string
+	code      string // ISO 3166-2
+	name      string
 	centerLat float64
 	centerLng float64
-	minLat  float64
-	maxLat  float64
-	minLng  float64
-	maxLng  float64
+	minLat    float64
+	maxLat    float64
+	minLng    float64
+	maxLng    float64
 }
 
 // Query finds the Thai province whose bounding box contains the point.

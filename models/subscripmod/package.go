@@ -8,17 +8,17 @@ type I18nString map[string]string
 
 // PackageFeatures — boolean feature flags included in a plan
 type PackageFeatures struct {
-	BasicAnalytics        bool `bson:"basicAnalytics"        json:"basicAnalytics"`
-	AdvancedAnalytics     bool `bson:"advancedAnalytics"     json:"advancedAnalytics"`
-	EmailSupport          bool `bson:"emailSupport"          json:"emailSupport"`
-	PriorityEmailSupport  bool `bson:"priorityEmailSupport"  json:"priorityEmailSupport"`
-	DedicatedSupport24x7  bool `bson:"dedicatedSupport24x7"  json:"dedicatedSupport24x7"`
-	CustomIntegrations    bool `bson:"customIntegrations"    json:"customIntegrations"`
-	ApiAccess             bool `bson:"apiAccess"             json:"apiAccess"`
-	CustomSla             bool `bson:"customSla"             json:"customSla"`
-	OnPremise             bool `bson:"onPremise"             json:"onPremise"`
-	Sso                   bool `bson:"sso"                   json:"sso"`
-	AdvancedSecurity      bool `bson:"advancedSecurity"      json:"advancedSecurity"`
+	BasicAnalytics       bool `bson:"basicAnalytics"        json:"basicAnalytics"`
+	AdvancedAnalytics    bool `bson:"advancedAnalytics"     json:"advancedAnalytics"`
+	EmailSupport         bool `bson:"emailSupport"          json:"emailSupport"`
+	PriorityEmailSupport bool `bson:"priorityEmailSupport"  json:"priorityEmailSupport"`
+	DedicatedSupport24x7 bool `bson:"dedicatedSupport24x7"  json:"dedicatedSupport24x7"`
+	CustomIntegrations   bool `bson:"customIntegrations"    json:"customIntegrations"`
+	ApiAccess            bool `bson:"apiAccess"             json:"apiAccess"`
+	CustomSla            bool `bson:"customSla"             json:"customSla"`
+	OnPremise            bool `bson:"onPremise"             json:"onPremise"`
+	Sso                  bool `bson:"sso"                   json:"sso"`
+	AdvancedSecurity     bool `bson:"advancedSecurity"      json:"advancedSecurity"`
 }
 
 // PackagePricing — pricing per billing cycle
@@ -54,19 +54,19 @@ type PackageUI struct {
 // Limits and features are the authoritative source — subscriptionsvc.ResolveEffective
 // merges package + subscription.Overrides to get final effective limits.
 type SubscriptionPackage struct {
-	PackageId   string         `bson:"id"          json:"id"`
-	Code        string         `bson:"code"        json:"code"`
-	Name        I18nString     `bson:"name"        json:"name"`
-	Description I18nString     `bson:"description" json:"description"`
-	Status      string         `bson:"status"      json:"status"`      // "active" | "inactive"
-	SortOrder   int            `bson:"sortOrder"   json:"sortOrder"`
-	IsPublic    bool           `bson:"isPublic"    json:"isPublic"`
-	Billing     PackageBilling `bson:"billing"     json:"billing"`
+	PackageId   string             `bson:"id"          json:"id"`
+	Code        string             `bson:"code"        json:"code"`
+	Name        I18nString         `bson:"name"        json:"name"`
+	Description I18nString         `bson:"description" json:"description"`
+	Status      string             `bson:"status"      json:"status"` // "active" | "inactive"
+	SortOrder   int                `bson:"sortOrder"   json:"sortOrder"`
+	IsPublic    bool               `bson:"isPublic"    json:"isPublic"`
+	Billing     PackageBilling     `bson:"billing"     json:"billing"`
 	Limits      SubscriptionLimits `bson:"limits"  json:"limits"`
 	Features    PackageFeatures    `bson:"features" json:"features"`
-	UI          PackageUI      `bson:"ui"          json:"ui"`
-	CreatedAt   time.Time      `bson:"createdAt"   json:"createdAt"`
-	UpdatedAt   time.Time      `bson:"updatedAt"   json:"updatedAt"`
+	UI          PackageUI          `bson:"ui"          json:"ui"`
+	CreatedAt   time.Time          `bson:"createdAt"   json:"createdAt"`
+	UpdatedAt   time.Time          `bson:"updatedAt"   json:"updatedAt"`
 }
 
 // EffectiveSubscription — resolved plan + overrides, returned by GET /subscriptions/current
