@@ -97,12 +97,12 @@ func (s *ApprovalService) ApproveEvent(
 
 	// 5) Create approved event detail
 	eventDetail := &ingestmod.EventDetail{
-		EventId:  pending.EventId,
-		TenantId: pending.TenantId,
-		OrgId:    pending.OrgId,
-		Name:     pending.Name,
-		Lat:      pending.Lat,
-		Lng:      pending.Lng,
+		EventId:   pending.EventId,
+		TenantId:  pending.TenantId,
+		OrgId:     pending.OrgId,
+		Name:      pending.Name,
+		Lat:       pending.Lat,
+		Lng:       pending.Lng,
 		EventType: pending.EventType,
 		NormalizedData: map[string]any{
 			"eventType":  pending.EventType,

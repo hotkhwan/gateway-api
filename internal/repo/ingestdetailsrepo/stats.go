@@ -117,13 +117,13 @@ func (r *EventDetailsRepo) GetRecentEvents(
 		SetLimit(int64(limit))
 
 	type eventDoc struct {
-		ID         string                `bson:"_id" json:"id"`
-		EventId    string                `bson:"eventId" json:"eventId"`
-		EventType  string                `bson:"eventType" json:"eventType"`
+		ID         string                 `bson:"_id" json:"id"`
+		EventId    string                 `bson:"eventId" json:"eventId"`
+		EventType  string                 `bson:"eventType" json:"eventType"`
 		Location   ingestmod.LocationInfo `bson:"location" json:"location"`
 		Source     ingestmod.SourceInfo   `bson:"source" json:"source"`
-		OccurredAt time.Time             `bson:"occurredAt" json:"occurredAt"`
-		CreatedAt  time.Time             `bson:"createdAt" json:"createdAt"`
+		OccurredAt time.Time              `bson:"occurredAt" json:"occurredAt"`
+		CreatedAt  time.Time              `bson:"createdAt" json:"createdAt"`
 	}
 
 	var docs []eventDoc
