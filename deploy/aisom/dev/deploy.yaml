@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kapi
+  namespace: gw
+  labels:
+    app: kapi
+spec:
+  selector:
+    matchLabels:
+      app: kapi
+  template:
+    metadata:
+      labels:
+        app: kapi
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: gateway
+      imagePullSecrets:
+        - name: regis-secret
+      containers:
+        - name: kapi
+          image: golang:1.26
+          workingDir: /app
+          command: ["sleep"]
+          args: ["infinity"]
+          # command: ["go", "run", ".", "--env=dev"]
+          # command: ["./main", "--env=dev"]
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PATH
+              value: /usr/local/go/bin:/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+          # envFrom:
+          #   - configMapRef:
+          #       name: kapi-aisom-config
+          #   - secretRef:
+          #       name: kapi-aisom-secrets
+          ports:
+            - name: http
+              containerPort: 3001
+          volumeMounts:
+            - name: src-code
+              mountPath: /app
+            - name: rootca-volume
+              mountPath: /app/certs/tls.ca
+              subPath: tls.ca
+              readOnly: true
+          securityContext:
+            privileged: true
+      volumes:
+        - name: src-code
+          hostPath:
+            path: /home/aisom/gateway-api
+            type: Directory
+        - name: rootca-volume
+          hostPath:
+            path: /home/aisom/gateway-api/certs
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kapi
+  namespace: gw
+spec:
+  selector:
+    app: kapi
+  ports:
+    - name: http
+      port: 3001
+      targetPort: http
+      protocol: TCP
+  type: ClusterIP
+
+
+# go install github.com/swaggo/swag/cmd/swag@latest

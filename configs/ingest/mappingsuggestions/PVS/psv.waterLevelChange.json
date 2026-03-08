@@ -1,0 +1,47 @@
+{
+  "id": "psv.waterLevelChange.v1",
+  "sourceFamily": "PVS",
+  "displayName": "PVS Water Level Change",
+  "matchRule": {
+    "type": "all",
+    "rules": [
+      {
+        "field": "event_type",
+        "operator": "eq",
+        "value": "Water Level Notification"
+      }
+    ]
+  },
+  "fieldMappings": [
+    { "sourceField": "id",                "targetField": "eventId" },
+    { "sourceField": "site_name",         "targetField": "siteName" },
+    { "sourceField": "ref_id",            "targetField": "refId" },
+    { "sourceField": "event_type",        "targetField": "eventType" },
+    { "sourceField": "event_name",        "targetField": "eventName" },
+    { "sourceField": "description",       "targetField": "description" },
+    { "sourceField": "event_date",        "targetField": "eventTime" },
+    { "sourceField": "app_date",          "targetField": "appTime" },
+    { "sourceField": "sensor_name",       "targetField": "sensorName" },
+    { "sourceField": "alarm_triggered_by","targetField": "triggeredBy" },
+    { "sourceField": "from_device",       "targetField": "sourceDeviceType" },
+    { "sourceField": "latitude",          "targetField": "lat" },
+    { "sourceField": "longitude",         "targetField": "lng" },
+    { "sourceField": "image_base64",      "targetField": "imageBase64" }
+  ],
+  "samplePayload": {
+    "id": "e594d096-488d-4a72-bf63-37fd9ea6eb64",
+    "site_name": "BANGPU",
+    "ref_id": 5823092,
+    "event_type": "Water Level Notification",
+    "event_name": "Water Level change from 1 to 3",
+    "description": "",
+    "event_date": "2025-10-27T22:26:33",
+    "app_date": "2025-10-27T22:26:33",
+    "sensor_name": "BPAI-W-44-2 - คอสะพานซอย E-6",
+    "alarm_triggered_by": "BPAI-W-44-2 - คอสะพานซอย E-6",
+    "from_device": "XConnector",
+    "latitude": 13.550856,
+    "longitude": 100.671671,
+    "image_base64": null
+  }
+}

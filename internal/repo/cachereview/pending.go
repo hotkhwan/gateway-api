@@ -10,35 +10,35 @@ import (
 )
 
 const (
-	prefix  = "tmpl:review:pending:"
+	prefix  = "upr:pending:"
 	lockTTL = 1 * time.Hour
 )
 
-func key(tenantId, orgId, sourceFamily, fingerprint string) string {
-	return fmt.Sprintf("%s%s:%s:%s:%s", prefix, tenantId, orgId, sourceFamily, fingerprint)
+func key(orgId, sourceFamily, fingerprint string) string {
+	return fmt.Sprintf("%s%s:%s:%s", prefix, orgId, sourceFamily, fingerprint)
 }
 
 // IsPending checks whether a pending review already exists for this fingerprint.
-func IsPending(ctx context.Context, tenantId, orgId, sourceFamily, fingerprint string) bool {
+func IsPending(ctx context.Context, orgId, sourceFamily, fingerprint string) bool {
 	if config.Redis == nil {
 		return false
 	}
-	exists, err := config.Redis.Exists(ctx, key(tenantId, orgId, sourceFamily, fingerprint)).Result()
+	exists, err := config.Redis.Exists(ctx, key(orgId, sourceFamily, fingerprint)).Result()
 	return err == nil && exists > 0
 }
 
 // SetPending marks a fingerprint as having a pending review.
-func SetPending(ctx context.Context, tenantId, orgId, sourceFamily, fingerprint, reviewId string) {
+func SetPending(ctx context.Context, orgId, sourceFamily, fingerprint, reviewId string) {
 	if config.Redis == nil {
 		return
 	}
-	_ = config.Redis.Set(ctx, key(tenantId, orgId, sourceFamily, fingerprint), reviewId, lockTTL).Err()
+	_ = config.Redis.Set(ctx, key(orgId, sourceFamily, fingerprint), reviewId, lockTTL).Err()
 }
 
 // ClearPending removes the pending lock for a fingerprint.
-func ClearPending(ctx context.Context, tenantId, orgId, sourceFamily, fingerprint string) {
+func ClearPending(ctx context.Context, orgId, sourceFamily, fingerprint string) {
 	if config.Redis == nil {
 		return
 	}
-	_ = config.Redis.Del(ctx, key(tenantId, orgId, sourceFamily, fingerprint)).Err()
+	_ = config.Redis.Del(ctx, key(orgId, sourceFamily, fingerprint)).Err()
 }

@@ -1,95 +1,146 @@
-// controllers/ingestapi/templateReview.go
+// controllers/ingestapi/unknownPayloadReview.go
 package ingestapi
 
 import (
 	"errors"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/hotkhwan/gateway-api/internal/services/templatereviewsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/rejectedpayloadpatternsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/unknownpayloadreviewsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
-type TemplateReviewController struct {
-	svc *templatereviewsvc.TemplateReviewService
+type UnknownPayloadReviewController struct {
+	svc        *unknownpayloadreviewsvc.UnknownPayloadReviewService
+	patternSvc *rejectedpayloadpatternsvc.RejectedPayloadPatternService
 }
 
-func NewTemplateReviewController(svc *templatereviewsvc.TemplateReviewService) *TemplateReviewController {
+func NewUnknownPayloadReviewController(
+	svc *unknownpayloadreviewsvc.UnknownPayloadReviewService,
+	patternSvc *rejectedpayloadpatternsvc.RejectedPayloadPatternService,
+) *UnknownPayloadReviewController {
 	if svc == nil {
-		panic("TemplateReviewController: svc required")
+		panic("UnknownPayloadReviewController: svc required")
 	}
-	return &TemplateReviewController{svc: svc}
+	if patternSvc == nil {
+		panic("UnknownPayloadReviewController: patternSvc required")
+	}
+	return &UnknownPayloadReviewController{svc: svc, patternSvc: patternSvc}
 }
 
-func (h *TemplateReviewController) tenantId(c *fiber.Ctx) string {
-	tid, _ := c.Locals("tenantId").(string)
-	return tid
-}
-
-func (h *TemplateReviewController) orgId(c *fiber.Ctx) string {
+func (h *UnknownPayloadReviewController) orgId(c *fiber.Ctx) string {
 	oid, _ := c.Locals("activeOrg").(string)
 	return oid
 }
 
-func (h *TemplateReviewController) List(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "TemplateReviewController.List", "ingestapi", "ListTemplateReviews")
+func (h *UnknownPayloadReviewController) userId(c *fiber.Ctx) string {
+	uid, _ := c.Locals("userId").(string)
+	return uid
+}
+
+// List godoc
+// @Summary      List unknown payload reviews
+// @Tags         ingest-unknown-payload-reviews
+// @Security     BearerAuth
+// @Param        X-Active-Org  header  string  true  "Active Org ID"
+// @Param        page          query   int     false "Page" default(1)
+// @Param        perPages      query   int     false "Per page" default(10)
+// @Success      200  {object}  gmod.PaginationResponse
+// @Failure      401  {object}  gmod.ApiErrorResponse
+// @Router       /api/v1/ingest/unknownPayloadReviews [get]
+func (h *UnknownPayloadReviewController) List(c *fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "UnknownPayloadReviewController.List", "ingestapi", "ListUnknownPayloadReviews")
 	defer end()
 
-	tenantId := h.tenantId(c)
 	orgId := h.orgId(c)
 	page := c.QueryInt("page", 1)
 	perPage := c.QueryInt("perPages", 10)
 
-	items, pag, err := h.svc.List(ctx, tenantId, orgId, page, perPage)
+	items, pag, err := h.svc.List(ctx, orgId, page, perPage)
 	if err != nil {
-		log.Error().Err(err).Msg("[ListTemplateReviews] failed")
-		return httputil.FailInternal(c, "failed to list template reviews")
+		log.Error().Err(err).Msg("[ListUnknownPayloadReviews] failed")
+		return httputil.FailInternal(c, "failed to list unknown payload reviews")
 	}
 	return c.JSON(fiber.Map{
 		"code":       gmod.CodeSuccess,
-		"message":    "template reviews fetched",
+		"message":    "unknown payload reviews fetched",
 		"status":     true,
 		"details":    items,
 		"pagination": pag,
 	})
 }
 
-func (h *TemplateReviewController) Get(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "TemplateReviewController.Get", "ingestapi", "GetTemplateReview")
+// Get godoc
+// @Summary      Get unknown payload review
+// @Tags         ingest-unknown-payload-reviews
+// @Security     BearerAuth
+// @Param        X-Active-Org  header  string  true  "Active Org ID"
+// @Param        id            path    string  true  "Review ID"
+// @Success      200  {object}  gmod.SuccessDataResponse
+// @Failure      404  {object}  gmod.ApiErrorResponse
+// @Router       /api/v1/ingest/unknownPayloadReviews/{id} [get]
+func (h *UnknownPayloadReviewController) Get(c *fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "UnknownPayloadReviewController.Get", "ingestapi", "GetUnknownPayloadReview")
 	defer end()
 
-	tenantId := h.tenantId(c)
 	orgId := h.orgId(c)
 	reviewId := c.Params("id")
 
-	rev, err := h.svc.Get(ctx, tenantId, orgId, reviewId)
+	rev, err := h.svc.Get(ctx, orgId, reviewId)
 	if err != nil {
-		if errors.Is(err, templatereviewsvc.ErrNotFound) {
-			return httputil.FailNotFound(c, "template review not found")
+		if errors.Is(err, unknownpayloadreviewsvc.ErrNotFound) {
+			return httputil.FailNotFound(c, "unknown payload review not found")
 		}
-		log.Error().Err(err).Msg("[GetTemplateReview] failed")
-		return httputil.FailInternal(c, "failed to get template review")
+		log.Error().Err(err).Msg("[GetUnknownPayloadReview] failed")
+		return httputil.FailInternal(c, "failed to get unknown payload review")
 	}
-	return httputil.Ok(c, rev, "template review fetched")
+	return httputil.Ok(c, rev, "unknown payload review fetched")
 }
 
-func (h *TemplateReviewController) Archive(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "TemplateReviewController.Archive", "ingestapi", "ArchiveTemplateReview")
+// Reject godoc
+// @Summary      Reject unknown payload review and create a rejected payload pattern
+// @Tags         ingest-unknown-payload-reviews
+// @Security     BearerAuth
+// @Param        X-Active-Org  header  string  true  "Active Org ID"
+// @Param        id            path    string  true  "Review ID"
+// @Success      200  {object}  gmod.SuccessDataResponse
+// @Failure      404  {object}  gmod.ApiErrorResponse
+// @Router       /api/v1/ingest/unknownPayloadReviews/{id}/reject [post]
+func (h *UnknownPayloadReviewController) Reject(c *fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "UnknownPayloadReviewController.Reject", "ingestapi", "RejectUnknownPayloadReview")
 	defer end()
 
-	tenantId := h.tenantId(c)
 	orgId := h.orgId(c)
 	reviewId := c.Params("id")
+	createdBy := h.userId(c)
 
-	if err := h.svc.Archive(ctx, tenantId, orgId, reviewId); err != nil {
-		if errors.Is(err, templatereviewsvc.ErrNotFound) {
-			return httputil.FailNotFound(c, "template review not found")
+	rev, err := h.svc.Reject(ctx, orgId, reviewId)
+	if err != nil {
+		if errors.Is(err, unknownpayloadreviewsvc.ErrNotFound) {
+			return httputil.FailNotFound(c, "unknown payload review not found")
 		}
-		log.Error().Err(err).Msg("[ArchiveTemplateReview] failed")
-		return httputil.FailInternal(c, "failed to archive template review")
+		log.Error().Err(err).Msg("[RejectUnknownPayloadReview] failed")
+		return httputil.FailInternal(c, "failed to reject unknown payload review")
 	}
 
-	log.Info().Str("reviewId", reviewId).Msg("[ArchiveTemplateReview] archived")
-	return httputil.MessageOK(c, "template review archived")
+	// Create rejectedPayloadPattern to silently drop future payloads with same shape
+	patternId, patternErr := h.patternSvc.Create(ctx, orgId, rev.SourceFamily, rev.Fingerprint, "operatorRejected", createdBy)
+	if patternErr != nil && !errors.Is(patternErr, rejectedpayloadpatternsvc.ErrAlreadyExists) {
+		log.Error().Err(patternErr).Str("reviewId", reviewId).Msg("[RejectUnknownPayloadReview] failed to create rejected pattern (non-fatal)")
+	}
+
+	log.Info().
+		Str("reviewId", reviewId).
+		Str("orgId", orgId).
+		Str("patternId", patternId).
+		Msg("[RejectUnknownPayloadReview] rejected and pattern created")
+
+	return httputil.Ok(c, fiber.Map{
+		"reviewId":     rev.ReviewId,
+		"sourceFamily": rev.SourceFamily,
+		"fingerprint":  rev.Fingerprint,
+		"patternId":    patternId,
+	}, "unknown payload review rejected")
 }
