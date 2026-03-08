@@ -69,23 +69,33 @@ func (ctrl *IngestController) Ingest(c *fiber.Ctx) error {
 	result, err := ctrl.service.Ingest(ctx, orgId, sourceFamily, sourceIp, contentType, body)
 	if err != nil {
 		switch {
+		case errors.Is(err, ingestsvc.ErrSourceFamilyLocked):
+			log.Info().Str("orgId", orgId).Str("sourceFamily", sourceFamily).Msg("[Ingest] sourceFamily locked")
+			return httputil.Fail(c, fiber.StatusLocked, "SOURCE_FAMILY_LOCKED", "sourceFamily is not enabled")
+		case errors.Is(err, ingestsvc.ErrSourceFamilyComingSoon):
+			log.Info().Str("orgId", orgId).Str("sourceFamily", sourceFamily).Msg("[Ingest] sourceFamily coming soon")
+			return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
+				"code":    "ACCEPTED",
+				"message": "sourceFamily is coming soon",
+				"status":  true,
+			})
 		case errors.Is(err, ingestsvc.ErrOrgNotFound):
-			log.Warn().Str("orgId", orgId).Msg("❌ [Ingest] org not found")
+			log.Warn().Str("orgId", orgId).Msg("[Ingest] org not found")
 			return httputil.FailNotFound(c, "organization not found")
 		case errors.Is(err, ingestsvc.ErrRateLimited):
-			log.Warn().Str("orgId", orgId).Str("sourceIp", sourceIp).Msg("❌ [Ingest] rate limited")
+			log.Warn().Str("orgId", orgId).Str("sourceIp", sourceIp).Msg("[Ingest] rate limited")
 			return httputil.FailTooMany(c, "rate limit exceeded")
 		case errors.Is(err, ingestsvc.ErrPayloadTooLarge):
-			log.Warn().Str("orgId", orgId).Int("bodySize", len(body)).Msg("❌ [Ingest] payload too large")
+			log.Warn().Str("orgId", orgId).Int("bodySize", len(body)).Msg("[Ingest] payload too large")
 			return httputil.Fail(c, fiber.StatusRequestEntityTooLarge, "PAYLOAD_TOO_LARGE", "payload exceeds limit")
 		case errors.Is(err, ingestsvc.ErrEmptyBody):
-			log.Warn().Str("orgId", orgId).Msg("❌ [Ingest] empty body")
+			log.Warn().Str("orgId", orgId).Msg("[Ingest] empty body")
 			return httputil.FailBadRequest(c, "request body is empty")
 		case errors.Is(err, ingestsvc.ErrTemplateMismatch):
-			log.Warn().Str("orgId", orgId).Msg("❌ [Ingest] no matching template for approved device")
+			log.Warn().Str("orgId", orgId).Msg("[Ingest] no matching template for approved device")
 			return httputil.Fail(c, fiber.StatusUnprocessableEntity, "TEMPLATE_MISMATCH", "no matching template found, please configure a mapping template for this device")
 		default:
-			log.Error().Err(err).Str("orgId", orgId).Msg("❌ [Ingest] internal error")
+			log.Error().Err(err).Str("orgId", orgId).Msg("[Ingest] internal error")
 			return httputil.FailInternal(c, "internal server error")
 		}
 	}

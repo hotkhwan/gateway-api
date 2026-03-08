@@ -320,12 +320,12 @@ func main() {
 		log.Fatal().Err(err).Msg("❌ Failed to initialize JWKS")
 	}
 
-	if _, err := os.Stat("/app/crimes"); err != nil {
-		log.Error().Err(err).Msg("cannot stat /app/crimes")
-	} else {
-		log.Info().Msg("✅ /app/crimes accessible")
+	// if _, err := os.Stat("/app/crimes"); err != nil {
+	// 	log.Error().Err(err).Msg("cannot stat /app/crimes")
+	// } else {
+	// 	log.Info().Msg("✅ /app/crimes accessible")
 
-	}
+	// }
 
 	// ✅ Watch crimes dir
 	coll := config.DB.Collection("kwatch_watchlist")

@@ -25,7 +25,8 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/repo/sourceprofilerepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/targetrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/templatereviewrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/rejectedpayloadpatternrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/unknownpayloadreviewrepo"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicemgmtsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
@@ -34,9 +35,11 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/sourceprofilesvc"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/mappingsuggestionsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/rejectedpayloadpatternsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
-	"github.com/hotkhwan/gateway-api/internal/services/templatereviewsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/templatesvc"
+	"github.com/hotkhwan/gateway-api/internal/services/unknownpayloadreviewsvc"
 )
 
 // ============================================================
@@ -96,9 +99,17 @@ type Container struct {
 	// ===== Mapping Template domain =====
 	TemplateController *ingestapi.TemplateController
 
-	// ===== Template Review domain =====
-	TemplateReviewService    *templatereviewsvc.TemplateReviewService
-	TemplateReviewController *ingestapi.TemplateReviewController
+	// ===== Mapping Suggestion domain (read-only, in-memory) =====
+	MappingSuggestionService    *mappingsuggestionsvc.MappingSuggestionService
+	MappingSuggestionController *ingestapi.MappingSuggestionController
+
+	// ===== Unknown Payload Review domain =====
+	UnknownPayloadReviewService    *unknownpayloadreviewsvc.UnknownPayloadReviewService
+	UnknownPayloadReviewController *ingestapi.UnknownPayloadReviewController
+
+	// ===== Rejected Payload Pattern domain =====
+	RejectedPayloadPatternService    *rejectedpayloadpatternsvc.RejectedPayloadPatternService
+	RejectedPayloadPatternController *ingestapi.RejectedPayloadPatternController
 
 	// ===== DLQ domain =====
 	DLQService    *dlqsvc.DLQService
@@ -131,7 +142,9 @@ func NewContainer() *Container {
 	c.buildSubscription()
 	c.buildSourceProfile()
 	c.buildDeviceManagement()
+	c.buildRejectedPayloadPattern()
 	c.buildTemplateReview()
+	c.buildMappingSuggestion()
 	c.buildIngest()
 	c.buildEvents()
 	c.buildTargets()
@@ -241,13 +254,26 @@ func (c *Container) buildDeviceManagement() {
 }
 
 // ============================================================
-// buildTemplateReview — Template Review domain
+// buildRejectedPayloadPattern — Rejected Payload Pattern domain
+// ============================================================
+
+func (c *Container) buildRejectedPayloadPattern() {
+	repo := rejectedpayloadpatternrepo.NewRejectedPayloadPatternRepo()
+	c.RejectedPayloadPatternService = rejectedpayloadpatternsvc.NewRejectedPayloadPatternService(repo)
+	c.RejectedPayloadPatternController = ingestapi.NewRejectedPayloadPatternController(c.RejectedPayloadPatternService)
+}
+
+// ============================================================
+// buildUnknownPayloadReview — Unknown Payload Review domain
 // ============================================================
 
 func (c *Container) buildTemplateReview() {
-	repo := templatereviewrepo.NewTemplateReviewRepo()
-	c.TemplateReviewService = templatereviewsvc.NewTemplateReviewService(repo)
-	c.TemplateReviewController = ingestapi.NewTemplateReviewController(c.TemplateReviewService)
+	repo := unknownpayloadreviewrepo.NewUnknownPayloadReviewRepo()
+	c.UnknownPayloadReviewService = unknownpayloadreviewsvc.NewUnknownPayloadReviewService(repo)
+	c.UnknownPayloadReviewController = ingestapi.NewUnknownPayloadReviewController(
+		c.UnknownPayloadReviewService,
+		c.RejectedPayloadPatternService,
+	)
 }
 
 // ============================================================
@@ -269,7 +295,9 @@ func (c *Container) buildIngest() {
 		config.Redis,
 		tmplMatcher,
 		c.SourceProfileService,
-		c.TemplateReviewService,
+		c.UnknownPayloadReviewService,
+		c.RejectedPayloadPatternService,
+		c.MappingSuggestionService,
 		c.DeviceMgmtService,
 		logger.WithMeta("ingest", "container"),
 	)
@@ -330,6 +358,15 @@ func (c *Container) buildTemplate() {
 	templateRepo := ingestrepo.NewMappingTemplateRepo()
 	svc := templatesvc.NewTemplateService(templateRepo)
 	c.TemplateController = ingestapi.NewTemplateController(svc)
+}
+
+// ============================================================
+// buildMappingSuggestion — in-memory read-only suggestions
+// ============================================================
+
+func (c *Container) buildMappingSuggestion() {
+	c.MappingSuggestionService = mappingsuggestionsvc.NewMappingSuggestionService()
+	c.MappingSuggestionController = ingestapi.NewMappingSuggestionController(c.MappingSuggestionService)
 }
 
 // ============================================================
