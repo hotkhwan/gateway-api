@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-api
+  namespace: gw
+  labels:
+    app: gateway-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway-api
+  template:
+    metadata:
+      labels:
+        app: gateway-api
+    spec:
+      imagePullSecrets:
+      - name: harbor-credential
+      containers:
+      - name: gateway-api
+        image: regis.pointit.co.th/ata/gateway-api:76d9807
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3001
+        readinessProbe:
+          httpGet:
+            path: /health # Assuming there's a health check, if not, might need to adjustment
+            port: 3001
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-api
+  namespace: gw
+spec:
+  selector:
+    app: gateway-api
+  ports:
+  - port: 80
+    targetPort: 3001
+  type: ClusterIP
