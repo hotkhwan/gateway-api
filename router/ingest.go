@@ -70,6 +70,12 @@ func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
 			sp.Patch("/:sourceFamily", c.SourceProfileController.Update)
 		})
 
+		// ---------- Mapping Suggestions (read-only) ----------
+		r.Route("/mappingSuggestions", func(ms fiber.Router) {
+			ms.Get("/", c.MappingSuggestionController.List)
+			ms.Get("/:id", c.MappingSuggestionController.Get)
+		})
+
 		// ---------- Mapping Templates ----------
 		r.Route("/mappingTemplates", func(tmpl fiber.Router) {
 			tmpl.Get("/", c.TemplateController.List)
@@ -87,11 +93,17 @@ func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
 			dm.Patch("/:id", c.DeviceMgmtController.Update)
 		})
 
-		// ---------- Template Reviews ----------
-		r.Route("/templateReviews", func(tr fiber.Router) {
-			tr.Get("/", c.TemplateReviewController.List)
-			tr.Get("/:id", c.TemplateReviewController.Get)
-			tr.Post("/:id/archive", c.TemplateReviewController.Archive)
+		// ---------- Unknown Payload Reviews ----------
+		r.Route("/unknownPayloadReviews", func(tr fiber.Router) {
+			tr.Get("/", c.UnknownPayloadReviewController.List)
+			tr.Get("/:id", c.UnknownPayloadReviewController.Get)
+			tr.Post("/:id/reject", c.UnknownPayloadReviewController.Reject)
+		})
+
+		// ---------- Rejected Payload Patterns ----------
+		r.Route("/rejectedPayloadPatterns", func(rp fiber.Router) {
+			rp.Get("/", c.RejectedPayloadPatternController.List)
+			rp.Delete("/:id", c.RejectedPayloadPatternController.Delete)
 		})
 
 		// ---------- DLQ ----------

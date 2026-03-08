@@ -1,0 +1,77 @@
+{
+  "id": "aibox.generalDetect.v1",
+  "sourceFamily": "AIBOX",
+  "displayName": "AIBOX General Detect",
+  "matchRule": {
+    "type": "all",
+    "rules": [
+      {
+        "field": "eventAttribute",
+        "operator": "exists",
+        "value": true
+      }
+    ]
+  },
+  "fieldMappings": [
+    { "sourceField": "address",                             "targetField": "address" },
+    { "sourceField": "channelGb28181Id",                    "targetField": "channelGb28181Id" },
+    { "sourceField": "channelId",                           "targetField": "channelId" },
+    { "sourceField": "device",                              "targetField": "deviceName" },
+    { "sourceField": "deviceGb28181Id",                     "targetField": "deviceGb28181Id" },
+    { "sourceField": "deviceId",                            "targetField": "deviceId" },
+    { "sourceField": "eventAttribute.age",                  "targetField": "eventAttribute.age" },
+    { "sourceField": "eventAttribute.gender",               "targetField": "eventAttribute.gender" },
+    { "sourceField": "eventAttribute.upper",                "targetField": "eventAttribute.upper" },
+    { "sourceField": "eventAttribute.upperColor",           "targetField": "eventAttribute.upperColor" },
+    { "sourceField": "eventAttribute.lower",                "targetField": "eventAttribute.lower" },
+    { "sourceField": "eventAttribute.lowerColor",           "targetField": "eventAttribute.lowerColor" },
+    { "sourceField": "eventAttribute.skirt",                "targetField": "eventAttribute.skirt" },
+    { "sourceField": "eventAttribute.hat",                  "targetField": "eventAttribute.hat" },
+    { "sourceField": "eventAttribute.mask",                 "targetField": "eventAttribute.mask" },
+    { "sourceField": "eventAttribute.backPack",             "targetField": "eventAttribute.backPack" },
+    { "sourceField": "eventAttribute.riding",               "targetField": "eventAttribute.riding" },
+    { "sourceField": "eventAttribute.direction",            "targetField": "eventAttribute.direction" },
+    { "sourceField": "eventAttribute.hair",                 "targetField": "eventAttribute.hair" },
+    { "sourceField": "eventAttribute.upperTexture",         "targetField": "eventAttribute.upperTexture" },
+    { "sourceField": "eventAttribute.shoe",                 "targetField": "eventAttribute.shoe" },
+    { "sourceField": "eventAttribute.shoeColor",            "targetField": "eventAttribute.shoeColor" },
+    { "sourceField": "eventAttribute.vestName",             "targetField": "eventAttribute.vestName" },
+    { "sourceField": "eventAttribute.vestListType",         "targetField": "eventAttribute.vestListType" },
+    { "sourceField": "eventAttribute.vestSimilarity",       "targetField": "eventAttribute.vestSimilarity" },
+    { "sourceField": "eventAttribute.vestUnit",             "targetField": "eventAttribute.vestUnit" },
+    { "sourceField": "eventAttribute.vestFeatureImageId",   "targetField": "eventAttribute.vestFeatureImageId" },
+    { "sourceField": "eventAttribute.vestFeatureImageUrl",  "targetField": "eventAttribute.vestFeatureImageUrl" }
+  ],
+  "samplePayload": {
+    "address": "Floor3",
+    "channelGb28181Id": "",
+    "channelId": 30,
+    "device": "EDGEAI-8ch",
+    "deviceGb28181Id": "",
+    "deviceId": 1,
+    "eventAttribute": {
+      "age": 0,
+      "gender": 2,
+      "upper": 2,
+      "upperColor": 10,
+      "lower": 2,
+      "lowerColor": 1,
+      "skirt": 0,
+      "hat": 2,
+      "mask": 1,
+      "backPack": 4,
+      "riding": 0,
+      "direction": 0,
+      "hair": 0,
+      "upperTexture": 0,
+      "shoe": 0,
+      "shoeColor": 0,
+      "vestName": "",
+      "vestListType": 0,
+      "vestSimilarity": 0,
+      "vestUnit": "",
+      "vestFeatureImageId": "",
+      "vestFeatureImageUrl": ""
+    }
+  }
+}

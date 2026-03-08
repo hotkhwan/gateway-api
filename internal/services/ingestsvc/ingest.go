@@ -1,10 +1,12 @@
-// internal/services/eventsvc/ingest.go
+// internal/services/ingestsvc/ingest.go
 package ingestsvc
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -79,18 +81,21 @@ func (l *localEmergencyLimiter) Check(key string, limit int) bool {
 }
 
 // IngestService — thin hot-path service
-// V2: sourceFamily-based template matching, no device approval
+// V3: env-guarded sourceFamily, mode matrix, fingerprint-based review
 type IngestService struct {
-	orgRepo          *authzrepo.OrgRepo
-	eventMgmtRepo    *ingestmgmtrepo.EventManagementRepo
-	subSvc           *subscriptionsvc.SubscriptionService
-	redis            *redis.Client
-	localOrg         *localEmergencyLimiter
-	tmplMatcher      *TemplateMatcher
-	sourceProfileSvc SourceProfileResolver
-	reviewSvc        ReviewCreator
-	deviceMgmtSvc    DeviceResolver
-	logger           zerolog.Logger
+	orgRepo            *authzrepo.OrgRepo
+	eventMgmtRepo      *ingestmgmtrepo.EventManagementRepo
+	subSvc             *subscriptionsvc.SubscriptionService
+	redis              *redis.Client
+	localOrg           *localEmergencyLimiter
+	tmplMatcher        *TemplateMatcher
+	sourceProfileSvc   SourceProfileResolver
+	reviewSvc          ReviewCreator
+	rejectedPatternSvc RejectedPatternChecker
+	suggestionSvc      SuggestionProvider
+	deviceMgmtSvc      DeviceResolver
+	enabledFamilies    map[string]bool // parsed from INGEST_ENABLED_SOURCE_FAMILIES
+	logger             zerolog.Logger
 }
 
 // SourceProfileResolver loads source profiles (injected to avoid circular imports).
@@ -98,9 +103,19 @@ type SourceProfileResolver interface {
 	Get(ctx context.Context, sourceFamily string) (*ingestmod.SourceProfile, error)
 }
 
-// ReviewCreator creates template review samples (injected to avoid circular imports).
+// ReviewCreator creates/updates unknown payload reviews (injected to avoid circular imports).
 type ReviewCreator interface {
-	CreateIfNotExists(ctx context.Context, tenantId, orgId, sourceFamily, fingerprint string, samplePayload map[string]any, suggestedMatchFields []string) string
+	UpsertIfNotExists(ctx context.Context, orgId, sourceFamily, fingerprint string, samplePayload map[string]any, candidateSuggestionIds []string) string
+}
+
+// RejectedPatternChecker checks if a fingerprint has been rejected (injected to avoid circular imports).
+type RejectedPatternChecker interface {
+	IsRejected(ctx context.Context, orgId, sourceFamily, fingerprint string) bool
+}
+
+// SuggestionProvider returns mapping suggestions for a sourceFamily (injected to avoid circular imports).
+type SuggestionProvider interface {
+	GetByFamily(sourceFamily string) []*ingestmod.MappingSuggestion
 }
 
 // DeviceResolver resolves device enrichment data (injected to avoid circular imports).
@@ -116,6 +131,8 @@ func NewIngestService(
 	tmplMatcher *TemplateMatcher,
 	sourceProfileSvc SourceProfileResolver,
 	reviewSvc ReviewCreator,
+	rejectedPatternSvc RejectedPatternChecker,
+	suggestionSvc SuggestionProvider,
 	deviceMgmtSvc DeviceResolver,
 	logger zerolog.Logger,
 ) *IngestService {
@@ -126,17 +143,57 @@ func NewIngestService(
 		panic("IngestService: tmplMatcher is required")
 	}
 	return &IngestService{
-		orgRepo:          orgRepo,
-		eventMgmtRepo:    eventMgmtRepo,
-		subSvc:           subSvc,
-		redis:            redis,
-		localOrg:         newLocalEmergencyLimiter(),
-		tmplMatcher:      tmplMatcher,
-		sourceProfileSvc: sourceProfileSvc,
-		reviewSvc:        reviewSvc,
-		deviceMgmtSvc:    deviceMgmtSvc,
-		logger:           logger,
+		orgRepo:            orgRepo,
+		eventMgmtRepo:      eventMgmtRepo,
+		subSvc:             subSvc,
+		redis:              redis,
+		localOrg:           newLocalEmergencyLimiter(),
+		tmplMatcher:        tmplMatcher,
+		sourceProfileSvc:   sourceProfileSvc,
+		reviewSvc:          reviewSvc,
+		rejectedPatternSvc: rejectedPatternSvc,
+		suggestionSvc:      suggestionSvc,
+		deviceMgmtSvc:      deviceMgmtSvc,
+		enabledFamilies:    parseEnabledFamilies(os.Getenv("INGEST_ENABLED_SOURCE_FAMILIES")),
+		logger:             logger,
 	}
+}
+
+// parseEnabledFamilies parses comma-separated INGEST_ENABLED_SOURCE_FAMILIES env value.
+func parseEnabledFamilies(envVal string) map[string]bool {
+	result := make(map[string]bool)
+	for _, f := range strings.Split(envVal, ",") {
+		f = strings.TrimSpace(f)
+		if f != "" {
+			result[f] = true
+		}
+	}
+	return result
+}
+
+// isSourceFamilyEnabled checks env allowlist.
+func (s *IngestService) isSourceFamilyEnabled(sourceFamily string) bool {
+	// If no families configured, reject all (fail-closed)
+	if len(s.enabledFamilies) == 0 {
+		return false
+	}
+	return s.enabledFamilies[sourceFamily]
+}
+
+// getSourceFamilyMode returns mode from sourceProfile ("active"|"comingSoon"|"mock").
+// Defaults to "active" if profile not found.
+func (s *IngestService) getSourceFamilyMode(ctx context.Context, sourceFamily string) string {
+	if s.sourceProfileSvc == nil {
+		return "active"
+	}
+	profile, err := s.sourceProfileSvc.Get(ctx, sourceFamily)
+	if err != nil || profile == nil {
+		return "active"
+	}
+	if profile.Mode == "" {
+		return "active"
+	}
+	return profile.Mode
 }
 
 // resolveOrgPolicy returns effective ingest policy for an org
@@ -299,7 +356,7 @@ func (s *IngestService) checkRateLimit(
 	return nil
 }
 
-// Ingest is main entry point (V2): validate → rate limit → template match by sourceFamily → publish or review
+// Ingest is main entry point (V3): env guard → mode matrix → rate limit → template match → review
 func (s *IngestService) Ingest(
 	ctx context.Context,
 	orgId string,
@@ -313,7 +370,28 @@ func (s *IngestService) Ingest(
 		return nil, ErrEmptyBody
 	}
 
-	// 1) Resolve org policy (includes subscription limits)
+	// 1) Env guard: reject sourceFamily not in allowlist
+	if !s.isSourceFamilyEnabled(sourceFamily) {
+		s.logger.Info().
+			Str("orgId", orgId).
+			Str("sourceFamily", sourceFamily).
+			Msg("[Ingest] sourceFamily not in enabled allowlist, locked")
+		return nil, ErrSourceFamilyLocked
+	}
+
+	// 2) Mode check: comingSoon → log body, return early (no DB write)
+	mode := s.getSourceFamilyMode(ctx, sourceFamily)
+	if mode == "comingSoon" {
+		s.logger.Info().
+			Str("orgId", orgId).
+			Str("sourceFamily", sourceFamily).
+			Int("bodySize", len(body)).
+			Str("rawBody", string(body)).
+			Msg("[Ingest] sourceFamily comingSoon: payload logged, no DB write")
+		return nil, ErrSourceFamilyComingSoon
+	}
+
+	// 3) Resolve org policy (includes subscription limits)
 	policy, err := s.resolveOrgPolicy(ctx, orgId)
 	if err != nil {
 		return nil, err
@@ -322,7 +400,7 @@ func (s *IngestService) Ingest(
 		return nil, ErrOrgNotFound
 	}
 
-	// 2) Payload size check using subscription limit
+	// 4) Payload size check using subscription limit
 	if int64(len(body)) > policy.MaxPayloadBytes {
 		s.logger.Warn().
 			Str("orgId", orgId).
@@ -333,7 +411,7 @@ func (s *IngestService) Ingest(
 		return nil, ErrPayloadTooLarge
 	}
 
-	// 3) Rate limit check using subscription limits
+	// 5) Rate limit check using subscription limits
 	if err := s.checkRateLimit(
 		ctx,
 		policy.TenantId,
@@ -345,21 +423,20 @@ func (s *IngestService) Ingest(
 		return nil, err
 	}
 
-	// 4) Generate event ID and timestamps
+	// 6) Generate event ID and timestamps
 	eventId := uuid.NewString()
 	receivedAt := time.Now().UTC()
 
-	// 5) Decode rawBody to map
+	// 7) Decode rawBody to map
 	rawBody, err := decodeRawBody(body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode raw body: %w", err)
 	}
 
-	// 6) Build fingerprint for V2 template matching
-	keyHash := BuildKeyHash(rawBody)
-	fingerprint := keyHash // V2 fingerprint is just the key hash — sourceFamily replaces eventType in the lookup
+	// 8) Build deterministic fingerprint: sorted key paths + normalized value types
+	fingerprint := BuildFingerprint(rawBody)
 
-	// 7) V2 Template matching: sourceFamily + fingerprint (no device approval needed)
+	// 9) Template matching: sourceFamily + fingerprint
 	tmpl, matched, matchErr := s.tmplMatcher.MatchByFamily(ctx, policy.TenantId, orgId, sourceFamily, fingerprint, rawBody)
 	if matchErr != nil {
 		s.logger.Error().Err(matchErr).
@@ -378,12 +455,12 @@ func (s *IngestService) Ingest(
 		// Normalize device identity for CanonicalEvent
 		deviceRef, _, _ := s.normalizeDeviceIdentity(body)
 
-		// Apply deviceManagement enrichment
+		// Resolve deviceManagement enrichment (Step 7: applied AFTER field mapping inside processTemplateMappedEvent)
+		var enrichment *ingestmod.DeviceManagement
 		if s.deviceMgmtSvc != nil && deviceRef != nil {
-			if enrichment := s.deviceMgmtSvc.Resolve(ctx, policy.TenantId, orgId, sourceFamily, deviceRef.Type, deviceRef.ID); enrichment != nil {
-				if deviceRef.ID == "" && enrichment.DeviceId != "" {
-					deviceRef.ID = enrichment.DeviceId
-				}
+			enrichment = s.deviceMgmtSvc.Resolve(ctx, policy.TenantId, orgId, sourceFamily, deviceRef.Type, deviceRef.ID)
+			if enrichment != nil && deviceRef.ID == "" && enrichment.DeviceId != "" {
+				deviceRef.ID = enrichment.DeviceId
 			}
 		}
 
@@ -397,9 +474,9 @@ func (s *IngestService) Ingest(
 
 		if err := s.processTemplateMappedEvent(
 			ctx,
-			policy.TenantId, orgId, sourceFamily, "", eventType,
-			eventId, receivedAt, sourceIp,
-			rawBody, tmpl, deviceRef,
+			policy.TenantId, orgId, sourceFamily, eventType,
+			eventId, receivedAt,
+			rawBody, tmpl, deviceRef, enrichment,
 		); err != nil {
 			return nil, err
 		}
@@ -407,23 +484,28 @@ func (s *IngestService) Ingest(
 		return &IngestResult{EventId: eventId, ReceivedAt: receivedAt}, nil
 	}
 
-	// 8) No template match → create templateReview sample
-	var suggestedMatchFields []string
-	if s.sourceProfileSvc != nil {
-		if profile, profErr := s.sourceProfileSvc.Get(ctx, sourceFamily); profErr == nil && profile != nil {
-			suggestedMatchFields = profile.SuggestedMatchFields
-		}
+	// 10) Check rejected pattern — drop silently if previously rejected
+	if s.rejectedPatternSvc != nil && s.rejectedPatternSvc.IsRejected(ctx, orgId, sourceFamily, fingerprint) {
+		s.logger.Info().
+			Str("orgId", orgId).
+			Str("sourceFamily", sourceFamily).
+			Str("fingerprint", fingerprint).
+			Msg("[Ingest] payload matches rejected pattern, dropped")
+		return &IngestResult{EventId: eventId, ReceivedAt: receivedAt}, nil
 	}
 
+	// 11) No template match and not rejected → evaluate suggestions + upsert unknownPayloadReview
+	candidateIds := s.findCandidateSuggestions(sourceFamily, rawBody)
 	if s.reviewSvc != nil {
-		reviewId := s.reviewSvc.CreateIfNotExists(ctx, policy.TenantId, orgId, sourceFamily, fingerprint, rawBody, suggestedMatchFields)
+		reviewId := s.reviewSvc.UpsertIfNotExists(ctx, orgId, sourceFamily, fingerprint, rawBody, candidateIds)
 		if reviewId != "" {
 			s.logger.Debug().
 				Str("orgId", orgId).
 				Str("sourceFamily", sourceFamily).
 				Str("fingerprint", fingerprint).
 				Str("reviewId", reviewId).
-				Msg("[Ingest] created template review")
+				Strs("candidateSuggestionIds", candidateIds).
+				Msg("[Ingest] unknown payload review upserted")
 		}
 	}
 
@@ -441,12 +523,12 @@ func (s *IngestService) Ingest(
 // The Normalizer consumer handles writing to event_details + S3.
 func (s *IngestService) processTemplateMappedEvent(
 	ctx context.Context,
-	tenantId, orgId, sourceFamily, deviceKey, eventType, eventId string,
+	tenantId, orgId, sourceFamily, eventType, eventId string,
 	receivedAt time.Time,
-	sourceIp string,
 	rawBody map[string]any,
 	tmpl *ingestmod.MappingTemplate,
 	deviceRef *ingestmod.DeviceIdentity,
+	enrichment *ingestmod.DeviceManagement,
 ) error {
 	// 1) Apply field mappings (to extract lat/lng and occurredAt only)
 	mapped, missingRequired := s.tmplMatcher.ApplyMappings(rawBody, tmpl.Mappings)
@@ -474,7 +556,22 @@ func (s *IngestService) processTemplateMappedEvent(
 		}
 	}
 
-	// 4) Build CanonicalEvent for raw.events
+	// 4) Build location — deviceManagement overwrite applied AFTER field mapping (V3 Step 7)
+	location := ingestmod.LocationInfo{Lat: latF, Lng: lngF}
+	if enrichment != nil {
+		if enrichment.Lat != 0 || enrichment.Lng != 0 {
+			location.Lat = enrichment.Lat
+			location.Lng = enrichment.Lng
+		}
+		if enrichment.Site != "" {
+			location.Site = enrichment.Site
+		}
+		if enrichment.Zone != "" {
+			location.Zone = enrichment.Zone
+		}
+	}
+
+	// 5) Build CanonicalEvent for raw.events
 	deviceId := ""
 	deviceType := ""
 	if deviceRef != nil {
@@ -492,7 +589,7 @@ func (s *IngestService) processTemplateMappedEvent(
 			DeviceType: deviceType,
 			OrgId:      orgId,
 		},
-		Location:   ingestmod.LocationInfo{Lat: latF, Lng: lngF},
+		Location:   location,
 		Payload:    rawBody, // raw payload — normalizer applies template again
 		TemplateId: tmpl.TemplateId,
 		CreatedAt:  time.Now().UTC(),
@@ -647,36 +744,3 @@ func (s *IngestService) normalizeDeviceIdentity(body []byte) (*ingestmod.DeviceI
 	return nil, rawAliasesBytes, aliases
 }
 
-// computeDeviceKey computes canonical device key for locking
-// Format: "type:id" (e.g., "camera:cam-001", "device:dev-001")
-func (s *IngestService) computeDeviceKey(deviceRef *ingestmod.DeviceIdentity) string {
-	if deviceRef == nil || deviceRef.Type == "" {
-		return ""
-	}
-	return fmt.Sprintf("%s:%s", deviceRef.Type, deviceRef.ID)
-}
-
-// checkDevicePendingLock checks if device has pending events
-// Returns (isLocked, pendingEventId, error)
-func (s *IngestService) checkDevicePendingLock(ctx context.Context, tenantId, orgId, deviceKey string) (bool, string, error) {
-	if deviceKey == "" {
-		return false, "", nil
-	}
-
-	// Check for existing pending event with same deviceKey in pending status
-	// Use partial unique index for efficient lookup
-	pending, err := s.eventMgmtRepo.FindByDeviceKey(ctx, tenantId, orgId, deviceKey)
-	if err != nil {
-		// ErrNotFound means no pending event exists (no lock), not an error
-		if err == ingestmgmtrepo.ErrNotFound {
-			return false, "", nil
-		}
-		return false, "", fmt.Errorf("failed to check device lock: %w", err)
-	}
-
-	if pending != nil {
-		return true, pending.EventId, nil
-	}
-
-	return false, "", nil
-}
