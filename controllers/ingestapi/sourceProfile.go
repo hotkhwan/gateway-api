@@ -92,14 +92,8 @@ func (h *SourceProfileController) Update(c *fiber.Ctx) error {
 	if v, ok := body["displayName"]; ok {
 		update["displayName"] = v
 	}
-	if v, ok := body["multiRef"]; ok {
-		update["multiRef"] = v
-	}
-	if v, ok := body["refRules"]; ok {
-		update["refRules"] = v
-	}
-	if v, ok := body["suggestedMatchFields"]; ok {
-		update["suggestedMatchFields"] = v
+	if v, ok := body["mode"]; ok {
+		update["mode"] = v
 	}
 	if len(update) == 0 {
 		return httputil.FailBadRequest(c, "no fields to update")

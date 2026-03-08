@@ -1,0 +1,47 @@
+{
+  "id": "psv.intruderSuspected.v1",
+  "sourceFamily": "PVS",
+  "displayName": "PVS Intruder Suspected",
+  "matchRule": {
+    "type": "all",
+    "rules": [
+      {
+        "field": "event_name",
+        "operator": "eq",
+        "value": "Intruder Suspected"
+      }
+    ]
+  },
+  "fieldMappings": [
+    { "sourceField": "id",                "targetField": "eventId" },
+    { "sourceField": "site_name",         "targetField": "siteName" },
+    { "sourceField": "ref_id",            "targetField": "refId" },
+    { "sourceField": "event_type",        "targetField": "eventType" },
+    { "sourceField": "event_name",        "targetField": "eventName" },
+    { "sourceField": "description",       "targetField": "description" },
+    { "sourceField": "event_date",        "targetField": "eventTime" },
+    { "sourceField": "app_date",          "targetField": "appTime" },
+    { "sourceField": "sensor_name",       "targetField": "sensorName" },
+    { "sourceField": "alarm_triggered_by","targetField": "triggeredBy" },
+    { "sourceField": "from_device",       "targetField": "sourceDeviceType" },
+    { "sourceField": "latitude",          "targetField": "lat" },
+    { "sourceField": "longitude",         "targetField": "lng" },
+    { "sourceField": "image_base64",      "targetField": "imageBase64" }
+  ],
+  "samplePayload": {
+    "id": "95b2bac2-577d-4450-9872-6fd8494c18f0",
+    "site_name": "BANGPU",
+    "ref_id": 11031462,
+    "event_type": "Genetec.Sdk.AlarmTriggeredEventArgs",
+    "event_name": "Intruder Suspected",
+    "description": "",
+    "event_date": "2026-02-25T16:55:10",
+    "app_date": "2026-02-25T23:55:18",
+    "sensor_name": null,
+    "alarm_triggered_by": "ALARM",
+    "from_device": "GENETEC",
+    "latitude": 0.0,
+    "longitude": 0.0,
+    "image_base64": null
+  }
+}

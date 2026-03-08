@@ -8,6 +8,1758 @@
     },
     "basePath": "/api/v1",
     "paths": {
+        "/api/v1/ingest/dashboard": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns aggregated ingest statistics filtered by date range, status, and event type.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingest-dashboard"
+                ],
+                "summary": "Get ingest dashboard stats",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Date range: from,to (RFC3339 UTC, e.g. 2026-03-01T00:00:00Z,2026-03-06T23:59:59Z)",
+                        "name": "dateTime",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "all",
+                        "description": "Filter by status (all|pending|approved|rejected)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by event type",
+                        "name": "eventType",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/details": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns paginated list of approved ingest events, optionally filtered by eventType.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingest-details"
+                ],
+                "summary": "List approved events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by event type",
+                        "name": "eventType",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Items per page",
+                        "name": "perPage",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "approvedAt",
+                        "description": "Sort field",
+                        "name": "sortField",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "desc",
+                        "description": "Sort order",
+                        "name": "sortOrder",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.PaginatedResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/details/{eventId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a single approved ingest event by ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingest-details"
+                ],
+                "summary": "Get approved event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/dlq": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-dlq"
+                ],
+                "summary": "List DLQ messages",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by stage (normalize|deliver|webhook)",
+                        "name": "stage",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status (pending|retrying|resolved|abandoned)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page",
+                        "name": "perPage",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.PaginatedResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/dlq/stats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-dlq"
+                ],
+                "summary": "DLQ aggregate stats",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/dlq/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-dlq"
+                ],
+                "summary": "Get DLQ message by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Message ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/dlq/{id}/abandon": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-dlq"
+                ],
+                "summary": "Abandon a DLQ message (no further retries)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Message ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/dlq/{id}/replay": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-dlq"
+                ],
+                "summary": "Force-replay a DLQ message (bypasses retry limits)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Message ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/dlq/{id}/retry": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-dlq"
+                ],
+                "summary": "Schedule a retry for a DLQ message",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Message ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/management": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns paginated list of ingest events filtered by status, eventType, and sort options.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingest-management"
+                ],
+                "summary": "List pending events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "all",
+                        "description": "Event status (all|pending|approved|rejected)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by event type",
+                        "name": "eventType",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Items per page",
+                        "name": "perPage",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "createdAt",
+                        "description": "Sort field",
+                        "name": "sortField",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "desc",
+                        "description": "Sort order",
+                        "name": "sortOrder",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.PaginatedResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/management/bulk/applyTemplate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Applies a mapping template to up to 100 pending events and auto-approves each one. Returns per-event success/failure detail.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingest-bulk"
+                ],
+                "summary": "Bulk apply template and auto-approve events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Template ID and list of event IDs (max 100)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ingestapi.bulkApplyTemplateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ingestsvc.BulkResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/management/bulk/approve": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Approves up to 100 pending events in a single request. Returns per-event success/failure detail.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingest-bulk"
+                ],
+                "summary": "Bulk approve pending events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "List of event IDs to approve (max 100)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ingestapi.bulkRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ingestsvc.BulkResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/management/bulk/delete": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes up to 100 pending events in a single request. Returns per-event success/failure detail.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingest-bulk"
+                ],
+                "summary": "Bulk delete pending events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "List of event IDs to delete (max 100)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ingestapi.bulkRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ingestsvc.BulkResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/management/bulk/reject": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Rejects up to 100 pending events in a single request. Returns per-event success/failure detail.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingest-bulk"
+                ],
+                "summary": "Bulk reject pending events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "List of event IDs to reject (max 100)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ingestapi.bulkRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ingestsvc.BulkResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/management/{eventId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a single ingest event by ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingest-management"
+                ],
+                "summary": "Get pending event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Permanently deletes a pending event. Cannot delete already-approved events.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingest-management"
+                ],
+                "summary": "Delete pending event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Patches metadata fields on a pending event.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingest-management"
+                ],
+                "summary": "Update pending event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ingestmod.EventUpdateInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/management/{eventId}/approve": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Approves a pending event and triggers downstream processing. Optionally updates metadata in the same request.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingest-management"
+                ],
+                "summary": "Approve pending event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Optional metadata update",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/ingestmod.EventUpdateInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/management/{eventId}/reject": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Rejects a pending event and removes it from the approval queue.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingest-management"
+                ],
+                "summary": "Reject pending event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/mappingSuggestions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-mapping-suggestions"
+                ],
+                "summary": "List mapping suggestions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by sourceFamily",
+                        "name": "sourceFamily",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/mappingSuggestions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-mapping-suggestions"
+                ],
+                "summary": "Get mapping suggestion by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Suggestion ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/mappingTemplates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-mapping-templates"
+                ],
+                "summary": "List mapping templates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Items per page",
+                        "name": "perPages",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by name",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "createdAt",
+                        "description": "Sort field",
+                        "name": "sortField",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "desc",
+                        "description": "Sort order",
+                        "name": "sortOrder",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.PaginatedResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingest-mapping-templates"
+                ],
+                "summary": "Create mapping template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Template definition",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/templatesvc.CreateTemplateInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/mappingTemplates/{templateId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-mapping-templates"
+                ],
+                "summary": "Get mapping template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "templateId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-mapping-templates"
+                ],
+                "summary": "Delete mapping template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "templateId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingest-mapping-templates"
+                ],
+                "summary": "Update mapping template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "templateId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/templatesvc.UpdateTemplateInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/rejectedPayloadPatterns": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-rejected-payload-patterns"
+                ],
+                "summary": "List rejected payload patterns",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Per page",
+                        "name": "perPages",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.PaginationResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/rejectedPayloadPatterns/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-rejected-payload-patterns"
+                ],
+                "summary": "Delete rejected payload pattern",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pattern ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/unknownPayloadReviews": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-unknown-payload-reviews"
+                ],
+                "summary": "List unknown payload reviews",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Per page",
+                        "name": "perPages",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.PaginationResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/unknownPayloadReviews/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-unknown-payload-reviews"
+                ],
+                "summary": "Get unknown payload review",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Review ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/ingest/unknownPayloadReviews/{id}/reject": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "ingest-unknown-payload-reviews"
+                ],
+                "summary": "Reject unknown payload review and create a rejected payload pattern",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Org ID",
+                        "name": "X-Active-Org",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Review ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/orgs": {
             "get": {
                 "security": [
@@ -1656,6 +3408,43 @@
                 }
             }
         },
+        "/api/v1/subscriptions/current": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the effective subscription with resolved limits (package + overrides merged)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "Get current subscription",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseAny"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/subscriptions/enterprise/activate": {
             "post": {
                 "security": [
@@ -1733,6 +3522,53 @@
                         "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/subscriptions/packages": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all active subscription packages ordered by sortOrder. Used for pricing/upgrade UI.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "List subscription packages",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "en",
+                        "description": "Locale for i18n fields",
+                        "name": "locale",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Return only public packages",
+                        "name": "publicOnly",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDetailResponseAny"
                         }
                     },
                     "500": {
@@ -2902,9 +4738,9 @@
                 }
             }
         },
-        "/events/{orgId}": {
+        "/events/{orgId}/{sourceFamily}": {
             "post": {
-                "description": "POST event payload from device/3rd-party. Rate limited per org + IP.",
+                "description": "POST event payload from device or 3rd-party. No JWT required. Rate limited per org + IP.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2912,9 +4748,9 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Ingest"
+                    "ingest"
                 ],
-                "summary": "Ingest raw event (no JWT, hot path)",
+                "summary": "Ingest raw event",
                 "parameters": [
                     {
                         "type": "string",
@@ -2928,36 +4764,43 @@
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
                         }
                     },
                     "413": {
                         "description": "Request Entity Too Large",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "423": {
+                        "description": "Locked",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
                         }
                     },
                     "429": {
                         "description": "Too Many Requests",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
                         }
                     }
                 }
@@ -10366,6 +12209,272 @@
                 }
             }
         },
+        "ingestapi.bulkApplyTemplateRequest": {
+            "type": "object",
+            "properties": {
+                "eventIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "templateId": {
+                    "type": "string"
+                }
+            }
+        },
+        "ingestapi.bulkRequest": {
+            "type": "object",
+            "properties": {
+                "eventIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "ingestmod.ClassificationRule": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "set": {
+                    "$ref": "#/definitions/ingestmod.ClassificationSet"
+                },
+                "when": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.PayloadCondition"
+                    }
+                }
+            }
+        },
+        "ingestmod.ClassificationSet": {
+            "type": "object",
+            "properties": {
+                "eventClass": {
+                    "type": "string"
+                },
+                "eventSeverity": {
+                    "type": "string"
+                }
+            }
+        },
+        "ingestmod.DLQConfig": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "description": "false = skip DLQ entirely for this template",
+                    "type": "boolean"
+                },
+                "maxRetries": {
+                    "description": "max retry attempts before abandoning (default 3)",
+                    "type": "integer"
+                },
+                "retryTimeoutSeconds": {
+                    "description": "seconds between retry attempts (default 60)",
+                    "type": "integer"
+                }
+            }
+        },
+        "ingestmod.EventUpdateInput": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "eventType": {
+                    "type": "string"
+                },
+                "lat": {
+                    "type": "number"
+                },
+                "lng": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "priority": {
+                    "description": "\"low\", \"medium\", \"high\"",
+                    "type": "string"
+                },
+                "tags": {
+                    "description": "e.g., [\"LPR\", \"FACE\", \"IOT\"]",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "ingestmod.FieldMapping": {
+            "type": "object",
+            "properties": {
+                "confidence": {
+                    "type": "number"
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "sourcePath": {
+                    "type": "string"
+                },
+                "targetPath": {
+                    "type": "string"
+                },
+                "transform": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "valueCodes": {
+                    "description": "ValueCodes maps raw numeric/string codes to human-readable labels.\nNormalizer generates a `\u003ctargetPath\u003e_label` field in the normalized payload.\nExample: {\"0\": \"offline\", \"1\": \"online\"}",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "ingestmod.MatchRule": {
+            "type": "object",
+            "properties": {
+                "deviceId": {
+                    "type": "string"
+                },
+                "deviceType": {
+                    "type": "string"
+                },
+                "eventType": {
+                    "type": "string"
+                },
+                "protocol": {
+                    "type": "string"
+                },
+                "rawBodyKeyHash": {
+                    "type": "string"
+                },
+                "rawSchemaVersion": {
+                    "type": "string"
+                },
+                "subType": {
+                    "type": "string"
+                },
+                "vendor": {
+                    "type": "string"
+                }
+            }
+        },
+        "ingestmod.MessageTemplate": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "channelType": {
+                    "type": "string"
+                },
+                "extras": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "key": {
+                    "type": "string"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "ingestmod.PayloadCondition": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "description": "e.g. \"payload.listType\"",
+                    "type": "string"
+                },
+                "operator": {
+                    "description": "\"eq\" | \"in\"",
+                    "type": "string"
+                },
+                "values": {
+                    "description": "list of raw values to match",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "ingestmod.TemplateDeliveryTarget": {
+            "type": "object",
+            "properties": {
+                "eventClasses": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "eventSeverities": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "filter": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.PayloadCondition"
+                    }
+                },
+                "messageTemplateKey": {
+                    "type": "string"
+                },
+                "targetId": {
+                    "type": "string"
+                }
+            }
+        },
+        "ingestsvc.BulkFailItem": {
+            "type": "object",
+            "properties": {
+                "eventId": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "ingestsvc.BulkResult": {
+            "type": "object",
+            "properties": {
+                "failed": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestsvc.BulkFailItem"
+                    }
+                },
+                "succeeded": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "kctrlmod.AlarmActor": {
             "type": "object",
             "properties": {
@@ -11647,10 +13756,23 @@
         "subscripmod.SubscriptionLimits": {
             "type": "object",
             "properties": {
+                "discordTargetsPerOrg": {
+                    "type": "integer"
+                },
+                "eventsPerMonth": {
+                    "type": "integer"
+                },
+                "lineTargetsPerOrg": {
+                    "type": "integer"
+                },
                 "maxOrganizationsPerTenant": {
                     "type": "integer"
                 },
                 "maxPayloadBytes": {
+                    "type": "integer"
+                },
+                "messageChannelsPerOrg": {
+                    "description": "sum of line+discord+telegram per org",
                     "type": "integer"
                 },
                 "orgCacheTtlSec": {
@@ -11666,6 +13788,16 @@
                     "type": "integer"
                 },
                 "storageQuotaBytes": {
+                    "type": "integer"
+                },
+                "teamMembers": {
+                    "type": "integer"
+                },
+                "telegramTargetsPerOrg": {
+                    "type": "integer"
+                },
+                "webhooksPerOrg": {
+                    "description": "Delivery target quotas per org (-1 = unlimited)",
                     "type": "integer"
                 }
             }
@@ -11812,6 +13944,88 @@
                 "status": {
                     "type": "boolean",
                     "example": true
+                }
+            }
+        },
+        "templatesvc.CreateTemplateInput": {
+            "type": "object",
+            "properties": {
+                "classificationRules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.ClassificationRule"
+                    }
+                },
+                "defaultLocale": {
+                    "type": "string"
+                },
+                "deliveryTargets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.TemplateDeliveryTarget"
+                    }
+                },
+                "dlq": {
+                    "$ref": "#/definitions/ingestmod.DLQConfig"
+                },
+                "mappings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.FieldMapping"
+                    }
+                },
+                "match": {
+                    "$ref": "#/definitions/ingestmod.MatchRule"
+                },
+                "messageTemplates": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.MessageTemplate"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "templatesvc.UpdateTemplateInput": {
+            "type": "object",
+            "properties": {
+                "classificationRules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.ClassificationRule"
+                    }
+                },
+                "defaultLocale": {
+                    "type": "string"
+                },
+                "deliveryTargets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.TemplateDeliveryTarget"
+                    }
+                },
+                "dlq": {
+                    "$ref": "#/definitions/ingestmod.DLQConfig"
+                },
+                "mappings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.FieldMapping"
+                    }
+                },
+                "match": {
+                    "$ref": "#/definitions/ingestmod.MatchRule"
+                },
+                "messageTemplates": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.MessageTemplate"
+                    }
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },

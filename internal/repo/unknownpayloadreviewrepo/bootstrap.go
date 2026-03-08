@@ -1,5 +1,5 @@
-// internal/repo/templatereviewrepo/bootstrap.go
-package templatereviewrepo
+// internal/repo/unknownpayloadreviewrepo/bootstrap.go
+package unknownpayloadreviewrepo
 
 import (
 	"context"
@@ -9,6 +9,6 @@ import (
 
 func init() {
 	config.RegisterMongoBootstrap(func(ctx context.Context) error {
-		return NewTemplateReviewRepo().EnsureIndexes(ctx)
+		return NewUnknownPayloadReviewRepo().EnsureIndexes(ctx)
 	})
 }

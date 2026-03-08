@@ -57,9 +57,10 @@ func InitS3() {
 		}
 	}
 
+	secure := getEnvOrDefault("S3_USE_SSL", "true") != "false"
 	client, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
-		Secure: true,
+		Secure: secure,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("❌ Failed to init S3 client")
