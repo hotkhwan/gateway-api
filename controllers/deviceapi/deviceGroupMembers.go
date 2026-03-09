@@ -30,9 +30,9 @@ type CameraItem struct {
 }
 
 type DeviceBulkResponse struct {
-	Code    string                           `json:"code"`
-	Message string                           `json:"message"`
-	Status  bool                             `json:"status"`
+	Code    string                            `json:"code"`
+	Message string                            `json:"message"`
+	Status  bool                              `json:"status"`
 	Details []devicesvc.GroupDeviceBulkResult `json:"details"`
 }
 
