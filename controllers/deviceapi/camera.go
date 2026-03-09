@@ -5,13 +5,14 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
 	"github.com/hotkhwan/gateway-api/models/devmod"
 	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
-// UpdateGroupRequest — ใช้ใน deviceGroup.go Update handler
+// UpdateGroupRequest — used in deviceGroup.go Update handler
 type UpdateGroupRequest struct {
 	Name          string `json:"name"`
 	Description   string `json:"description"`
@@ -55,16 +56,18 @@ type CreateCameraRequest struct {
 }
 
 func (ctrl *CameraController) Create(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "CameraController.Create", "deviceapi", "Create")
+	defer end()
+
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
-	log := logger.FromCtx(c.UserContext(), "deviceapi", "CameraController.Create")
 	var body CreateCameraRequest
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body"})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if body.Name == "" || body.URL == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "name and url are required"})
+		return httputil.FailBadRequest(c, "name and url are required")
 	}
-	log.Info().Str("orgId", orgId).Str("name", body.Name).Msg("📥 CreateCamera")
+	log.Info().Str("orgId", orgId).Str("name", body.Name).Msg("CreateCamera")
 	cam, err := ctrl.service.Create(c.UserContext(), devmod.CreateCameraInput{
 		TenantID: tenantId, OrgID: orgId, CallerID: callerUserId,
 		Name: body.Name, User: body.User, Password: body.Password,
@@ -73,14 +76,17 @@ func (ctrl *CameraController) Create(c *fiber.Ctx) error {
 		MapVisibility: body.MapVisibility,
 	})
 	if err != nil {
-		log.Error().Err(err).Msg("❌ CreateCamera failed")
+		log.Error().Err(err).Msg("CreateCamera failed")
 		return handleErr(c, err)
 	}
-	log.Info().Str("deviceId", cam.ID).Msg("✅ Camera created")
-	return c.Status(201).JSON(fiber.Map{"code": gmod.CodeSuccess, "message": "camera created successfully", "status": true, "details": cam})
+	log.Info().Str("deviceId", cam.ID).Msg("Camera created")
+	return httputil.Created(c, cam, "camera created successfully")
 }
 
 func (ctrl *CameraController) List(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "CameraController.List", "deviceapi", "List")
+	defer end()
+
 	tenantId, orgId, _ := ctrl.mustLocals(c)
 	input := devicesvc.ListCameraInput{
 		TenantID: tenantId, OrgID: orgId,
@@ -90,6 +96,7 @@ func (ctrl *CameraController) List(c *fiber.Ctx) error {
 	}
 	result, err := ctrl.service.List(c.UserContext(), input)
 	if err != nil {
+		log.Error().Err(err).Msg("List cameras failed")
 		return handleErr(c, err)
 	}
 	totalPages := (int(result.Total) + input.PerPages - 1) / input.PerPages
@@ -106,12 +113,16 @@ func (ctrl *CameraController) List(c *fiber.Ctx) error {
 }
 
 func (ctrl *CameraController) GetByID(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "CameraController.GetByID", "deviceapi", "GetByID")
+	defer end()
+
 	tenantId, orgId, _ := ctrl.mustLocals(c)
 	cam, err := ctrl.service.GetByID(c.UserContext(), tenantId, orgId, c.Params("id"))
 	if err != nil {
+		log.Error().Err(err).Msg("GetByID failed")
 		return handleErr(c, err)
 	}
-	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "message": "camera fetched", "status": true, "details": cam})
+	return httputil.Ok(c, cam, "camera fetched")
 }
 
 type UpdateCameraRequest struct {
@@ -127,40 +138,50 @@ type UpdateCameraRequest struct {
 }
 
 func (ctrl *CameraController) Update(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "CameraController.Update", "deviceapi", "Update")
+	defer end()
+
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	deviceId := c.Params("id")
 	var body UpdateCameraRequest
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body"})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if err := ctrl.service.Update(c.UserContext(), tenantId, orgId, callerUserId, deviceId, devmod.UpdateCameraInput{
 		Name: body.Name, User: body.User, Password: body.Password,
 		URL: body.URL, District: body.District, Lat: body.Lat, Lng: body.Lng,
 		Roi: body.Roi, MapVisibility: body.MapVisibility,
 	}); err != nil {
+		log.Error().Err(err).Msg("Update camera failed")
 		return handleErr(c, err)
 	}
-	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "message": "camera updated successfully", "status": true})
+	return httputil.MessageOK(c, "camera updated successfully")
 }
 
 func (ctrl *CameraController) Delete(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "CameraController.Delete", "deviceapi", "Delete")
+	defer end()
+
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	if err := ctrl.service.Delete(c.UserContext(), tenantId, orgId, callerUserId, c.Params("id")); err != nil {
+		log.Error().Err(err).Msg("Delete camera failed")
 		return handleErr(c, err)
 	}
-	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "message": "camera deleted successfully", "status": true})
+	return httputil.MessageOK(c, "camera deleted successfully")
 }
 
 func (ctrl *CameraController) Import(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "CameraController.Import", "deviceapi", "Import")
+	defer end()
+
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
-	log := logger.FromCtx(c.UserContext(), "deviceapi", "CameraController.Import")
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "file is required"})
+		return httputil.FailBadRequest(c, "file is required")
 	}
 	file, err := fileHeader.Open()
 	if err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "cannot open file"})
+		return httputil.FailBadRequest(c, "cannot open file")
 	}
 	defer file.Close()
 
@@ -172,16 +193,13 @@ func (ctrl *CameraController) Import(c *fiber.Ctx) error {
 		result, err = ctrl.service.ImportFromCSV(c.UserContext(), tenantId, orgId, callerUserId, file)
 	}
 	if err != nil {
-		log.Error().Err(err).Msg("❌ Import failed")
+		log.Error().Err(err).Msg("Import failed")
 		return handleErr(c, err)
 	}
-	return c.JSON(fiber.Map{
-		"code": gmod.CodeSuccess, "message": "import complete", "status": true,
-		"details": fiber.Map{
-			"totalRows": result.TotalRows, "inserted": result.Inserted,
-			"invalidRows": result.InvalidRows, "duplicateIPInFile": result.DuplicateIPInFile,
-			"duplicateIPInDB": result.DuplicateIPInDB, "permifySyncFailed": result.PermifySyncFailed,
-			"results": result.Results,
-		},
-	})
+	return httputil.Ok(c, fiber.Map{
+		"totalRows": result.TotalRows, "inserted": result.Inserted,
+		"invalidRows": result.InvalidRows, "duplicateIPInFile": result.DuplicateIPInFile,
+		"duplicateIPInDB": result.DuplicateIPInDB, "permifySyncFailed": result.PermifySyncFailed,
+		"results": result.Results,
+	}, "import complete")
 }

@@ -30,13 +30,8 @@ import (
 // @Router /atapi/blacklist/notification [get]
 // @Security BearerAuth
 func NotificationSummary(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(
-		c.UserContext(),
-		"github.com/hotkhwan/gateway-api/atapi",
-		"ata.NotificationSummary",
-		"atapi", "NotificationSummary",
-	)
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.atapi", "ata.NotificationSummary", "atapi", "NotificationSummary")
+	defer end()
 
 	dateTime := strings.TrimSpace(c.Query("dateTime", ""))
 	sn := strings.TrimSpace(c.Query("sn", ""))
@@ -64,12 +59,11 @@ func NotificationSummary(c *fiber.Ctx) error {
 	if channelIdStr != "" {
 		v, err := strconv.ParseInt(channelIdStr, 10, 64)
 		if err != nil {
-			return httputil.FailBadRequest(c, "INVALID_CHANNEL_ID", "channelId must be int")
+			return httputil.FailBadRequest(c, "channelId must be int")
 		}
 		channelId = v
 	}
 
-	// ✅ log เฉพาะ metadata (ไม่ log payload ดิบ)
 	log.Debug().
 		Str("dateTime", dateTime).
 		Str("sn", sn).
@@ -78,7 +72,7 @@ func NotificationSummary(c *fiber.Ctx) error {
 		Int("page", page).
 		Int("perPages", perPages).
 		Str("sortOrder", sortOrder).
-		Msg("📦 [NotificationAll] querying")
+		Msg("[NotificationAll] querying")
 
 	data, err := atasvc.NotificationAllSummary(ctx, aimodel.NotificationAllReq{
 		DateTime:  dateTime,
@@ -90,14 +84,9 @@ func NotificationSummary(c *fiber.Ctx) error {
 		SortOrder: sortOrder,
 	})
 	if err != nil {
-		log.Error().Err(err).Msg("❌ [NotificationAll] failed")
-		return httputil.FailInternal(c, "NOTIFICATION_ALL_FAILED", "Failed to get notification summary")
+		log.Error().Err(err).Msg("[NotificationAll] failed")
+		return httputil.FailInternal(c, "Failed to get notification summary")
 	}
 
-	return c.JSON(aimodel.StandardResponse{
-		Code:    "SUCCESS",
-		Message: "ok",
-		Status:  true,
-		Details: data,
-	})
+	return httputil.Ok(c, data)
 }

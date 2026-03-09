@@ -9,11 +9,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
@@ -41,14 +40,13 @@ type syncIdsRequest struct {
 func SyncIbocByIDs(c *fiber.Ctx) error {
 	req := syncIdsRequest{}
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(http.StatusBadRequest, "invalid JSON body")
+		return httputil.FailBadRequest(c, "invalid JSON body")
 	}
 	if len(req.IDs) == 0 {
-		return fiber.NewError(http.StatusBadRequest, "ids is required")
+		return httputil.FailBadRequest(c, "ids is required")
 	}
-	// กันยิงหนักเกินไปในครั้งเดียว (ปรับได้)
 	if len(req.IDs) > 10000 {
-		return fiber.NewError(http.StatusBadRequest, "too many ids; max 10000")
+		return httputil.FailBadRequest(c, "too many ids; max 10000")
 	}
 
 	env := strings.ToLower(strings.TrimSpace(req.Env))
@@ -60,13 +58,12 @@ func SyncIbocByIDs(c *fiber.Ctx) error {
 		mode = "byids"
 	}
 
-	// short timeout เฉพาะทำ response
-	reqCtx, cancel := context.WithTimeout(c.Context(), 60*time.Second)
+	// short timeout for building response only
+	baseCtx, cancel := context.WithTimeout(c.UserContext(), 60*time.Second)
 	defer cancel()
 
-	tr := otel.Tracer("github.com/hotkhwan/gateway-api/kwatch")
-	reqCtx, span := tr.Start(reqCtx, "kwatapi.SyncIbocByIDs", trace.WithSpanKind(trace.SpanKindServer))
-	defer span.End()
+	reqCtx, end, _ := traceutil.StartLite(baseCtx, "gateway.kwatapi", "SyncIbocById.SyncIbocByIDs", "kwatapi", "SyncIbocByIDs")
+	defer end()
 
 	traceID := traceutil.TraceIDFromCtx(reqCtx)
 	if traceID == "" {
@@ -78,7 +75,7 @@ func SyncIbocByIDs(c *fiber.Ctx) error {
 		Status:  true,
 		Code:    "ACCEPTED",
 		Message: "Sync IBOC(by IDs) task accepted",
-		Detail: gmod.JobInfo{
+		Details: gmod.JobInfo{
 			JobID:     jobID,
 			TraceID:   traceID,
 			MQTTTopic: "ui/msg/watchlist.iboc." + jobID,

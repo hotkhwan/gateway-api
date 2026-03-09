@@ -28,8 +28,8 @@ import (
 // @Router /ksearch/video [get]
 // @Security BearerAuth
 func VideoList(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "search.VideoList", "kschapi", "VideoList")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "Video.VideoList", "kschapi", "VideoList")
+	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))

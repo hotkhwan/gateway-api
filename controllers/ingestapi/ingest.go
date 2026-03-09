@@ -123,7 +123,7 @@ func (ctrl *IngestController) Ingest(c *fiber.Ctx) error {
 			"code":    "PENDING_REVIEW",
 			"message": "event queued for review",
 			"status":  true,
-			"detail": fiber.Map{
+			"details": fiber.Map{
 				"eventId":    result.EventId,
 				"receivedAt": result.ReceivedAt,
 			},

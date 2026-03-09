@@ -2,21 +2,15 @@
 package atapi
 
 import (
-	"net/http"
-
 	"github.com/hotkhwan/gateway-api/internal/services/devsync"
-	"github.com/hotkhwan/gateway-api/models/devsyncmod"
-	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
 )
 
-// SyncRequest เผื่อจะใช้ในอนาคต (ตอนนี้ body ว่างได้)
-type SyncRequest struct {
-	// ถ้าจะ restrict device id ทีหลังค่อยเติม
-	// DeviceId *int64 `json:"deviceId,omitempty"`
-}
+// SyncRequest is reserved for future sync options
+type SyncRequest struct{}
 
 // DeviceSyncFromSVMS godoc
 // @Summary      Sync ATA devices & channels from Edge AI to Klynx
@@ -25,42 +19,20 @@ type SyncRequest struct {
 // @Accept       json
 // @Produce      json
 // @Param        body body atapi.SyncRequest false "Optional sync options"
-// @Success      200 {object} devsyncmod.ATASyncResponse "Sync result"
-// @Failure      502 {object} gmod.ErrorMessageResponse "Bad Gateway – ATA upstream error"
-// @Failure      500 {object} gmod.ErrorMessageResponse "Internal Server Error – config or DB error"
+// @Success      200 {object} gmod.SuccessDataResponse "Sync result"
+// @Failure      502 {object} gmod.ApiErrorResponse "Bad Gateway - ATA upstream error"
+// @Failure      500 {object} gmod.ApiErrorResponse "Internal Server Error - config or DB error"
 // @Router       /ata/svms/sync [post]
 // @Security     BearerAuth
 func DeviceSyncFromSVMS(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/atapi")
-	ctx, span := tracer.Start(ctx, "ATA.DeviceSyncFromSVMS")
-	defer span.End()
-
-	// ถ้าในอนาคตอยาก parse body:
-	// var req SyncRequest
-	// if len(c.Body()) > 0 {
-	//     if err := c.BodyParser(&req); err != nil {
-	//         return c.Status(http.StatusBadRequest).JSON(gmod.ErrorMessageResponse{
-	//             Code:    "BAD_REQUEST",
-	//             Message: "invalid body: " + err.Error(),
-	//             Status:  false,
-	//         })
-	//     }
-	// }
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.atapi", "ata.DeviceSyncFromSVMS", "atapi", "DeviceSyncFromSVMS")
+	defer end()
 
 	res, err := devsync.SyncDevicesAndChannelsDefault(ctx)
 	if err != nil {
-		return c.Status(http.StatusBadGateway).JSON(gmod.ErrorMessageResponse{
-			Code:    "ATA_SYNC_FAILED",
-			Message: err.Error(),
-			Status:  false,
-		})
+		log.Error().Err(err).Msg("[DeviceSyncFromSVMS] ATA sync failed")
+		return httputil.Fail(c, fiber.StatusBadGateway, "ATA_SYNC_FAILED", err.Error())
 	}
 
-	return c.Status(http.StatusOK).JSON(devsyncmod.ATASyncResponse{
-		Code:    "ATA_SYNC_OK",
-		Message: "ATA devices/channels synced",
-		Status:  true,
-		Detail:  *res,
-	})
+	return httputil.Ok(c, res, "ATA devices/channels synced")
 }

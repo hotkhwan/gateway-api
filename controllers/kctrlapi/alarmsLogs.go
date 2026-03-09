@@ -38,8 +38,8 @@ import (
 // @Router       /kcontrol/alarms/logs [get]
 
 func ListAlarmsLogs(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "alarms.ListAlarmsLogs", "kctrlapi", "ListAlarmsLogs")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.ListAlarmsLogs", "kctrlapi", "ListAlarmsLogs")
+	defer end()
 
 	page := c.QueryInt("page", 1)
 	perPages := c.QueryInt("perPages", 20)

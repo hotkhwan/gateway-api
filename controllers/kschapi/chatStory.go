@@ -29,8 +29,8 @@ import (
 // @Router /ksearch/chats [post]
 // @Security BearerAuth
 func ChatCreate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ChatCreate", "kschapi", "ChatCreate")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatStory.ChatCreate", "kschapi", "ChatCreate")
+	defer end()
 
 	var req kschmod.ChatRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -73,8 +73,8 @@ func ChatCreate(c *fiber.Ctx) error {
 // @Router /ksearch/projects/{projectId}/chats [get]
 // @Security BearerAuth
 func ChatList(c *fiber.Ctx) error {
-	ctx, span, _ := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ChatList", "kschapi", "ChatList")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatStory.ChatList", "kschapi", "ChatList")
+	defer end()
 
 	projectId := c.Params("id") // ถ้ามี param id จาก /projects/:id/chats
 	if projectId == "" {
@@ -124,8 +124,8 @@ func ChatList(c *fiber.Ctx) error {
 // @Failure 500 {object} gmod.BaseResponse "Internal server error"
 // @Router /ksearch/chats/{chatId} [put]
 func ChatUpdate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ChatUpdate", "kschapi", "ChatUpdate")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatStory.ChatUpdate", "kschapi", "ChatUpdate")
+	defer end()
 	chatId := c.Params("chatId")
 	var req kschmod.ChatRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -165,8 +165,8 @@ func ChatUpdate(c *fiber.Ctx) error {
 // @Failure 500 {object} gmod.BaseResponse "Internal server error"
 // @Router /ksearch/chats/{chatId} [delete]
 func ChatDelete(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ChatUpdate", "kschapi", "ChatUpdate")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatStory.ChatDelete", "kschapi", "ChatDelete")
+	defer end()
 	chatId := c.Params("chatId")
 	if err := kschsvc.ChatDelete(ctx, chatId); err != nil {
 		log.Error().Err(err).Str("chatId", chatId).Msg("❌ failed to get chat")
@@ -180,5 +180,5 @@ func ChatDelete(c *fiber.Ctx) error {
 		}
 	}
 	log.Debug().Str("chatId", chatId).Msg("✅ ChatDelete successfully")
-	return gmod.SendMessageOK(c, "SUCCESS", "Chat deleted successfully")
+	return httputil.MessageOK(c, "Chat deleted successfully")
 }

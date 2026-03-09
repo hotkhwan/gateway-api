@@ -27,8 +27,8 @@ import (
 // @Router       /groups/{id} [patch]
 // @Security     BearerAuth
 func UpdateGroup(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/grpapi", "group.UpdateGroup", "grpapi", "UpdateGroup")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.grpapi", "group.UpdateGroup", "grpapi", "UpdateGroup")
+	defer end()
 
 	id := c.Params("id")
 	if id == "" {
@@ -60,6 +60,5 @@ func UpdateGroup(c *fiber.Ctx) error {
 		}
 	}
 
-	// ⬇️ เปลี่ยนจาก SendSuccessMessage -> SendMessageOK (ที่มีอยู่แล้ว)
-	return gmod.SendMessageOK(c, "GROUP_UPDATED", "Group updated successfully")
+	return httputil.MessageOK(c, "Group updated successfully", "GROUP_UPDATED")
 }

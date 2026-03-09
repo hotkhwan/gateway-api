@@ -7,6 +7,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // RemoveMembers godoc
@@ -21,25 +23,19 @@ import (
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/users/remove [post]
 func (ctrl *OrganizationController) RemoveMembers(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.RemoveMembers", "authzapi", "RemoveMembers")
+	defer end()
+
 	tenantId, _ := c.Locals("tenantId").(string)
 	callerUserId, _ := c.Locals("userId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 
 	var body InviteUsersRequest
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "invalid body",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if len(body.Users) == 0 {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "users required",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "users required")
 	}
 
 	results := make([]map[string]any, 0, len(body.Users))

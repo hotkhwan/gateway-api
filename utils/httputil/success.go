@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// Ok ส่ง 200 พร้อม code/message/และ payload เป็น data (กลางๆ ใช้ได้ทุกที่)
+// Ok sends 200 OK with data payload.
 func Ok(c *fiber.Ctx, data any, message ...string) error {
 	msg := "ok"
 	if len(message) > 0 && message[0] != "" {
@@ -18,11 +18,11 @@ func Ok(c *fiber.Ctx, data any, message ...string) error {
 		Code:    gmod.CodeSuccess,
 		Message: msg,
 		Status:  true,
-		Detail:  data,
+		Details: data,
 	})
 }
 
-// Created ส่ง 201 (เหมาะกับ create)
+// Created sends 201 Created with data payload.
 func Created(c *fiber.Ctx, data any, message ...string) error {
 	msg := "created"
 	if len(message) > 0 && message[0] != "" {
@@ -33,11 +33,11 @@ func Created(c *fiber.Ctx, data any, message ...string) error {
 		Code:    gmod.CodeCreated,
 		Message: msg,
 		Status:  true,
-		Detail:  data,
+		Details: data,
 	})
 }
 
-// Accepted ส่ง 202 (เหมาะกับ async job)
+// Accepted sends 202 Accepted with data payload (for async jobs).
 func Accepted(c *fiber.Ctx, data any, message ...string) error {
 	msg := "accepted"
 	if len(message) > 0 && message[0] != "" {
@@ -48,11 +48,16 @@ func Accepted(c *fiber.Ctx, data any, message ...string) error {
 		Code:    gmod.CodeAccepted,
 		Message: msg,
 		Status:  true,
-		Detail:  data,
+		Details: data,
 	})
 }
 
-// MessageOK ส่ง 200 แบบไม่มี data (ใช้แทน SendMessageOK ทีหลังได้)
+// NoContent sends 204 No Content (no body).
+func NoContent(c *fiber.Ctx) error {
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// MessageOK sends 200 OK with message only (no data payload).
 func MessageOK(c *fiber.Ctx, message string, code ...string) error {
 	cde := gmod.CodeSuccess
 	if len(code) > 0 && code[0] != "" {

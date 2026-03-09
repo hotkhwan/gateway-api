@@ -2,12 +2,12 @@
 package kctrlapi
 
 import (
+	"strings"
+
 	"github.com/hotkhwan/gateway-api/internal/services/kctrlsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/kctrlmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
-	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -26,8 +26,8 @@ import (
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /kcontrol/{id} [patch]
 func UpdateDevice(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "devices.UpdateDevice", "kctrlapi", "UpdateDevice")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "devices.UpdateDevice", "kctrlapi", "UpdateDevice")
+	defer end()
 
 	idStr := c.Params("id")
 	if idStr == "" {
@@ -64,7 +64,7 @@ func UpdateDevice(c *fiber.Ctx) error {
 	log.Info().
 		Str("id", idStr).
 		Msg("✅ [UpdateDevice] Device updated successfully")
-	return gmod.SendMessageOK(c, "KCONTROL_UPDATE_SUCCESS", "Device updated successfully")
+	return httputil.MessageOK(c, "Device updated successfully", "KCONTROL_UPDATE_SUCCESS")
 }
 
 // AckDeviceAlarm godoc
@@ -80,8 +80,8 @@ func UpdateDevice(c *fiber.Ctx) error {
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /kcontrol/{id}/ack [patch]
 func AckDeviceAlarm(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "alarms.AckDeviceAlarm", "kctrlapi", "AckAlarmAckDeviceAlarm")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.AckDeviceAlarm", "kctrlapi", "AckDeviceAlarm")
+	defer end()
 
 	deviceId := c.Params("id")
 	var payload kctrlmod.EventMessage
@@ -113,7 +113,7 @@ func AckDeviceAlarm(c *fiber.Ctx) error {
 		Str("id", deviceId).
 		Str("hwId", payload.HwID).
 		Msg("✅ [AckDeviceAlarm] Alarm acknowledged")
-	return gmod.SendMessageOK(c, "KCONTROL_ACK_SUCCESS", "Alarm acknowledged")
+	return httputil.MessageOK(c, "Alarm acknowledged", "KCONTROL_ACK_SUCCESS")
 }
 
 // AckAlarm godoc
@@ -128,8 +128,8 @@ func AckDeviceAlarm(c *fiber.Ctx) error {
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /kcontrol/{id}/ack [patch]
 func AckAlarm(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "alarms.AckAlarm", "kctrlapi", "AckAlarm")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.AckAlarm", "kctrlapi", "AckAlarm")
+	defer end()
 
 	alarmId := c.Params("id")
 
@@ -159,7 +159,7 @@ func AckAlarm(c *fiber.Ctx) error {
 		Str("hwId", req.HwID).
 		Msg("✅ [AckAlarm] Alarm acknowledged")
 
-	return gmod.SendMessageOK(c, "KCONTROL_ACK_SUCCESS", "Alarm acknowledged")
+	return httputil.MessageOK(c, "Alarm acknowledged", "KCONTROL_ACK_SUCCESS")
 }
 
 // ResetKcontrolStats godoc
@@ -174,8 +174,8 @@ func AckAlarm(c *fiber.Ctx) error {
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /kcontrol/{id}/reset-stats [patch]
 func ResetStats(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "alarms.ResetStats", "kctrlapi", "ResetStats")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.ResetStats", "kctrlapi", "ResetStats")
+	defer end()
 
 	deviceId := c.Params("id")
 	if deviceId == "" {
@@ -195,5 +195,5 @@ func ResetStats(c *fiber.Ctx) error {
 	log.Info().
 		Str("id", deviceId).
 		Msg("✅ [ResetStats] Device stats reset successfully")
-	return gmod.SendMessageOK(c, "KCONTROL_STATS_RESET", "Device stats reset successfully")
+	return httputil.MessageOK(c, "Device stats reset successfully", "KCONTROL_STATS_RESET")
 }

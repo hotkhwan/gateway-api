@@ -1,11 +1,12 @@
+// controllers/optapi/getListOptions.go
 package optapi
 
 import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/hotkhwan/gateway-api/internal/services/optsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // GET /options
@@ -22,6 +23,9 @@ import (
 // @Router /options [get]
 // @Security BearerAuth
 func GetOptions(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.optapi", "GetOptions", "optapi", "GetOptions")
+	defer end()
+
 	kind := c.Query("kind", "list")
 	ns := c.Query("ns", "")
 	name := c.Query("name", "")
@@ -34,15 +38,17 @@ func GetOptions(c *fiber.Ctx) error {
 	if ns == "" {
 		out, err := optsvc.GetAllOptions(c.Context(), kind)
 		if err != nil {
-			return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_GET_OPTIONS")
+			log.Error().Err(err).Msg("failed to get options")
+			return httputil.FailInternal(c, "failed to get options")
 		}
-		return gmod.SendSuccess(c, out)
+		return httputil.Ok(c, out)
 	}
 
 	// 🔹 Normalize: policeRegion (รับได้ทั้ง id / code) -> id ที่แท้จริง
 	if qRegion != "" {
 		if regID, err := optsvc.ResolveRegionCanonicalID(c.Context(), kind, ns, qRegion); err != nil {
-			return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_RESOLVE_REGION")
+			log.Error().Err(err).Msg("failed to resolve region")
+			return httputil.FailInternal(c, "failed to resolve region")
 		} else if regID != "" {
 			qRegion = regID
 		}
@@ -51,7 +57,8 @@ func GetOptions(c *fiber.Ctx) error {
 	// 🔹 Normalize: policeProvincial (รับได้ทั้ง id / code) -> id ที่แท้จริง
 	if qProv != "" {
 		if provID, err := optsvc.ResolveProvincialCanonicalID(c.Context(), kind, ns, qProv); err != nil {
-			return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_RESOLVE_PROVINCIAL")
+			log.Error().Err(err).Msg("failed to resolve provincial")
+			return httputil.FailInternal(c, "failed to resolve provincial")
 		} else if provID != "" {
 			qProv = provID
 		}
@@ -63,10 +70,11 @@ func GetOptions(c *fiber.Ctx) error {
 	if qRegion != "" && qProv == "" && qStation == "" {
 		provList, err := optsvc.GetNamespaceOptionsPath(c.Context(), kind, ns, "policeProvincial", qRegion)
 		if err != nil {
-			return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_GET_POLICE_PROVINCIAL")
+			log.Error().Err(err).Msg("failed to get police provincial")
+			return httputil.FailInternal(c, "failed to get police provincial")
 		}
 		// ส่งแบบแบน
-		return gmod.SendSuccess(c, fiber.Map{
+		return httputil.Ok(c, fiber.Map{
 			"policeProvincial": provList[ns]["policeProvincial"],
 		})
 	}
@@ -75,16 +83,18 @@ func GetOptions(c *fiber.Ctx) error {
 	if qRegion != "" && qProv != "" && qStation == "" {
 		// validate ว่า provincial นี้อยู่ใต้ region ที่ส่งมา
 		if regID, err := optsvc.ResolveRegionByProvincial(c.Context(), kind, ns, qProv); err != nil {
-			return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_RESOLVE_REGION")
+			log.Error().Err(err).Msg("failed to resolve region")
+			return httputil.FailInternal(c, "failed to resolve region")
 		} else if regID != "" && regID != qRegion {
-			return httputil.FailBadRequest(c, "MISMATCH", "policeRegion does not match policeProvincial")
+			return httputil.FailBadRequest(c, "policeRegion does not match policeProvincial")
 		}
 
 		stationList, err := optsvc.GetNamespaceOptionsPath(c.Context(), kind, ns, "policeStation", qProv)
 		if err != nil {
-			return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_GET_POLICE_STATION")
+			log.Error().Err(err).Msg("failed to get police station")
+			return httputil.FailInternal(c, "failed to get police station")
 		}
-		return gmod.SendSuccess(c, fiber.Map{
+		return httputil.Ok(c, fiber.Map{
 			"policeStation": stationList[ns]["policeStation"],
 		})
 	}
@@ -93,34 +103,36 @@ func GetOptions(c *fiber.Ctx) error {
 	if qStation != "" {
 		provID, _, err := optsvc.ResolveProvincialByStation(c.Context(), kind, ns, qStation)
 		if err != nil {
-			return httputil.FailBadRequest(c, "INVALID_STATION", "Invalid policeStation")
+			return httputil.FailBadRequest(c, "Invalid policeStation")
 		}
 		if provID == "" {
-			return httputil.FailNotFound(c, "NOT_FOUND", "policeStation not found")
+			return httputil.FailNotFound(c, "policeStation not found")
 		}
 		regID, err := optsvc.ResolveRegionByProvincial(c.Context(), kind, ns, provID)
 		if err != nil || regID == "" {
-			return httputil.FailNotFound(c, "NOT_FOUND", "policeRegion of this provincial not found")
+			return httputil.FailNotFound(c, "policeRegion of this provincial not found")
 		}
 		// ถ้ามี qRegion/qProv ที่ผู้ใช้ยิงมา ให้ตรวจความสอดคล้อง
 		if qProv != "" && qProv != provID {
-			return httputil.FailBadRequest(c, "MISMATCH", "policeProvincial does not match policeStation")
+			return httputil.FailBadRequest(c, "policeProvincial does not match policeStation")
 		}
 		if qRegion != "" && qRegion != regID {
-			return httputil.FailBadRequest(c, "MISMATCH", "policeRegion does not match policeStation")
+			return httputil.FailBadRequest(c, "policeRegion does not match policeStation")
 		}
 
 		// คืน options ให้หน้าบ้านเติม dropdown ได้ครบ
 		provList, err := optsvc.GetNamespaceOptionsPath(c.Context(), kind, ns, "policeProvincial", regID)
 		if err != nil {
-			return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_GET_POLICE_PROVINCIAL")
+			log.Error().Err(err).Msg("failed to get police provincial")
+			return httputil.FailInternal(c, "failed to get police provincial")
 		}
 		stationList, err := optsvc.GetNamespaceOptionsPath(c.Context(), kind, ns, "policeStation", provID)
 		if err != nil {
-			return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_GET_POLICE_STATION")
+			log.Error().Err(err).Msg("failed to get police station")
+			return httputil.FailInternal(c, "failed to get police station")
 		}
 
-		return gmod.SendSuccess(c, fiber.Map{
+		return httputil.Ok(c, fiber.Map{
 			"selected": fiber.Map{
 				"policeRegion":     regID,
 				"policeProvincial": provID,
@@ -137,24 +149,27 @@ func GetOptions(c *fiber.Ctx) error {
 	if ns != "" && name == "" && qRegion == "" && qProv == "" && qStation == "" {
 		out, err := optsvc.GetNamespaceOptions(c.Context(), kind, ns, "")
 		if err != nil {
-			return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_GET_NAMESPACE_OPTIONS")
+			log.Error().Err(err).Msg("failed to get namespace options")
+			return httputil.FailInternal(c, "failed to get namespace options")
 		}
-		return gmod.SendSuccess(c, out)
+		return httputil.Ok(c, out)
 	}
 
 	// ขอ field เดียว + sub-path
 	if path != "" {
 		out, err := optsvc.GetNamespaceOptionsPath(c.Context(), kind, ns, name, path)
 		if err != nil {
-			return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_GET_NAMESPACE_OPTIONS_PATH")
+			log.Error().Err(err).Msg("failed to get namespace options path")
+			return httputil.FailInternal(c, "failed to get namespace options path")
 		}
-		return gmod.SendSuccess(c, out)
+		return httputil.Ok(c, out)
 	}
 
 	// ขอ field เดียว (ไม่มี path)
 	out, err := optsvc.GetNamespaceOptions(c.Context(), kind, ns, name)
 	if err != nil {
-		return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_GET_NAMESPACE_OPTIONS")
+		log.Error().Err(err).Msg("failed to get namespace options")
+		return httputil.FailInternal(c, "failed to get namespace options")
 	}
-	return gmod.SendSuccess(c, out)
+	return httputil.Ok(c, out)
 }

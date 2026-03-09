@@ -8,7 +8,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
-	"go.opentelemetry.io/otel"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 type OrganizationController struct {
@@ -57,11 +58,8 @@ func NewOrganizationController(svc *authzsvc.OrganizationService) *OrganizationC
 // @Failure 500 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs [get]
 func (ctrl *OrganizationController) List(c *fiber.Ctx) error {
-
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "Organization.List")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.List", "authzapi", "List")
+	defer end()
 
 	userId, _ := c.Locals("userId").(string)
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -74,9 +72,7 @@ func (ctrl *OrganizationController) List(c *fiber.Ctx) error {
 	}
 
 	if userId == "" || tenantId == "" {
-		return c.Status(401).JSON(gmod.ApiErrorResponse{
-			Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
-		})
+		return httputil.FailUnauthorized(c, "Unauthorized")
 	}
 
 	page := c.QueryInt("page", 1)
@@ -95,22 +91,20 @@ func (ctrl *OrganizationController) List(c *fiber.Ctx) error {
 	orgs, err := ctrl.service.List(ctx, tenantId, userId, activeOrgId)
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{
-			Code: code, Message: err.Error(), Status: false,
-		})
+		return httputil.Fail(c, status, code, err.Error())
 	}
 
 	total := len(orgs)
 	start := (page - 1) * perPage
-	end := start + perPage
+	end2 := start + perPage
 	if start > total {
 		start = total
 	}
-	if end > total {
-		end = total
+	if end2 > total {
+		end2 = total
 	}
 
-	paged := orgs[start:end]
+	paged := orgs[start:end2]
 	totalPages := (total + perPage - 1) / perPage
 
 	return c.JSON(gmod.OrgListResponse{
@@ -139,22 +133,15 @@ func (ctrl *OrganizationController) List(c *fiber.Ctx) error {
 // @Produce json
 // @Router /api/v1/orgs [post]
 func (ctrl *OrganizationController) Create(c *fiber.Ctx) error {
-
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "Organization.Create")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.Create", "authzapi", "Create")
+	defer end()
 
 	userId, _ := c.Locals("userId").(string)
 	tenantId, _ := c.Locals("tenantId").(string)
 
 	var body CreateOrgRequest
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "invalid body",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 
 	orgId, err := ctrl.service.Create(
@@ -166,11 +153,7 @@ func (ctrl *OrganizationController) Create(c *fiber.Ctx) error {
 	)
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{
-			Code:    code,
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.Fail(c, status, code, err.Error())
 	}
 
 	return c.JSON(gmod.SuccessMessageCreateResponse{
@@ -198,36 +181,24 @@ func (ctrl *OrganizationController) Create(c *fiber.Ctx) error {
 // @Failure 404 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/{id}/ingest [get]
 func (ctrl *OrganizationController) GetIngestConfig(c *fiber.Ctx) error {
-
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "Organization.GetIngestConfig")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.GetIngestConfig", "authzapi", "GetIngestConfig")
+	defer end()
 
 	orgId := strings.TrimSpace(c.Locals("activeOrg").(string))
 	userId, _ := c.Locals("userId").(string)
 	tenantId, _ := c.Locals("tenantId").(string)
 
 	if userId == "" || tenantId == "" {
-		return c.Status(401).JSON(gmod.ApiErrorResponse{
-			Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
-		})
+		return httputil.FailUnauthorized(c, "Unauthorized")
 	}
 
 	cfg, err := ctrl.service.GetIngestConfig(ctx, tenantId, userId, orgId)
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{
-			Code: code, Message: err.Error(), Status: false,
-		})
+		return httputil.Fail(c, status, code, err.Error())
 	}
 
-	return c.JSON(gmod.SuccessDataResponse{
-		Code:    gmod.CodeSuccess,
-		Status:  true,
-		Message: "ingest config fetched",
-		Detail:  cfg,
-	})
+	return httputil.Ok(c, cfg, "ingest config fetched")
 }
 
 // =========================
@@ -247,36 +218,24 @@ func (ctrl *OrganizationController) GetIngestConfig(c *fiber.Ctx) error {
 // @Failure 404 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/{id}/ingest/rotateSecret [post]
 func (ctrl *OrganizationController) RotateIngestSecret(c *fiber.Ctx) error {
-
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "Organization.RotateIngestSecret")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.RotateIngestSecret", "authzapi", "RotateIngestSecret")
+	defer end()
 
 	orgId := strings.TrimSpace(c.Locals("activeOrg").(string))
 	userId, _ := c.Locals("userId").(string)
 	tenantId, _ := c.Locals("tenantId").(string)
 
 	if userId == "" || tenantId == "" {
-		return c.Status(401).JSON(gmod.ApiErrorResponse{
-			Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
-		})
+		return httputil.FailUnauthorized(c, "Unauthorized")
 	}
 
 	cfg, err := ctrl.service.RotateIngestSecret(ctx, tenantId, userId, orgId)
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{
-			Code: code, Message: err.Error(), Status: false,
-		})
+		return httputil.Fail(c, status, code, err.Error())
 	}
 
-	return c.JSON(gmod.SuccessDataResponse{
-		Code:    gmod.CodeSuccess,
-		Status:  true,
-		Message: "ingest secret rotated",
-		Detail:  cfg,
-	})
+	return httputil.Ok(c, cfg, "ingest secret rotated")
 }
 
 // =========================
@@ -289,21 +248,14 @@ func (ctrl *OrganizationController) RotateIngestSecret(c *fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/v1/orgs/{id} [patch]
 func (ctrl *OrganizationController) Update(c *fiber.Ctx) error {
-
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "Organization.Update")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.Update", "authzapi", "Update")
+	defer end()
 
 	orgId := strings.TrimSpace(c.Params("id"))
 
 	var body UpdateOrgRequest
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "invalid body",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 
 	userId, _ := c.Locals("userId").(string)
@@ -320,18 +272,10 @@ func (ctrl *OrganizationController) Update(c *fiber.Ctx) error {
 	)
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{
-			Code:    code,
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.Fail(c, status, code, err.Error())
 	}
 
-	return c.JSON(gmod.SuccessMessageResponse{
-		Code:    gmod.CodeSuccess,
-		Status:  true,
-		Message: "organization updated",
-	})
+	return httputil.MessageOK(c, "organization updated")
 }
 
 // =========================
@@ -344,11 +288,8 @@ func (ctrl *OrganizationController) Update(c *fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/v1/orgs/{id} [delete]
 func (ctrl *OrganizationController) Delete(c *fiber.Ctx) error {
-
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "Organization.Delete")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.Delete", "authzapi", "Delete")
+	defer end()
 
 	orgId := strings.TrimSpace(c.Params("id"))
 
@@ -358,18 +299,10 @@ func (ctrl *OrganizationController) Delete(c *fiber.Ctx) error {
 	err := ctrl.service.Delete(ctx, tenantId, userId, orgId)
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{
-			Code:    code,
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.Fail(c, status, code, err.Error())
 	}
 
-	return c.JSON(gmod.SuccessMessageResponse{
-		Code:    gmod.CodeSuccess,
-		Status:  true,
-		Message: "organization deleted",
-	})
+	return httputil.MessageOK(c, "organization deleted")
 }
 
 // =========================
@@ -391,10 +324,8 @@ func (ctrl *OrganizationController) Delete(c *fiber.Ctx) error {
 // @Failure 409 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/{id}/owners/{userId} [post]
 func (ctrl *OrganizationController) PromoteToOwner(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "Organization.PromoteToOwner")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.PromoteToOwner", "authzapi", "PromoteToOwner")
+	defer end()
 
 	orgId := strings.TrimSpace(c.Params("id"))
 	userId := strings.TrimSpace(c.Params("userId"))
@@ -402,21 +333,13 @@ func (ctrl *OrganizationController) PromoteToOwner(c *fiber.Ctx) error {
 	tenantId, _ := c.Locals("tenantId").(string)
 
 	if userId == "" || callerUserId == "" || tenantId == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "missing required parameters",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "missing required parameters")
 	}
 
 	err := ctrl.service.PromoteUserToOwner(ctx, tenantId, orgId, callerUserId, userId)
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{
-			Code:    code,
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.Fail(c, status, code, err.Error())
 	}
 
 	var result gmod.PromoteToOwnerResponse
@@ -447,10 +370,8 @@ func (ctrl *OrganizationController) PromoteToOwner(c *fiber.Ctx) error {
 // @Failure 409 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/{id}/owners/{userId} [delete]
 func (ctrl *OrganizationController) DemoteFromOwner(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "Organization.DemoteFromOwner")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.DemoteFromOwner", "authzapi", "DemoteFromOwner")
+	defer end()
 
 	orgId := strings.TrimSpace(c.Params("id"))
 	userId := strings.TrimSpace(c.Params("userId"))
@@ -459,21 +380,13 @@ func (ctrl *OrganizationController) DemoteFromOwner(c *fiber.Ctx) error {
 	tenantId, _ := c.Locals("tenantId").(string)
 
 	if userId == "" || callerUserId == "" || tenantId == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "missing required parameters",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "missing required parameters")
 	}
 
 	err := ctrl.service.DemoteUserFromOwner(ctx, tenantId, orgId, callerUserId, userId, newRole)
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{
-			Code:    code,
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.Fail(c, status, code, err.Error())
 	}
 
 	var result gmod.DemoteFromOwnerResponse
@@ -508,10 +421,8 @@ func (ctrl *OrganizationController) DemoteFromOwner(c *fiber.Ctx) error {
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/{id}/transfer-billing-ownership [post]
 func (ctrl *OrganizationController) TransferBillingOwnership(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "Organization.TransferBillingOwnership")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.TransferBillingOwnership", "authzapi", "TransferBillingOwnership")
+	defer end()
 
 	orgId := strings.TrimSpace(c.Params("id"))
 	userId, _ := c.Locals("userId").(string)
@@ -521,46 +432,30 @@ func (ctrl *OrganizationController) TransferBillingOwnership(c *fiber.Ctx) error
 		NewBillingOwnerId string `json:"newBillingOwnerId"`
 	}
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "invalid body",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 
 	newBillingOwnerId := strings.TrimSpace(body.NewBillingOwnerId)
 	if newBillingOwnerId == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "newBillingOwnerId is required",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "newBillingOwnerId is required")
 	}
 
 	if userId == "" || tenantId == "" {
-		return c.Status(401).JSON(gmod.ApiErrorResponse{
-			Code: gmod.CodeUnauthorized, Message: "Unauthorized", Status: false,
-		})
+		return httputil.FailUnauthorized(c, "Unauthorized")
 	}
 
 	// Get org to find previous billing owner
 	org, err := ctrl.service.GetOrganizationByOrgId(ctx, orgId)
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{
-			Code: code, Message: err.Error(), Status: false,
-		})
+		return httputil.Fail(c, status, code, err.Error())
 	}
 	oldBillingOwnerId := org.BillingOwnerId
 
 	err = ctrl.service.TransferBillingOwnership(ctx, tenantId, orgId, userId, newBillingOwnerId)
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{
-			Code:    code,
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.Fail(c, status, code, err.Error())
 	}
 
 	var result gmod.TransferBillingOwnershipResponse

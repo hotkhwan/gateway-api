@@ -3,7 +3,7 @@ package usrapi
 
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/usrsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
@@ -21,27 +21,20 @@ import (
 // @Failure      500   {object}  gmod.ErrorResponse
 // @Router       /users/{id} [delete]
 func DeleteUser(c *fiber.Ctx) error {
-	ctx, span, _ := traceutil.Start(
-		c.UserContext(),
-		"github.com/hotkhwan/gateway-api/usrapi", "users.DeleteUser",
-		"usrapi", "DeleteUser",
-	)
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.usrapi", "DeleteUser", "usrapi", "DeleteUser")
+	defer end()
 
 	id := c.Params("id")
 	if id == "" {
-		return c.Status(400).JSON(gmod.ErrorResponse{
-			Code: "MISSING_ID", Message: "missing user id", Status: false,
-		})
+		return httputil.FailBadRequest(c, "missing user id")
 	}
 
 	if err := usrsvc.DeleteUser(ctx, id); err != nil {
-		return c.Status(500).JSON(gmod.ErrorResponse{
-			Code: "DELETE_USER_FAILED", Message: err.Error(), Status: false,
-		})
+		log.Error().Err(err).Str("userId", id).Msg("❌ DeleteUser failed")
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(gmod.SuccessResponse{
-		Code: "SUCCESS", Message: "user deleted", Status: true,
-	})
+	log.Info().Str("userId", id).Msg("✅ DeleteUser success")
+
+	return httputil.MessageOK(c, "user deleted")
 }

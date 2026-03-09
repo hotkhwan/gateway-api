@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/hotkhwan/gateway-api/internal/services/systemsvc/edgesvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/systemmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
@@ -28,8 +27,8 @@ import (
 // @Router /system/edge/{id} [patch]
 // @Security BearerAuth
 func UpdateEdge(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/edgeapi", "system.edge.Update", "edgeapi", "UpdateEdge")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.edgeapi", "EdgeApi.UpdateEdge", "sysapi", "UpdateEdge")
+	defer end()
 
 	id := strings.TrimSpace(c.Params("id"))
 	if id == "" {
@@ -42,27 +41,18 @@ func UpdateEdge(c *fiber.Ctx) error {
 		return httputil.FailBadRequestReason(c, "invalid json body", "INVALID_BODY")
 	}
 
-	// ✅ กัน request ว่าง ๆ (ไม่มี field ไหนมาเลย)
 	if req.Username == nil && req.Password == nil && req.URL == nil && req.TLS == nil && req.APIKey == nil && req.APISecret == nil {
 		return httputil.FailBadRequestReason(c, "no fields to update", "EMPTY_UPDATE")
 	}
 
 	if err := edgesvc.UpdateEdge(ctx, id, req); err != nil {
-		// ถ้าคุณมี sentinel error ดีกว่า string match มาก (แนะนำทำทีหลัง)
 		if strings.Contains(strings.ToLower(err.Error()), "not found") {
-			return httputil.FailNotFound(c, "edge not found", httputil.ErrorDetails{
-				"reason": "NOT_FOUND",
-			})
+			return httputil.FailNotFound(c, "edge not found")
 		}
 
 		log.Error().Err(err).Msg("update edge failed")
-		// ไม่ leak err.Error() ออกไป
 		return httputil.FailInternalReason(c, "internal server error", "UPDATE_FAILED")
 	}
 
-	return c.JSON(systemmod.EdgeUpdateSuccessResponse{
-		Code:    gmod.CodeSuccess,
-		Message: "edge updated",
-		Status:  true,
-	})
+	return httputil.MessageOK(c, "edge updated")
 }

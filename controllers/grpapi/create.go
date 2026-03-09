@@ -3,7 +3,6 @@ package grpapi
 
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/grpsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/grpmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
@@ -24,9 +23,8 @@ import (
 // @Router /groups [post]
 // @Security BearerAuth
 func CreateGroup(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/grpapi", "group.CreateGroup", "grpapi", "CreateGroup")
-	defer span.End()
-	// log := logger.Boot("group", "grpapi-CreateGroup")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.grpapi", "group.CreateGroup", "grpapi", "CreateGroup")
+	defer end()
 
 	var req grpmod.GroupRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -45,5 +43,5 @@ func CreateGroup(c *fiber.Ctx) error {
 	}
 
 	log.Info().Str("name", req.Name).Msg("✅ Group created")
-	return gmod.SendCreatedMessage(c, "GROUP_CREATED", "Group created successfully")
+	return httputil.Created(c, nil, "Group created successfully")
 }

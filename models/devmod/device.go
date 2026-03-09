@@ -82,7 +82,7 @@ type DeviceDetailSwagger struct {
 	Code    string `json:"code" example:"SUCCESS"`
 	Message string `json:"message" example:"Device retrieved successfully"`
 	Status  bool   `json:"status" example:"true"`
-	Detail  Device `json:"detail"`
+	Details Device `json:"details"`
 }
 
 type DeviceListResponse struct {

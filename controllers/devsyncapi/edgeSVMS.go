@@ -2,58 +2,39 @@
 package devsyncapi
 
 import (
-	"net/http"
-
 	"github.com/hotkhwan/gateway-api/internal/services/devsync"
-	"github.com/hotkhwan/gateway-api/models/devsyncmod"
-	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
 )
 
 // EdgeSVMS godoc
 // @Summary Sync SVMS devices/channels by Edge ID
 // @Tags SVMS
 // @Param id path string true "Mongo ObjectId of SVMS Edge"
-// @Success 200 {object} devsyncmod.SVMSSyncResponse
-// @Failure 400 {object} gmod.ErrorMessageResponse
-// @Failure 404 {object} gmod.ErrorMessageResponse
-// @Failure 500 {object} gmod.ErrorMessageResponse
+// @Success 200 {object} gmod.SuccessDataResponse
+// @Failure 400 {object} gmod.ApiErrorResponse
+// @Failure 404 {object} gmod.ApiErrorResponse
+// @Failure 500 {object} gmod.ApiErrorResponse
 // @Security BearerAuth
 func EdgeSVMS(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/devsyncapi")
-	ctx, span := tracer.Start(ctx, "SVMS.EdgeSVMS")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devsyncapi", "devsync.EdgeSVMS", "devsyncapi", "EdgeSVMS")
+	defer end()
 
 	edgeId := c.Params("id")
 	if edgeId == "" {
-		return c.Status(http.StatusBadRequest).JSON(gmod.ErrorMessageResponse{
-			Code:    "BAD_REQUEST",
-			Message: "id is required",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "id is required")
 	}
 
 	res, err := devsync.SyncDevicesAndChannelsByEdgeIDSVMS(ctx, edgeId)
 	if err != nil {
-		statusCode := http.StatusInternalServerError
+		log.Error().Err(err).Str("edgeId", edgeId).Msg("[EdgeSVMS] SVMS sync failed")
 		if err == devsync.ErrEdgeNotFound {
-			statusCode = http.StatusNotFound
+			return httputil.FailNotFound(c, err.Error())
 		}
-
-		return c.Status(statusCode).JSON(gmod.ErrorMessageResponse{
-			Code:    "SVMS_SYNC_FAILED",
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(devsyncmod.SVMSSyncResponse{
-		Code:    "SVMS_SYNC_OK",
-		Message: "SVMS devices/channels synced by edge",
-		Status:  true,
-		Detail:  *res,
-	})
+	return httputil.Ok(c, res, "SVMS devices/channels synced by edge")
 }

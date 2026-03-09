@@ -4,13 +4,11 @@ package kwatapi
 import (
 	"errors"
 
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
 )
 
 // watchlistDelete godoc
@@ -26,13 +24,8 @@ import (
 // @Router /kwatch/watchlist/{id} [delete]
 // @Security BearerAuth
 func WatchlistDelete(c *fiber.Ctx) error {
-	// ---- tracing (เหมือน resetPassword.go) ----
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/kwatapi")
-	ctx, span := tracer.Start(ctx, "Kwatch.WatchlistDelete")
-	defer span.End()
-
-	log := logger.FromCtx(ctx, "kwatapi", "WatchlistDelete")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Watchlist.WatchlistDelete", "kwatapi", "WatchlistDelete")
+	defer end()
 
 	idOrIdCard := c.Params("id")
 	if idOrIdCard == "" {
@@ -53,5 +46,5 @@ func WatchlistDelete(c *fiber.Ctx) error {
 		}
 	}
 
-	return gmod.SendMessageOK(c, "SUCCESS", "Watchlist deleted successfully")
+	return httputil.MessageOK(c, "Watchlist deleted successfully")
 }

@@ -59,12 +59,13 @@ func d01p(p *int, def int) int {
 // @Router       /media/stream [get]
 // @Security     BearerAuth
 func ListStream(c *fiber.Ctx) error {
-	ctx, span, _ := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/mediapi", "ListStream", "mediapi", "ListStream")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.mediapi", "ListStream", "mediapi", "ListStream")
+	defer end()
 
 	out, status, err := getClient().GetMediaList(ctx)
 	if err != nil {
-		return httputil.FailNotFound(c, "UPSTREAM_ERROR", err.Error())
+		log.Error().Err(err).Msg("get media list failed")
+		return httputil.FailNotFound(c, err.Error())
 	}
 	return c.Status(status).JSON(models.APIResponse[models.Any]{
 		Code:    "SUCCESS",
@@ -87,31 +88,26 @@ func ListStream(c *fiber.Ctx) error {
 // @Router       /media/stream [post]
 // @Security     BearerAuth
 func CreateStream(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(
-		c.UserContext(),
-		"github.com/hotkhwan/gateway-api/mediapi",
-		"CreateStream",
-		"mediapi", "CreateStream",
-	)
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.mediapi", "CreateStream", "mediapi", "CreateStream")
+	defer end()
 
 	ctx2, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
 	var req models.CreateStreamRequest
 	if err := c.BodyParser(&req); err != nil {
-		return httputil.FailBadRequest(c, "INVALID_BODY", "Invalid request body")
+		return httputil.FailBadRequest(c, "Invalid request body")
 	}
 
 	req.Stream = strings.TrimSpace(req.Stream)
 	req.URL = strings.TrimSpace(req.URL)
 	if req.Stream == "" || req.URL == "" {
-		return httputil.FailBadRequest(c, "BAD_REQUEST", "stream and url are required")
+		return httputil.FailBadRequest(c, "stream and url are required")
 	}
 
 	client := getClient()
 	if client == nil || !client.Configured() {
-		return httputil.FailInternalReason(c, "MEDIA_NOT_CONFIGURED", "media gateway is not configured")
+		return httputil.FailInternal(c, "media gateway is not configured")
 	}
 
 	vhost := strings.TrimSpace(req.VHost)
@@ -166,7 +162,7 @@ func CreateStream(c *fiber.Ctx) error {
 		Str("stream", req.Stream).
 		Int("ttlSec", ttlSec).
 		Str("ip", ci.IP).
-		Msg("✅ cached klive clientInfo by stream")
+		Msg("cached klive clientInfo by stream")
 
 	// ====== CACHE FAST-PATH ======
 	deviceID := req.Stream
@@ -212,7 +208,7 @@ func CreateStream(c *fiber.Ctx) error {
 	// 2) lock กันสร้างแข่งกัน
 	locked, lerr := cacheklive.AcquireStreamLock(ctx2, req.Stream, 10*time.Second)
 	if lerr != nil {
-		log.Warn().Err(lerr).Msg("⚠️ acquire stream lock failed")
+		log.Warn().Err(lerr).Msg("acquire stream lock failed")
 	}
 	if locked {
 		defer cacheklive.ReleaseStreamLock(ctx2, req.Stream)
@@ -233,8 +229,8 @@ func CreateStream(c *fiber.Ctx) error {
 		EnableHLSFMP4: d01p(req.EnableHLSFMP4, 0),
 	})
 	if err != nil {
-		log.Error().Err(err).Msg("❌ add stream proxy failed")
-		return httputil.FailNotFound(c, "UPSTREAM_ERROR", err.Error())
+		log.Error().Err(err).Msg("add stream proxy failed")
+		return httputil.FailNotFound(c, err.Error())
 	}
 
 	zlmCode := toInt(out["code"])
@@ -247,7 +243,7 @@ func CreateStream(c *fiber.Ctx) error {
 	case -1:
 		// already exists
 	default:
-		return httputil.FailNotFound(c, "UPSTREAM_ERROR",
+		return httputil.FailNotFound(c,
 			fmt.Sprintf("zlm addStreamProxy code=%d msg=%s", zlmCode, zlmMsg))
 	}
 
@@ -268,7 +264,7 @@ func CreateStream(c *fiber.Ctx) error {
 		}
 		select {
 		case <-ctx2.Done():
-			return httputil.FailInternal(c, "TIMEOUT", "context canceled")
+			return httputil.FailInternal(c, "context canceled")
 		case <-time.After(500 * time.Millisecond):
 		}
 	}
@@ -316,8 +312,8 @@ func CreateStream(c *fiber.Ctx) error {
 // @Router       /media/stream/{streamId} [delete]
 // @Security     BearerAuth
 func DeleteStream(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/mediapi", "DeleteStream", "mediapi", "DeleteStream")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.mediapi", "DeleteStream", "mediapi", "DeleteStream")
+	defer end()
 
 	streamID := c.Params("streamId")
 	vhost := c.Query("vhost", "__defaultVhost__")
@@ -325,8 +321,8 @@ func DeleteStream(c *fiber.Ctx) error {
 
 	out, status, err := getClient().DelStreamProxy(ctx, vhost, app, streamID)
 	if err != nil {
-		log.Error().Err(err).Msg("❌ delete stream proxy failed")
-		return httputil.FailNotFound(c, "UPSTREAM_ERROR", err.Error())
+		log.Error().Err(err).Msg("delete stream proxy failed")
+		return httputil.FailNotFound(c, err.Error())
 	}
 
 	code := status

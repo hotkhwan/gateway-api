@@ -8,7 +8,8 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
 	"github.com/hotkhwan/gateway-api/models/authzmod"
 	"github.com/hotkhwan/gateway-api/models/gmod"
-	"go.opentelemetry.io/otel"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 type TargetController struct {
@@ -44,29 +45,28 @@ type UpdateTargetRequest struct {
 // ============================================================
 
 func (ctrl *TargetController) Create(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	_, span := otel.Tracer("targetapi").Start(ctx, "Target.Create")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.targetapi", "TargetController.Create", "targetapi", "Create")
+	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	userId, _ := c.Locals("userId").(string)
 
 	if tenantId == "" || orgId == "" || userId == "" {
-		return c.Status(401).JSON(gmod.ApiErrorResponse{Code: gmod.CodeUnauthorized, Message: "unauthorized", Status: false})
+		return httputil.FailUnauthorized(c, "unauthorized")
 	}
 
 	var body CreateTargetRequest
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body", Status: false})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 
 	body.Name = strings.TrimSpace(body.Name)
 	if body.Name == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "name required", Status: false})
+		return httputil.FailBadRequest(c, "name required")
 	}
 	if body.Type == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "type required (webhook|line|telegram|discord)", Status: false})
+		return httputil.FailBadRequest(c, "type required (webhook|line|telegram|discord)")
 	}
 
 	enabled := true
@@ -84,16 +84,12 @@ func (ctrl *TargetController) Create(c *fiber.Ctx) error {
 		Config:   body.Config,
 	})
 	if err != nil {
+		log.Error().Err(err).Msg("create target failed")
 		status, code := targetsvc.MapSvcError(err)
 		return c.Status(status).JSON(gmod.ApiErrorResponse{Code: code, Message: err.Error(), Status: false})
 	}
 
-	return c.Status(201).JSON(gmod.SuccessDetailResponseWithMSG{
-		Code:    gmod.CodeCreated,
-		Message: "delivery target created",
-		Status:  true,
-		Detail:  result,
-	})
+	return httputil.Created(c, result, "delivery target created")
 }
 
 // ============================================================
@@ -101,13 +97,14 @@ func (ctrl *TargetController) Create(c *fiber.Ctx) error {
 // ============================================================
 
 func (ctrl *TargetController) List(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.targetapi", "TargetController.List", "targetapi", "List")
+	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 
 	if tenantId == "" || orgId == "" {
-		return c.Status(401).JSON(gmod.ApiErrorResponse{Code: gmod.CodeUnauthorized, Message: "unauthorized", Status: false})
+		return httputil.FailUnauthorized(c, "unauthorized")
 	}
 
 	page := c.QueryInt("page", 1)
@@ -126,6 +123,7 @@ func (ctrl *TargetController) List(c *fiber.Ctx) error {
 		SortOrder: sortOrder,
 	})
 	if err != nil {
+		log.Error().Err(err).Msg("list targets failed")
 		status, code := targetsvc.MapSvcError(err)
 		return c.Status(status).JSON(gmod.ApiErrorResponse{Code: code, Message: err.Error(), Status: false})
 	}
@@ -135,7 +133,7 @@ func (ctrl *TargetController) List(c *fiber.Ctx) error {
 		totalPages++
 	}
 
-	return c.Status(200).JSON(fiber.Map{
+	return c.JSON(fiber.Map{
 		"code":    gmod.CodeSuccess,
 		"status":  true,
 		"message": "ok",
@@ -156,7 +154,8 @@ func (ctrl *TargetController) List(c *fiber.Ctx) error {
 // ============================================================
 
 func (ctrl *TargetController) GetOne(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.targetapi", "TargetController.GetOne", "targetapi", "GetOne")
+	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
@@ -164,21 +163,17 @@ func (ctrl *TargetController) GetOne(c *fiber.Ctx) error {
 	targetId := strings.TrimSpace(c.Params("id"))
 
 	if tenantId == "" || orgId == "" || userId == "" || targetId == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "missing params", Status: false})
+		return httputil.FailBadRequest(c, "missing params")
 	}
 
 	result, err := ctrl.service.GetOne(ctx, tenantId, orgId, userId, targetId)
 	if err != nil {
+		log.Error().Err(err).Msg("get target failed")
 		status, code := targetsvc.MapSvcError(err)
 		return c.Status(status).JSON(gmod.ApiErrorResponse{Code: code, Message: err.Error(), Status: false})
 	}
 
-	return c.Status(200).JSON(gmod.SuccessDetailResponseWithMSG{
-		Code:    gmod.CodeSuccess,
-		Message: "ok",
-		Status:  true,
-		Detail:  result,
-	})
+	return httputil.Ok(c, result)
 }
 
 // ============================================================
@@ -186,7 +181,8 @@ func (ctrl *TargetController) GetOne(c *fiber.Ctx) error {
 // ============================================================
 
 func (ctrl *TargetController) Update(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.targetapi", "TargetController.Update", "targetapi", "Update")
+	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
@@ -194,12 +190,12 @@ func (ctrl *TargetController) Update(c *fiber.Ctx) error {
 	targetId := strings.TrimSpace(c.Params("id"))
 
 	if tenantId == "" || orgId == "" || userId == "" || targetId == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "missing params", Status: false})
+		return httputil.FailBadRequest(c, "missing params")
 	}
 
 	var body UpdateTargetRequest
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body", Status: false})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 
 	result, err := ctrl.service.Update(ctx, targetsvc.UpdateTargetInput{
@@ -212,16 +208,12 @@ func (ctrl *TargetController) Update(c *fiber.Ctx) error {
 		Config:   body.Config,
 	})
 	if err != nil {
+		log.Error().Err(err).Msg("update target failed")
 		status, code := targetsvc.MapSvcError(err)
 		return c.Status(status).JSON(gmod.ApiErrorResponse{Code: code, Message: err.Error(), Status: false})
 	}
 
-	return c.Status(200).JSON(gmod.SuccessDetailResponseWithMSG{
-		Code:    gmod.CodeSuccess,
-		Message: "target updated",
-		Status:  true,
-		Detail:  result,
-	})
+	return httputil.Ok(c, result, "target updated")
 }
 
 // ============================================================
@@ -229,7 +221,8 @@ func (ctrl *TargetController) Update(c *fiber.Ctx) error {
 // ============================================================
 
 func (ctrl *TargetController) Delete(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.targetapi", "TargetController.Delete", "targetapi", "Delete")
+	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
@@ -237,17 +230,14 @@ func (ctrl *TargetController) Delete(c *fiber.Ctx) error {
 	targetId := strings.TrimSpace(c.Params("id"))
 
 	if tenantId == "" || orgId == "" || userId == "" || targetId == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "missing params", Status: false})
+		return httputil.FailBadRequest(c, "missing params")
 	}
 
 	if err := ctrl.service.Delete(ctx, tenantId, orgId, userId, targetId); err != nil {
+		log.Error().Err(err).Msg("delete target failed")
 		status, code := targetsvc.MapSvcError(err)
 		return c.Status(status).JSON(gmod.ApiErrorResponse{Code: code, Message: err.Error(), Status: false})
 	}
 
-	return c.Status(200).JSON(gmod.SuccessResponse{
-		Code:    gmod.CodeSuccess,
-		Message: "target deleted",
-		Status:  true,
-	})
+	return httputil.MessageOK(c, "target deleted")
 }

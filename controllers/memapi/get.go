@@ -1,12 +1,14 @@
 package memapi
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/hotkhwan/gateway-api/internal/services/memsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/memmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
-	"strconv"
-	"strings"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -30,8 +32,8 @@ import (
 // @Security BearerAuth
 
 func ListMembers(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/memapi", "memapi.ListMembers", "memapi", "ListMembers")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.memapi", "memapi.ListMembers", "memapi", "ListMembers")
+	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
@@ -80,11 +82,12 @@ func ListMembers(c *fiber.Ctx) error {
 	}
 
 	log.Info().Int("count", len(members)).Msg("✅ Members listed")
-	resp := memmod.MemberListResponse{
-		Details:    members,
-		Pagination: memPage,
-		Status:     true,
-	}
-	return c.JSON(resp)
+	return c.JSON(fiber.Map{
+		"code":       gmod.CodeSuccess,
+		"message":    "Members listed successfully",
+		"status":     true,
+		"details":    members,
+		"pagination": memPage,
+	})
 
 }

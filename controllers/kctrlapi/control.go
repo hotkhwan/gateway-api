@@ -3,7 +3,6 @@ package kctrlapi
 
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/kctrlsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/kctrlmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
@@ -23,8 +22,8 @@ import (
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /kcontrol [post]
 func SendMessage(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "messages.SendMessage", "kctrlapi", "SendMessage")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "messages.SendMessage", "kctrlapi", "SendMessage")
+	defer end()
 
 	var msg kctrlmod.ControlMessage
 	if err := c.BodyParser(&msg); err != nil {
@@ -49,5 +48,5 @@ func SendMessage(c *fiber.Ctx) error {
 		Interface("hwId", msg.HwID). // << เปลี่ยนจาก .Str
 		Msg("✅ [SendMessage] Message sent successfully")
 
-	return gmod.SendMessageOK(c, "KCONTROL_SEND_SUCCESS", "Message sent to device successfully")
+	return httputil.MessageOK(c, "Message sent to device successfully", "KCONTROL_SEND_SUCCESS")
 }

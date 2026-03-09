@@ -8,7 +8,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
-	"go.opentelemetry.io/otel"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 type OrgUnitController struct {
@@ -47,28 +48,17 @@ type UpdateOrgUnitBody struct {
 // @Failure 409 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/units [post]
 func (ctrl *OrgUnitController) Create(c *fiber.Ctx) error {
-
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "OrgUnit.Create")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.Create", "authzapi", "Create")
+	defer end()
 
 	var body CreateOrgUnitBody
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "invalid body",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 
 	body.Name = strings.TrimSpace(body.Name)
 	if body.Name == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "name required",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "name required")
 	}
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -87,11 +77,7 @@ func (ctrl *OrgUnitController) Create(c *fiber.Ctx) error {
 
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{
-			Code:    code,
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.Fail(c, status, code, err.Error())
 	}
 
 	return c.JSON(gmod.SuccessMessageCreateResponse{
@@ -110,11 +96,8 @@ func (ctrl *OrgUnitController) Create(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/v1/orgs/units/tree [get]
 func (ctrl *OrgUnitController) Tree(c *fiber.Ctx) error {
-
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "OrgUnit.Tree")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.Tree", "authzapi", "Tree")
+	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
@@ -127,18 +110,10 @@ func (ctrl *OrgUnitController) Tree(c *fiber.Ctx) error {
 
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{
-			Code:    code,
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.Fail(c, status, code, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"status":  true,
-		"details": tree,
-	})
+	return httputil.Ok(c, tree)
 }
 
 // TreeNode godoc
@@ -150,11 +125,8 @@ func (ctrl *OrgUnitController) Tree(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/v1/orgs/units/tree/{id} [get]
 func (ctrl *OrgUnitController) TreeNode(c *fiber.Ctx) error {
-
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "OrgUnit.TreeNode")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.TreeNode", "authzapi", "TreeNode")
+	defer end()
 
 	unitId := strings.TrimSpace(c.Params("id"))
 
@@ -170,18 +142,10 @@ func (ctrl *OrgUnitController) TreeNode(c *fiber.Ctx) error {
 
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{
-			Code:    code,
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.Fail(c, status, code, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"status":  true,
-		"details": node,
-	})
+	return httputil.Ok(c, node)
 }
 
 // Update godoc
@@ -194,21 +158,14 @@ func (ctrl *OrgUnitController) TreeNode(c *fiber.Ctx) error {
 // @Param body body UpdateOrgUnitBody true "payload"
 // @Router /api/v1/orgs/units/{id} [patch]
 func (ctrl *OrgUnitController) Update(c *fiber.Ctx) error {
-
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "OrgUnit.Update")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.Update", "authzapi", "Update")
+	defer end()
 
 	unitId := strings.TrimSpace(c.Params("id"))
 
 	var body UpdateOrgUnitBody
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "invalid body",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 
 	// Check if parentId was explicitly provided in the request body
@@ -234,18 +191,10 @@ func (ctrl *OrgUnitController) Update(c *fiber.Ctx) error {
 
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{
-			Code:    code,
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.Fail(c, status, code, err.Error())
 	}
 
-	return c.JSON(gmod.SuccessMessageResponse{
-		Code:    gmod.CodeSuccess,
-		Status:  true,
-		Message: "updated",
-	})
+	return httputil.MessageOK(c, "updated")
 }
 
 // Delete godoc
@@ -256,11 +205,8 @@ func (ctrl *OrgUnitController) Update(c *fiber.Ctx) error {
 // @Param id path string true "unitId"
 // @Router /api/v1/orgs/units/{id} [delete]
 func (ctrl *OrgUnitController) Delete(c *fiber.Ctx) error {
-
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "OrgUnit.Delete")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.Delete", "authzapi", "Delete")
+	defer end()
 
 	unitId := strings.TrimSpace(c.Params("id"))
 
@@ -276,18 +222,10 @@ func (ctrl *OrgUnitController) Delete(c *fiber.Ctx) error {
 
 	if err != nil {
 		status, code := authzsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{
-			Code:    code,
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.Fail(c, status, code, err.Error())
 	}
 
-	return c.JSON(gmod.SuccessMessageResponse{
-		Code:    gmod.CodeSuccess,
-		Status:  true,
-		Message: "deleted",
-	})
+	return httputil.MessageOK(c, "deleted")
 }
 
 // TreeDebug godoc
@@ -298,7 +236,8 @@ func (ctrl *OrgUnitController) Delete(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/v1/orgs/units/tree-debug [get]
 func (ctrl *OrgUnitController) TreeDebug(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.TreeDebug", "authzapi", "TreeDebug")
+	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
@@ -306,11 +245,7 @@ func (ctrl *OrgUnitController) TreeDebug(c *fiber.Ctx) error {
 	// Get raw units from DB
 	units, err := ctrl.service.GetOrgUnitsRaw(ctx, tenantId, orgId)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"code":    "ERROR",
-			"status":  false,
-			"message": err.Error(),
-		})
+		return httputil.FailInternal(c, err.Error())
 	}
 
 	// Build tree
@@ -328,7 +263,7 @@ func (ctrl *OrgUnitController) TreeDebug(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"code":   "SUCCESS",
+		"code":   gmod.CodeSuccess,
 		"status": true,
 		"debug": fiber.Map{
 			"tenantId":      tenantId,

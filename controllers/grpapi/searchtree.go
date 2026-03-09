@@ -3,7 +3,7 @@ package grpapi
 
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/grpsvc"
-	"github.com/hotkhwan/gateway-api/models/grpmod"
+	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
@@ -23,8 +23,8 @@ import (
 // @Router       /groups/search [get]
 // @Security     BearerAuth
 func SearchGroupsTree(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/grpapi", "group.SearchGroupsTree", "grpapi", "SearchGroupsTree")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.grpapi", "group.SearchGroupsTree", "grpapi", "SearchGroupsTree")
+	defer end()
 
 	search := c.Query("name")
 	if search == "" {
@@ -39,8 +39,10 @@ func SearchGroupsTree(c *fiber.Ctx) error {
 		return httputil.FailInternal(c, "GROUP_SEARCH_FAILED", err.Error())
 	}
 
-	return c.JSON(grpmod.GroupTreeResponse{
-		Details: details,
-		Status:  true,
+	return c.JSON(fiber.Map{
+		"code":    gmod.CodeSuccess,
+		"message": "group tree searched successfully",
+		"status":  true,
+		"details": details,
 	})
 }

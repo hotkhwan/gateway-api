@@ -2,14 +2,12 @@
 package authapi
 
 import (
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/middleware"
 	"github.com/hotkhwan/gateway-api/internal/services/authsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
 )
 
 // @Summary Reset Password
@@ -25,40 +23,31 @@ import (
 // @Router /auth/resetPassword [post]
 // @Security BearerAuth
 func ResetPassword(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/authapi")
-	ctx, span := tracer.Start(ctx, "Auth.ResetPassword")
-	defer span.End()
-
-	log := logger.FromCtx(ctx, "authapi", "ResetPassword")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.authapi", "ResetPassword.ResetPassword", "authapi", "ResetPassword")
+	defer end()
 
 	var req struct {
 		NewPassword string `json:"new_password"`
 	}
 	if err := c.BodyParser(&req); err != nil {
-		log.Warn().
-			Err(err).Msg("❌ [ResetPassword] Invalid request body")
+		log.Warn().Err(err).Msg("invalid request body")
 		return httputil.FailBadRequest(c, "INVALID_REQUEST", "Invalid request")
 	}
 
 	accessToken, err := middleware.ExtractBearerToken(c)
 	if err != nil {
-		log.Warn().
-			Err(err).Msg("❌ [ResetPassword] Missing bearer token")
+		log.Warn().Err(err).Msg("missing bearer token")
 		return httputil.FailUnauthorized(c, "UNAUTHORIZED", "Missing or invalid Authorization header")
 	}
 
-	log.Info().
-		Msg("🔄 [ResetPassword] Attempting password reset")
+	log.Info().Msg("attempting password reset")
 
 	resp, err := authsvc.ResetPassword(ctx, "", accessToken, req.NewPassword)
 	if err != nil {
-		log.Warn().
-			Err(err).Msg("❌ [ResetPassword] Reset failed")
+		log.Warn().Err(err).Msg("password reset failed")
 		return httputil.FailUnauthorized(c, "RESET_FAILED", "Password reset failed")
 	}
 
-	log.Info().
-		Msg("✅ [ResetPassword] Password reset successful")
-	return gmod.SendSuccess(c, resp)
+	log.Info().Msg("password reset successful")
+	return httputil.Ok(c, resp)
 }

@@ -4,7 +4,6 @@ package authapi
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/authsvc"
 	"github.com/hotkhwan/gateway-api/models/authmod"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
@@ -21,28 +20,23 @@ import (
 // @Failure 401 {object} gmod.UnauthorizedResponse
 // @Router /auth/signin [post]
 func Signin(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/authapi", "authentication.Signin", "authapi", "Signin")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.authapi", "Signin.Signin", "authapi", "Signin")
+	defer end()
+
 	var req authmod.SigninRequest
 	if err := c.BodyParser(&req); err != nil {
-
-		log.Info().
-			Err(err).
-			Msg("❌ [Signin] Invalid request body")
+		log.Info().Err(err).Msg("invalid request body")
 		return httputil.FailBadRequest(c, "INVALID_REQUEST", err.Error())
 	}
 
-	log.Debug().Str("username", req.Username).Msg("🔐 [Signin] Attempt login")
+	log.Debug().Str("username", req.Username).Msg("attempting login")
 
 	resp, err := authsvc.Authenticate(ctx, req)
 	if err != nil {
-		log.Warn().
-			Str("username", req.Username).Err(err).
-			Msg("❌ [Signin] Authentication failed")
+		log.Warn().Str("username", req.Username).Err(err).Msg("authentication failed")
 		return httputil.FailUnauthorized(c, "AUTH_FAILED", err.Error())
 	}
 
-	log.Debug().
-		Str("username", req.Username).Msg("✅ [Signin] Authentication successful")
-	return gmod.SendSuccess(c, resp)
+	log.Debug().Str("username", req.Username).Msg("authentication successful")
+	return httputil.Ok(c, resp)
 }
