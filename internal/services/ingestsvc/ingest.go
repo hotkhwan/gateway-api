@@ -116,11 +116,13 @@ type RejectedPatternChecker interface {
 // SuggestionProvider returns mapping suggestions for a sourceFamily (injected to avoid circular imports).
 type SuggestionProvider interface {
 	GetByFamily(sourceFamily string) []*ingestmod.MappingSuggestion
+	GetByID(id string) *ingestmod.MappingSuggestion
 }
 
 // DeviceResolver resolves device enrichment data (injected to avoid circular imports).
 type DeviceResolver interface {
 	Resolve(ctx context.Context, tenantId, orgId, sourceFamily, entityType, entityId string) *ingestmod.DeviceManagement
+	AutoUpsertFromEvent(ctx context.Context, tenantId, orgId, sourceFamily string, ref *ingestmod.DeviceIdentity, hints ingestmod.AutoUpsertHints)
 }
 
 func NewIngestService(
@@ -446,22 +448,19 @@ func (s *IngestService) Ingest(
 	}
 
 	if matched && tmpl != nil {
-		// Determine event type from template
+		// Determine event type from template (fallback: sourceFamily)
 		eventType := tmpl.FinalEventType
 		if eventType == "" {
-			eventType = s.detectEventType(body)
+			eventType = sourceFamily
 		}
 
-		// Normalize device identity for CanonicalEvent
-		deviceRef, _, _ := s.normalizeDeviceIdentity(body)
+		// Extract all device identity candidates and resolve enrichment by priority
+		candidates, _, _ := s.extractDeviceCandidates(body)
+		enrichment, deviceRef := s.resolveDeviceEnrichment(ctx, policy.TenantId, orgId, sourceFamily, candidates)
 
-		// Resolve deviceManagement enrichment (Step 7: applied AFTER field mapping inside processTemplateMappedEvent)
-		var enrichment *ingestmod.DeviceManagement
-		if s.deviceMgmtSvc != nil && deviceRef != nil {
-			enrichment = s.deviceMgmtSvc.Resolve(ctx, policy.TenantId, orgId, sourceFamily, deviceRef.Type, deviceRef.ID)
-			if enrichment != nil && deviceRef.ID == "" && enrichment.DeviceId != "" {
-				deviceRef.ID = enrichment.DeviceId
-			}
+		// Auto-create/merge device_management record (conservative, non-blocking)
+		if deviceRef != nil && s.deviceMgmtSvc != nil {
+			s.deviceMgmtSvc.AutoUpsertFromEvent(ctx, policy.TenantId, orgId, sourceFamily, deviceRef, ingestmod.AutoUpsertHints{})
 		}
 
 		s.logger.Debug().
@@ -482,6 +481,42 @@ func (s *IngestService) Ingest(
 		}
 
 		return &IngestResult{EventId: eventId, ReceivedAt: receivedAt}, nil
+	}
+
+	// 9b) Suggestion fallback: if no DB template matched, try auto-apply from suggestion.
+	//     Persists template to DB so users can configure finalEventType, classificationRules,
+	//     deliveryTargets, messageTemplates via the management API later.
+	if !matched {
+		if autoTmpl, suggestionId := s.tryAutoApplySuggestion(ctx, policy.TenantId, orgId, sourceFamily, rawBody); autoTmpl != nil {
+			eventType := autoTmpl.FinalEventType
+			if eventType == "" {
+				eventType = sourceFamily
+			}
+			candidates, _, _ := s.extractDeviceCandidates(body)
+			enrichment, deviceRef := s.resolveDeviceEnrichment(ctx, policy.TenantId, orgId, sourceFamily, candidates)
+
+			// Auto-create/merge device_management record (conservative, non-blocking)
+			if deviceRef != nil && s.deviceMgmtSvc != nil {
+				s.deviceMgmtSvc.AutoUpsertFromEvent(ctx, policy.TenantId, orgId, sourceFamily, deviceRef, ingestmod.AutoUpsertHints{})
+			}
+
+			s.logger.Info().
+				Str("orgId", orgId).
+				Str("sourceFamily", sourceFamily).
+				Str("eventId", eventId).
+				Str("suggestionId", suggestionId).
+				Msg("[Ingest] auto-applied suggestion as template")
+
+			if err := s.processTemplateMappedEvent(
+				ctx,
+				policy.TenantId, orgId, sourceFamily, eventType,
+				eventId, receivedAt,
+				rawBody, autoTmpl, deviceRef, enrichment,
+			); err != nil {
+				return nil, err
+			}
+			return &IngestResult{EventId: eventId, ReceivedAt: receivedAt}, nil
+		}
 	}
 
 	// 10) Check rejected pattern — drop silently if previously rejected
@@ -558,6 +593,8 @@ func (s *IngestService) processTemplateMappedEvent(
 
 	// 4) Build location — deviceManagement overwrite applied AFTER field mapping (V3 Step 7)
 	location := ingestmod.LocationInfo{Lat: latF, Lng: lngF}
+	deviceName := ""
+	deviceDescription := ""
 	if enrichment != nil {
 		if enrichment.Lat != 0 || enrichment.Lng != 0 {
 			location.Lat = enrichment.Lat
@@ -568,6 +605,15 @@ func (s *IngestService) processTemplateMappedEvent(
 		}
 		if enrichment.Zone != "" {
 			location.Zone = enrichment.Zone
+		}
+		if enrichment.Name != "" {
+			deviceName = enrichment.Name
+		}
+		if enrichment.Description != "" {
+			deviceDescription = enrichment.Description
+		}
+		if enrichment.DeviceId != "" && deviceRef != nil {
+			deviceRef.ID = enrichment.DeviceId
 		}
 	}
 
@@ -585,9 +631,11 @@ func (s *IngestService) processTemplateMappedEvent(
 		EventType:    eventType,
 		OccurredAt:   occurredAt,
 		Source: ingestmod.SourceInfo{
-			DeviceId:   deviceId,
-			DeviceType: deviceType,
-			OrgId:      orgId,
+			DeviceId:          deviceId,
+			DeviceType:        deviceType,
+			DeviceName:        deviceName,
+			DeviceDescription: deviceDescription,
+			OrgId:             orgId,
 		},
 		Location:   location,
 		Payload:    rawBody, // raw payload — normalizer applies template again
@@ -633,38 +681,9 @@ func (s *IngestService) processTemplateMappedEvent(
 	return nil
 }
 
-// detectEventType auto-detects event type from raw body
-// Returns suggested event type based on payload patterns
-func (s *IngestService) detectEventType(body []byte) string {
-	// Parse raw body to extract hints
-	var raw map[string]any
-	if err := json.Unmarshal(body, &raw); err != nil {
-		return "unknown"
-	}
-
-	// Pattern matching logic
-	if _, ok := raw["plateNumber"]; ok {
-		return "LPR_Brand"
-	}
-	if _, ok := raw["faceId"]; ok {
-		return "FACE_Brand"
-	}
-	if _, ok := raw["deviceId"]; ok {
-		return "camera_Brand"
-	}
-	if _, ok := raw["cameraId"]; ok {
-		return "camera_Brand"
-	}
-	if _, ok := raw["sensorId"]; ok {
-		return "IOT_Brand"
-	}
-
-	return "unknown"
-}
-
-// normalizeDeviceIdentity normalizes device identity from raw event body
-// Returns: deviceRef (nil if missing), rawAliasesBytes (json), aliases map
-func (s *IngestService) normalizeDeviceIdentity(body []byte) (*ingestmod.DeviceIdentity, json.RawMessage, map[string]string) {
+// extractDeviceCandidates extracts all device identity candidates from raw event body.
+// Returns candidates in priority order, aliases JSON bytes, and aliases map.
+func (s *IngestService) extractDeviceCandidates(body []byte) ([]ingestmod.DeviceIdentity, json.RawMessage, map[string]string) {
 	var raw map[string]any
 	if err := json.Unmarshal(body, &raw); err != nil {
 		return nil, nil, nil
@@ -694,7 +713,6 @@ func (s *IngestService) normalizeDeviceIdentity(body []byte) (*ingestmod.DeviceI
 		}
 	}
 
-	// helper: find first existing key in raw (for alias support)
 	findFirst := func(keys ...string) (key string, val string, ok bool) {
 		for _, k := range keys {
 			v, exists := raw[k]
@@ -710,37 +728,62 @@ func (s *IngestService) normalizeDeviceIdentity(body []byte) (*ingestmod.DeviceI
 		return "", "", false
 	}
 
-	// Priority rules (stop at first match):
-	// 1) cameraId -> camera
-	// 2) sensorId -> sensor
-	// 3) faceId   -> face
-	// 4) deviceId -> device
-	if k, id, ok := findFirst("cameraId", "camId", "camera_id"); ok {
-		aliases[k] = id
-		rawAliasesBytes, _ := json.Marshal(aliases)
-		return &ingestmod.DeviceIdentity{Type: "camera", ID: id}, rawAliasesBytes, aliases
+	// Priority order — collect ALL matching candidates
+	// 1) cameraId  -> camera
+	// 2) sensorId  -> sensor
+	// 3) faceId    -> face
+	// 4) channelId -> channel
+	// 5) deviceId  -> device
+	type rule struct {
+		typ  string
+		keys []string
+	}
+	rules := []rule{
+		{"camera", []string{"cameraId", "camId", "camera_id"}},
+		{"sensor", []string{"sensorId", "sensor_id"}},
+		{"face", []string{"faceId", "face_id"}},
+		{"channel", []string{"channelId", "channel_id"}},
+		{"device", []string{"deviceId", "device_id", "device"}},
 	}
 
-	if k, id, ok := findFirst("sensorId", "sensor_id"); ok {
-		aliases[k] = id
-		rawAliasesBytes, _ := json.Marshal(aliases)
-		return &ingestmod.DeviceIdentity{Type: "sensor", ID: id}, rawAliasesBytes, aliases
+	var candidates []ingestmod.DeviceIdentity
+	for _, r := range rules {
+		if k, id, ok := findFirst(r.keys...); ok {
+			aliases[k] = id
+			candidates = append(candidates, ingestmod.DeviceIdentity{Type: r.typ, ID: id})
+		}
 	}
 
-	if k, id, ok := findFirst("faceId", "face_id"); ok {
-		aliases[k] = id
-		rawAliasesBytes, _ := json.Marshal(aliases)
-		return &ingestmod.DeviceIdentity{Type: "face", ID: id}, rawAliasesBytes, aliases
-	}
-
-	if k, id, ok := findFirst("deviceId", "device_id", "device"); ok {
-		aliases[k] = id
-		rawAliasesBytes, _ := json.Marshal(aliases)
-		return &ingestmod.DeviceIdentity{Type: "device", ID: id}, rawAliasesBytes, aliases
-	}
-
-	// no identity
 	rawAliasesBytes, _ := json.Marshal(aliases)
-	return nil, rawAliasesBytes, aliases
+	return candidates, rawAliasesBytes, aliases
+}
+
+// resolveDeviceEnrichment tries each candidate in priority order against deviceManagement.
+// Returns the first matched enrichment and the winning deviceRef.
+// If no enrichment is found, returns nil enrichment and the first candidate as deviceRef.
+func (s *IngestService) resolveDeviceEnrichment(
+	ctx context.Context,
+	tenantId, orgId, sourceFamily string,
+	candidates []ingestmod.DeviceIdentity,
+) (*ingestmod.DeviceManagement, *ingestmod.DeviceIdentity) {
+	if len(candidates) == 0 {
+		return nil, nil
+	}
+
+	if s.deviceMgmtSvc != nil {
+		for i := range candidates {
+			enrichment := s.deviceMgmtSvc.Resolve(ctx, tenantId, orgId, sourceFamily, candidates[i].Type, candidates[i].ID)
+			if enrichment != nil {
+				ref := &candidates[i]
+				if enrichment.DeviceId != "" {
+					ref = &ingestmod.DeviceIdentity{Type: ref.Type, ID: enrichment.DeviceId}
+				}
+				return enrichment, ref
+			}
+		}
+	}
+
+	// No enrichment found — use first candidate as deviceRef
+	return nil, &candidates[0]
 }
 

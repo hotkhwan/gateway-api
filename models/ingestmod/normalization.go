@@ -21,12 +21,14 @@ type CanonicalEvent struct {
 
 // SourceInfo identifies the originating device.
 type SourceInfo struct {
-	DeviceId   string `json:"deviceId"           bson:"deviceId"`
-	DeviceType string `json:"deviceType"         bson:"deviceType"`
-	SubType    string `json:"subType,omitempty"  bson:"subType,omitempty"`
-	Vendor     string `json:"vendor,omitempty"   bson:"vendor,omitempty"`
-	Protocol   string `json:"protocol,omitempty" bson:"protocol,omitempty"`
-	OrgId      string `json:"orgId"              bson:"orgId"`
+	DeviceId          string `json:"deviceId"                     bson:"deviceId"`
+	DeviceType        string `json:"deviceType"                   bson:"deviceType"`
+	DeviceName        string `json:"deviceName,omitempty"         bson:"deviceName,omitempty"`
+	DeviceDescription string `json:"deviceDescription,omitempty"  bson:"deviceDescription,omitempty"`
+	SubType           string `json:"subType,omitempty"            bson:"subType,omitempty"`
+	Vendor            string `json:"vendor,omitempty"             bson:"vendor,omitempty"`
+	Protocol          string `json:"protocol,omitempty"           bson:"protocol,omitempty"`
+	OrgId             string `json:"orgId"                        bson:"orgId"`
 }
 
 // LocationInfo holds the resolved geographic coordinates.
