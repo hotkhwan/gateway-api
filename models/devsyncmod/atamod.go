@@ -7,7 +7,7 @@ type ATASyncResponse struct {
 	Code    string     `json:"code" example:"ATA_SYNC_OK"`
 	Message string     `json:"message" example:"ATA devices/channels synced"`
 	Status  bool       `json:"status" example:"true"`
-	Detail  SyncResult `json:"detail"`
+	Details SyncResult `json:"details"`
 }
 
 type ATAEdgeDoc struct {

@@ -3,14 +3,14 @@ package kwatapi
 
 import (
 	"errors"
-	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
-	"github.com/hotkhwan/gateway-api/models/kwatmod"
-	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"io"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
+
+	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
+	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 func toPtr(v string) *string {
@@ -62,10 +62,9 @@ func toPtr(v string) *string {
 // @Router /kwatch/watchlist/{id} [patch]
 // @Security BearerAuth
 func WatchlistUpdate(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/kwatapi")
-	ctx, span := tracer.Start(ctx, "Kwatch.WatchlistUpdate")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Watchlist.WatchlistUpdate", "kwatapi", "WatchlistUpdate")
+	defer end()
+
 	id := c.Params("id")
 	if id == "" {
 		return httputil.FailBadRequest(c, "BAD_REQUEST", "id path param (watchlist _id หรือ idcard) is required")
@@ -117,11 +116,7 @@ func WatchlistUpdate(c *fiber.Ctx) error {
 	} else {
 		// ✅ ถ้าเป็น JSON → parse ตรงๆ
 		if err := c.BodyParser(&req); err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(gmod.ErrorMessageResponse{
-				Code:    "BAD_REQUEST",
-				Message: "invalid body",
-				Status:  false,
-			})
+			return httputil.FailBadRequest(c, "invalid body")
 		}
 	}
 
@@ -139,5 +134,5 @@ func WatchlistUpdate(c *fiber.Ctx) error {
 		}
 	}
 
-	return gmod.SendAcceptedWithID(c, "SUCCESS", "Watchlist created successfully", id)
+	return httputil.Ok(c, fiber.Map{"id": id}, "Watchlist updated successfully")
 }

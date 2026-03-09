@@ -4,7 +4,6 @@ package authapi
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/authsvc"
 	"github.com/hotkhwan/gateway-api/models/authmod"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
@@ -21,12 +20,12 @@ import (
 // @Failure 401 {object} gmod.UnauthorizedResponse
 // @Router /auth/oauth/callback [post]
 func OAuthCallback(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/authapi", "authentication.OAuthCallback", "authapi", "OAuthCallback")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.authapi", "OAuthCallback.OAuthCallback", "authapi", "OAuthCallback")
+	defer end()
 
 	var req authmod.OAuthCallbackRequest
 	if err := c.BodyParser(&req); err != nil {
-		log.Info().Err(err).Msg("❌ [OAuthCallback] Invalid request body")
+		log.Info().Err(err).Msg("invalid request body")
 		return httputil.FailBadRequest(c, "INVALID_REQUEST", err.Error())
 	}
 
@@ -36,9 +35,9 @@ func OAuthCallback(c *fiber.Ctx) error {
 
 	resp, err := authsvc.AuthenticateOAuthCode(ctx, req)
 	if err != nil {
-		log.Warn().Err(err).Msg("❌ [OAuthCallback] Exchange failed")
+		log.Warn().Err(err).Msg("OAuth exchange failed")
 		return httputil.FailUnauthorized(c, "AUTH_FAILED", err.Error())
 	}
 
-	return gmod.SendSuccess(c, resp)
+	return httputil.Ok(c, resp)
 }

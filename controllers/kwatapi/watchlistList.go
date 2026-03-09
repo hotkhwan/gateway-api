@@ -5,13 +5,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
 	"github.com/hotkhwan/gateway-api/models/kwatmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
 )
 
 // watchlistList godoc
@@ -36,12 +35,8 @@ import (
 // @Router /kwatch/watchlist [get]
 // @Security BearerAuth
 func WatchlistList(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/kwatapi")
-	ctx, span := tracer.Start(ctx, "Kwatch.WatchlistList")
-	defer span.End()
-
-	log := logger.FromCtx(ctx, "kwatapi", "WatchlistList")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Watchlist.WatchlistList", "kwatapi", "WatchlistList")
+	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))

@@ -29,8 +29,8 @@ import (
 // @Router       /groups/devices [get]
 // @Security     BearerAuth
 func ListGroupDevices(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/grpapi", "group.ListGroupDevices", "grpapi", "ListGroupDevices")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.grpapi", "group.ListGroupDevices", "grpapi", "ListGroupDevices")
+	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
@@ -62,5 +62,11 @@ func ListGroupDevices(c *fiber.Ctx) error {
 		return httputil.FailInternal(c, "DEVICE_LIST_FAILED", err.Error())
 	}
 
-	return gmod.SendPagination(c, details, pagination)
+	return c.JSON(fiber.Map{
+		"code":       gmod.CodeSuccess,
+		"message":    "devices fetched successfully",
+		"status":     true,
+		"details":    details,
+		"pagination": pagination,
+	})
 }

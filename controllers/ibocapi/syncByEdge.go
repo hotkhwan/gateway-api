@@ -2,63 +2,39 @@
 package ibocapi
 
 import (
-	"net/http"
-
 	"github.com/hotkhwan/gateway-api/internal/services/ibocsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
 )
-
-type IBOCSyncResponse struct {
-	Code    string             `json:"code" example:"IBOC_SYNC_OK"`
-	Message string             `json:"message" example:"IBOC devices/channels synced"`
-	Status  bool               `json:"status" example:"true"`
-	Detail  ibocsvc.SyncResult `json:"detail"`
-}
 
 // DeviceSyncFromEdgeID godoc
 // @Summary Sync IBOC devices/channels by Edge ID
 // @Tags IBOC
 // @Param edgeId path string true "Mongo ObjectId of IBOC Edge"
-// @Success 200 {object} IBOCSyncResponse
-// @Failure 400 {object} gmod.ErrorMessageResponse
-// @Failure 404 {object} gmod.ErrorMessageResponse
-// @Failure 500 {object} gmod.ErrorMessageResponse
+// @Success 200 {object} gmod.SuccessDataResponse
+// @Failure 400 {object} gmod.ApiErrorResponse
+// @Failure 404 {object} gmod.ApiErrorResponse
+// @Failure 500 {object} gmod.ApiErrorResponse
 // @Security BearerAuth
 func DeviceSyncFromEdgeID(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/ibocapi")
-	ctx, span := tracer.Start(ctx, "IBOC.DeviceSyncFromEdgeID")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ibocapi", "iboc.DeviceSyncFromEdgeID", "ibocapi", "DeviceSyncFromEdgeID")
+	defer end()
 
 	edgeId := c.Params("edgeId")
 	if edgeId == "" {
-		return c.Status(http.StatusBadRequest).JSON(gmod.ErrorMessageResponse{
-			Code:    "BAD_REQUEST",
-			Message: "edgeId is required",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "edgeId is required")
 	}
 
 	res, err := ibocsvc.SyncDevicesAndChannelsByEdgeID(ctx, edgeId)
 	if err != nil {
-		code := http.StatusInternalServerError
+		log.Error().Err(err).Str("edgeId", edgeId).Msg("[DeviceSyncFromEdgeID] IBOC sync failed")
 		if err == ibocsvc.ErrEdgeNotFound {
-			code = http.StatusNotFound
+			return httputil.FailNotFound(c, err.Error())
 		}
-		return c.Status(code).JSON(gmod.ErrorMessageResponse{
-			Code:    "IBOC_SYNC_FAILED",
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(IBOCSyncResponse{
-		Code:    "IBOC_SYNC_OK",
-		Message: "IBOC devices/channels synced by edge",
-		Status:  true,
-		Detail:  *res,
-	})
+	return httputil.Ok(c, res, "IBOC devices/channels synced by edge")
 }

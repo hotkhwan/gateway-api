@@ -120,6 +120,6 @@ type EdgeSSOURLDetail struct {
 
 type EdgeSSOURLSuccessResponse struct {
 	Code   string           `json:"code"`
-	Detail EdgeSSOURLDetail `json:"detail"`
+	Details EdgeSSOURLDetail `json:"details"`
 	Status bool             `json:"status"`
 }

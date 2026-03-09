@@ -4,9 +4,9 @@ package setapi
 import (
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/services/systemsvc/setsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/usrmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -21,25 +21,21 @@ import (
 // @Router       /system/setting/mapLocation [get]
 // @Security     BearerAuth
 func ListConfig(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.sysapi", "SetApi.ListConfig", "sysapi", "ListConfig")
+	defer end()
 
 	setting, err := setsvc.GetMapSetting(ctx, config.DB)
 	if err != nil {
-		// normalize: code=INTERNAL_ERROR, reason=DB_ERROR
-		return httputil.FailInternalReason(c, "INTERNAL_ERROR", "db error")
+		log.Error().Err(err).Msg("get map setting failed")
+		return httputil.FailInternalReason(c, "internal server error", "DB_ERROR")
 	}
 
-	out := map[string]any{
+	out := fiber.Map{
 		"mapLocation": setting.MapLocation,
 		"zoomLevel":   setting.ZoomLevel,
 	}
 
-	return c.JSON(gmod.SuccessDetailResponseWithMSG{
-		Code:    gmod.CodeSuccess,
-		Status:  true,
-		Message: "OK",
-		Detail:  out,
-	})
+	return httputil.Ok(c, out)
 }
 
 // UpdateConfig godoc
@@ -55,15 +51,16 @@ func ListConfig(c *fiber.Ctx) error {
 // @Router       /system/setting/mapLocation/{id} [patch]
 // @Security     BearerAuth
 func UpdateConfig(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.sysapi", "SetApi.UpdateConfig", "sysapi", "UpdateConfig")
+	defer end()
+
 	id := c.Params("id")
 
 	var body usrmod.MapSetting
 	if err := c.BodyParser(&body); err != nil {
-		return httputil.FailBadRequestReason(c, "INVALID_BODY", "invalid request body", nil)
+		return httputil.FailBadRequest(c, "invalid request body")
 	}
 
-	// validate แบบไม่ปล่อยผ่านเงียบๆ
 	if body.MapLocation.Lat == "" || body.MapLocation.Lng == "" {
 		return httputil.FailBadRequestReason(
 			c,
@@ -92,12 +89,9 @@ func UpdateConfig(c *fiber.Ctx) error {
 	}
 
 	if err := setsvc.UpdateMapSetting(ctx, config.DB, id, body); err != nil {
+		log.Error().Err(err).Msg("update map setting failed")
 		return httputil.FailInternalReason(c, "internal server error", "DB_ERROR")
 	}
 
-	return c.JSON(gmod.SuccessMessageResponse{
-		Code:    gmod.CodeSuccess,
-		Message: "updated",
-		Status:  true,
-	})
+	return httputil.MessageOK(c, "updated")
 }

@@ -29,8 +29,8 @@ import (
 // @Router       /groups/members [get]
 // @Security     BearerAuth
 func ListGroupMembers(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/grpapi", "group.ListGroupMembers", "grpapi", "ListGroupMembers")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.grpapi", "group.ListGroupMembers", "grpapi", "ListGroupMembers")
+	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
@@ -62,5 +62,11 @@ func ListGroupMembers(c *fiber.Ctx) error {
 		return httputil.FailInternal(c, "MEMBER_LIST_FAILED", err.Error())
 	}
 
-	return gmod.SendPagination(c, details, pagination)
+	return c.JSON(fiber.Map{
+		"code":       gmod.CodeSuccess,
+		"message":    "members fetched successfully",
+		"status":     true,
+		"details":    details,
+		"pagination": pagination,
+	})
 }

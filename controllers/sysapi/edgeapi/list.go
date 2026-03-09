@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/systemsvc/edgesvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -16,15 +15,8 @@ import (
 )
 
 func ListEdges(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(
-		c.UserContext(),
-		"github.com/hotkhwan/gateway-api/edgeapi",
-		"system.edge.List",
-		"edgeapi",
-		"ListEdges",
-	)
-	defer span.End()
-	_ = logger.FromCtx(ctx, "edgeapi", "ListEdges")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.edgeapi", "EdgeApi.ListEdges", "sysapi", "ListEdges")
+	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage, _ := strconv.Atoi(c.Query("perPage", "20"))
@@ -47,16 +39,17 @@ func ListEdges(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("list edges failed")
-		// normalize: code=INTERNAL_ERROR, reason=LIST_FAILED
 		return httputil.FailInternalReason(c, "internal server error", "LIST_FAILED")
 	}
 
 	totalPages := int(math.Ceil(float64(total) / float64(perPage)))
 
-	return gmod.SendPaginationOK(
-		c,
-		items,
-		gmod.Pagination{
+	return c.JSON(fiber.Map{
+		"code":    gmod.CodeSuccess,
+		"message": "ok",
+		"status":  true,
+		"details": items,
+		"pagination": gmod.Pagination{
 			Page:         page,
 			PerPages:     perPage,
 			TotalRecords: int(total),
@@ -64,5 +57,5 @@ func ListEdges(c *fiber.Ctx) error {
 			SortField:    "updatedAt",
 			SortOrder:    "desc",
 		},
-	)
+	})
 }

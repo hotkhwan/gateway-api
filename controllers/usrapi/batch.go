@@ -7,6 +7,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/services/usrsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/usrmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
@@ -26,47 +27,25 @@ import (
 // @Failure 500 {object} gmod.ErrorResponse
 // @Router /users/batch [post]
 func BatchGetUsers(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(
-		c.UserContext(),
-		"github.com/hotkhwan/gateway-api/usrapi",
-		"users.BatchGetUsers",
-		"usrapi",
-		"BatchGetUsers",
-	)
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.usrapi", "BatchGetUsers", "usrapi", "BatchGetUsers")
+	defer end()
 
 	authHeader := c.Get("Authorization")
 	if authHeader == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(gmod.ErrorResponse{
-			Code:    "UNAUTHORIZED",
-			Message: "Missing Authorization header",
-			Status:  false,
-		})
+		return httputil.FailUnauthorized(c, "Missing Authorization header")
 	}
 
 	var req usrmod.BatchGetUsersRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(gmod.ErrorResponse{
-			Code:    "BAD_REQUEST",
-			Message: "Invalid JSON body",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "Invalid JSON body")
 	}
 
 	if len(req.UserIds) == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(gmod.ErrorResponse{
-			Code:    "BAD_REQUEST",
-			Message: "userIds is required",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "userIds is required")
 	}
 
 	if len(req.UserIds) > 200 {
-		return c.Status(fiber.StatusBadRequest).JSON(gmod.ErrorResponse{
-			Code:    "BAD_REQUEST",
-			Message: "userIds too many (max 200)",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "userIds too many (max 200)")
 	}
 
 	// trim + dedupe
@@ -88,18 +67,13 @@ func BatchGetUsers(c *fiber.Ctx) error {
 	if err != nil {
 		if strings.Contains(err.Error(), "token") {
 			log.Error().Err(err).Msg("❌ BatchGetUsers unauthorized")
-			return c.Status(fiber.StatusUnauthorized).JSON(gmod.ErrorResponse{
-				Code:    "UNAUTHORIZED",
-				Message: err.Error(),
-				Status:  false,
-			})
+			return httputil.FailUnauthorized(c, err.Error())
 		}
-		return c.Status(fiber.StatusInternalServerError).JSON(gmod.ErrorResponse{
-			Code:    "BATCH_GET_USERS_FAILED",
-			Message: err.Error(),
-			Status:  false,
-		})
+		log.Error().Err(err).Msg("❌ BatchGetUsers failed")
+		return httputil.FailInternal(c, err.Error())
 	}
+
+	log.Debug().Int("count", len(result.Details)).Msg("✅ BatchGetUsers fetched")
 
 	return gmod.SendPagination(c, result.Details, result.Pagination)
 }

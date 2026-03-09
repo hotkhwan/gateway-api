@@ -4,9 +4,7 @@ package edgeapi
 import (
 	"strings"
 
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/systemsvc/edgesvc"
-	"github.com/hotkhwan/gateway-api/models/systemmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
@@ -29,39 +27,33 @@ import (
 // @Router /system/edge/{edgeType}/sso/{id} [get]
 // @Security BearerAuth
 func GetEdgeSSOURL(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/edgeapi", "system.edge.GetSSOURL", "edgeapi", "GetEdgeSSOURL")
-	defer span.End()
-	_ = logger.FromCtx(ctx, "edgeapi", "GetEdgeSSOURL")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.edgeapi", "EdgeApi.GetEdgeSSOURL", "sysapi", "GetEdgeSSOURL")
+	defer end()
 
 	edgeType := strings.ToLower(strings.TrimSpace(c.Params("edgeType")))
 	id := strings.TrimSpace(c.Params("id"))
 	address := strings.TrimSpace(c.Query("address", "play"))
 
 	if edgeType == "" || id == "" {
-		return httputil.FailBadRequest(c, "MISSING_PARAMS", "edgeType and id are required")
+		return httputil.FailBadRequest(c, "edgeType and id are required")
 	}
 
 	ssoUrl, err := edgesvc.BuildEdgeSSOURL(ctx, edgeType, id, address)
 	if err != nil {
-		// map error แบบ template-friendly
 		switch {
 		case edgesvc.IsUnsupportedEdgeType(err):
-			return httputil.FailBadRequest(c, "UNSUPPORTED_EDGE_TYPE", err.Error())
+			return httputil.FailBadRequest(c, err.Error())
 		case edgesvc.IsNotFound(err):
-			return httputil.FailNotFound(c, "NOT_FOUND", "edge not found")
+			return httputil.FailNotFound(c, "edge not found")
 		case edgesvc.IsDeleted(err):
-			return httputil.FailNotFound(c, "NOT_FOUND", "edge not found")
+			return httputil.FailNotFound(c, "edge not found")
 		default:
 			log.Error().Err(err).Str("edgeType", edgeType).Str("id", id).Msg("build sso url failed")
 			return httputil.FailInternalReason(c, "internal server error", "SSO_URL_BUILD_FAILED")
 		}
 	}
 
-	return c.Status(fiber.StatusOK).JSON(systemmod.EdgeSSOURLSuccessResponse{
-		Code: "SUCCESS",
-		Detail: systemmod.EdgeSSOURLDetail{
-			SSOUrl: ssoUrl,
-		},
-		Status: true,
+	return httputil.Ok(c, fiber.Map{
+		"ssoUrl": ssoUrl,
 	})
 }

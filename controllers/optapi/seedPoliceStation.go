@@ -1,3 +1,4 @@
+// controllers/optapi/seedPoliceStation.go
 package optapi
 
 import (
@@ -6,9 +7,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/hotkhwan/gateway-api/internal/services/optsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/optmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // POST /options/seed/policeStation
@@ -24,21 +25,25 @@ import (
 // @Router /options/seed/policeStation [post]
 // @Security BearerAuth
 func SeedPoliceStation(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.optapi", "SeedPoliceStation", "optapi", "SeedPoliceStation")
+	defer end()
+
 	ns := c.Query("ns", "kwatch")
 	writeStr := c.Query("write", "false")
 	write, _ := strconv.ParseBool(writeStr)
 
 	var body []optmod.StationRaw
 	if err := c.BodyParser(&body); err != nil {
-		return httputil.FailBadRequest(c, "BAD_REQUEST", "invalid json body")
+		return httputil.FailBadRequest(c, "invalid json body")
 	}
 	if len(body) == 0 {
-		return httputil.FailBadRequest(c, "BAD_REQUEST", "payload must be non-empty array")
+		return httputil.FailBadRequest(c, "payload must be non-empty array")
 	}
 
 	ps, err := optsvc.SeedPoliceStation(c.Context(), ns, body, write)
 	if err != nil {
-		return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_SEED_POLICE_STATION")
+		log.Error().Err(err).Msg("failed to seed police station")
+		return httputil.FailInternal(c, "failed to seed police station")
 	}
 
 	// ให้รูปแบบผลลัพธ์เหมือน options endpoint เดิม
@@ -47,5 +52,5 @@ func SeedPoliceStation(c *fiber.Ctx) error {
 			"policeStation": ps,
 		},
 	}
-	return gmod.SendSuccess(c, out)
+	return httputil.Ok(c, out)
 }

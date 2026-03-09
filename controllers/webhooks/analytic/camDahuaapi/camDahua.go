@@ -1,3 +1,4 @@
+// controllers/webhooks/analytic/camDahuaapi/camDahua.go
 package camDahuaapi
 
 import (
@@ -10,29 +11,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gofiber/fiber/v2"
+
 	"github.com/hotkhwan/gateway-api/internal/kafka"
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/repo/stos3minio"
 	"github.com/hotkhwan/gateway-api/models/aimodel"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
-
-	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 )
 
 func HandleDahua(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/camDahuaapi")
-	ctx, span := tracer.Start(ctx, "webhook.HandleDahua")
-	defer span.End()
-
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	}
-	log := logger.FromCtx(ctx, "camDahuaapi", "HandleDahua")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.camDahuaapi", "HandleDahua", "webhooks", "HandleDahua")
+	defer end()
 
 	// ---- Request meta logs (ช่วยไล่ 400) ----
 	ct := string(c.Request().Header.ContentType())

@@ -4,9 +4,9 @@ package subapi
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/subscripmod"
-	"go.opentelemetry.io/otel"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // SubscriptionController exposes subscription admin endpoints
@@ -30,25 +30,18 @@ func NewSubscriptionController(svc *subscriptionsvc.SubscriptionService) *Subscr
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/subscriptions/packages [get]
 func (ctrl *SubscriptionController) ListPackages(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.subapi", "SubscriptionController.ListPackages", "subapi", "ListPackages")
+	defer end()
 
 	publicOnly := c.QueryBool("publicOnly", true)
 
 	packages, err := ctrl.svc.ListPackages(ctx, publicOnly)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeInternalError,
-			Message: "failed to list packages",
-			Status:  false,
-		})
+		log.Error().Err(err).Msg("failed to list packages")
+		return httputil.FailInternal(c, "failed to list packages")
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "packages fetched",
-		"status":  true,
-		"details": packages,
-	})
+	return httputil.Ok(c, packages, "packages fetched")
 }
 
 // GetCurrentSubscription returns the tenant's effective subscription (plan + overrides resolved)
@@ -62,25 +55,18 @@ func (ctrl *SubscriptionController) ListPackages(c *fiber.Ctx) error {
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/subscriptions/current [get]
 func (ctrl *SubscriptionController) GetCurrentSubscription(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.subapi", "SubscriptionController.GetCurrentSubscription", "subapi", "GetCurrentSubscription")
+	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 
 	eff, err := ctrl.svc.GetCurrentEffective(ctx, tenantId)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeInternalError,
-			Message: "failed to get current subscription",
-			Status:  false,
-		})
+		log.Error().Err(err).Msg("failed to get current subscription")
+		return httputil.FailInternal(c, "failed to get current subscription")
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "current subscription fetched",
-		"status":  true,
-		"detail":  eff,
-	})
+	return httputil.Ok(c, eff, "current subscription fetched")
 }
 
 // BootstrapSubscription creates default freemium subscription if tenant doesn't have one
@@ -93,33 +79,23 @@ func (ctrl *SubscriptionController) GetCurrentSubscription(c *fiber.Ctx) error {
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/subscriptions/bootstrap [post]
 func (ctrl *SubscriptionController) BootstrapSubscription(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("subapi")
-	ctx, span := tracer.Start(ctx, "Subscription.Bootstrap")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.subapi", "SubscriptionController.BootstrapSubscription", "subapi", "BootstrapSubscription")
+	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 
 	sub, err := ctrl.svc.BootstrapSubscription(ctx, tenantId)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeInternalError,
-			Message: "failed to bootstrap subscription",
-			Status:  false,
-		})
+		log.Error().Err(err).Msg("failed to bootstrap subscription")
+		return httputil.FailInternal(c, "failed to bootstrap subscription")
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "subscription bootstrapped",
-		"status":  true,
-		"detail": fiber.Map{
-			"subscriptionId": sub.IDString,
-			"planId":         sub.PlanId,
-			"status":         sub.Status,
-			"billingCycle":   sub.BillingCycle,
-		},
-	})
+	return httputil.Ok(c, fiber.Map{
+		"subscriptionId": sub.IDString,
+		"planId":         sub.PlanId,
+		"status":         sub.Status,
+		"billingCycle":   sub.BillingCycle,
+	}, "subscription bootstrapped")
 }
 
 // GetMySubscription returns the tenant's current subscription details
@@ -133,37 +109,27 @@ func (ctrl *SubscriptionController) BootstrapSubscription(c *fiber.Ctx) error {
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/subscriptions/me [get]
 func (ctrl *SubscriptionController) GetMySubscription(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("subapi")
-	ctx, span := tracer.Start(ctx, "Subscription.GetMySubscription")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.subapi", "SubscriptionController.GetMySubscription", "subapi", "GetMySubscription")
+	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 
 	limits, err := ctrl.svc.GetTenantLimitsCached(ctx, tenantId)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeInternalError,
-			Message: "failed to get subscription",
-			Status:  false,
-		})
+		log.Error().Err(err).Msg("failed to get subscription")
+		return httputil.FailInternal(c, "failed to get subscription")
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "subscription fetched",
-		"status":  true,
-		"detail": fiber.Map{
-			"planId":                    limits.PlanId,
-			"maxPayloadBytes":           limits.MaxPayloadBytes,
-			"perOrgPerSec":              limits.PerOrgPerSec,
-			"perOrgBurst":               limits.PerOrgBurst,
-			"perIpPerMin":               limits.PerIpPerMin,
-			"storageQuotaBytes":         limits.StorageQuotaBytes,
-			"maxOrganizationsPerTenant": limits.MaxOrganizationsPerTenant,
-			"orgCacheTtlSec":            limits.OrgCacheTtlSec,
-		},
-	})
+	return httputil.Ok(c, fiber.Map{
+		"planId":                    limits.PlanId,
+		"maxPayloadBytes":           limits.MaxPayloadBytes,
+		"perOrgPerSec":              limits.PerOrgPerSec,
+		"perOrgBurst":               limits.PerOrgBurst,
+		"perIpPerMin":               limits.PerIpPerMin,
+		"storageQuotaBytes":         limits.StorageQuotaBytes,
+		"maxOrganizationsPerTenant": limits.MaxOrganizationsPerTenant,
+		"orgCacheTtlSec":            limits.OrgCacheTtlSec,
+	}, "subscription fetched")
 }
 
 // UpdatePlan updates the tenant's subscription plan (admin only)
@@ -180,10 +146,8 @@ func (ctrl *SubscriptionController) GetMySubscription(c *fiber.Ctx) error {
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/subscriptions/plan [patch]
 func (ctrl *SubscriptionController) UpdatePlan(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("subapi")
-	ctx, span := tracer.Start(ctx, "Subscription.UpdatePlan")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.subapi", "SubscriptionController.UpdatePlan", "subapi", "UpdatePlan")
+	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 
@@ -193,31 +157,19 @@ func (ctrl *SubscriptionController) UpdatePlan(c *fiber.Ctx) error {
 		BillingCycle subscripmod.BillingCycle `json:"billingCycle"`
 	}
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "invalid request body",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "invalid request body")
 	}
 
 	// Update plan
 	if err := ctrl.svc.UpdatePlan(ctx, tenantId, req.PlanId, req.BillingCycle); err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeInternalError,
-			Message: "failed to update plan",
-			Status:  false,
-		})
+		log.Error().Err(err).Msg("failed to update plan")
+		return httputil.FailInternal(c, "failed to update plan")
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "plan updated",
-		"status":  true,
-		"detail": fiber.Map{
-			"planId":       req.PlanId,
-			"billingCycle": req.BillingCycle,
-		},
-	})
+	return httputil.Ok(c, fiber.Map{
+		"planId":       req.PlanId,
+		"billingCycle": req.BillingCycle,
+	}, "plan updated")
 }
 
 // ActivateEnterprise activates enterprise plan with license key
@@ -233,10 +185,8 @@ func (ctrl *SubscriptionController) UpdatePlan(c *fiber.Ctx) error {
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/subscriptions/enterprise/activate [post]
 func (ctrl *SubscriptionController) ActivateEnterprise(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("subapi")
-	ctx, span := tracer.Start(ctx, "Subscription.ActivateEnterprise")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.subapi", "SubscriptionController.ActivateEnterprise", "subapi", "ActivateEnterprise")
+	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 
@@ -246,36 +196,20 @@ func (ctrl *SubscriptionController) ActivateEnterprise(c *fiber.Ctx) error {
 		Limits     *subscripmod.SubscriptionLimits `json:"limits,omitempty"`
 	}
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "invalid request body",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "invalid request body")
 	}
 
 	if req.LicenseKey == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "license key is required",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "license key is required")
 	}
 
 	// Activate enterprise
 	if err := ctrl.svc.ActivateEnterprise(ctx, tenantId, req.LicenseKey, req.Limits); err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeInternalError,
-			Message: "failed to activate enterprise",
-			Status:  false,
-		})
+		log.Error().Err(err).Msg("failed to activate enterprise")
+		return httputil.FailInternal(c, "failed to activate enterprise")
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "enterprise activated",
-		"status":  true,
-		"detail": fiber.Map{
-			"planId": "enterprise",
-		},
-	})
+	return httputil.Ok(c, fiber.Map{
+		"planId": "enterprise",
+	}, "enterprise activated")
 }

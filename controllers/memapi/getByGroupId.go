@@ -1,4 +1,4 @@
-// controllers/memapi/getByUserId.go
+// controllers/memapi/getByGroupId.go
 package memapi
 
 import (
@@ -8,7 +8,6 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/services/grpsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/memsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/usrsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/memmod"
 	"github.com/hotkhwan/gateway-api/models/usrmod"
 	"github.com/hotkhwan/gateway-api/utils/authutil"
@@ -31,7 +30,7 @@ import (
 // @Router /members/{groupId} [get]
 // @Security BearerAuth
 func MemberGetByGroupID(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "github.com/hotkhwan/gateway-api/memapi", "memapi.MemberGetByGroupID", "memapi", "MemberGetByGroupID")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.memapi", "memapi.MemberGetByGroupID", "memapi", "MemberGetByGroupID")
 	defer end()
 
 	groupId := strings.TrimSpace(c.Params("groupId"))
@@ -87,17 +86,9 @@ func MemberGetByGroupID(c *fiber.Ctx) error {
 	if err != nil {
 		if strings.Contains(err.Error(), "token") {
 			log.Error().Err(err).Msg("❌ [ListUsers] Failed to get users by ids")
-			return c.Status(fiber.StatusUnauthorized).JSON(gmod.ErrorResponse{
-				Code:    "UNAUTHORIZED",
-				Message: err.Error(),
-				Status:  false,
-			})
+			return httputil.FailUnauthorized(c, err.Error())
 		}
-		return c.Status(fiber.StatusInternalServerError).JSON(gmod.ErrorResponse{
-			Code:    "GET_USERS_BY_IDS_FAILED",
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.FailInternal(c, err.Error())
 	}
 
 	for _, u := range result.Details {

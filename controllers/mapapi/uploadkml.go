@@ -4,9 +4,9 @@ package mapapi
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/mapsvc"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/rs/zerolog/log"
 )
 
 // UploadKML godoc
@@ -23,10 +23,13 @@ import (
 // @Router /maps/kml [post]
 // @Security BearerAuth
 func UploadKML(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.mapapi", "UploadKML.UploadKML", "mapapi", "UploadKML")
+	defer end()
+
 	token := c.Get("Authorization")
 	if token == "" {
 		log.Warn().Msg("Missing Authorization header")
-		return httputil.FailUnauthorized(c, "UNAUTHORIZED", "Missing Authorization header")
+		return httputil.FailUnauthorized(c, "Missing Authorization header")
 	}
 
 	return mapsvc.HandleKMLUpload(c, token)

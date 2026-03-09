@@ -24,14 +24,8 @@ import (
 // @Security     BearerAuth
 // @Router       /kcontrol/dashboard [get]
 func DashboardSummary(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(
-		c.UserContext(),
-		"github.com/hotkhwan/gateway-api/kctrlapi",
-		"dashboard.DashboardSummary",
-		"kctrlapi",
-		"DashboardSummary",
-	)
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.dashapi", "Dashboard.DashboardSummary", "dashapi", "DashboardSummary")
+	defer end()
 
 	// ----------- parse dateTime query param -----------
 	loc, _ := time.LoadLocation("Asia/Bangkok")
@@ -39,15 +33,15 @@ func DashboardSummary(c *fiber.Ctx) error {
 		loc = time.UTC
 	}
 
-	var start, end time.Time
+	var startTime, endTime time.Time
 
 	dateParam := c.Query("dateTime", "")
 	now := time.Now().In(loc)
 
 	if dateParam == "" {
 		// default: today 00:00 ถึงตอนนี้
-		start = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
-		end = now
+		startTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+		endTime = now
 	} else {
 		parts := strings.Split(dateParam, ",")
 		startStr := strings.TrimSpace(parts[0])
@@ -55,8 +49,8 @@ func DashboardSummary(c *fiber.Ctx) error {
 		startDate, err := time.ParseInLocation("2006-01-02", startStr, loc)
 		if err != nil {
 			log.Error().Err(err).Str("dateTime", dateParam).Msg("❌ invalid dateTime format, fallback to today")
-			start = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
-			end = now
+			startTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+			endTime = now
 		} else {
 			var endDate time.Time
 			if len(parts) > 1 && strings.TrimSpace(parts[1]) != "" {
@@ -74,25 +68,22 @@ func DashboardSummary(c *fiber.Ctx) error {
 			}
 
 			// start = 00:00 ของวันแรก
-			start = time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, loc)
+			startTime = time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, loc)
 			// end = วันถัดไป 00:00 (ใช้เป็น exclusive bound)
-			end = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 0, 0, 0, 0, loc).AddDate(0, 0, 1)
+			endTime = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 0, 0, 0, 0, loc).AddDate(0, 0, 1)
 		}
 	}
 
 	log.Info().
-		Time("start", start).
-		Time("end", end).
+		Time("start", startTime).
+		Time("end", endTime).
 		Msg("📡 [DashboardSummary] building dashboard details from ata_events with dateTime range")
 
-	details, err := dashsvc.BuildAtaDashboard(ctx, start, end)
+	details, err := dashsvc.BuildAtaDashboard(ctx, startTime, endTime)
 	if err != nil {
 		log.Error().Err(err).Msg("❌ [DashboardSummary] failed to build dashboard summary")
-		return httputil.FailInternal(c, "DASHBOARD_BUILD_FAILED", err.Error())
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	// ✅ ตอบกลับตาม format ที่ต้องการ: { "details": { ... } }
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"details": details,
-	})
+	return httputil.Ok(c, details, "dashboard summary")
 }

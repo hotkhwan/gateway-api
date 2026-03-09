@@ -3,7 +3,7 @@ package usrapi
 
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/usrsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
@@ -23,12 +23,8 @@ import (
 // @Failure      500   {object}  gmod.ErrorResponse
 // @Router       /users/{id}/password [patch]
 func ChangePassword(c *fiber.Ctx) error {
-	ctx, span, _ := traceutil.Start(
-		c.UserContext(),
-		"github.com/hotkhwan/gateway-api/usrapi", "users.ChangePassword",
-		"usrapi", "ChangePassword",
-	)
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.usrapi", "ChangePassword", "usrapi", "ChangePassword")
+	defer end()
 
 	id := c.Params("id")
 
@@ -38,18 +34,15 @@ func ChangePassword(c *fiber.Ctx) error {
 	}
 
 	if err := c.BodyParser(&req); err != nil || req.Password == "" {
-		return c.Status(400).JSON(gmod.ErrorResponse{
-			Code: "INVALID_BODY", Message: "password required", Status: false,
-		})
+		return httputil.FailBadRequest(c, "password required")
 	}
 
 	if err := usrsvc.ChangePassword(ctx, id, req.Password, req.Temporary); err != nil {
-		return c.Status(500).JSON(gmod.ErrorResponse{
-			Code: "CHANGE_PASSWORD_FAILED", Message: err.Error(), Status: false,
-		})
+		log.Error().Err(err).Str("userId", id).Msg("❌ ChangePassword failed")
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(gmod.SuccessResponse{
-		Code: "SUCCESS", Message: "password changed", Status: true,
-	})
+	log.Info().Str("userId", id).Msg("✅ ChangePassword success")
+
+	return httputil.MessageOK(c, "password changed")
 }

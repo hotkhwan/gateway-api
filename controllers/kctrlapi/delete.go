@@ -3,7 +3,6 @@ package kctrlapi
 
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/kctrlsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
@@ -23,8 +22,8 @@ import (
 // @Router /kcontrol/alarms/{id} [delete]
 // @Security BearerAuth
 func DeleteAlarm(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "alarms.DeleteAlarm", "kctrlapi", "DeleteAlarm")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.DeleteAlarm", "kctrlapi", "DeleteAlarm")
+	defer end()
 
 	id := c.Params("id")
 	if id == "" {
@@ -40,7 +39,7 @@ func DeleteAlarm(c *fiber.Ctx) error {
 	}
 
 	log.Info().Str("alarmID", id).Msg("✅ [DeleteAlarm] Alarm deleted successfully (events store)")
-	return gmod.SendMessageOK(c, "ALARM_DELETE_SUCCESS", "Alarm deleted")
+	return httputil.MessageOK(c, "Alarm deleted", "ALARM_DELETE_SUCCESS")
 }
 
 // DeleteAlarms godoc
@@ -57,8 +56,8 @@ func DeleteAlarm(c *fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /kcontrol/alarms/bulk-delete [post]
 func DeleteAlarmBulk(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "alarms.DeleteAlarmBulk", "kctrlapi", "DeleteAlarmBulk")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.DeleteAlarmBulk", "kctrlapi", "DeleteAlarmBulk")
+	defer end()
 
 	var ids []string
 	if err := c.BodyParser(&ids); err != nil || len(ids) == 0 {
@@ -74,5 +73,5 @@ func DeleteAlarmBulk(c *fiber.Ctx) error {
 	}
 
 	log.Info().Int("count", len(ids)).Msg("✅ [DeleteAlarms] Alarms deleted successfully (events store)")
-	return gmod.SendMessageOK(c, "ALARM_BULK_DELETE_SUCCESS", "Alarms deleted")
+	return httputil.MessageOK(c, "Alarms deleted", "ALARM_BULK_DELETE_SUCCESS")
 }

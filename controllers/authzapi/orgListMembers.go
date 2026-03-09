@@ -1,4 +1,4 @@
-// controllers/authzapi/orgInvite.go
+// controllers/authzapi/orgListMembers.go
 package authzapi
 
 import (
@@ -7,6 +7,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // ListMembers godoc
@@ -20,9 +22,8 @@ import (
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/users/members [get]
 func (ctrl *OrganizationController) ListMembers(c *fiber.Ctx) error {
-
-	ctx := c.UserContext()
-	// log := logger.FromCtx(ctx, "controller", "ListMembers")
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.ListMembers", "authzapi", "ListMembers")
+	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	callerUserId, _ := c.Locals("userId").(string)
@@ -51,11 +52,7 @@ func (ctrl *OrganizationController) ListMembers(c *fiber.Ctx) error {
 		sortOrder,
 	)
 	if err != nil {
-		return c.Status(403).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeForbidden,
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.FailForbidden(c, err.Error())
 	}
 
 	totalPages := 0

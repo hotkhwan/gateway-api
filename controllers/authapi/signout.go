@@ -4,7 +4,6 @@ package authapi
 import (
 	"github.com/hotkhwan/gateway-api/internal/middleware"
 	"github.com/hotkhwan/gateway-api/internal/services/authsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
@@ -22,32 +21,28 @@ import (
 // @Router /auth/signout [post]
 // @Security BearerAuth
 func Signout(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/authapi", "authentication.Signin", "authapi", "Signin")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.authapi", "Signout.Signout", "authapi", "Signout")
+	defer end()
 
 	accessToken, err := middleware.ExtractBearerToken(c)
 	if err != nil {
-		log.Warn().
-			Err(err).Msg("❌ [Signout] Missing bearer token")
+		log.Warn().Err(err).Msg("missing bearer token")
 		return httputil.FailUnauthorized(c, "UNAUTHORIZED", err.Error())
 	}
 
-	log.Info().Msg("🚪 [Signout] Attempting signout")
+	log.Info().Msg("attempting signout")
 
 	resp, err := authsvc.Signout(ctx, accessToken)
 	if err != nil {
-		log.Warn().
-			Err(err).Msg("❌ [Signout] Failed to sign out")
+		log.Warn().Err(err).Msg("signout failed")
 		return httputil.FailUnauthorized(c, "SIGNOUT_FAILED", err.Error())
 	}
 
 	if msg, ok := resp["message"].(string); ok {
-		log.Info().
-			Msg("✅ [Signout] Signout successful")
-		return gmod.SendMessageOK(c, "SIGNOUT_SUCCESS", msg)
+		log.Info().Msg("signout successful")
+		return httputil.MessageOK(c, msg, "SIGNOUT_SUCCESS")
 	}
 
-	log.Error().
-		Msg("❌ [Signout] Unexpected response format")
+	log.Error().Msg("unexpected response format")
 	return httputil.FailInternal(c, "UNEXPECTED_RESPONSE", "Invalid message format")
 }

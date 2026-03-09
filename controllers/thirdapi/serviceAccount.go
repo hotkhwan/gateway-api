@@ -5,13 +5,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/thirdsvc"
 	"github.com/hotkhwan/gateway-api/models/thirdmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
 )
 
 // @Summary Create Service Account Client (Public, with Admin API Key)
@@ -26,12 +25,8 @@ import (
 // @Failure 500 {object} gmod.ApiErrorResponse
 // @Router /token/api/serviceAccount [post]
 func CreateServiceAccountClient(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/thirdapi")
-	ctx, span := tracer.Start(ctx, "ThirdAPI.CreateServiceAccountClient")
-	defer span.End()
-
-	log := logger.FromCtx(ctx, "thirdapi", "CreateServiceAccountClient")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.thirdapi", "ThirdAPI.CreateServiceAccountClient", "thirdapi", "CreateServiceAccountClient")
+	defer end()
 
 	// ✅ ตรวจสอบ Admin Secret (กันคนเรียกมั่ว)
 	expectedSecret := strings.TrimSpace(os.Getenv("ADMIN_API_KEY"))

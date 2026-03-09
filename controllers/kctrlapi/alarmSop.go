@@ -3,34 +3,31 @@ package kctrlapi
 
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/kctrlsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 func AppendAlarmSop(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.AppendAlarmSop", "kctrlapi", "AppendAlarmSop")
+	defer end()
+
 	id := c.Params("id")
 	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(gmod.ErrorResponse{
-			Code: "INVALID_ID", Message: "missing id", Status: false,
-		})
+		return httputil.FailBadRequest(c, "missing id")
 	}
 
 	var req kctrlmod.SopStepRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(gmod.ErrorResponse{
-			Code: "BAD_REQUEST", Message: err.Error(), Status: false,
-		})
+		return httputil.FailBadRequest(c, err.Error())
 	}
 
 	if err := kctrlsvc.AppendAlarmSop(c.UserContext(), id, req, c); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(gmod.ErrorResponse{
-			Code: "ERROR", Message: err.Error(), Status: false,
-		})
+		log.Error().Err(err).Str("id", id).Msg("AppendAlarmSop failed")
+		return httputil.FailBadRequest(c, err.Error())
 	}
 
-	return c.JSON(gmod.SuccessResponse{
-		Code: "SUCCESS", Message: "OK", Status: true,
-	})
+	return httputil.MessageOK(c, "OK")
 }

@@ -4,7 +4,6 @@ package grpapi
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/grpsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
-	"github.com/hotkhwan/gateway-api/models/grpmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"strconv"
@@ -31,18 +30,8 @@ import (
 // @Router       /groups [get]
 // @Security     BearerAuth
 func ListGroups(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/grpapi", "group.ListGroups", "grpapi", "ListGroups")
-	defer span.End()
-	// ctx := c.UserContext()
-	// tracer := otel.Tracer("github.com/hotkhwan/gateway-api/grpapi")
-	// ctx, span := tracer.Start(ctx, "groups.ListGroups")
-	// defer span.End()
-
-	// if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-	// 	ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	// }
-
-	// log := logger.FromCtx(ctx, "kwatapi", "WatchlistCreate")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.grpapi", "group.ListGroups", "grpapi", "ListGroups")
+	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
@@ -76,7 +65,13 @@ func ListGroups(c *fiber.Ctx) error {
 		return httputil.FailInternal(c, "GROUP_LIST_FAILED", err.Error())
 	}
 
-	return gmod.SendPagination(c, details, pagination)
+	return c.JSON(fiber.Map{
+		"code":       gmod.CodeSuccess,
+		"message":    "groups fetched successfully",
+		"status":     true,
+		"details":    details,
+		"pagination": pagination,
+	})
 }
 
 // GetGroupTree godoc
@@ -90,8 +85,8 @@ func ListGroups(c *fiber.Ctx) error {
 // @Router       /groups/tree [get]
 // @Security     BearerAuth
 func GetGroupTree(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/grpapi", "group.GetGroupTree", "grpapi", "GetGroupTree")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.grpapi", "group.GetGroupTree", "grpapi", "GetGroupTree")
+	defer end()
 
 	// ดึงทั้งหมด
 	groups, err := grpsvc.GetAllGroups(ctx)
@@ -101,8 +96,10 @@ func GetGroupTree(c *fiber.Ctx) error {
 	}
 
 	tree := grpsvc.BuildGroupTree(ctx, groups, nil)
-	return c.JSON(grpmod.GroupTreeResponse{
-		Details: tree, // << ใช้ "details" ตาม struct
-		Status:  true,
+	return c.JSON(fiber.Map{
+		"code":    gmod.CodeSuccess,
+		"message": "group tree fetched successfully",
+		"status":  true,
+		"details": tree,
 	})
 }
