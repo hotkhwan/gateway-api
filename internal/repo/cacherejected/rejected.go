@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	prefix  = "rpp:rejected:"
+	prefix   = "rpp:rejected:"
 	cacheTTL = 1 * time.Hour
 )
 

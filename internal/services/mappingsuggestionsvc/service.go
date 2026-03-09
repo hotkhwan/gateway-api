@@ -13,7 +13,7 @@ import (
 // MappingSuggestionService loads suggestions from embedded JSON files.
 // In-memory, read-only — no DB dependency.
 type MappingSuggestionService struct {
-	all    []*ingestmod.MappingSuggestion
+	all      []*ingestmod.MappingSuggestion
 	byFamily map[string][]*ingestmod.MappingSuggestion
 }
 
