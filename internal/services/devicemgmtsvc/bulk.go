@@ -27,8 +27,8 @@ var xlsxColumns = []string{
 }
 
 const (
-	sheetData   = "deviceManagement"
-	sheetReadme = "readme"
+	sheetData     = "deviceManagement"
+	sheetReadme   = "readme"
 	maxImportRows = 5000
 )
 

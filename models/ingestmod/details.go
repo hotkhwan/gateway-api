@@ -31,7 +31,7 @@ type EventDetail struct {
 
 	// Payload and binaries
 	Payload    map[string]any `bson:"payload"    json:"payload"`
-	BinaryRefs []BinaryRef   `bson:"binaryRefs" json:"binaryRefs"`
+	BinaryRefs []BinaryRef    `bson:"binaryRefs" json:"binaryRefs"`
 
 	// Normalization metadata
 	Meta NormalizationMeta `bson:"meta" json:"meta"`

@@ -4,12 +4,12 @@ package ingestmod
 // MappingSuggestion is a system-owned preset that helps customers configure
 // field mappings quickly. Read-only — shipped with the binary via embed.FS.
 type MappingSuggestion struct {
-	ID            string                 `json:"id"`
-	SourceFamily  string                 `json:"sourceFamily"`
-	DisplayName   string                 `json:"displayName"`
-	MatchRule     SuggestionMatchRule    `json:"matchRule"`
-	FieldMappings []SuggestionFieldMap   `json:"fieldMappings"`
-	SamplePayload map[string]any         `json:"samplePayload"`
+	ID            string               `json:"id"`
+	SourceFamily  string               `json:"sourceFamily"`
+	DisplayName   string               `json:"displayName"`
+	MatchRule     SuggestionMatchRule  `json:"matchRule"`
+	FieldMappings []SuggestionFieldMap `json:"fieldMappings"`
+	SamplePayload map[string]any       `json:"samplePayload"`
 }
 
 // SuggestionMatchRule describes conditions used to select this suggestion.

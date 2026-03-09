@@ -1,0 +1,589 @@
+{
+  "info": {
+    "_postman_id": "device-api-collection-v1",
+    "name": "Device API (Camera + ResourceGroup)",
+    "description": "Gateway API — Device resource endpoints.\n\nMatches router/device.go routes.\n\nVariables (set in Environment or Collection):\n- `urlapi`           — e.g. https://gateway.aisom.cloud/api/v1 (includes /api/v1)\n- `access_token`     — Bearer JWT from Keycloak\n- `orgId`            — Active org UUID\n- `cameraId`         — Auto-captured from camera create/list\n- `groupId`          — Auto-captured from group create/list\n\nResponse envelope:\n- Success: { code, message, status: true, details }\n- Error:   { code, message, status: false }\n\nRequired headers on protected routes:\n- Authorization: Bearer <jwt>\n- X-Active-Org: <orgId>",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "urlapi",        "value": "https://gateway.aisom.cloud/api/v1", "type": "string" },
+    { "key": "access_token",  "value": "",  "type": "string" },
+    { "key": "orgId",         "value": "",  "type": "string" },
+    { "key": "cameraId",      "value": "",  "type": "string" },
+    { "key": "groupId",       "value": "",  "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 — Camera CRUD",
+      "description": "Camera resource endpoints.\nPOST create, GET list/single, PATCH update, DELETE remove.\nAll routes require Bearer JWT + X-Active-Org.",
+      "item": [
+        {
+          "name": "GET /resources/camera — List cameras",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/resources/camera/?page=1&perPages=10&sortField=dateTimeCreate&sortOrder=desc",
+              "host": ["{{urlapi}}"],
+              "path": ["resources", "camera", ""],
+              "query": [
+                { "key": "search",    "value": "",                 "description": "Search by name",            "disabled": true },
+                { "key": "groupId",   "value": "",                 "description": "Filter by group ID",        "disabled": true },
+                { "key": "page",      "value": "1",                "description": "Page number (default 1)" },
+                { "key": "perPages",  "value": "10",               "description": "Items per page (default 10)" },
+                { "key": "sortField", "value": "dateTimeCreate",   "description": "Sort field (default dateTimeCreate)" },
+                { "key": "sortOrder", "value": "desc",             "description": "Sort order: asc | desc" }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "List all cameras in the active org.\n\nSupports search, groupId filter, pagination, and sorting."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Response has standard envelope', () => {",
+                  "    pm.expect(json).to.have.property('code', 'SUCCESS');",
+                  "    pm.expect(json).to.have.property('status', true);",
+                  "    pm.expect(json).to.have.property('details');",
+                  "    pm.expect(json).to.have.property('pagination');",
+                  "});",
+                  "",
+                  "if (json.details && json.details.length > 0) {",
+                  "    pm.collectionVariables.set('cameraId', json.details[0]._id || json.details[0].id);",
+                  "    console.log('Captured cameraId:', pm.collectionVariables.get('cameraId'));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /resources/camera — Create camera",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/resources/camera/",
+              "host": ["{{urlapi}}"],
+              "path": ["resources", "camera", ""]
+            },
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Camera-01\",\n  \"user\": \"admin\",\n  \"password\": \"pass123\",\n  \"url\": \"rtsp://192.168.1.100:554/stream\",\n  \"district\": \"Bangkok\",\n  \"lat\": 13.7563,\n  \"lng\": 100.5018,\n  \"brand\": \"hikvision\",\n  \"mapVisibility\": \"public\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Create a single camera.\n\nRequired fields: name, url.\nOptional: user, password, district, lat, lng, brand, ataWsFlvUrl, roi, mapVisibility."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('Response has standard envelope', () => {",
+                  "    pm.expect(json).to.have.property('code', 'SUCCESS');",
+                  "    pm.expect(json).to.have.property('status', true);",
+                  "    pm.expect(json).to.have.property('details');",
+                  "});",
+                  "",
+                  "if (json.details) {",
+                  "    const id = json.details._id || json.details.id;",
+                  "    if (id) {",
+                  "        pm.collectionVariables.set('cameraId', id);",
+                  "        console.log('Captured cameraId:', id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /resources/camera/import — Bulk import (CSV/XLSX)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/resources/camera/import",
+              "host": ["{{urlapi}}"],
+              "path": ["resources", "camera", "import"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "CSV, XLS, or XLSX file"
+                }
+              ]
+            },
+            "description": "Bulk import cameras from CSV / XLS / XLSX file.\n\nResponse details include:\n- totalRows, inserted, invalidRows\n- duplicateIPInFile, duplicateIPInDB\n- permifySyncFailed\n- results array with per-row status"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Response has import summary', () => {",
+                  "    pm.expect(json).to.have.property('code', 'SUCCESS');",
+                  "    pm.expect(json).to.have.property('status', true);",
+                  "    pm.expect(json.details).to.have.property('totalRows');",
+                  "    pm.expect(json.details).to.have.property('inserted');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /resources/camera/:id — Get by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/resources/camera/{{cameraId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["resources", "camera", "{{cameraId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Get a single camera by its ID."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Response has camera details', () => {",
+                  "    pm.expect(json).to.have.property('code', 'SUCCESS');",
+                  "    pm.expect(json).to.have.property('status', true);",
+                  "    pm.expect(json).to.have.property('details');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /resources/camera/:id — Update camera",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/resources/camera/{{cameraId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["resources", "camera", "{{cameraId}}"]
+            },
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Camera-01-Updated\",\n  \"district\": \"Nonthaburi\",\n  \"lat\": 13.8621,\n  \"lng\": 100.5144,\n  \"mapVisibility\": \"private\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Partial update a camera.\n\nOptional fields: name, user, password, url, district, lat, lng, roi, mapVisibility."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Camera updated', () => {",
+                  "    pm.expect(json).to.have.property('code', 'SUCCESS');",
+                  "    pm.expect(json).to.have.property('status', true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /resources/camera/:id — Delete camera",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{urlapi}}/resources/camera/{{cameraId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["resources", "camera", "{{cameraId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Delete a camera by ID."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Camera deleted', () => {",
+                  "    pm.expect(json).to.have.property('code', 'SUCCESS');",
+                  "    pm.expect(json).to.have.property('status', true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 — ResourceGroup CRUD",
+      "description": "ResourceGroup endpoints.\nCreate, list, update, delete resource groups.\nAll routes require Bearer JWT + X-Active-Org.",
+      "item": [
+        {
+          "name": "GET /resources/groups — List groups",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/resources/groups/?page=1&perPages=10&sortField=createdAt&sortOrder=desc",
+              "host": ["{{urlapi}}"],
+              "path": ["resources", "groups", ""],
+              "query": [
+                { "key": "search",       "value": "",           "description": "Search by name",                     "disabled": true },
+                { "key": "resourceType", "value": "camera",     "description": "Filter: camera | sensor | (empty)",  "disabled": true },
+                { "key": "page",         "value": "1",          "description": "Page number (default 1)" },
+                { "key": "perPages",     "value": "10",         "description": "Items per page (default 10)" },
+                { "key": "sortField",    "value": "createdAt",  "description": "Sort field (default createdAt)" },
+                { "key": "sortOrder",    "value": "desc",       "description": "Sort order: asc | desc" }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "List all resource groups in the active org.\n\nSupports search, resourceType filter, pagination, and sorting."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Response has standard envelope', () => {",
+                  "    pm.expect(json).to.have.property('code', 'SUCCESS');",
+                  "    pm.expect(json).to.have.property('status', true);",
+                  "    pm.expect(json).to.have.property('details');",
+                  "    pm.expect(json).to.have.property('pagination');",
+                  "});",
+                  "",
+                  "if (json.details && json.details.length > 0) {",
+                  "    const id = json.details[0]._id || json.details[0].id;",
+                  "    if (id) {",
+                  "        pm.collectionVariables.set('groupId', id);",
+                  "        console.log('Captured groupId:', id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /resources/groups — Create group",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/resources/groups/",
+              "host": ["{{urlapi}}"],
+              "path": ["resources", "groups", ""]
+            },
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Zone-A Cameras\",\n  \"description\": \"All cameras in zone A\",\n  \"resourceType\": \"camera\",\n  \"mapVisibility\": \"public\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Create a new resource group.\n\nRequired: name.\nOptional: description, resourceType (camera | sensor | empty), mapVisibility (public | private)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('Group created', () => {",
+                  "    pm.expect(json).to.have.property('code', 'SUCCESS');",
+                  "    pm.expect(json).to.have.property('status', true);",
+                  "    pm.expect(json).to.have.property('details');",
+                  "});",
+                  "",
+                  "if (json.details) {",
+                  "    const id = json.details._id || json.details.id;",
+                  "    if (id) {",
+                  "        pm.collectionVariables.set('groupId', id);",
+                  "        console.log('Captured groupId:', id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /resources/groups/:id — Update group",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/resources/groups/{{groupId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["resources", "groups", "{{groupId}}"]
+            },
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Zone-A Cameras (Updated)\",\n  \"description\": \"Updated description\",\n  \"mapVisibility\": \"private\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Update a resource group.\n\nRequired: name.\nOptional: description, mapVisibility (public | private)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Group updated', () => {",
+                  "    pm.expect(json).to.have.property('code', 'SUCCESS');",
+                  "    pm.expect(json).to.have.property('status', true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /resources/groups/:id — Delete group",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{urlapi}}/resources/groups/{{groupId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["resources", "groups", "{{groupId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Delete a resource group by ID."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Group deleted', () => {",
+                  "    pm.expect(json).to.have.property('code', 'SUCCESS');",
+                  "    pm.expect(json).to.have.property('status', true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 — Group Members (Devices in Group)",
+      "description": "Manage devices within a resource group.\nList cameras in group, bulk add, bulk remove.\nPath: /resources/groups/:groupId/:resource",
+      "item": [
+        {
+          "name": "GET /resources/groups/:groupId/camera — List cameras in group",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/resources/groups/{{groupId}}/camera?page=1&perPages=10&sortField=createAt&sortOrder=desc",
+              "host": ["{{urlapi}}"],
+              "path": ["resources", "groups", "{{groupId}}", "camera"],
+              "query": [
+                { "key": "search",    "value": "",          "description": "Search by name",          "disabled": true },
+                { "key": "page",      "value": "1",         "description": "Page number (default 1)" },
+                { "key": "perPages",  "value": "10",        "description": "Items per page (default 10)" },
+                { "key": "sortField", "value": "createAt",  "description": "Sort field (default createAt)" },
+                { "key": "sortOrder", "value": "desc",      "description": "Sort order: asc | desc" }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "List cameras that belong to a specific resource group.\nMerges MongoDB camera metadata with group membership."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Response has cameras list', () => {",
+                  "    pm.expect(json).to.have.property('code', 'SUCCESS');",
+                  "    pm.expect(json).to.have.property('status', true);",
+                  "    pm.expect(json).to.have.property('details');",
+                  "    pm.expect(json).to.have.property('pagination');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /resources/groups/:groupId/camera — Bulk add cameras",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/resources/groups/{{groupId}}/camera",
+              "host": ["{{urlapi}}"],
+              "path": ["resources", "groups", "{{groupId}}", "camera"]
+            },
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"camera\": [\n    { \"camId\": \"{{cameraId}}\" }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Bulk add cameras to a resource group.\n\nBody key must match the :resource path param (e.g. \"camera\").\nEach item needs a \"camId\" field.\n\nResponse details array shows per-device success/error status."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Bulk add result', () => {",
+                  "    pm.expect(json).to.have.property('code', 'SUCCESS');",
+                  "    pm.expect(json).to.have.property('status', true);",
+                  "    pm.expect(json).to.have.property('details');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /resources/groups/:groupId/camera — Bulk remove cameras",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/resources/groups/{{groupId}}/camera",
+              "host": ["{{urlapi}}"],
+              "path": ["resources", "groups", "{{groupId}}", "camera"]
+            },
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"camera\": [\n    { \"camId\": \"{{cameraId}}\" }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Bulk remove cameras from a resource group.\n\nBody format same as bulk add.\nResponse details array shows per-device success/error status."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Bulk remove result', () => {",
+                  "    pm.expect(json).to.have.property('code', 'SUCCESS');",
+                  "    pm.expect(json).to.have.property('status', true);",
+                  "    pm.expect(json).to.have.property('details');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

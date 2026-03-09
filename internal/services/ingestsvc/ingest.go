@@ -786,4 +786,3 @@ func (s *IngestService) resolveDeviceEnrichment(
 	// No enrichment found — use first candidate as deviceRef
 	return nil, &candidates[0]
 }
-

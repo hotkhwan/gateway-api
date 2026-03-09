@@ -12,11 +12,11 @@ type DeviceManagement struct {
 	SourceFamily string    `json:"sourceFamily"  bson:"sourceFamily"`
 	EntityType   string    `json:"entityType"    bson:"entityType"` // "channel", "device", "sourceSerial"
 	EntityId     string    `json:"entityId"      bson:"entityId"`   // e.g. "31", "EDGEAI-8ch"
-	DeviceId    string  `json:"deviceId,omitempty"    bson:"deviceId,omitempty"`
-	Name        string  `json:"name,omitempty"        bson:"name,omitempty"`
-	Description string  `json:"description,omitempty" bson:"description,omitempty"`
-	Lat         float64 `json:"lat,omitempty"         bson:"lat,omitempty"`
-	Lng         float64 `json:"lng,omitempty"         bson:"lng,omitempty"`
+	DeviceId     string    `json:"deviceId,omitempty"    bson:"deviceId,omitempty"`
+	Name         string    `json:"name,omitempty"        bson:"name,omitempty"`
+	Description  string    `json:"description,omitempty" bson:"description,omitempty"`
+	Lat          float64   `json:"lat,omitempty"         bson:"lat,omitempty"`
+	Lng          float64   `json:"lng,omitempty"         bson:"lng,omitempty"`
 	Site         string    `json:"site,omitempty"       bson:"site,omitempty"`
 	Zone         string    `json:"zone,omitempty"       bson:"zone,omitempty"`
 	CreatedAt    time.Time `json:"createdAt" bson:"createdAt"`
