@@ -37,7 +37,7 @@ type SyncIbocSummary struct {
 // SyncIbocSummaryResponse เป็นรูปแบบผลลัพธ์สำหรับ Swagger (แทน generic)
 type SyncIbocSummaryResponse struct {
 	Details SyncIbocSummary `json:"details"`
-	Status bool            `json:"status"`
+	Status  bool            `json:"status"`
 }
 
 type WatchlistCreateRequest struct {

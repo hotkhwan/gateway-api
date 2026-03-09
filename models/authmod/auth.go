@@ -64,7 +64,7 @@ type SigninResponse struct {
 
 type SigninResponseWrapper struct {
 	Details SigninResponse `json:"details"`
-	Status bool           `json:"status"`
+	Status  bool           `json:"status"`
 }
 
 type IntrospectResult struct {
