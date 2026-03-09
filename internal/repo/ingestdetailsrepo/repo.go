@@ -71,6 +71,7 @@ func (r *EventDetailsRepo) FindByEventId(
 		}
 		return nil, err
 	}
+	result.ProjectFlatFields()
 	return &result, nil
 }
 
@@ -109,6 +110,11 @@ func (r *EventDetailsRepo) ListApproved(
 	)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	// Project flat convenience fields for FE
+	for _, item := range result {
+		item.ProjectFlatFields()
 	}
 
 	// Update pagination with sort info

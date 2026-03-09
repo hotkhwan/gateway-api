@@ -414,6 +414,7 @@ func (s *OrgUnitService) UpdateOrgUnit(
 	name string,
 	description string,
 	parentId *string,
+	parentIdProvided bool,
 	updatedBy string,
 ) error {
 
@@ -442,8 +443,11 @@ func (s *OrgUnitService) UpdateOrgUnit(
 		return err
 	}
 
-	// 2️⃣ Handle parentId changes
-	// Check if parentId changed (comparing nil values)
+	// 2️⃣ Handle parentId changes (only if parentId was explicitly provided in request)
+	if !parentIdProvided {
+		return nil
+	}
+
 	oldParentId := unit.ParentUnitId
 	parentChanged := false
 
