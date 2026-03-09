@@ -2,7 +2,6 @@ package memapi
 
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/memsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/memmod"
 	"github.com/hotkhwan/gateway-api/utils/authutil"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -24,8 +23,8 @@ import (
 // @Router /members [post]
 // @Security BearerAuth
 func CreateMember(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/memapi", "memapi.CreateMember", "memapi", "CreateMember")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.memapi", "memapi.CreateMember", "memapi", "CreateMember")
+	defer end()
 
 	var req []memmod.MemberRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -53,12 +52,12 @@ func CreateMember(c *fiber.Ctx) error {
 		log.Error().Err(err).Msg("❌ Failed to create member")
 		return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_CREATE_MEMBER")
 	}
-	return gmod.SendCreatedMessage(c, "MEMBER_CREATED", "Member created successfully")
+	return httputil.MessageOK(c, "Member created successfully", "MEMBER_CREATED")
 }
 
 func CreateMember2(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/memapi", "memapi.CreateMember2", "memapi", "CreateMember2")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.memapi", "memapi.CreateMember2", "memapi", "CreateMember2")
+	defer end()
 
 	// ดึง groupID จาก URL: /member/:groupID
 	groupID := c.Params("groupID")
@@ -79,5 +78,5 @@ func CreateMember2(c *fiber.Ctx) error {
 		return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_CREATE_MEMBER")
 	}
 
-	return gmod.SendCreatedMessage(c, "MEMBER_CREATED", "Group members updated successfully")
+	return httputil.MessageOK(c, "Group members updated successfully", "MEMBER_CREATED")
 }

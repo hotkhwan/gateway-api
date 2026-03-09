@@ -7,7 +7,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
-	"go.opentelemetry.io/otel"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // MemberAccessController exposes read-only endpoints for authenticated members
@@ -32,10 +33,8 @@ func NewMemberAccessController(svc *authzsvc.MemberAccessService) *MemberAccessC
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/menu/access [get]
 func (ctrl *MemberAccessController) MyMenuAccess(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "MemberAccess.MyMenuAccess")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "MemberAccessController.MyMenuAccess", "authzapi", "MyMenuAccess")
+	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
@@ -43,18 +42,14 @@ func (ctrl *MemberAccessController) MyMenuAccess(c *fiber.Ctx) error {
 
 	menus, err := ctrl.svc.GetMemberMenuAccess(ctx, tenantId, orgId, userId)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeInternalError,
-			Message: "failed to resolve menu access",
-			Status:  false,
-		})
+		return httputil.FailInternal(c, "failed to resolve menu access")
 	}
 
 	return c.JSON(gmod.SuccessDetailResponseMenuAccess{
 		Code:    gmod.CodeSuccess,
 		Message: "accessible menus fetched",
 		Status:  true,
-		Detail:  menus,
+		Details: menus,
 	})
 }
 
@@ -75,10 +70,8 @@ func (ctrl *MemberAccessController) MyMenuAccess(c *fiber.Ctx) error {
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/resource/access [get]
 func (ctrl *MemberAccessController) MyResourceAccess(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("authzapi")
-	ctx, span := tracer.Start(ctx, "MemberAccess.MyResourceAccess")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "MemberAccessController.MyResourceAccess", "authzapi", "MyResourceAccess")
+	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
@@ -98,18 +91,14 @@ func (ctrl *MemberAccessController) MyResourceAccess(c *fiber.Ctx) error {
 
 	result, err := ctrl.svc.GetMemberCameraAccess(ctx, tenantId, orgId, userId, params)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeInternalError,
-			Message: "failed to resolve resource access",
-			Status:  false,
-		})
+		return httputil.FailInternal(c, "failed to resolve resource access")
 	}
 
 	return c.JSON(gmod.SuccessDetailResponseResourceAccess{
 		Code:    gmod.CodeSuccess,
 		Message: "accessible cameras fetched",
 		Status:  true,
-		Detail: fiber.Map{
+		Details: fiber.Map{
 			"cameras":      result.Cameras,
 			"totalRecords": result.TotalRecords,
 			"totalPages":   result.TotalPages,

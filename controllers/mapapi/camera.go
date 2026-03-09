@@ -28,14 +28,8 @@ import (
 // @Security     BearerAuth
 // @Router       /map/camera [get]
 func DeviceMap(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(
-		c.UserContext(),
-		"github.com/hotkhwan/gateway-api/mapapi",
-		"mapapi.DeviceMap",
-		"mapapi",
-		"DeviceMap",
-	)
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.mapapi", "DeviceMap.DeviceMap", "mapapi", "DeviceMap")
+	defer end()
 
 	// ---------- parse query ----------
 	minLatStr := c.Query("minLat")
@@ -56,24 +50,24 @@ func DeviceMap(c *fiber.Ctx) error {
 		// ต้องครบทั้ง 4 ตัวเพื่อให้ filter ตาม viewport
 		if minLatStr == "" || maxLatStr == "" || minLngStr == "" || maxLngStr == "" {
 			log.Warn().Msg("❌ invalid bounds: some of minLat/maxLat/minLng/maxLng missing")
-			return httputil.FailBadRequest(c, "INVALID_BOUNDS", "minLat,maxLat,minLng,maxLng must all be provided or all be empty")
+			return httputil.FailBadRequest(c, "minLat,maxLat,minLng,maxLng must all be provided or all be empty")
 		}
 
 		minLat, err = strconv.ParseFloat(minLatStr, 64)
 		if err != nil {
-			return httputil.FailBadRequest(c, "INVALID_MIN_LAT", "minLat must be a number")
+			return httputil.FailBadRequest(c, "minLat must be a number")
 		}
 		maxLat, err = strconv.ParseFloat(maxLatStr, 64)
 		if err != nil {
-			return httputil.FailBadRequest(c, "INVALID_MAX_LAT", "maxLat must be a number")
+			return httputil.FailBadRequest(c, "maxLat must be a number")
 		}
 		minLng, err = strconv.ParseFloat(minLngStr, 64)
 		if err != nil {
-			return httputil.FailBadRequest(c, "INVALID_MIN_LNG", "minLng must be a number")
+			return httputil.FailBadRequest(c, "minLng must be a number")
 		}
 		maxLng, err = strconv.ParseFloat(maxLngStr, 64)
 		if err != nil {
-			return httputil.FailBadRequest(c, "INVALID_MAX_LNG", "maxLng must be a number")
+			return httputil.FailBadRequest(c, "maxLng must be a number")
 		}
 		hasBounds = true
 	}
@@ -97,10 +91,8 @@ func DeviceMap(c *fiber.Ctx) error {
 	details, err := mapsvc.GetDevicesMap(ctx, hasBounds, minLat, maxLat, minLng, maxLng, zoom)
 	if err != nil {
 		log.Error().Err(err).Msg("❌ [DeviceMap] failed to get devices map")
-		return httputil.FailInternal(c, "DEVICE_MAP_FAILED", err.Error())
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"details": details,
-	})
+	return httputil.Ok(c, details, "Device map fetched successfully")
 }

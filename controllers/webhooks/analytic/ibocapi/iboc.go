@@ -11,11 +11,8 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hotkhwan/gateway-api/internal/kafka"
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/models/aimodel"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -23,15 +20,8 @@ import (
 )
 
 func HandleIboc(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/ibocapi")
-	ctx, span := tracer.Start(ctx, "webhook.HandleIboc")
-	defer span.End()
-
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	}
-	log := logger.FromCtx(ctx, "ibocapi", "HandleIboc")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.ibocapi", "HandleIboc", "webhooks", "HandleIboc")
+	defer end()
 
 	clientIP := c.IP()
 	log.Info().Str("clientIP", clientIP).Msg("📡 IBOC: Incoming request")

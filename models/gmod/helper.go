@@ -10,7 +10,7 @@ import (
 // ส่ง JSON 200 สำหรับข้อมูลทั่วไป (struct, map, string, etc.)
 func SendSuccess[T any](c *fiber.Ctx, data T) error {
 	return c.Status(fiber.StatusOK).JSON(SuccessDetailResponse[T]{
-		Detail: data,
+		Details: data,
 		Status: true,
 	})
 }

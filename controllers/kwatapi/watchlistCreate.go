@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/kwatmod"
@@ -20,8 +19,6 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 )
 
 var validate = validator.New()
@@ -69,16 +66,8 @@ var validate = validator.New()
 // @Router /watchlist [post]
 // @Security BearerAuth
 func WatchlistCreate(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/kwatapi")
-	ctx, span := tracer.Start(ctx, "Kwatch.WatchlistCreate")
-	defer span.End()
-
-	// ✅ ใส่ traceID เข้าบริบท logger
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	}
-	log := logger.FromCtx(ctx, "kwatapi", "WatchlistCreate")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Watchlist.WatchlistCreate", "kwatapi", "WatchlistCreate")
+	defer end()
 
 	var req kwatmod.WatchlistCreateRequest
 
@@ -149,10 +138,10 @@ func WatchlistCreate(c *fiber.Ctx) error {
 
 	// ✅ ตรวจชื่อ/นามสกุลที่ต้องมี
 	if req.FirstName == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "field `firstname` is required")
+		return httputil.FailBadRequest(c, "field `firstname` is required")
 	}
 	if req.LastName == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "field `lastname` is required")
+		return httputil.FailBadRequest(c, "field `lastname` is required")
 	}
 
 	// ✅ Validation เสริม (หากมี tag validate ใน struct)

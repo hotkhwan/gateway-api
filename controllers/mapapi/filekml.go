@@ -2,10 +2,10 @@
 package mapapi
 
 import (
-	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/rs/zerolog/log"
 )
 
 // GetKMLFile godoc
@@ -22,10 +22,12 @@ import (
 // @Router /maps/kml/file [get]
 // @Security BearerAuth
 func GetKMLFile(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.mapapi", "GetKMLFile.GetKMLFile", "mapapi", "GetKMLFile")
+	defer end()
+
 	format := c.Query("format", "kml") // default = kml
-	logger := log.With().Str("traceID", c.Get("X-Trace-ID")).Logger()
-	logger.Info().
+	log.Info().
 		Str("format", format).
 		Msg("📤 [ExportAlarms] Export request received")
-	return gmod.SendMessageOK(c, "GET_KMLFILE_SUCCESS", "Get kml file successfully")
+	return httputil.MessageOK(c, "Get kml file successfully")
 }

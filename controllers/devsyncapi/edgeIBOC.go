@@ -1,56 +1,41 @@
-// controllers/devsyncapi/edgeATA.go
+// controllers/devsyncapi/edgeIBOC.go
 package devsyncapi
 
 import (
-	"github.com/hotkhwan/gateway-api/models/devsyncmod"
-	"github.com/hotkhwan/gateway-api/models/gmod"
-	"net/http"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
 )
 
 // EdgeIBOC godoc
 // @Summary Sync IBOC devices/channels by Edge ID
 // @Tags IBOC
 // @Param edgeId path string true "Mongo ObjectId of IBOC Edge"
-// @Success 200 {object} devsyncmod.IBOCSyncResponse
-// @Failure 400 {object} gmod.ErrorMessageResponse
-// @Failure 404 {object} gmod.ErrorMessageResponse
-// @Failure 500 {object} gmod.ErrorMessageResponse
+// @Success 200 {object} gmod.SuccessDataResponse
+// @Failure 400 {object} gmod.ApiErrorResponse
+// @Failure 404 {object} gmod.ApiErrorResponse
+// @Failure 500 {object} gmod.ApiErrorResponse
 // @Security BearerAuth
 func EdgeIBOC(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/ibocapi")
-	ctx, span := tracer.Start(ctx, "IBOC.EdgeIBOC")
-	defer span.End()
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.devsyncapi", "devsync.EdgeIBOC", "devsyncapi", "EdgeIBOC")
+	defer end()
 
 	edgeId := c.Params("id")
 	if edgeId == "" {
-		return c.Status(http.StatusBadRequest).JSON(gmod.ErrorMessageResponse{
-			Code:    "BAD_REQUEST",
-			Message: "id is required",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "id is required")
 	}
+
+	log.Debug().Str("edgeId", edgeId).Msg("[EdgeIBOC] sync requested")
 
 	// res, err := devsync.SyncDevicesAndChannelsByEdgeIDIBOC(ctx, edgeId)
 	// if err != nil {
-	// 	code := http.StatusInternalServerError
+	// 	log.Error().Err(err).Str("edgeId", edgeId).Msg("[EdgeIBOC] IBOC sync failed")
 	// 	if err == devsync.ErrEdgeNotFound {
-	// 		code = http.StatusNotFound
+	// 		return httputil.FailNotFound(c, err.Error())
 	// 	}
-	// 	return c.Status(code).JSON(gmod.ErrorMessageResponse{
-	// 		Code:    "ATA_SYNC_FAILED",
-	// 		Message: err.Error(),
-	// 		Status:  false,
-	// 	})
+	// 	return httputil.FailInternal(c, err.Error())
 	// }
 
-	return c.JSON(devsyncmod.IBOCSyncResponse{
-		Code:    "IBOC_SYNC_OK",
-		Message: "IBOC devices/channels synced by edge",
-		Status:  true,
-		// Detail:  *res,
-	})
+	return httputil.MessageOK(c, "IBOC devices/channels synced by edge")
 }

@@ -4,21 +4,20 @@ package sysapi
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"strings"
 	"time"
 
 	"github.com/hotkhwan/gateway-api/models/systemmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-// ---- Repo interface ที่ต้องมีจาก optionsrepo ----
+// ---- Repo interface ----
 
 type OptionsRepo interface {
-	// โหลดค่า effective (DB + ENV fallback + defaults)
 	LoadEffective(ctx context.Context) (*systemmod.EffectiveConfig, error)
-	// อัปเดตแบบ flat fields (จะถูก $set ลงเอกสาร _id=system.setting)
 	PatchFlat(ctx context.Context, set map[string]any) error
 }
 
@@ -38,33 +37,28 @@ func NewOptionsController(repo OptionsRepo, ensureAuditTTLIndex func(ctx context
 
 // GET /system/options
 func (ctl *OptionsController) GetEffective(c *fiber.Ctx) error {
-	eff, err := ctl.repo.LoadEffective(c.Context())
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.sysapi", "OptionsController.GetEffective", "sysapi", "GetEffective")
+	defer end()
+
+	eff, err := ctl.repo.LoadEffective(ctx)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-			"code":    "ERROR",
-			"message": err.Error(),
-			"status":  false,
-		})
+		log.Error().Err(err).Msg("load effective config failed")
+		return httputil.FailInternal(c, "failed to load config")
 	}
-	return c.JSON(fiber.Map{
-		"code":    "SUCCESS",
-		"message": "ok",
-		"status":  true,
-		"data":    eff,
-	})
+
+	return httputil.Ok(c, eff)
 }
 
 // PATCH /system/options
 func (ctl *OptionsController) Patch(c *fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.sysapi", "OptionsController.Patch", "sysapi", "Patch")
+	defer end()
+
 	dec := json.NewDecoder(strings.NewReader(string(c.Body())))
 	dec.UseNumber()
 	var raw any
 	if err := dec.Decode(&raw); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"code":    "BAD_REQUEST",
-			"message": "invalid JSON body",
-			"status":  false,
-		})
+		return httputil.FailBadRequest(c, "invalid JSON body")
 	}
 
 	flat := map[string]any{}
@@ -77,7 +71,7 @@ func (ctl *OptionsController) Patch(c *fiber.Ctx) error {
 		mergeIfPresentBool(v, flat, "auditCaptureJSONOnly")
 		if mergeIfPresentNumber(v, flat, "auditRetentionDays") {
 			if n, ok := flat["auditRetentionDays"].(int64); ok && n < 1 {
-				return badReq(c, "auditRetentionDays must be >= 1")
+				return httputil.FailBadRequest(c, "auditRetentionDays must be >= 1")
 			}
 		}
 
@@ -86,7 +80,6 @@ func (ctl *OptionsController) Patch(c *fiber.Ctx) error {
 		mergeIfPresentString(v, flat, "kafkaPublishTimeout")
 		mergeIfPresentNumber(v, flat, "kwatchBatchSize")
 
-		// รองรับ flat key ของ kctrl (ทั้งตัวใหญ่/ตัวเล็ก)
 		mergeIfPresentNumber(v, flat, "KctrlWatchdogInterval", "kctrlWatchdogInterval")
 		mergeIfPresentNumber(v, flat, "KctrlWarnMultiplier", "kctrlWarnMultiplier")
 		mergeIfPresentNumber(v, flat, "KctrlOfflineMultiplier", "kctrlOfflineMultiplier")
@@ -102,7 +95,7 @@ func (ctl *OptionsController) Patch(c *fiber.Ctx) error {
 			mergeIfPresentBool(a, flat, "captureJSONOnly", "auditCaptureJSONOnly")
 			if mergeIfPresentNumber(a, flat, "retentionDays", "auditRetentionDays") {
 				if n, ok := flat["auditRetentionDays"].(int64); ok && n < 1 {
-					return badReq(c, "audit.retentionDays must be >= 1")
+					return httputil.FailBadRequest(c, "audit.retentionDays must be >= 1")
 				}
 			}
 		}
@@ -117,7 +110,6 @@ func (ctl *OptionsController) Patch(c *fiber.Ctx) error {
 			mergeIfPresentNumber(kw, flat, "batchSize", "kwatchBatchSize")
 		}
 		if kc, ok := v["kctrl"].(map[string]any); ok {
-			// รองรับทั้งตัวเล็ก/ตัวใหญ่ใน nested
 			mergeIfPresentNumber(kc, flat, "watchdogInterval", "kctrlWatchdogInterval")
 			mergeIfPresentNumber(kc, flat, "WatchdogInterval", "kctrlWatchdogInterval")
 
@@ -128,11 +120,11 @@ func (ctl *OptionsController) Patch(c *fiber.Ctx) error {
 			mergeIfPresentNumber(kc, flat, "OfflineMultiplier", "kctrlOfflineMultiplier")
 		}
 	default:
-		return badReq(c, "JSON object required")
+		return httputil.FailBadRequest(c, "JSON object required")
 	}
 
 	if len(flat) == 0 {
-		return badReq(c, "no valid fields to update")
+		return httputil.FailBadRequest(c, "no valid fields to update")
 	}
 
 	// validate auditCaptureResponse
@@ -142,62 +134,47 @@ func (ctl *OptionsController) Patch(c *fiber.Ctx) error {
 		case "none", "errors", "all":
 			flat["auditCaptureResponse"] = mode
 		default:
-			return badReq(c, "auditCaptureResponse must be one of: none|errors|all")
+			return httputil.FailBadRequest(c, "auditCaptureResponse must be one of: none|errors|all")
 		}
 	}
 
-	// บังคับชนิด number >0 / >=0
 	if v, ok := flat["auditMaxRespBytes"].(int64); ok && v <= 0 {
-		return badReq(c, "auditMaxRespBytes must be > 0")
+		return httputil.FailBadRequest(c, "auditMaxRespBytes must be > 0")
 	}
 	if v, ok := flat["maxRecordRequest"].(int64); ok && v <= 0 {
-		return badReq(c, "maxRecordRequest must be > 0")
+		return httputil.FailBadRequest(c, "maxRecordRequest must be > 0")
 	}
 	if v, ok := flat["kwatchBatchSize"].(int64); ok && v < 0 {
-		return badReq(c, "kwatchBatchSize must be >= 0")
+		return httputil.FailBadRequest(c, "kwatchBatchSize must be >= 0")
 	}
 	if v, ok := flat["kctrlWatchdogInterval"].(int64); ok && v < 0 {
-		return badReq(c, "kctrlWatchdogInterval must be >= 0")
+		return httputil.FailBadRequest(c, "kctrlWatchdogInterval must be >= 0")
 	}
 	if v, ok := flat["kctrlWarnMultiplier"].(int64); ok && v < 0 {
-		return badReq(c, "kctrlWarnMultiplier must be >= 0")
+		return httputil.FailBadRequest(c, "kctrlWarnMultiplier must be >= 0")
 	}
 	if v, ok := flat["kctrlOfflineMultiplier"].(int64); ok && v < 0 {
-		return badReq(c, "kctrlOfflineMultiplier must be >= 0")
+		return httputil.FailBadRequest(c, "kctrlOfflineMultiplier must be >= 0")
 	}
 	if v, ok := flat["streamSessionTimeout"].(int64); ok && v < 0 {
-		return badReq(c, "kctrlOfflineMultiplier must be >= 0")
+		return httputil.FailBadRequest(c, "streamSessionTimeout must be >= 0")
 	}
-	if err := ctl.repo.PatchFlat(c.Context(), flat); err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-			"code":    "ERROR",
-			"message": err.Error(),
-			"status":  false,
-		})
+	if err := ctl.repo.PatchFlat(ctx, flat); err != nil {
+		log.Error().Err(err).Msg("patch config failed")
+		return httputil.FailInternal(c, "failed to update config")
 	}
 
 	if v, ok := flat["auditRetentionDays"].(int64); ok && ctl.ensureAuditTTLIndex != nil {
-		_ = ctl.ensureAuditTTLIndex(c.Context(), int(v))
+		_ = ctl.ensureAuditTTLIndex(ctx, int(v))
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    "SUCCESS",
-		"message": "updated",
-		"status":  true,
+	return httputil.Ok(c, fiber.Map{
 		"updated": flat,
 		"time":    time.Now().UTC(),
-	})
+	}, "updated")
 }
 
 // ---- helpers ----
-
-func badReq(c *fiber.Ctx, msg string) error {
-	return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-		"code":    "BAD_REQUEST",
-		"message": msg,
-		"status":  false,
-	})
-}
 
 func mergeIfPresentString(src map[string]any, dst map[string]any, inKey string, outKeyOpt ...string) bool {
 	outKey := inKey
@@ -237,7 +214,6 @@ func mergeIfPresentNumber(src map[string]any, dst map[string]any, inKey string, 
 				dst[outKey] = iv
 				return true
 			}
-			// ถ้าเป็น float ก็ปัดลง
 			if fv, err := n.Float64(); err == nil {
 				dst[outKey] = int64(fv)
 				return true

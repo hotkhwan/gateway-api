@@ -29,9 +29,6 @@ func RegisterSubscriptionRoutes(router fiber.Router, c *app.Container) {
 		// Bootstrap subscription
 		r.Post("/bootstrap", c.SubscriptionController.BootstrapSubscription)
 
-		// Get my subscription
-		r.Get("/me", c.SubscriptionController.GetMySubscription)
-
 		// Update plan (admin only)
 		r.Patch("/plan", c.SubscriptionController.UpdatePlan)
 

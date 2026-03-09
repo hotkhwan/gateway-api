@@ -1,4 +1,4 @@
-// controllers/usrapi/get.go
+// controllers/usrapi/list.go
 package usrapi
 
 import (
@@ -7,6 +7,7 @@ import (
 
 	"github.com/hotkhwan/gateway-api/internal/services/usrsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
@@ -73,46 +74,32 @@ func parseUserIds(c *fiber.Ctx) []string {
 // @Failure 500 {object} gmod.ErrorResponse
 // @Router       /users [get]
 func ListUsers(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(),
-		"github.com/hotkhwan/gateway-api/usrapi", "users.ListUsers", "usrapi", "ListUsers")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.usrapi", "ListUsers", "usrapi", "ListUsers")
+	defer end()
 
 	authHeader := c.Get("Authorization")
 	if authHeader == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(gmod.ErrorResponse{
-			Code:    "UNAUTHORIZED",
-			Message: "Missing Authorization header",
-			Status:  false,
-		})
+		return httputil.FailUnauthorized(c, "Missing Authorization header")
 	}
 
 	userIds := parseUserIds(c)
 	if len(userIds) > 0 {
 		// guardrail: กันยิง KC หนักเกิน
 		if len(userIds) > 200 {
-			return c.Status(fiber.StatusBadRequest).JSON(gmod.ErrorResponse{
-				Code:    "BAD_REQUEST",
-				Message: "userIds too many (max 200)",
-				Status:  false,
-			})
+			return httputil.FailBadRequest(c, "userIds too many (max 200)")
 		}
 
 		result, err := usrsvc.GetUsersByIds(ctx, authHeader, userIds)
 		if err != nil {
 			if strings.Contains(err.Error(), "token") {
 				log.Error().Err(err).Msg("❌ [ListUsers] Failed to get users by ids")
-				return c.Status(fiber.StatusUnauthorized).JSON(gmod.ErrorResponse{
-					Code:    "UNAUTHORIZED",
-					Message: err.Error(),
-					Status:  false,
-				})
+				return httputil.FailUnauthorized(c, err.Error())
 			}
-			return c.Status(fiber.StatusInternalServerError).JSON(gmod.ErrorResponse{
-				Code:    "GET_USERS_BY_IDS_FAILED",
-				Message: err.Error(),
-				Status:  false,
-			})
+			log.Error().Err(err).Msg("❌ [ListUsers] GetUsersByIds failed")
+			return httputil.FailInternal(c, err.Error())
 		}
+
+		log.Debug().Int("count", len(result.Details)).Msg("✅ [ListUsers] users by ids fetched")
 
 		// รักษา contract เดิม: ส่งแบบ pagination
 		return gmod.SendPagination(c, result.Details, gmod.Pagination{
@@ -166,18 +153,13 @@ func ListUsers(c *fiber.Ctx) error {
 	if err != nil {
 		if strings.Contains(err.Error(), "token") {
 			log.Error().Err(err).Msg("❌ [ListUsers] Failed to user list")
-			return c.Status(fiber.StatusUnauthorized).JSON(gmod.ErrorResponse{
-				Code:    "UNAUTHORIZED",
-				Message: err.Error(),
-				Status:  false,
-			})
+			return httputil.FailUnauthorized(c, err.Error())
 		}
-		return c.Status(fiber.StatusInternalServerError).JSON(gmod.ErrorResponse{
-			Code:    "LIST_USERS_FAILED",
-			Message: err.Error(),
-			Status:  false,
-		})
+		log.Error().Err(err).Msg("❌ [ListUsers] ListUsers failed")
+		return httputil.FailInternal(c, err.Error())
 	}
+
+	log.Debug().Int("count", len(result.Details)).Msg("✅ [ListUsers] users fetched")
 
 	return gmod.SendPagination(c, result.Details, result.Pagination)
 }

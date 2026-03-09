@@ -3,11 +3,10 @@ package kwatapi
 
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
 )
 
 // watchlistGetByID godoc
@@ -21,15 +20,13 @@ import (
 // @Router /kwatch/watchlist/{id} [get]
 // @Security BearerAuth
 func WatchlistGetByID(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/kwatapi")
-	ctx, span := tracer.Start(ctx, "Kwatch.WatchlistGetByID")
-	defer span.End()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Watchlist.WatchlistGetByID", "kwatapi", "WatchlistGetByID")
+	defer end()
 
 	id := c.Params("id") // <-- ใช้ได้ทั้ง ObjectID และ idcard
 	data, err := kwatsvc.WatchlistGetByID(ctx, id)
 	if err != nil {
-		return httputil.FailNotFound(c, "NOT_FOUND", "Watchlist not found")
+		return httputil.FailNotFound(c, "Watchlist not found")
 	}
-	return gmod.SendSuccess(c, data)
+	return httputil.Ok(c, data, "Watchlist retrieved")
 }

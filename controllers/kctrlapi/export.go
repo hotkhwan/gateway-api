@@ -21,8 +21,8 @@ import (
 // @Router       /kcontrol/alarms/export [get]
 // @Security     BearerAuth
 func ExportAlarms(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kctrlapi", "alarms.ExportAlarms", "kctrlapi", "ExportAlarms")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.ExportAlarms", "kctrlapi", "ExportAlarms")
+	defer end()
 
 	format := c.Query("format", "csv")
 	log.Info().Str("format", format).Msg("📤 [ExportAlarms] Export request received (events store)")

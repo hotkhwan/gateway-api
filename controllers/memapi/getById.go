@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/hotkhwan/gateway-api/internal/services/memsvc"
-	"github.com/hotkhwan/gateway-api/models/memmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
@@ -25,7 +24,7 @@ import (
 // @Router /members/{id} [get]
 // @Security BearerAuth
 func MemberGetByID(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "github.com/hotkhwan/gateway-api/devapi", "devapi.memberGetByID", "devapi", "memberGetByID")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.memapi", "memapi.MemberGetByID", "memapi", "MemberGetByID")
 	defer end()
 
 	memberId := strings.TrimSpace(c.Params("Id"))
@@ -42,15 +41,5 @@ func MemberGetByID(c *fiber.Ctx) error {
 		return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_GET_MEMBER")
 	}
 
-	return c.JSON(struct {
-		Code    string         `json:"code"`
-		Message string         `json:"message"`
-		Status  bool           `json:"status"`
-		Detail  *memmod.Member `json:"detail"`
-	}{
-		Code:    "SUCCESS",
-		Message: "member retrieved successfully",
-		Status:  true,
-		Detail:  member,
-	})
+	return httputil.Ok(c, member, "member retrieved successfully")
 }

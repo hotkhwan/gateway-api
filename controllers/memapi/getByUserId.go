@@ -25,7 +25,7 @@ import (
 // @Router /members/{userId} [get]
 // @Security BearerAuth
 func MemberGetByUserID(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "github.com/hotkhwan/gateway-api/devapi", "devapi.memberGetByID", "devapi", "memberGetByID")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.memapi", "memapi.MemberGetByUserID", "memapi", "MemberGetByUserID")
 	defer end()
 
 	userId := strings.TrimSpace(c.Params("Id"))

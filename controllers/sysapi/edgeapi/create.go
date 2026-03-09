@@ -1,9 +1,9 @@
+// controllers/sysapi/edgeapi/create.go
 package edgeapi
 
 import (
 	"strings"
 
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/systemsvc/edgesvc"
 	"github.com/hotkhwan/gateway-api/models/systemmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -26,16 +26,15 @@ import (
 // @Router /system/edge/type/{edgeType} [post]
 // @Security BearerAuth
 func CreateEdge(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/edgeapi", "system.edge.Create", "edgeapi", "CreateEdge")
-	defer span.End()
-	_ = logger.FromCtx(ctx, "edgeapi", "CreateEdge")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.edgeapi", "EdgeApi.CreateEdge", "sysapi", "CreateEdge")
+	defer end()
 
 	edgeType := strings.TrimSpace(c.Params("edgeType"))
 
 	var req systemmod.EdgeCreateReq
 	if err := c.BodyParser(&req); err != nil {
 		log.Error().Err(err).Msg("invalid body")
-		return httputil.FailBadRequest(c, "INVALID_BODY", "invalid json body")
+		return httputil.FailBadRequest(c, "invalid json body")
 	}
 
 	// basic validate
@@ -53,7 +52,7 @@ func CreateEdge(c *fiber.Ctx) error {
 		missing = append(missing, "url")
 	}
 	if len(missing) > 0 {
-		return httputil.FailBadRequest(c, "MISSING_FIELDS", "Missing required fields: "+strings.Join(missing, ","))
+		return httputil.FailBadRequest(c, "Missing required fields: "+strings.Join(missing, ","))
 	}
 
 	oid, err := edgesvc.CreateEdge(ctx, edgeType, req)
@@ -62,10 +61,7 @@ func CreateEdge(c *fiber.Ctx) error {
 		return httputil.FailInternalReason(c, "internal server error", "CREATE_FAILED")
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(systemmod.EdgeCreateSuccessResponse{
-		Code:    "SUCCESS",
-		ID:      oid.Hex(), // ✅ id root
-		Message: "edge created",
-		Status:  true,
-	})
+	return httputil.Created(c, fiber.Map{
+		"id": oid.Hex(),
+	}, "edge created")
 }

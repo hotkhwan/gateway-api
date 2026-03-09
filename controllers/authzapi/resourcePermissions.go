@@ -9,6 +9,8 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 type ResourcePermissionsProfileController struct {
@@ -54,19 +56,22 @@ type updatePermProfileBody struct {
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/resource/permissions [post]
 func (ctrl *ResourcePermissionsProfileController) Create(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "ResourcePermissionsProfileController.Create", "authzapi", "Create")
+	defer end()
+
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	userId, _ := c.Locals("userId").(string)
 
 	var body createPermProfileBody
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body", Status: false})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if body.Name == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "name is required", Status: false})
+		return httputil.FailBadRequest(c, "name is required")
 	}
 	if len(body.Relations) == 0 {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "relations is required", Status: false})
+		return httputil.FailBadRequest(c, "relations is required")
 	}
 
 	profile, err := ctrl.svc.Create(c.UserContext(), authzsvc.CreatePermProfileInput{
@@ -82,12 +87,7 @@ func (ctrl *ResourcePermissionsProfileController) Create(c *fiber.Ctx) error {
 		return handlePermProfileErr(c, err)
 	}
 
-	return c.Status(201).JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "permission profile created",
-		"status":  true,
-		"detail":  profile,
-	})
+	return httputil.Created(c, profile, "permission profile created")
 }
 
 // Update godoc
@@ -105,6 +105,9 @@ func (ctrl *ResourcePermissionsProfileController) Create(c *fiber.Ctx) error {
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/resource/permissions/{id} [patch]
 func (ctrl *ResourcePermissionsProfileController) Update(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "ResourcePermissionsProfileController.Update", "authzapi", "Update")
+	defer end()
+
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	userId, _ := c.Locals("userId").(string)
@@ -112,7 +115,7 @@ func (ctrl *ResourcePermissionsProfileController) Update(c *fiber.Ctx) error {
 
 	var body updatePermProfileBody
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body", Status: false})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 
 	updated, err := ctrl.svc.Update(c.UserContext(), authzsvc.UpdatePermProfileInput{
@@ -131,12 +134,7 @@ func (ctrl *ResourcePermissionsProfileController) Update(c *fiber.Ctx) error {
 		return handlePermProfileErr(c, err)
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "permission profile updated",
-		"status":  true,
-		"detail":  updated,
-	})
+	return httputil.Ok(c, updated, "permission profile updated")
 }
 
 // Delete godoc
@@ -151,6 +149,9 @@ func (ctrl *ResourcePermissionsProfileController) Update(c *fiber.Ctx) error {
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/resource/permissions/{id} [delete]
 func (ctrl *ResourcePermissionsProfileController) Delete(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "ResourcePermissionsProfileController.Delete", "authzapi", "Delete")
+	defer end()
+
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	userId, _ := c.Locals("userId").(string)
@@ -160,11 +161,7 @@ func (ctrl *ResourcePermissionsProfileController) Delete(c *fiber.Ctx) error {
 		return handlePermProfileErr(c, err)
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "permission profile deleted",
-		"status":  true,
-	})
+	return httputil.MessageOK(c, "permission profile deleted")
 }
 
 // List godoc
@@ -182,6 +179,9 @@ func (ctrl *ResourcePermissionsProfileController) Delete(c *fiber.Ctx) error {
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/resource/permissions [get]
 func (ctrl *ResourcePermissionsProfileController) List(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "ResourcePermissionsProfileController.List", "authzapi", "List")
+	defer end()
+
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 
@@ -232,6 +232,9 @@ func (ctrl *ResourcePermissionsProfileController) List(c *fiber.Ctx) error {
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/resource/permissions/{id} [get]
 func (ctrl *ResourcePermissionsProfileController) GetOne(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "ResourcePermissionsProfileController.GetOne", "authzapi", "GetOne")
+	defer end()
+
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	profileId := c.Params("id")
@@ -241,12 +244,7 @@ func (ctrl *ResourcePermissionsProfileController) GetOne(c *fiber.Ctx) error {
 		return handlePermProfileErr(c, err)
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "permission profile fetched",
-		"status":  true,
-		"detail":  profile,
-	})
+	return httputil.Ok(c, profile, "permission profile fetched")
 }
 
 // ============================================================
@@ -256,15 +254,15 @@ func (ctrl *ResourcePermissionsProfileController) GetOne(c *fiber.Ctx) error {
 func handlePermProfileErr(c *fiber.Ctx, err error) error {
 	switch {
 	case errors.Is(err, authzsvc.ErrForbidden):
-		return c.Status(403).JSON(gmod.ApiErrorResponse{Code: gmod.CodeForbidden, Message: "forbidden", Status: false})
+		return httputil.FailForbidden(c, "forbidden")
 	case errors.Is(err, authzsvc.ErrNotFound),
 		errors.Is(err, authzrepo.ErrPermProfileNotFound):
-		return c.Status(404).JSON(gmod.ApiErrorResponse{Code: gmod.CodeNotFound, Message: err.Error(), Status: false})
+		return httputil.FailNotFound(c, err.Error())
 	case errors.Is(err, authzrepo.ErrPermProfileNameExists):
-		return c.Status(409).JSON(gmod.ApiErrorResponse{Code: gmod.CodeConflict, Message: err.Error(), Status: false})
+		return httputil.FailConflict(c, err.Error())
 	case errors.Is(err, authzsvc.ErrInvalidArgs):
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: err.Error(), Status: false})
+		return httputil.FailBadRequest(c, err.Error())
 	default:
-		return c.Status(500).JSON(gmod.ApiErrorResponse{Code: gmod.CodeInternalError, Message: "internal server error", Status: false})
+		return httputil.FailInternal(c, "internal server error")
 	}
 }

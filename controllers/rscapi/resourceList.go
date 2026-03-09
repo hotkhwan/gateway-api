@@ -1,4 +1,4 @@
-// controllers/rscapi/resource.go
+// controllers/rscapi/resourceList.go
 package rscapi
 
 import (
@@ -7,14 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/rscsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/rscmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
 )
 
 // @Tags Resource
@@ -33,12 +31,8 @@ import (
 // @Router /resources [get]
 // @Security BearerAuth
 func ResourceList(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/rscapi")
-	ctx, span := tracer.Start(ctx, "ResourceList")
-	defer span.End()
-
-	log := logger.FromCtx(ctx, "rscapi", "ResourceList")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.rscapi", "ResourceList", "rscapi", "ResourceList")
+	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
@@ -53,8 +47,8 @@ func ResourceList(c *fiber.Ctx) error {
 
 	data, pag, err := rscsvc.ResourceList(ctx, page, perPages, filters, sortField, sortOrder)
 	if err != nil {
-		log.Error().Err(err).Msg("❌ Failed to list resources")
-		return httputil.FailInternalReason(c, "internal server error", "FAILED_TO_LIST_RESOURCES")
+		log.Error().Err(err).Msg("Failed to list resources")
+		return httputil.FailInternal(c, "failed to list resources")
 	}
 
 	// 🔁 Convert gmod.Pagination -> rscmod.Pagination
@@ -81,24 +75,17 @@ func ResourceList(c *fiber.Ctx) error {
 // @Router /resources [post]
 // @Security BearerAuth
 func ResourceCreate(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.rscapi", "ResourceCreate", "rscapi", "ResourceCreate")
+	defer end()
+
 	var payload rscmod.ResourceUpsert
 	if err := c.BodyParser(&payload); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(gmod.SuccessMessageCreateResponse{
-			Code:    "BAD_REQUEST",
-			Message: "invalid JSON body",
-			Status:  false,
-			ID:      "",
-		})
+		return httputil.FailBadRequest(c, "invalid JSON body")
 	}
 
 	// validate เบื้องต้น
 	if payload.CanonicalId == "" || payload.Provider == "" || payload.Type == "" || payload.DisplayName == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(gmod.SuccessMessageCreateResponse{
-			Code:    "VALIDATION_ERROR",
-			Message: "canonicalId, provider, type, displayName are required",
-			Status:  false,
-			ID:      "",
-		})
+		return httputil.FailBadRequest(c, "canonicalId, provider, type, displayName are required")
 	}
 
 	now := time.Now()
@@ -121,20 +108,13 @@ func ResourceCreate(c *fiber.Ctx) error {
 
 	insertedID, err := rscsvc.ResourceCreate(ctx, doc)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(gmod.SuccessMessageCreateResponse{
-			Code:    "CREATE_FAILED",
-			Message: err.Error(),
-			Status:  false,
-			ID:      "",
-		})
+		log.Error().Err(err).Msg("create resource failed")
+		return httputil.FailInternal(c, "failed to create resource")
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(gmod.SuccessMessageCreateResponse{
-		Code:    "SUCCESS",
-		Message: "Resource created successfully",
-		Status:  true,
-		ID:      insertedID,
-	})
+	return httputil.Created(c, fiber.Map{
+		"id": insertedID,
+	}, "Resource created successfully")
 }
 
 // @Tags Resource
@@ -150,17 +130,13 @@ func ResourceCreate(c *fiber.Ctx) error {
 // @Router /resources/{id} [put]
 // @Security BearerAuth
 func ResourceUpdate(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/rscapi")
-	ctx, span := tracer.Start(ctx, "ResourceUpdate")
-	defer span.End()
-
-	log := logger.FromCtx(ctx, "rscapi", "ResourceUpdate")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.rscapi", "ResourceUpdate", "rscapi", "ResourceUpdate")
+	defer end()
 
 	id := strings.TrimSpace(c.Params("id"))
 	var body rscmod.ResourceUpsert
 	if err := c.BodyParser(&body); err != nil {
-		return httputil.FailBadRequest(c, "INVALID_BODY", "Invalid request body")
+		return httputil.FailBadRequest(c, "Invalid request body")
 	}
 	doc := rscmod.Resource{
 		CanonicalId: body.CanonicalId,
@@ -176,10 +152,10 @@ func ResourceUpdate(c *fiber.Ctx) error {
 	}
 
 	if err := rscsvc.ResourceUpdate(ctx, id, &doc); err != nil {
-		log.Error().Err(err).Str("id", id).Msg("❌ Update failed")
-		return httputil.FailInternalReason(c, "internal server error", "UPDATE_FAILED")
+		log.Error().Err(err).Str("id", id).Msg("Update failed")
+		return httputil.FailInternal(c, "update failed")
 	}
-	return c.JSON(doc)
+	return httputil.Ok(c, doc)
 }
 
 // @Tags Resource
@@ -192,17 +168,13 @@ func ResourceUpdate(c *fiber.Ctx) error {
 // @Router /resources/{id} [delete]
 // @Security BearerAuth
 func ResourceDelete(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/rscapi")
-	ctx, span := tracer.Start(ctx, "ResourceDelete")
-	defer span.End()
-
-	log := logger.FromCtx(ctx, "rscapi", "ResourceDelete")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.rscapi", "ResourceDelete", "rscapi", "ResourceDelete")
+	defer end()
 
 	id := strings.TrimSpace(c.Params("id"))
 	if err := rscsvc.ResourceDelete(ctx, id); err != nil {
-		log.Error().Err(err).Str("id", id).Msg("❌ Delete failed")
-		return httputil.FailInternalReason(c, "internal server error", "DELETE_FAILED")
+		log.Error().Err(err).Str("id", id).Msg("Delete failed")
+		return httputil.FailInternal(c, "delete failed")
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }

@@ -4,7 +4,6 @@ package devapi
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/devsvc"
 	"github.com/hotkhwan/gateway-api/models/devmod"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils"
 	"github.com/hotkhwan/gateway-api/utils/authutil"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -27,14 +26,14 @@ import (
 // @Router /devices [post]
 // @Security BearerAuth
 func DeviceCreate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/devapi", "devices.DeviceCreate", "devapi", "DeviceCreate")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devapi", "DeviceCreate", "devapi", "DeviceCreate")
+	defer end()
 	var req devmod.DeviceRequest
 
 	if err := c.BodyParser(&req); err != nil {
 		log.Error().
 			Err(err).Msg("❌ [DeviceCreate] Invalid request body")
-		return httputil.FailBadRequest(c, "INVALID_BODY", err.Error())
+		return httputil.FailBadRequest(c, "Invalid request body")
 	}
 
 	log.Info().
@@ -72,7 +71,7 @@ func DeviceCreate(c *fiber.Ctx) error {
 		log.Error().
 			Strs("missingFields", missing).
 			Msg("❌ [DeviceCreate] Missing required fields")
-		return httputil.FailBadRequest(c, "MISSING_FIELDS", "Missing required fields: "+authutil.JoinFields(missing))
+		return httputil.FailBadRequest(c, "Missing required fields: "+authutil.JoinFields(missing))
 	}
 
 	device := devmod.Device{
@@ -93,10 +92,10 @@ func DeviceCreate(c *fiber.Ctx) error {
 	if err != nil {
 		log.Error().
 			Err(err).Msg("❌ [DeviceCreate] Failed to create device")
-		return httputil.FailInternal(c, "CREATE_FAILED", err.Error())
+		return httputil.FailInternal(c, "Failed to create device")
 	}
 
 	log.Info().
 		Str("name", device.Name).Msg("✅ [DeviceCreate] Device created successfully")
-	return gmod.SendCreatedMessage(c, "DEVICE_CREATE_SUCCESS", "Device created successfully")
+	return httputil.Created(c, nil, "Device created successfully")
 }

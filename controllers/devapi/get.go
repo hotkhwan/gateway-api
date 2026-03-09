@@ -10,6 +10,7 @@ import (
 
 	"github.com/hotkhwan/gateway-api/internal/services/devsvc"
 	"github.com/hotkhwan/gateway-api/models/devmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
@@ -30,13 +31,8 @@ import (
 // @Router /devices [get]
 // @Security BearerAuth
 func DevicesList(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(
-		c.UserContext(),
-		"github.com/hotkhwan/gateway-api/devapi",
-		"devices.DevicesList",
-		"devapi", "DevicesList",
-	)
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devapi", "DevicesList", "devapi", "DevicesList")
+	defer end()
 
 	// 👀 ดูว่าปัจจุบัน middleware ยัดอะไรไว้ใน Locals("user")
 	rawUser := c.Locals("user")
@@ -115,10 +111,7 @@ func DevicesList(c *fiber.Ctx) error {
 	)
 	if err != nil {
 		log.Error().Err(err).Msg("❌ [DevicesList] failed to list devices")
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  false,
-			"message": "failed to list devices",
-		})
+		return httputil.FailInternal(c, "failed to list devices")
 	}
 
 	// แปลง gmod.Pagination -> devmod.Pagination
@@ -148,19 +141,14 @@ func DevicesList(c *fiber.Ctx) error {
 }
 
 func DevicesListWithPermission(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(
-		c.UserContext(),
-		"github.com/hotkhwan/gateway-api/devapi",
-		"devices.DevicesList",
-		"devapi", "DevicesList",
-	)
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devapi", "DevicesListWithPermission", "devapi", "DevicesListWithPermission")
+	defer end()
 
 	// 👀 ดูว่าปัจจุบัน middleware ยัดอะไรไว้ใน Locals("user")
 	rawUser := c.Locals("user")
 	log.Debug().
 		Interface("auth_user_locals", rawUser).
-		Msg("🔐 [DevicesList] user from context")
+		Msg("🔐 [DevicesListWithPermission] user from context")
 
 	// แปลงเป็น map[string]interface{} ให้ devapi ใช้ง่าย
 	var claims map[string]interface{}
@@ -170,10 +158,10 @@ func DevicesListWithPermission(c *fiber.Ctx) error {
 	case jwt.MapClaims:
 		claims = map[string]interface{}(v)
 	case nil:
-		log.Warn().Msg("⚠️ [DevicesList] c.Locals(\"user\") is nil")
+		log.Warn().Msg("⚠️ [DevicesListWithPermission] c.Locals(\"user\") is nil")
 	default:
 		log.Warn().
-			Msgf("⚠️ [DevicesList] c.Locals(\"user\") is type %T, cannot cast", v)
+			Msgf("⚠️ [DevicesListWithPermission] c.Locals(\"user\") is type %T, cannot cast", v)
 	}
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -213,7 +201,7 @@ func DevicesListWithPermission(c *fiber.Ctx) error {
 			filters["userId"] = sub // เผื่ออยากใช้ filter per-user ภายหลัง
 		}
 	} else {
-		log.Warn().Msg("⚠️ [DevicesList] claims is nil, permission filter will be skipped")
+		log.Warn().Msg("⚠️ [DevicesListWithPermission] claims is nil, permission filter will be skipped")
 	}
 
 	log.Debug().
@@ -222,7 +210,7 @@ func DevicesListWithPermission(c *fiber.Ctx) error {
 		Str("sortField", sortField).
 		Str("sortOrder", sortOrder).
 		Interface("filters", filters).
-		Msg("📦 [DevicesList] Fetching device list")
+		Msg("📦 [DevicesListWithPermission] Fetching device list")
 
 	// service คืน: []Device, gmod.Pagination, online, offline, error
 	// devs, pag, online, offline, err := devsvc.DevicesList(
@@ -236,11 +224,8 @@ func DevicesListWithPermission(c *fiber.Ctx) error {
 		ctx, "", page, perPages, filters, sortField, sortOrder,
 	)
 	if err != nil {
-		log.Error().Err(err).Msg("❌ [DevicesList] failed to list devices")
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  false,
-			"message": "failed to list devices",
-		})
+		log.Error().Err(err).Msg("❌ [DevicesListWithPermission] failed to list devices")
+		return httputil.FailInternal(c, "failed to list devices")
 	}
 
 	// แปลง gmod.Pagination -> devmod.Pagination

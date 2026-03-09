@@ -4,6 +4,7 @@ package dashapi
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/dashsvc"
 	"github.com/hotkhwan/gateway-api/models/dashmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
@@ -21,30 +22,25 @@ import (
 // @Router /dashboard/blacklist/{id} [patch]
 // @Security BearerAuth
 func UpdateBlacklist(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(
-		c.UserContext(),
-		"github.com/hotkhwan/gateway-api/dashapi",
-		"dashboard.UpdateBlacklist",
-		"dashapi", "UpdateBlacklist",
-	)
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.dashapi", "Dashboard.UpdateBlacklist", "dashapi", "UpdateBlacklist")
+	defer end()
 
 	id := c.Params("id")
 	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": false, "message": "id is required"})
+		return httputil.FailBadRequest(c, "id is required")
 	}
 
 	var body dashmod.UpdateBlacklistReq
 	if err := c.BodyParser(&body); err != nil {
 		log.Error().Err(err).Msg("❌ invalid body")
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": false, "message": "invalid request body"})
+		return httputil.FailBadRequest(c, "invalid request body")
 	}
 	body.ID = id
 
 	if err := dashsvc.UpdateBlacklistEvent(ctx, body); err != nil {
 		log.Error().Err(err).Msg("❌ failed to update blacklist")
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": false, "message": err.Error()})
+		return httputil.FailBadRequest(c, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"status": true, "message": "blacklist updated"})
+	return httputil.MessageOK(c, "blacklist updated")
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
 	"github.com/hotkhwan/gateway-api/models/kwatmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
@@ -23,25 +24,19 @@ import (
 // @Router   /watchlists/exports [post]
 // @Security BearerAuth
 func CreateWatchlistExport(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.Context(), "github.com/hotkhwan/gateway-api/kwatapi", "CreateExport", "kwatapi", "export-create")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Export.CreateWatchlistExport", "kwatapi", "CreateWatchlistExport")
 	defer end()
 
 	var p kwatmod.ExportWatchlistParams
 	if err := c.QueryParser(&p); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return httputil.FailBadRequest(c, err.Error())
 	}
 	jobID, err := kwatsvc.StartWatchlistExport(ctx, p)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Error().Err(err).Msg("failed to start watchlist export")
+		return httputil.FailInternal(c, "Failed to start export job")
 	}
-	return c.Status(http.StatusAccepted).JSON(fiber.Map{
-		"status":  true,
-		"code":    "ACCEPTED",
-		"message": "Export job accepted",
-		"data": fiber.Map{
-			"jobId": jobID,
-		},
-	})
+	return httputil.Accepted(c, fiber.Map{"jobId": jobID}, "Export job accepted")
 }
 
 // @Summary  Get export job status
@@ -52,15 +47,15 @@ func CreateWatchlistExport(c *fiber.Ctx) error {
 // @Router   /watchlist/exports/jobs/{id} [get]
 // @Security BearerAuth
 func GetExportJob(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.Context(), "github.com/hotkhwan/gateway-api/kwatapi", "GetJob", "kwatapi", "export-get")
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Export.GetExportJob", "kwatapi", "GetExportJob")
 	defer end()
 
 	id := c.Params("id")
 	job, err := kwatsvc.GetJob(ctx, id)
 	if err != nil {
-		return fiber.NewError(fiber.StatusNotFound, err.Error())
+		return httputil.FailNotFound(c, "Export job not found")
 	}
-	return c.JSON(job)
+	return httputil.Ok(c, job, "Export job retrieved")
 }
 
 // @Summary  Download exported watchlist zip
@@ -71,16 +66,16 @@ func GetExportJob(c *fiber.Ctx) error {
 // @Router   /watchlist/exports/{id} [get]
 // @Security BearerAuth
 func DownloadExport(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.Context(), "github.com/hotkhwan/gateway-api/kwatapi", "Download", "kwatapi", "export-download")
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Export.DownloadExport", "kwatapi", "DownloadExport")
 	defer end()
 
 	id := c.Params("id")
 	job, err := kwatsvc.GetJob(ctx, id)
 	if err != nil {
-		return fiber.NewError(fiber.StatusNotFound, err.Error())
+		return httputil.FailNotFound(c, "Export job not found")
 	}
 	if job.Status != kwatmod.ExportStatusSucceeded || job.Result == nil || job.Result.URL == "" {
-		return fiber.NewError(fiber.StatusAccepted, "file is not ready yet")
+		return httputil.Accepted(c, nil, "file is not ready yet")
 	}
 	c.Set("Location", job.Result.URL)
 	return c.Status(http.StatusFound).Send(nil) // 302

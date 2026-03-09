@@ -1,4 +1,4 @@
-// controllers/fileapi/imageProxy.go
+// controllers/fileapi/filesProxy.go
 package fileapi
 
 import (
@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/hotkhwan/gateway-api/internal/repo/stos3minio"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-// controllers/fileapi/filesProxy.go
 // GetImage godoc
 // @Summary      Proxy image from S3/MinIO
 // @Description  Proxy private image from S3/MinIO โดย key จะเป็น path (ต้อง URL-encode ถ้ามี / หรือ space)
@@ -28,18 +28,12 @@ import (
 // @Security     BearerAuth
 // @Router       /image/{key} [get]
 func ProxyFiles(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(
-		c.UserContext(),
-		"github.com/hotkhwan/gateway-api/fileapi",
-		"file.ProxyFiles",
-		"fileapi",
-		"ProxyFiles",
-	)
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.fileapi", "file.ProxyFiles", "fileapi", "ProxyFiles")
+	defer end()
 
 	raw := strings.TrimSpace(c.Params("*"))
 	if raw == "" {
-		return c.Status(fiber.StatusBadRequest).SendString("missing key")
+		return httputil.FailBadRequest(c, "missing key")
 	}
 
 	// raw: "ata-feature/images/60038008431d6040/6937d7480fcda07b918bfa13/0.jpg"
@@ -47,7 +41,7 @@ func ProxyFiles(c *fiber.Ctx) error {
 	parts := strings.SplitN(raw, "/", 2)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 		log.Warn().Str("raw", raw).Msg("invalid image path (need bucket/key)")
-		return c.Status(fiber.StatusBadRequest).SendString("invalid image path")
+		return httputil.FailBadRequest(c, "invalid image path")
 	}
 
 	bucket := parts[0]
@@ -67,7 +61,7 @@ func ProxyFiles(c *fiber.Ctx) error {
 			Err(err).
 			Str("bucket", bucket).
 			Str("key", key).
-			Msg("❌ DownloadByKey failed")
+			Msg("DownloadByKey failed")
 		return c.SendStatus(fiber.StatusBadGateway)
 	}
 

@@ -10,6 +10,8 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/repo/devicerepo"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 type OrgUnitResourcesController struct {
@@ -57,6 +59,9 @@ type ouResourceBulkResponse struct {
 // ============================================================
 
 func (ctrl *OrgUnitResourcesController) ListResourceGroups(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitResourcesController.ListResourceGroups", "authzapi", "ListResourceGroups")
+	defer end()
+
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	unitId := c.Params("unitId")
@@ -96,15 +101,15 @@ func (ctrl *OrgUnitResourcesController) ListResourceGroups(c *fiber.Ctx) error {
 func handleOUResourceErr(c *fiber.Ctx, err error) error {
 	switch {
 	case errors.Is(err, devicesvc.ErrForbidden):
-		return c.Status(403).JSON(gmod.ApiErrorResponse{Code: gmod.CodeForbidden, Message: "forbidden", Status: false})
+		return httputil.FailForbidden(c, "forbidden")
 	case errors.Is(err, devicesvc.ErrInvalidArgs):
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: err.Error(), Status: false})
+		return httputil.FailBadRequest(c, err.Error())
 	case errors.Is(err, devicesvc.ErrPermifySyncFailed):
-		return c.Status(502).JSON(gmod.ApiErrorResponse{Code: "PERMIFY_SYNC_FAILED", Message: "authorization sync failed", Status: false})
+		return httputil.Fail(c, 502, "PERMIFY_SYNC_FAILED", "authorization sync failed")
 	case errors.Is(err, devicerepo.ErrNotFound):
-		return c.Status(404).JSON(gmod.ApiErrorResponse{Code: gmod.CodeNotFound, Message: "not found", Status: false})
+		return httputil.FailNotFound(c, "not found")
 	default:
-		return c.Status(500).JSON(gmod.ApiErrorResponse{Code: gmod.CodeInternalError, Message: "internal server error", Status: false})
+		return httputil.FailInternal(c, "internal server error")
 	}
 }
 
@@ -124,6 +129,9 @@ func handleOUResourceErr(c *fiber.Ctx, err error) error {
 // ============================================================
 
 func (ctrl *OrgUnitResourcesController) AssignResourceGroups(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitResourcesController.AssignResourceGroups", "authzapi", "AssignResourceGroups")
+	defer end()
+
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	userId, _ := c.Locals("userId").(string)
@@ -131,13 +139,13 @@ func (ctrl *OrgUnitResourcesController) AssignResourceGroups(c *fiber.Ctx) error
 
 	var body ouResourceGroupsBody
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body", Status: false})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if body.Relation == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "relation is required", Status: false})
+		return httputil.FailBadRequest(c, "relation is required")
 	}
 	if len(body.ResourceGroups) == 0 {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "resourceGroups is required", Status: false})
+		return httputil.FailBadRequest(c, "resourceGroups is required")
 	}
 
 	items := make([]devicesvc.OUGroupItem, 0, len(body.ResourceGroups))
@@ -147,7 +155,7 @@ func (ctrl *OrgUnitResourcesController) AssignResourceGroups(c *fiber.Ctx) error
 		}
 	}
 	if len(items) == 0 {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "no valid resourceGroup id provided", Status: false})
+		return httputil.FailBadRequest(c, "no valid resourceGroup id provided")
 	}
 
 	results, inserted, duplicates, err := ctrl.groupSvc.BulkAssignGroupsToOU(
@@ -190,6 +198,9 @@ func (ctrl *OrgUnitResourcesController) AssignResourceGroups(c *fiber.Ctx) error
 // ============================================================
 
 func (ctrl *OrgUnitResourcesController) RemoveResourceGroups(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitResourcesController.RemoveResourceGroups", "authzapi", "RemoveResourceGroups")
+	defer end()
+
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	userId, _ := c.Locals("userId").(string)
@@ -197,13 +208,13 @@ func (ctrl *OrgUnitResourcesController) RemoveResourceGroups(c *fiber.Ctx) error
 
 	var body ouResourceGroupsBody
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body", Status: false})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if body.Relation == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "relation is required", Status: false})
+		return httputil.FailBadRequest(c, "relation is required")
 	}
 	if len(body.ResourceGroups) == 0 {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "resourceGroups is required", Status: false})
+		return httputil.FailBadRequest(c, "resourceGroups is required")
 	}
 
 	items := make([]devicesvc.OUGroupItem, 0, len(body.ResourceGroups))
@@ -213,7 +224,7 @@ func (ctrl *OrgUnitResourcesController) RemoveResourceGroups(c *fiber.Ctx) error
 		}
 	}
 	if len(items) == 0 {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "no valid resourceGroup id provided", Status: false})
+		return httputil.FailBadRequest(c, "no valid resourceGroup id provided")
 	}
 
 	results, removed, err := ctrl.groupSvc.BulkRemoveGroupsFromOU(

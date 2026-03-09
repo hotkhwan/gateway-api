@@ -29,8 +29,8 @@ import (
 // @Router /ksearch/projects [post]
 // @Security BearerAuth
 func ProjectCreate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ProjectCreate", "kschapi", "ProjectCreate")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatProject.ProjectCreate", "kschapi", "ProjectCreate")
+	defer end()
 
 	var req kschmod.ProjectRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -73,8 +73,8 @@ func ProjectCreate(c *fiber.Ctx) error {
 // @Router /ksearch/projects [get]
 // @Security BearerAuth
 func ProjectList(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ProjectList", "kschapi", "ProjectList")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatProject.ProjectList", "kschapi", "ProjectList")
+	defer end()
 
 	userId, err := middleware.CurrentUserID(c)
 	if err != nil {
@@ -119,8 +119,8 @@ func ProjectList(c *fiber.Ctx) error {
 // @Router /ksearch/projects/{projectId} [get]
 // @Security BearerAuth
 func ProjectGetByID(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ProjectGetByID", "kschapi", "ProjectGetByID")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatProject.ProjectGetByID", "kschapi", "ProjectGetByID")
+	defer end()
 
 	projectId := c.Params("projectId")
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -171,8 +171,8 @@ func ProjectGetByID(c *fiber.Ctx) error {
 // @Router /ksearch/projects/{id} [put]
 // @Security BearerAuth
 func ProjectUpdate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "ProjectGetByID", "kschapi", "ProjectGetByID")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatProject.ProjectUpdate", "kschapi", "ProjectUpdate")
+	defer end()
 	id := c.Params("id")
 	var req kschmod.ProjectRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -209,14 +209,8 @@ func ProjectUpdate(c *fiber.Ctx) error {
 // @Router /ksearch/projects/{id} [delete]
 // @Security BearerAuth
 func ProjectDelete(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(
-		c.UserContext(),
-		"github.com/hotkhwan/gateway-api/kschapi",
-		"ProjectDelete",
-		"kschapi",
-		"ProjectDelete",
-	)
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatProject.ProjectDelete", "kschapi", "ProjectDelete")
+	defer end()
 
 	id := c.Params("id")
 	if err := kschsvc.ProjectDelete(ctx, id); err != nil {
@@ -230,5 +224,5 @@ func ProjectDelete(c *fiber.Ctx) error {
 	}
 
 	log.Info().Str("projectId", id).Msg("✅ ProjectDelete finished")
-	return gmod.SendMessageOK(c, "SUCCESS", "Chat deleted successfully")
+	return httputil.MessageOK(c, "Chat deleted successfully")
 }
