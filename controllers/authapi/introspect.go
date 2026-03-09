@@ -4,13 +4,12 @@ package authapi
 import (
 	"strings"
 
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/authsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
 )
 
 // Introspect godoc
@@ -27,12 +26,8 @@ import (
 // @Router       /auth/introspect [get]
 // @Security     BearerAuth
 func Introspect(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/authapi")
-	ctx, span := tracer.Start(ctx, "Auth.Introspect")
-	defer span.End()
-
-	log := logger.FromCtx(ctx, "authapi", "Introspect")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.authapi", "Introspect.Introspect", "authapi", "Introspect")
+	defer end()
 
 	authHeader := strings.TrimSpace(c.Get("Authorization"))
 	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
@@ -74,28 +69,25 @@ func Introspect(c *fiber.Ctx) error {
 
 	log.Debug().Msg("token introspect successful")
 
-	return c.Status(fiber.StatusOK).JSON(gmod.SuccessDetailResponse[gmod.IntrospectDetail]{
-		Detail: gmod.IntrospectDetail{
-			Active:            res.Active,
-			Sub:               res.Sub,
-			Given_name:        res.GivenName,
-			Family_name:       res.FamilyName,
-			PreferredUsername: res.PreferredUsername,
-			Username:          res.Username,
-			Avatar:            res.Avatar,
-			Email:             res.Email,
-			Locale:            res.Locale,
-			Exp:               res.Exp,
-			Scope:             res.Scope,
-			Role:              res.Role,
-			ZoomLevel:         res.ZoomLevel,
-			MapLocation: func() *gmod.MapLocation {
-				if res.MapLocation == nil {
-					return nil
-				}
-				return &gmod.MapLocation{Lat: res.MapLocation.Lat, Lng: res.MapLocation.Lng}
-			}(),
-		},
-		Status: true,
-	})
+	return httputil.Ok(c, gmod.IntrospectDetail{
+		Active:            res.Active,
+		Sub:               res.Sub,
+		Given_name:        res.GivenName,
+		Family_name:       res.FamilyName,
+		PreferredUsername: res.PreferredUsername,
+		Username:          res.Username,
+		Avatar:            res.Avatar,
+		Email:             res.Email,
+		Locale:            res.Locale,
+		Exp:               res.Exp,
+		Scope:             res.Scope,
+		Role:              res.Role,
+		ZoomLevel:         res.ZoomLevel,
+		MapLocation: func() *gmod.MapLocation {
+			if res.MapLocation == nil {
+				return nil
+			}
+			return &gmod.MapLocation{Lat: res.MapLocation.Lat, Lng: res.MapLocation.Lng}
+		}(),
+	}, "token introspect successful")
 }

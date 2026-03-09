@@ -4,7 +4,6 @@ package devapi
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/devsvc"
 	"github.com/hotkhwan/gateway-api/models/devmod"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
@@ -26,20 +25,20 @@ import (
 // @Router /devices/{id} [patch]
 // @Security BearerAuth
 func DeviceUpdate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/devapi", "devices.DeviceUpdate", "devapi", "DeviceUpdate")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devapi", "DeviceUpdate", "devapi", "DeviceUpdate")
+	defer end()
 	id := c.Params("id")
 	if id == "" {
 		log.Warn().
 			Msg("❌ [DeviceUpdate] Missing device ID")
-		return httputil.FailBadRequest(c, "DEVICE_MISSING_ID", "Missing device ID")
+		return httputil.FailBadRequest(c, "Missing device ID")
 	}
 
 	var req devmod.Device
 	if err := c.BodyParser(&req); err != nil {
 		log.Warn().
 			Str("deviceID", id).Msg("❌ [DeviceUpdate] Invalid request body")
-		return httputil.FailBadRequest(c, "DEVICE_INVALID_BODY", "Invalid request body")
+		return httputil.FailBadRequest(c, "Invalid request body")
 	}
 
 	log.Info().
@@ -52,10 +51,10 @@ func DeviceUpdate(c *fiber.Ctx) error {
 	if err := devsvc.DeviceUpdate(ctx, id, req); err != nil {
 		log.Error().
 			Err(err).Str("deviceID", id).Msg("❌ [DeviceUpdate] Failed to update device")
-		return httputil.FailInternal(c, "DEVICE_UPDATE_FAILED", err.Error())
+		return httputil.FailInternal(c, "Failed to update device")
 	}
 
 	log.Info().
 		Str("deviceID", id).Msg("✅ [DeviceUpdate] Device updated successfully")
-	return gmod.SendMessageOK(c, "DEVICE_UPDATE_SUCCESS", "Device updated successfully")
+	return httputil.MessageOK(c, "Device updated successfully")
 }

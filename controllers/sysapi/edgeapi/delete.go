@@ -4,9 +4,7 @@ package edgeapi
 import (
 	"strings"
 
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/systemsvc/edgesvc"
-	"github.com/hotkhwan/gateway-api/models/systemmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
@@ -26,16 +24,14 @@ import (
 // @Router /system/edge/{id} [delete]
 // @Security BearerAuth
 func DeleteEdge(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/edgeapi", "system.edge.Delete", "edgeapi", "DeleteEdge")
-	defer span.End()
-	_ = logger.FromCtx(ctx, "edgeapi", "DeleteEdge")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.edgeapi", "EdgeApi.DeleteEdge", "sysapi", "DeleteEdge")
+	defer end()
 
 	id := strings.TrimSpace(c.Params("id"))
 	if id == "" {
-		return httputil.FailBadRequest(c, "INVALID_ID", "missing id")
+		return httputil.FailBadRequest(c, "missing id")
 	}
 
-	// ✅ ดึงผู้ใช้จาก Locals("user") ของ AuthBearer (audit ของคุณก็ทำคล้าย ๆ นี้)
 	deletedBy := "unknown"
 	if u := c.Locals("user"); u != nil {
 		if m, ok := u.(map[string]any); ok {
@@ -48,19 +44,12 @@ func DeleteEdge(c *fiber.Ctx) error {
 	}
 
 	if err := edgesvc.SoftDeleteEdge(ctx, id, deletedBy); err != nil {
-		// SoftDeleteMany ถ้า filter ไม่ match จะไม่ error → แต่เรายังถือว่าควรตอบ 404 ได้
-		// วิธีง่าย: ถ้าคุณอยาก strict เพิ่ม matchedCount ต้องใช้ UpdateOne
-		// ตอนนี้ใช้ not found message แบบ conservative:
 		if strings.Contains(strings.ToLower(err.Error()), "not found") {
-			return httputil.FailBadRequest(c, "NOT_FOUND", "edge not found")
+			return httputil.FailNotFound(c, "edge not found")
 		}
 		log.Error().Err(err).Msg("delete edge failed")
 		return httputil.FailInternalReason(c, "internal server error", "DELETE_FAILED")
 	}
 
-	return c.JSON(systemmod.EdgeDeleteSuccessResponse{
-		Code:    "SUCCESS",
-		Message: "edge deleted",
-		Status:  true,
-	})
+	return httputil.MessageOK(c, "edge deleted")
 }

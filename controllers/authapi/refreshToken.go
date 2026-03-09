@@ -2,13 +2,11 @@
 package authapi
 
 import (
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/authsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
 )
 
 // @Summary Refresh Token
@@ -23,12 +21,8 @@ import (
 // @Router /auth/refreshToken [post]
 // @Security BearerAuth
 func RefreshToken(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/authapi")
-	ctx, span := tracer.Start(ctx, "Auth.RefreshToken")
-	defer span.End()
-
-	log := logger.FromCtx(ctx, "authapi", "RefreshToken")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.authapi", "RefreshToken.RefreshToken", "authapi", "RefreshToken")
+	defer end()
 
 	var req struct {
 		RefreshToken string `json:"refresh_token"`
@@ -51,5 +45,5 @@ func RefreshToken(c *fiber.Ctx) error {
 	}
 
 	log.Debug().Msg("token refresh successful")
-	return gmod.SendSuccess(c, resp)
+	return httputil.Ok(c, resp)
 }

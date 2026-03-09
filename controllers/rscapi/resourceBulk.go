@@ -1,3 +1,4 @@
+// controllers/rscapi/resourceBulk.go
 package rscapi
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/services/rscsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/rscmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -23,6 +25,9 @@ import (
 // @Failure     500   {object} gmod.SuccessMessageBulkCreateResponse "Internal error"
 // @Router      /rsc/v1/resources/bulk [post]
 func BulkCreateResources(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.rscapi", "BulkCreateResources", "rscapi", "BulkCreateResources")
+	defer end()
+
 	var payload []rscmod.ResourceUpsert
 	if err := c.BodyParser(&payload); err != nil || len(payload) == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(gmod.SuccessMessageBulkCreateResponse{
@@ -41,6 +46,7 @@ func BulkCreateResources(c *fiber.Ctx) error {
 
 	result, err := rscsvc.ResourceBulkCreate(ctx, payload)
 	if err != nil {
+		log.Error().Err(err).Msg("bulk create failed")
 		return c.Status(fiber.StatusInternalServerError).JSON(gmod.SuccessMessageBulkCreateResponse{
 			Code:     "BULK_CREATE_FAILED",
 			Message:  err.Error(),

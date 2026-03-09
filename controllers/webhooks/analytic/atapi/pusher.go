@@ -11,11 +11,8 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hotkhwan/gateway-api/internal/kafka"
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/models/aimodel"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
@@ -24,15 +21,8 @@ import (
 // -------------------- ATA (JSON ตรง) --------------------
 
 func HandleATA(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/atapi")
-	ctx, span := tracer.Start(ctx, "webhook.HandleATA")
-	defer span.End()
-
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	}
-	log := logger.FromCtx(ctx, "atapi", "HandleATA")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.atapi", "HandleATA", "webhooks", "HandleATA")
+	defer end()
 
 	rawBody := c.Body()
 
@@ -80,29 +70,17 @@ func HandleATA(c *fiber.Ctx) error {
 
 	log.Debug().Str("key", key).Str("topic", topic).Msg("✅ ATA message published to Kafka")
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"status":  true,
-		"code":    "SUCCESS",
-		"message": "ata message queued",
-		"detail": fiber.Map{
-			"topic": topic,
-			"key":   key,
-		},
-	})
+	return httputil.Ok(c, fiber.Map{
+		"topic": topic,
+		"key":   key,
+	}, "ata message queued")
 }
 
 // -------------------- Pusher-style Envelope --------------------
 
 func HandlePusherEvent(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/atapi")
-	ctx, span := tracer.Start(ctx, "webhook.HandlePusherEvent")
-	defer span.End()
-
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	}
-	log := logger.FromCtx(ctx, "atapi", "HandlePusherEvent")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.atapi", "HandlePusherEvent", "webhooks", "HandlePusherEvent")
+	defer end()
 
 	// ==== Request meta (help debug) ====
 	ct := strings.ToLower(c.Get("Content-Type"))
@@ -238,17 +216,12 @@ func HandlePusherEvent(c *fiber.Ctx) error {
 		Str("event", env.Event).Str("channel", env.Channel).
 		Msg("✅ Pusher event published")
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"status":  true,
-		"code":    "SUCCESS",
-		"message": "pusher event queued",
-		"detail": fiber.Map{
-			"topic":   topic,
-			"key":     key,
-			"event":   env.Event,
-			"channel": env.Channel,
-		},
-	})
+	return httputil.Ok(c, fiber.Map{
+		"topic":   topic,
+		"key":     key,
+		"event":   env.Event,
+		"channel": env.Channel,
+	}, "pusher event queued")
 }
 
 // -------------------- Helpers --------------------

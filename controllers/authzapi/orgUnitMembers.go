@@ -7,6 +7,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
+	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 type AssignUsersRequest struct {
@@ -45,7 +48,9 @@ func buildBulkMessage(inserted int, removed int, duplicates int, errors int) str
 // controllers/authzapi/orgUnitMembers.go
 
 func (ctrl *OrgUnitController) ListMembers(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.ListMembers", "authzapi", "ListMembers")
+	defer end()
+
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	ouId := c.Params("id")
@@ -69,11 +74,11 @@ func (ctrl *OrgUnitController) ListMembers(c *fiber.Ctx) error {
 		SortOrder: sortOrder,
 	})
 	if err != nil {
-		return c.Status(403).JSON(fiber.Map{"code": "FORBIDDEN", "message": err.Error(), "status": false})
+		return httputil.FailForbidden(c, err.Error())
 	}
 
 	return c.JSON(fiber.Map{
-		"code":    "SUCCESS",
+		"code":    gmod.CodeSuccess,
 		"message": "OU members fetched",
 		"status":  true,
 		"details": res.Members,
@@ -109,8 +114,9 @@ func (ctrl *OrgUnitController) ListMembers(c *fiber.Ctx) error {
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/units/{id}/members [post]
 func (ctrl *OrgUnitController) AssignMembers(c *fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.AssignMembers", "authzapi", "AssignMembers")
+	defer end()
 
-	ctx := c.UserContext()
 	tenantId, _ := c.Locals("tenantId").(string)
 	callerUserId, _ := c.Locals("userId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
@@ -118,18 +124,14 @@ func (ctrl *OrgUnitController) AssignMembers(c *fiber.Ctx) error {
 
 	var req AssignUsersRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"code":    "INVALID_REQUEST",
-			"message": "invalid body",
-			"status":  false,
-		})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 
 	results, inserted, duplicates, err := ctrl.service.AssignUsersToOU(
 		ctx, tenantId, orgId, ouId, callerUserId, req.Users,
 	)
 	if err != nil {
-		return c.Status(403).JSON(fiber.Map{"code": "FORBIDDEN", "message": err.Error(), "status": false})
+		return httputil.FailForbidden(c, err.Error())
 	}
 
 	// ✅ นับ error = failed ที่ไม่ใช่ duplicate
@@ -141,7 +143,7 @@ func (ctrl *OrgUnitController) AssignMembers(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(OUBulkResponse{
-		Code:    "SUCCESS",
+		Code:    gmod.CodeSuccess,
 		Message: buildBulkMessage(inserted, 0, duplicates, errorCount),
 		Details: results,
 		Status:  true,
@@ -169,8 +171,9 @@ func (ctrl *OrgUnitController) AssignMembers(c *fiber.Ctx) error {
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/units/{id}/members [patch]
 func (ctrl *OrgUnitController) RemoveMembers(c *fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.RemoveMembers", "authzapi", "RemoveMembers")
+	defer end()
 
-	ctx := c.UserContext()
 	tenantId, _ := c.Locals("tenantId").(string)
 	callerUserId, _ := c.Locals("userId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
@@ -178,18 +181,14 @@ func (ctrl *OrgUnitController) RemoveMembers(c *fiber.Ctx) error {
 
 	var req RemoveUsersRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"code":    "INVALID_REQUEST",
-			"message": "invalid body",
-			"status":  false,
-		})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 
 	results, removed, err := ctrl.service.RemoveUsersFromOU(
 		ctx, tenantId, orgId, ouId, callerUserId, req.Users,
 	)
 	if err != nil {
-		return c.Status(403).JSON(fiber.Map{"code": "FORBIDDEN", "message": err.Error(), "status": false})
+		return httputil.FailForbidden(c, err.Error())
 	}
 
 	// ✅ นับ error = failed ที่ไม่ใช่ "user not in orgUnit"
@@ -201,7 +200,7 @@ func (ctrl *OrgUnitController) RemoveMembers(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(OUBulkResponse{
-		Code:    "SUCCESS",
+		Code:    gmod.CodeSuccess,
 		Message: buildBulkMessage(0, removed, 0, errorCount),
 		Details: results,
 		Status:  true,

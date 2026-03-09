@@ -9,8 +9,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
@@ -29,12 +27,11 @@ import (
 // @Security BearerAuth
 func SyncIbocWatchlist(c *fiber.Ctx) error {
 	// keep a short timeout only for building the immediate response
-	reqCtx, cancel := context.WithTimeout(c.Context(), 60*time.Second)
+	baseCtx, cancel := context.WithTimeout(c.UserContext(), 60*time.Second)
 	defer cancel()
 
-	tr := otel.Tracer("github.com/hotkhwan/gateway-api/kwatch")
-	reqCtx, span := tr.Start(reqCtx, "kwatapi.SyncIbocWatchlist", trace.WithSpanKind(trace.SpanKindServer))
-	defer span.End()
+	reqCtx, end, _ := traceutil.StartLite(baseCtx, "gateway.kwatapi", "SyncIboc.SyncIbocWatchlist", "kwatapi", "SyncIbocWatchlist")
+	defer end()
 
 	// correlation id = traceID (fallback to uuid)
 	traceID := traceutil.TraceIDFromCtx(reqCtx)
@@ -48,7 +45,7 @@ func SyncIbocWatchlist(c *fiber.Ctx) error {
 		Status:  true,
 		Code:    "ACCEPTED",
 		Message: "Sync IBOC task accepted",
-		Detail: gmod.JobInfo{
+		Details: gmod.JobInfo{
 			JobID:     jobID,
 			TraceID:   traceID,
 			MQTTTopic: "ui/msg/watchlist.iboc." + jobID,

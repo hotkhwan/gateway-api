@@ -1,11 +1,11 @@
 package memapi
 
 import (
+	"strings"
+
 	"github.com/hotkhwan/gateway-api/internal/services/memsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
-	"strings"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -24,8 +24,8 @@ import (
 // @Router /members [delete]
 // @Security BearerAuth
 func DeleteMember(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/memapi", "memapi.DeleteMember", "memapi", "DeleteMember")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.memapi", "memapi.DeleteMember", "memapi", "DeleteMember")
+	defer end()
 
 	memberId := strings.TrimSpace(c.Params("id"))
 	if memberId == "" {
@@ -40,5 +40,5 @@ func DeleteMember(c *fiber.Ctx) error {
 	}
 
 	log.Info().Str("memberId", memberId).Msg("✅ Member deleted")
-	return gmod.SendMessageOK(c, "MEMBER_DELETED", "Member deleted successfully")
+	return httputil.MessageOK(c, "Member deleted successfully", "MEMBER_DELETED")
 }

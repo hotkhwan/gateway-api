@@ -41,7 +41,7 @@ type AcceptedResponse struct {
 	Status  bool    `json:"status"`
 	Code    string  `json:"code"`
 	Message string  `json:"message"`
-	Detail  JobInfo `json:"detail"`
+	Details JobInfo `json:"details"`
 }
 
 type OrgListResponse struct {
@@ -234,7 +234,7 @@ type SuccessDataResponse struct {
 	Code    string      `json:"code"`
 	Message string      `json:"message"`
 	Status  bool        `json:"status"`
-	Detail  interface{} `json:"detail,omitempty"`
+	Details interface{} `json:"details,omitempty"`
 }
 
 type SuccessDetailResponseWithMSG struct {
@@ -253,14 +253,14 @@ type SuccessDetailsResponse struct {
 }
 
 type SuccessDetailResponse[T any] struct {
-	Detail T    `json:"detail"`
-	Status bool `json:"status"`
+	Details T    `json:"details"`
+	Status  bool `json:"status"`
 }
 
 // SuccessDetailResponseAny is a non-generic version for Swagger documentation
 type SuccessDetailResponseAny struct {
-	Detail interface{} `json:"detail"`
-	Status bool        `json:"status"`
+	Details interface{} `json:"details"`
+	Status  bool        `json:"status"`
 }
 
 type SuccessOptionsDetailResponse[T any] struct {
@@ -294,7 +294,7 @@ type NotFoundResponse struct {
 }
 
 type SuccessDetailResponseIntrospect struct {
-	Detail IntrospectDetail `json:"detail"`
+	Details IntrospectDetail `json:"details"`
 	Status bool             `json:"status"`
 }
 
@@ -303,7 +303,7 @@ type SuccessDetailResponseMenuAccess struct {
 	Code    string      `json:"code" example:"SUCCESS"`
 	Message string      `json:"message" example:"accessible menus fetched"`
 	Status  bool        `json:"status" example:"true"`
-	Detail  interface{} `json:"detail"`
+	Details interface{} `json:"details"`
 }
 
 // SuccessDetailResponseResourceAccess is the response for resource access endpoints
@@ -311,7 +311,7 @@ type SuccessDetailResponseResourceAccess struct {
 	Code    string      `json:"code" example:"SUCCESS"`
 	Message string      `json:"message" example:"accessible cameras fetched"`
 	Status  bool        `json:"status" example:"true"`
-	Detail  interface{} `json:"detail"`
+	Details interface{} `json:"details"`
 }
 
 // PaginatedResponse is a response with pagination metadata

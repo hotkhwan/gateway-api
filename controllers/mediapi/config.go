@@ -2,14 +2,15 @@
 package mediapi
 
 import (
-	"github.com/hotkhwan/gateway-api/config"
-	"github.com/hotkhwan/gateway-api/models/gmod"
-	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // ListConfig godoc
@@ -22,7 +23,8 @@ import (
 // @Router       /system/stream [get]
 // @Security     BearerAuth
 func ListConfig(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.mediapi", "ListConfig", "mediapi", "ListConfig")
+	defer end()
 
 	var opt bson.M
 	err := config.DB.
@@ -54,18 +56,15 @@ func ListConfig(c *fiber.Ctx) error {
 				}
 			}
 		}
+	} else {
+		log.Warn().Err(err).Msg("failed to read system.setting, using default TTL")
 	}
 
 	out := map[string]any{
 		"streamSessionTimeout": ttl,
 	}
 
-	return c.JSON(gmod.SuccessDetailResponseWithMSG{
-		Code:    "SUCCESS",
-		Status:  true,
-		Message: "OK",
-		Detail:  out,
-	})
+	return httputil.Ok(c, out)
 }
 
 // UpdateConfig godoc
@@ -81,7 +80,9 @@ func ListConfig(c *fiber.Ctx) error {
 // @Router       /system/stream/{id} [patch]
 // @Security     BearerAuth
 func UpdateConfig(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.mediapi", "UpdateConfig", "mediapi", "UpdateConfig")
+	defer end()
+
 	id := c.Params("id")
 
 	switch id {
@@ -95,11 +96,11 @@ func UpdateConfig(c *fiber.Ctx) error {
 		}
 
 		if err := c.BodyParser(&body); err != nil {
-			return httputil.FailBadRequest(c, "INVALID_BODY", err.Error())
+			return httputil.FailBadRequest(c, err.Error())
 		}
 
 		if body.MapLocation.Lat == "" || body.MapLocation.Lng == "" {
-			return httputil.FailBadRequest(c, "INVALID_BODY", "mapLocation.lat and mapLocation.lng are required")
+			return httputil.FailBadRequest(c, "mapLocation.lat and mapLocation.lng are required")
 		}
 
 		set := bson.M{
@@ -117,14 +118,11 @@ func UpdateConfig(c *fiber.Ctx) error {
 			options.Update().SetUpsert(true),
 		)
 		if err != nil {
-			return httputil.FailInternalReason(c, "INTERNAL_ERROR", "DB_ERROR")
+			log.Error().Err(err).Msg("DB update failed for mapLocation")
+			return httputil.FailInternal(c, "database error")
 		}
 
-		return c.JSON(gmod.SuccessMessageResponse{
-			Code:    "SUCCESS",
-			Message: "updated",
-			Status:  true,
-		})
+		return httputil.MessageOK(c, "updated")
 
 	case "system.zoomLevel":
 		var body struct {
@@ -132,11 +130,11 @@ func UpdateConfig(c *fiber.Ctx) error {
 		}
 
 		if err := c.BodyParser(&body); err != nil {
-			return httputil.FailBadRequest(c, "INVALID_BODY", err.Error())
+			return httputil.FailBadRequest(c, err.Error())
 		}
 
 		if body.ZoomLevel < 0 {
-			return httputil.FailBadRequest(c, "INVALID_BODY", "zoomLevel must be >= 0")
+			return httputil.FailBadRequest(c, "zoomLevel must be >= 0")
 		}
 
 		set := bson.M{
@@ -151,14 +149,11 @@ func UpdateConfig(c *fiber.Ctx) error {
 			options.Update().SetUpsert(true),
 		)
 		if err != nil {
-			return httputil.FailInternalReason(c, "INTERNAL_ERROR", "DB_ERROR")
+			log.Error().Err(err).Msg("DB update failed for zoomLevel")
+			return httputil.FailInternal(c, "database error")
 		}
 
-		return c.JSON(gmod.SuccessMessageResponse{
-			Code:    "SUCCESS",
-			Message: "updated",
-			Status:  true,
-		})
+		return httputil.MessageOK(c, "updated")
 
 	default:
 		// เดิม: streamSessionTimeout
@@ -167,7 +162,7 @@ func UpdateConfig(c *fiber.Ctx) error {
 		}
 
 		if err := c.BodyParser(&body); err != nil {
-			return httputil.FailBadRequest(c, "INVALID_BODY", err.Error())
+			return httputil.FailBadRequest(c, err.Error())
 		}
 
 		set := bson.M{
@@ -182,13 +177,10 @@ func UpdateConfig(c *fiber.Ctx) error {
 			options.Update().SetUpsert(true),
 		)
 		if err != nil {
-			return httputil.FailInternalReason(c, "INTERNAL_ERROR", "DB_ERROR")
+			log.Error().Err(err).Msg("DB update failed for streamSessionTimeout")
+			return httputil.FailInternal(c, "database error")
 		}
 
-		return c.JSON(gmod.SuccessMessageResponse{
-			Code:    "SUCCESS",
-			Message: "updated",
-			Status:  true,
-		})
+		return httputil.MessageOK(c, "updated")
 	}
 }

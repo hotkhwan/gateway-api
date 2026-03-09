@@ -3,7 +3,6 @@ package kschapi
 
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/kschsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
@@ -21,8 +20,8 @@ import (
 // @Router /kschapi/video/{id} [get]
 // @Security BearerAuth
 func VideoGetByID(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "search.VideoGetByID", "kschapi", "VideoGetByID")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "Video.VideoGetByID", "kschapi", "VideoGetByID")
+	defer end()
 
 	videoId := c.Params("videoId")
 	data, err := kschsvc.VideoGetByID(ctx, videoId)
@@ -31,7 +30,5 @@ func VideoGetByID(c *fiber.Ctx) error {
 		return httputil.FailNotFound(c, "NOT_FOUND", "Watchlist not found")
 	}
 
-	// ✅ read ใช้รูปแบบ SuccessDetailResponse<T>
-	return gmod.SendSuccess(c, data)
-	// return gmod.SendSuccess[kschmod.VideoResponse](c, data)
+	return httputil.Ok(c, data)
 }

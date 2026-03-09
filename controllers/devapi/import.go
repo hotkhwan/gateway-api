@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/hotkhwan/gateway-api/internal/services/devsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
@@ -28,8 +27,8 @@ import (
 // @Router       /devices/import [post]
 // @Security BearerAuth
 func DeviceTemplate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/devapi", "devices.DeviceTemplate", "devapi", "DeviceTemplate")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devapi", "DeviceTemplate", "devapi", "DeviceTemplate")
+	defer end()
 	log.Info().
 		Msg("📥 [DeviceTemplate] Incoming request")
 
@@ -37,7 +36,7 @@ func DeviceTemplate(c *fiber.Ctx) error {
 	if err != nil || len(form.File["file"]) == 0 {
 		log.Warn().
 			Err(err).Msg("❌ No file in request")
-		return httputil.FailBadRequest(c, "NO_FILE", "No file attached to the request")
+		return httputil.FailBadRequest(c, "No file attached to the request")
 	}
 
 	fileHeader := form.File["file"][0]
@@ -46,7 +45,7 @@ func DeviceTemplate(c *fiber.Ctx) error {
 	if err != nil {
 		log.Error().
 			Err(err).Msg("❌ Cannot open uploaded file")
-		return httputil.FailInternal(c, "FILE_READ_ERROR", "Unable to read uploaded file")
+		return httputil.FailInternal(c, "Unable to read uploaded file")
 	}
 	defer file.Close()
 
@@ -61,26 +60,26 @@ func DeviceTemplate(c *fiber.Ctx) error {
 	default:
 		log.Warn().
 			Str("ext", ext).Msg("❌ Unsupported file type")
-		return httputil.FailBadRequest(c, "INVALID_TYPE", "Unsupported file type")
+		return httputil.FailBadRequest(c, "Unsupported file type")
 	}
 
 	if err != nil {
 		log.Error().
 			Err(err).Msg("❌ Parse file error")
-		return httputil.FailBadRequest(c, "PARSE_ERROR", err.Error())
+		return httputil.FailBadRequest(c, err.Error())
 	}
 
 	if len(invalid) > 0 {
 		msg := fmt.Sprintf("Missing required fields in row(s): %s", strings.Join(invalid, ", "))
 		log.Warn().
 			Msg(msg)
-		return httputil.FailBadRequest(c, "INVALID_ROWS", msg)
+		return httputil.FailBadRequest(c, msg)
 	}
 	if len(duplicates) > 0 {
 		msg := fmt.Sprintf("Duplicate IP addresses: %s", strings.Join(duplicates, ", "))
 		log.Warn().
 			Msg(msg)
-		return httputil.FailBadRequest(c, "DUPLICATE_IP", msg)
+		return httputil.FailBadRequest(c, msg)
 	}
 
 	// 🔍 Check IPs already in DB
@@ -88,13 +87,13 @@ func DeviceTemplate(c *fiber.Ctx) error {
 	if err != nil {
 		log.Error().
 			Err(err).Msg("❌ Error checking existing IPs")
-		return httputil.FailInternal(c, "MONGO_QUERY_FAIL", "Failed to check IP duplication")
+		return httputil.FailInternal(c, "Failed to check IP duplication")
 	}
 	if len(existing) > 0 {
 		msg := fmt.Sprintf("Duplicate IPs found in DB: %s", strings.Join(existing, ", "))
 		log.Warn().
 			Msg(msg)
-		return httputil.FailBadRequest(c, "DB_DUPLICATE", msg)
+		return httputil.FailBadRequest(c, msg)
 	}
 
 	// ✅ Insert
@@ -102,10 +101,10 @@ func DeviceTemplate(c *fiber.Ctx) error {
 	if err != nil {
 		log.Error().
 			Err(err).Msg("❌ Mongo insert failed")
-		return httputil.FailInternal(c, "INSERT_FAIL", "MongoDB insert failed")
+		return httputil.FailInternal(c, "MongoDB insert failed")
 	}
 
 	log.Info().
 		Int("count", inserted).Msg("✅ Devices inserted successfully")
-	return gmod.SendMessageOK(c, "CREATE_SUCCESS", "Create devices successfully")
+	return httputil.MessageOK(c, "Create devices successfully")
 }

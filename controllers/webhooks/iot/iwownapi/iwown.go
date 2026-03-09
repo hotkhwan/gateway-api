@@ -10,25 +10,15 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hotkhwan/gateway-api/internal/kafka"
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/models/iwownmod"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 func HandleIwownPbUpload(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/iwownapi")
-	ctx, span := tracer.Start(ctx, "webhook.IwownPbUpload")
-	defer span.End()
-
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	}
-	log := logger.FromCtx(ctx, "iwownapi", "pb-upload")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.iwownapi", "HandleIwownPbUpload", "webhooks", "HandleIwownPbUpload")
+	defer end()
 
 	payload := c.Body()
 	if len(payload) == 0 {
@@ -141,15 +131,8 @@ func HandleIwownPbUpload(c *fiber.Ctx) error {
 }
 
 func HandleIwownAlarmUpload(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/iwown")
-	ctx, span := tracer.Start(ctx, "webhook.IwownAlarmUpload")
-	defer span.End()
-
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	}
-	log := logger.FromCtx(ctx, "iwown", "alarm-upload")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.iwownapi", "HandleIwownAlarmUpload", "webhooks", "HandleIwownAlarmUpload")
+	defer end()
 
 	payload := c.Body()
 	if len(payload) == 0 {
@@ -261,15 +244,8 @@ func HandleIwownAlarmUpload(c *fiber.Ctx) error {
 }
 
 func HandleIwownCallLogUpload(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/iwown")
-	ctx, span := tracer.Start(ctx, "webhook.IwownCallLogUpload")
-	defer span.End()
-
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	}
-	log := logger.FromCtx(ctx, "iwown", "calllog-upload")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.iwownapi", "HandleIwownCallLogUpload", "webhooks", "HandleIwownCallLogUpload")
+	defer end()
 
 	var req iwownmod.IwownDeviceCallLogs
 	if err := c.BodyParser(&req); err != nil {
@@ -309,15 +285,8 @@ func HandleIwownCallLogUpload(c *fiber.Ctx) error {
 }
 
 func HandleIwownDeviceInfoUpload(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/iwown")
-	ctx, span := tracer.Start(ctx, "webhook.IwownDeviceInfoUpload")
-	defer span.End()
-
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	}
-	log := logger.FromCtx(ctx, "iwown", "deviceinfo-upload")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.iwownapi", "HandleIwownDeviceInfoUpload", "webhooks", "HandleIwownDeviceInfoUpload")
+	defer end()
 
 	var req iwownmod.IwownDeviceInfo
 	if err := c.BodyParser(&req); err != nil {
@@ -357,15 +326,8 @@ func HandleIwownDeviceInfoUpload(c *fiber.Ctx) error {
 }
 
 func HandleIwownStatusNotify(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/iwown")
-	ctx, span := tracer.Start(ctx, "webhook.IwownStatusNotify")
-	defer span.End()
-
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	}
-	log := logger.FromCtx(ctx, "iwown", "status-notify")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.iwownapi", "HandleIwownStatusNotify", "webhooks", "HandleIwownStatusNotify")
+	defer end()
 
 	var req iwownmod.IwownDeviceStatus
 	if err := c.BodyParser(&req); err != nil {
@@ -405,15 +367,8 @@ func HandleIwownStatusNotify(c *fiber.Ctx) error {
 }
 
 func HandleIwownHealthSleep(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/iwown")
-	ctx, span := tracer.Start(ctx, "webhook.IwownHealthSleep")
-	defer span.End()
-
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	}
-	log := logger.FromCtx(ctx, "iwown", "health-sleep")
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.iwownapi", "HandleIwownHealthSleep", "webhooks", "HandleIwownHealthSleep")
+	defer end()
 
 	deviceid := c.Query("deviceid")
 	sleepDate := c.Query("sleep_date")

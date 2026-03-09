@@ -10,7 +10,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hotkhwan/gateway-api/internal/gateways/mediagw"
 	"github.com/hotkhwan/gateway-api/internal/kafka"
@@ -24,15 +23,8 @@ import (
 
 // ---------- onPlay ----------
 func OnPlay(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/streamzkt")
-	ctx, span := tracer.Start(ctx, "webhook.OnPlay")
-	defer span.End()
-
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	}
-	log := logger.FromCtx(ctx, "streamzkt", "OnPlay")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.streamzkt", "OnPlay", "webhooks", "OnPlay")
+	defer end()
 
 	var req zktmod.ZlmOnPlayReq
 	if err := c.BodyParser(&req); err != nil {
@@ -84,15 +76,8 @@ func OnPlay(c *fiber.Ctx) error {
 
 // ---------- onPublish ----------
 func OnPublish(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/streamzkt")
-	ctx, span := tracer.Start(ctx, "webhook.OnPublish")
-	defer span.End()
-
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	}
-	log := logger.FromCtx(ctx, "streamzkt", "OnPublish")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.streamzkt", "OnPublish", "webhooks", "OnPublish")
+	defer end()
 
 	var req zktmod.ZlmOnPublishReq
 	if err := c.BodyParser(&req); err != nil {
@@ -158,15 +143,8 @@ func getMediaClient() *mediagw.Client {
 }
 
 func OnStreamNoneReader(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/streamzkt")
-	ctx, span := tracer.Start(ctx, "webhook.OnStreamNoneReader")
-	defer span.End()
-
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	}
-	log := logger.FromCtx(ctx, "streamzkt", "OnStreamNoneReader")
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.streamzkt", "OnStreamNoneReader", "webhooks", "OnStreamNoneReader")
+	defer end()
 
 	var req zktmod.ZlmOnStreamNoneReaderReq
 	if err := c.BodyParser(&req); err != nil {
@@ -251,15 +229,8 @@ func OnStreamNoneReader(c *fiber.Ctx) error {
 
 // ---------- onStreamNotFound ----------
 func OnStreamNotFound(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/streamzkt")
-	ctx, span := tracer.Start(ctx, "webhook.OnStreamNotFound")
-	defer span.End()
-
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
-		ctx = traceutil.WithTraceID(ctx, sc.TraceID().String())
-	}
-	log := logger.FromCtx(ctx, "streamzkt", "OnStreamNotFound")
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.streamzkt", "OnStreamNotFound", "webhooks", "OnStreamNotFound")
+	defer end()
 
 	var req zktmod.OnStreamNotFoundReq
 	if err := c.BodyParser(&req); err != nil {

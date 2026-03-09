@@ -31,14 +31,8 @@ import (
 // @Router /ksearch/chat [post]
 // @Security BearerAuth
 func ChatMessage(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(
-		c.UserContext(),
-		"github.com/hotkhwan/gateway-api/kschapi",
-		"search.ChatMessage",
-		"kschapi",
-		"ChatMessage",
-	)
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatMessage.ChatMessage", "kschapi", "ChatMessage")
+	defer end()
 
 	var req kschmod.LLMRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -54,7 +48,7 @@ func ChatMessage(c *fiber.Ctx) error {
 	ch, err := kschsvc.ChatMessage(ctx, req)
 	if err != nil {
 		log.Error().Err(err).Msg("💥 ChatMessage failed to start")
-		return c.Status(500).JSON(fiber.Map{"error": "ChatMessage start failed"})
+		return httputil.FailInternal(c, "INTERNAL_ERROR", "ChatMessage start failed")
 	}
 
 	// SSE headers
@@ -89,14 +83,8 @@ func ChatMessage(c *fiber.Ctx) error {
 // @Router /ksearch/chats/{chatId}/messages [post]
 // @Security BearerAuth
 func MessageCreateStream(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(
-		c.UserContext(),
-		"github.com/hotkhwan/gateway-api/kschapi",
-		"MessageCreateStream",
-		"kschapi",
-		"MessageCreateStream",
-	)
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatMessage.MessageCreateStream", "kschapi", "MessageCreateStream")
+	defer end()
 
 	userId, err := middleware.CurrentUserID(c)
 	if err != nil {
@@ -108,7 +96,7 @@ func MessageCreateStream(c *fiber.Ctx) error {
 		Prompt string `json:"prompt"`
 	}
 	if err := c.BodyParser(&body); err != nil || body.Prompt == "" {
-		return c.Status(400).JSON(fiber.Map{"error": "invalid body"})
+		return httputil.FailBadRequest(c, "BAD_REQUEST", "invalid body")
 	}
 
 	// SSE headers
@@ -149,8 +137,8 @@ func MessageCreateStream(c *fiber.Ctx) error {
 // @Router /ksearch/chats/{chatId}/messages [get]
 // @Security BearerAuth
 func MessageList(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "message.List", "kschapi", "MessageList")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatMessage.MessageList", "kschapi", "MessageList")
+	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage, _ := strconv.Atoi(c.Query("perPage", "10"))
@@ -188,8 +176,8 @@ func MessageList(c *fiber.Ctx) error {
 // @Router /ksearch/chats/{chatId}/messages/{messageId} [patch]
 // @Security BearerAuth
 func MessageUpdate(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/kschapi", "MessageUpdate", "kschapi", "MessageUpdate")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatMessage.MessageUpdate", "kschapi", "MessageUpdate")
+	defer end()
 
 	chatId := c.Params("chatId")
 	messageId := c.Params("messageId")

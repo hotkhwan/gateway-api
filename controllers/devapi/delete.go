@@ -3,7 +3,6 @@ package devapi
 
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/devsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
@@ -23,13 +22,13 @@ import (
 // @Router /devices/{id} [delete]
 // @Security BearerAuth
 func DeviceDelete(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/devapi", "devices.DeviceDelete", "devapi", "DeviceDelete")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devapi", "DeviceDelete", "devapi", "DeviceDelete")
+	defer end()
 	id := c.Params("id")
 	if id == "" {
 		log.Warn().
 			Msg("❌ [DeviceDelete] Missing device ID in URL path")
-		return httputil.FailBadRequest(c, "MISSING_ID", "Missing device ID")
+		return httputil.FailBadRequest(c, "Missing device ID")
 	}
 
 	log.Info().
@@ -38,10 +37,10 @@ func DeviceDelete(c *fiber.Ctx) error {
 	if err := devsvc.DeviceDelete(ctx, id); err != nil {
 		log.Error().
 			Err(err).Str("deviceID", id).Msg("❌ [DeviceDelete] Failed to delete device")
-		return httputil.FailInternal(c, "DELETE_FAILED", err.Error())
+		return httputil.FailInternal(c, "Failed to delete device")
 	}
 
 	log.Info().
 		Str("deviceID", id).Msg("✅ [DeviceDelete] Device soft-deleted successfully")
-	return gmod.SendMessageOK(c, "DEVICE_DELETE_SUCCESS", "Device soft-deleted")
+	return httputil.MessageOK(c, "Device soft-deleted successfully")
 }

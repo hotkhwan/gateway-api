@@ -2,13 +2,12 @@
 package thirdapi
 
 import (
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/thirdsvc"
 	"github.com/hotkhwan/gateway-api/models/thirdmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
 )
 
 // @Summary Get access token via client_credentials
@@ -21,12 +20,8 @@ import (
 // @Failure 401 {object} gmod.UnauthorizedResponse
 // @Router /token/api/clientCredentials [post]
 func ClientCredentialsToken(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/thirdapi")
-	ctx, span := tracer.Start(ctx, "ThirdAPI.ClientCredentialsToken")
-	defer span.End()
-
-	log := logger.FromCtx(ctx, "thirdapi", "ClientCredentialsToken")
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.thirdapi", "ThirdAPI.ClientCredentialsToken", "thirdapi", "ClientCredentialsToken")
+	defer end()
 
 	var req thirdmod.ClientCredentialsReq
 	if err := c.BodyParser(&req); err != nil {

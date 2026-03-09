@@ -3,8 +3,9 @@ package kctrlapi
 
 import (
 	"github.com/hotkhwan/gateway-api/internal/services/kctrlsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/kctrlmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -23,29 +24,24 @@ import (
 // @Failure      500   {object}  gmod.ErrorResponse
 // @Router       /kcontrol/alarms/{id}/resolved [patch]
 func ResolvedAlarm(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.ResolvedAlarm", "kctrlapi", "ResolvedAlarm")
+	defer end()
+
 	id := c.Params("id")
 	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(gmod.ErrorResponse{
-			Code: "INVALID_ID", Message: "missing id", Status: false,
-		})
+		return httputil.FailBadRequest(c, "missing id")
 	}
 
 	var req kctrlmod.ResolvedAlarmRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(gmod.ErrorResponse{
-			Code: "BAD_REQUEST", Message: err.Error(), Status: false,
-		})
+		return httputil.FailBadRequest(c, err.Error())
 	}
 
 	res, err := kctrlsvc.ResolvedAlarm(c.UserContext(), id, req, c)
 	if err != nil {
-		// คุณอาจ map error เป็น code เฉพาะเพิ่มเองได้
-		return c.Status(fiber.StatusBadRequest).JSON(gmod.ErrorResponse{
-			Code: "ERROR", Message: err.Error(), Status: false,
-		})
+		log.Error().Err(err).Str("id", id).Msg("ResolvedAlarm failed")
+		return httputil.FailBadRequest(c, err.Error())
 	}
 
-	return c.JSON(gmod.SuccessDetailResponseWithMSG{
-		Code: "SUCCESS", Message: "OK", Status: true, Detail: res,
-	})
+	return httputil.Ok(c, res, "OK")
 }

@@ -5,6 +5,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // ✅ DI struct
@@ -17,6 +19,9 @@ func NewAuthzDebugController(svc *authzsvc.AuthzDebugService) *AuthzDebugControl
 }
 
 func (ctrl *AuthzDebugController) ListPermifyTuples(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.ListPermifyTuples", "authzapi", "ListPermifyTuples")
+	defer end()
+
 	tenantId := c.Query("tenantId", "")
 	filter := authzsvc.PermifyTupleFilter{
 		EntityType:      c.Query("entityType", ""),
@@ -30,7 +35,7 @@ func (ctrl *AuthzDebugController) ListPermifyTuples(c *fiber.Ctx) error {
 
 	res, err := ctrl.debugService.ListPermifyTuples(c.Context(), tenantId, filter)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{Code: gmod.CodeInternalError, Message: err.Error(), Status: false})
+		return httputil.FailInternal(c, err.Error())
 	}
 
 	return c.JSON(fiber.Map{
@@ -41,142 +46,168 @@ func (ctrl *AuthzDebugController) ListPermifyTuples(c *fiber.Ctx) error {
 }
 
 func (ctrl *AuthzDebugController) FactoryResetPermifyTuples(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.FactoryResetPermifyTuples", "authzapi", "FactoryResetPermifyTuples")
+	defer end()
+
 	var body struct {
 		TenantId   string `json:"tenantId"`
 		EntityType string `json:"entityType"`
 	}
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "Invalid request body", Status: false})
+		return httputil.FailBadRequest(c, "Invalid request body")
 	}
 	if body.TenantId == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "tenantId is required", Status: false})
+		return httputil.FailBadRequest(c, "tenantId is required")
 	}
 
 	deleted, err := ctrl.debugService.FactoryResetPermifyTuples(c.Context(), body.TenantId, body.EntityType)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{Code: gmod.CodeInternalError, Message: err.Error(), Status: false})
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "message": "Factory reset completed", "status": true,
-		"details": fiber.Map{"deletedCount": deleted}})
+	return httputil.Ok(c, fiber.Map{"deletedCount": deleted}, "Factory reset completed")
 }
 
 func (ctrl *AuthzDebugController) ProveUserOrgsAgainstMongo(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.ProveUserOrgsAgainstMongo", "authzapi", "ProveUserOrgsAgainstMongo")
+	defer end()
+
 	tenantId := c.Query("tenantId", "")
 	userId, _ := c.Locals("userId").(string)
 
 	res, err := ctrl.debugService.ProveUserOrgsAgainstMongo(c.Context(), tenantId, userId)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{Code: gmod.CodeInternalError, Message: err.Error(), Status: false})
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "message": "Prove completed", "status": true, "details": res})
+	return httputil.Ok(c, res, "Prove completed")
 }
 
 func (ctrl *AuthzDebugController) ResetAllTuples(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.ResetAllTuples", "authzapi", "ResetAllTuples")
+	defer end()
+
 	var body struct {
 		TenantId   string `json:"tenantId"`
 		EntityType string `json:"entityType"`
 	}
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "Invalid request body", Status: false})
+		return httputil.FailBadRequest(c, "Invalid request body")
 	}
 
 	res, err := ctrl.debugService.ResetPermifyTuplesAll(c.Context(), body.TenantId, body.EntityType)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{Code: gmod.CodeInternalError, Message: err.Error(), Status: false})
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "message": "Reset all tuples completed", "status": true, "details": res})
+	return httputil.Ok(c, res, "Reset all tuples completed")
 }
 
 func (ctrl *AuthzDebugController) ResetTuplesByUser(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.ResetTuplesByUser", "authzapi", "ResetTuplesByUser")
+	defer end()
+
 	var body struct {
 		TenantId string `json:"tenantId"`
 		UserId   string `json:"userId"`
 	}
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "Invalid request body", Status: false})
+		return httputil.FailBadRequest(c, "Invalid request body")
 	}
 
 	res, err := ctrl.debugService.ResetPermifyTuplesByUser(c.Context(), body.TenantId, body.UserId)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{Code: gmod.CodeInternalError, Message: err.Error(), Status: false})
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "message": "Reset tuples by user completed", "status": true, "details": res})
+	return httputil.Ok(c, res, "Reset tuples by user completed")
 }
 
 func (ctrl *AuthzDebugController) ListTuplesByUser(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.ListTuplesByUser", "authzapi", "ListTuplesByUser")
+	defer end()
+
 	tenantId := c.Query("tenantId", "")
 	userId := c.Query("userId", "")
 	if userId == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "userId is required", Status: false})
+		return httputil.FailBadRequest(c, "userId is required")
 	}
 
 	res, err := ctrl.debugService.ListTuplesByUser(c.Context(), tenantId, userId)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{Code: gmod.CodeInternalError, Message: err.Error(), Status: false})
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "message": "User tuples fetched", "status": true, "details": res})
+	return httputil.Ok(c, res, "User tuples fetched")
 }
 
 func (ctrl *AuthzDebugController) ListOrgUnitTuples(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.ListOrgUnitTuples", "authzapi", "ListOrgUnitTuples")
+	defer end()
+
 	tenantId := c.Query("tenantId", "")
 
 	res, err := ctrl.debugService.ListTuplesByEntityType(c.Context(), tenantId, "orgUnit")
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{Code: gmod.CodeInternalError, Message: err.Error(), Status: false})
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "message": "OU tuples fetched", "status": true, "details": res})
+	return httputil.Ok(c, res, "OU tuples fetched")
 }
 
 func (ctrl *AuthzDebugController) ResetTenant(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.ResetTenant", "authzapi", "ResetTenant")
+	defer end()
+
 	var body struct {
 		TenantId string `json:"tenantId"`
 		Confirm  string `json:"confirm"`
 	}
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "Invalid request body", Status: false})
+		return httputil.FailBadRequest(c, "Invalid request body")
 	}
 	if body.TenantId == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "tenantId is required", Status: false})
+		return httputil.FailBadRequest(c, "tenantId is required")
 	}
 	if body.Confirm != "RESET_TENANT" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "confirmation required: send confirm=RESET_TENANT", Status: false})
+		return httputil.FailBadRequest(c, "confirmation required: send confirm=RESET_TENANT")
 	}
 
 	res, err := ctrl.debugService.ResetTenant(c.Context(), body.TenantId)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{Code: gmod.CodeInternalError, Message: err.Error(), Status: false})
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "message": "Tenant hard reset completed", "status": true, "details": res})
+	return httputil.Ok(c, res, "Tenant hard reset completed")
 }
 
 func (ctrl *AuthzDebugController) FactoryOrgBootstrap(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.FactoryOrgBootstrap", "authzapi", "FactoryOrgBootstrap")
+	defer end()
+
 	var body struct {
 		TenantId string `json:"tenantId"`
 		OrgId    string `json:"orgId"`
 		UserId   string `json:"userId"`
 	}
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(fiber.Map{"code": "BAD_REQUEST", "message": "invalid body", "status": false})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 
 	res, err := ctrl.debugService.FactoryOrgBootstrap(c.Context(), body.TenantId, body.OrgId, body.UserId)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"code": "INTERNAL_ERROR", "message": err.Error(), "status": false})
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"code": "SUCCESS", "message": "factory bootstrap done", "status": true, "details": res})
+	return httputil.Ok(c, res, "factory bootstrap done")
 }
 
 // controllers/authzapi/authzDebug.go
 
 func (ctrl *AuthzDebugController) ListAllTuples(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.ListAllTuples", "authzapi", "ListAllTuples")
+	defer end()
+
 	tenantId := c.Query("tenantId", "")
 	entityType := c.Query("entityType", "") // optional filter
 
@@ -190,7 +221,7 @@ func (ctrl *AuthzDebugController) ListAllTuples(c *fiber.Ctx) error {
 	}
 
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{Code: gmod.CodeInternalError, Message: err.Error(), Status: false})
+		return httputil.FailInternal(c, err.Error())
 	}
 
 	return c.JSON(fiber.Map{
@@ -201,69 +232,76 @@ func (ctrl *AuthzDebugController) ListAllTuples(c *fiber.Ctx) error {
 }
 
 func (ctrl *AuthzDebugController) ClearAllTuples(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.ClearAllTuples", "authzapi", "ClearAllTuples")
+	defer end()
+
 	var body struct {
 		TenantId string `json:"tenantId"`
 		Confirm  string `json:"confirm"`
 	}
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body", Status: false})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if body.Confirm != "CLEAR_ALL" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "send confirm=CLEAR_ALL", Status: false})
+		return httputil.FailBadRequest(c, "send confirm=CLEAR_ALL")
 	}
 
 	res, err := ctrl.debugService.ResetTenant(c.Context(), body.TenantId)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{Code: gmod.CodeInternalError, Message: err.Error(), Status: false})
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "status": true, "details": res})
+	return httputil.Ok(c, res)
 }
 
 func (ctrl *AuthzDebugController) ListOrgTuples(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.ListOrgTuples", "authzapi", "ListOrgTuples")
+	defer end()
+
 	tenantId := c.Query("tenantId", "")
 	orgId := c.Params("orgId")
 
 	res, err := ctrl.debugService.ListTuplesByOrgId(c.Context(), tenantId, orgId)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{Code: gmod.CodeInternalError, Message: err.Error(), Status: false})
+		return httputil.FailInternal(c, err.Error())
 	}
 
 	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "status": true, "total": len(res), "details": res})
 }
 
 func (ctrl *AuthzDebugController) ClearOrgTuples(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.ClearOrgTuples", "authzapi", "ClearOrgTuples")
+	defer end()
+
 	var body struct {
 		TenantId string `json:"tenantId"`
 		OrgId    string `json:"orgId"`
 	}
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body", Status: false})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if body.TenantId == "" || body.OrgId == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "tenantId and orgId required", Status: false})
+		return httputil.FailBadRequest(c, "tenantId and orgId required")
 	}
 
 	err := ctrl.debugService.ClearOrgTuples(c.Context(), body.TenantId, body.OrgId)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{Code: gmod.CodeInternalError, Message: err.Error(), Status: false})
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "status": true, "message": "org tuples cleared"})
+	return httputil.MessageOK(c, "org tuples cleared")
 }
 
 // ========== Debug/Tuples methods (migrated from DebugController) ==========
 
 func (ctrl *AuthzDebugController) DebugReadTuples(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.DebugReadTuples", "authzapi", "DebugReadTuples")
+	defer end()
+
 	tenantId, _ := c.Locals("tenantId").(string)
 
 	if tenantId == "" {
-		return c.Status(401).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeUnauthorized,
-			Message: "tenantId required",
-			Status:  false,
-		})
+		return httputil.FailUnauthorized(c, "tenantId required")
 	}
 
 	entityType := c.Query("entityType")
@@ -274,14 +312,10 @@ func (ctrl *AuthzDebugController) DebugReadTuples(c *fiber.Ctx) error {
 
 	// Require at least one filter - Permify requires filter in request
 	if entityType == "" && entityId == "" && relation == "" && subjectType == "" && subjectId == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "at least one filter required (entityType, entityId, relation, subjectType, or subjectId)",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "at least one filter required (entityType, entityId, relation, subjectType, or subjectId)")
 	}
 
-	res, err := ctrl.debugService.DebugReadTuples(ctx, tenantId, authzsvc.ReadTuplesRequest{
+	res, err := ctrl.debugService.DebugReadTuples(c.UserContext(), tenantId, authzsvc.ReadTuplesRequest{
 		EntityType:    entityType,
 		EntityId:      entityId,
 		Relation:      relation,
@@ -292,11 +326,7 @@ func (ctrl *AuthzDebugController) DebugReadTuples(c *fiber.Ctx) error {
 		PageSize:      c.QueryInt("pageSize", 200),
 	})
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeInternalError,
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.FailInternal(c, err.Error())
 	}
 
 	details := make([]map[string]any, 0, len(res.Tuples))
@@ -320,24 +350,18 @@ func (ctrl *AuthzDebugController) DebugReadTuples(c *fiber.Ctx) error {
 }
 
 func (ctrl *AuthzDebugController) DebugDeleteTuples(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.DebugDeleteTuples", "authzapi", "DebugDeleteTuples")
+	defer end()
+
 	tenantId, _ := c.Locals("tenantId").(string)
 
 	if tenantId == "" {
-		return c.Status(401).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeUnauthorized,
-			Message: "tenantId required",
-			Status:  false,
-		})
+		return httputil.FailUnauthorized(c, "tenantId required")
 	}
 
 	var body map[string]any
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "invalid body",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 
 	entityType, _ := body["entityType"].(string)
@@ -347,14 +371,10 @@ func (ctrl *AuthzDebugController) DebugDeleteTuples(c *fiber.Ctx) error {
 	subjectId, _ := body["subjectId"].(string)
 
 	if entityType == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "entityType required",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "entityType required")
 	}
 
-	err := ctrl.debugService.DebugDeleteTuples(ctx, tenantId, authzsvc.DeleteTuplesRequest{
+	err := ctrl.debugService.DebugDeleteTuples(c.UserContext(), tenantId, authzsvc.DeleteTuplesRequest{
 		EntityType:    entityType,
 		EntityId:      entityId,
 		Relation:      relation,
@@ -364,45 +384,31 @@ func (ctrl *AuthzDebugController) DebugDeleteTuples(c *fiber.Ctx) error {
 		Depth:         50,
 	})
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeInternalError,
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "status": true, "message": "tuples deleted"})
+	return httputil.MessageOK(c, "tuples deleted")
 }
 
 func (ctrl *AuthzDebugController) DebugDeleteOrgTuples(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "AuthzDebugController.DebugDeleteOrgTuples", "authzapi", "DebugDeleteOrgTuples")
+	defer end()
+
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId := c.Params("orgId")
 
 	if tenantId == "" {
-		return c.Status(401).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeUnauthorized,
-			Message: "tenantId required",
-			Status:  false,
-		})
+		return httputil.FailUnauthorized(c, "tenantId required")
 	}
 
 	if orgId == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeBadRequest,
-			Message: "orgId required",
-			Status:  false,
-		})
+		return httputil.FailBadRequest(c, "orgId required")
 	}
 
-	err := ctrl.debugService.DebugDeleteOrgTuples(ctx, tenantId, orgId)
+	err := ctrl.debugService.DebugDeleteOrgTuples(c.UserContext(), tenantId, orgId)
 	if err != nil {
-		return c.Status(500).JSON(gmod.ApiErrorResponse{
-			Code:    gmod.CodeInternalError,
-			Message: err.Error(),
-			Status:  false,
-		})
+		return httputil.FailInternal(c, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"code": gmod.CodeSuccess, "status": true, "message": "org tuples deleted"})
+	return httputil.MessageOK(c, "org tuples deleted")
 }

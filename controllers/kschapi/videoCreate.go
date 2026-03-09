@@ -1,4 +1,4 @@
-// internal/apis/kschapi/videoCreate.go
+// controllers/kschapi/videoCreate.go
 package kschapi
 
 import (
@@ -13,6 +13,7 @@ import (
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/kschmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -37,6 +38,9 @@ const maxVideoBytes = int64(10 * 1024 * 1024 * 1024) // 10GB
 // @Router /ksearch/video [post]
 // @Security BearerAuth
 func VideoCreate(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "Video.VideoCreate", "kschapi", "VideoCreate")
+	defer end()
+
 	ctx, cancel := context.WithTimeout(c.Context(), 30*time.Minute)
 	defer cancel()
 

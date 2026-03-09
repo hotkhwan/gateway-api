@@ -1,12 +1,12 @@
-// internal/apis/kschapi/videoDelete.go
+// controllers/kschapi/videoDelete.go
 package kschapi
 
 import (
 	"errors"
 
 	"github.com/hotkhwan/gateway-api/internal/services/kschsvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -25,6 +25,9 @@ import (
 // @Router /ksearch/video/{id} [delete]
 // @Security BearerAuth
 func VideoDelete(c *fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "Video.VideoDelete", "kschapi", "VideoDelete")
+	defer end()
+
 	idStr := c.Params("videoId")
 	objID, err := primitive.ObjectIDFromHex(idStr)
 	if err != nil {
@@ -42,5 +45,5 @@ func VideoDelete(c *fiber.Ctx) error {
 		}
 	}
 
-	return gmod.SendMessageOK(c, "SUCCESS", "Video deleted successfully")
+	return httputil.MessageOK(c, "Video deleted successfully")
 }

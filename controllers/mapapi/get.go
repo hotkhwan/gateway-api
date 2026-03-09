@@ -2,11 +2,12 @@
 package mapapi
 
 import (
+	"strconv"
+
 	"github.com/hotkhwan/gateway-api/internal/services/mapsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
-	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -25,8 +26,8 @@ import (
 // @Router /maps/kml [get]
 // @Security BearerAuth
 func GetMAPPosition(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/mapapi", "maps.GetMAPPosition", "mapapi", "GetMAPPosition")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.mapapi", "GetMAPPosition.GetMAPPosition", "mapapi", "GetMAPPosition")
+	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
@@ -53,7 +54,7 @@ func GetMAPPosition(c *fiber.Ctx) error {
 	details, pagination, err := mapsvc.ListMAPPosition(ctx, page, perPages, filters, sortOrder)
 	if err != nil {
 		log.Error().Err(err).Msg("❌ [ListMAP] Failed to map position list")
-		return httputil.FailInternal(c, "MAP_POSITION_LIST_FAILED", err.Error())
+		return httputil.FailInternal(c, err.Error())
 	}
 
 	log.Info().
@@ -61,5 +62,11 @@ func GetMAPPosition(c *fiber.Ctx) error {
 		Interface("pagination", pagination).
 		Msg("✅ [ListMAP] Device list fetched successfully")
 
-	return gmod.SendPagination(c, details, pagination)
+	return c.JSON(fiber.Map{
+		"code":       gmod.CodeSuccess,
+		"message":    "Map position list fetched successfully",
+		"status":     true,
+		"details":    details,
+		"pagination": pagination,
+	})
 }

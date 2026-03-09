@@ -8,6 +8,7 @@ import (
 
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/services/devsync"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/gofiber/fiber/v2"
@@ -21,15 +22,15 @@ type svmsSyncReq struct {
 }
 
 func DeviceSyncFromSVMS(c *fiber.Ctx) error {
-	ctx, span, log := traceutil.Start(c.UserContext(), "github.com/hotkhwan/gateway-api/devapi", "devices.DeviceSyncFromSVMS", "devapi", "DeviceSyncFromSVMS")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devapi", "DeviceSyncFromSVMS", "devapi", "DeviceSyncFromSVMS")
+	defer end()
 
 	var req svmsSyncReq
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"code": "INVALID_BODY", "message": err.Error(), "status": false})
+		return httputil.FailBadRequest(c, "Invalid request body")
 	}
 	if req.BaseURL == "" || req.User == "" || req.Pass == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"code": "MISSING_FIELDS", "message": "baseUrl, user, pass required", "status": false})
+		return httputil.FailBadRequest(c, "baseUrl, user, pass required")
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
@@ -43,21 +44,12 @@ func DeviceSyncFromSVMS(c *fiber.Ctx) error {
 		PageSize: req.PageSize,
 	}, db)
 	if err != nil {
-		log.Error().Err(err).Msg("SVMS sync failed")
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"code":    "SYNC_FAILED",
-			"message": err.Error(),
-			"status":  false,
-		})
+		log.Error().Err(err).Msg("❌ [DeviceSyncFromSVMS] SVMS sync failed")
+		return httputil.FailInternal(c, "SVMS sync failed")
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"code":    "SUCCESS",
-		"message": "SVMS camera sync finished",
-		"status":  true,
-		"details": fiber.Map{
-			"total_seen": total,
-			"upserts":    upserts,
-		},
-	})
+	return httputil.Ok(c, fiber.Map{
+		"total_seen": total,
+		"upserts":    upserts,
+	}, "SVMS camera sync finished")
 }

@@ -3,10 +3,11 @@ package deviceapi
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
 	"github.com/hotkhwan/gateway-api/models/devmod"
 	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // ============================================================
@@ -55,16 +56,18 @@ type CreateResourceGroupRequest struct {
 }
 
 func (ctrl *ResourceGroupController) Create(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "ResourceGroupController.Create", "deviceapi", "Create")
+	defer end()
+
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
-	log := logger.FromCtx(c.UserContext(), "deviceapi", "ResourceGroupController.Create")
 
 	var body CreateResourceGroupRequest
 	if err := c.BodyParser(&body); err != nil {
-		log.Warn().Err(err).Msg("❌ invalid body")
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body"})
+		log.Warn().Err(err).Msg("invalid body")
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if body.Name == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "name is required"})
+		return httputil.FailBadRequest(c, "name is required")
 	}
 
 	log.Info().
@@ -72,7 +75,7 @@ func (ctrl *ResourceGroupController) Create(c *fiber.Ctx) error {
 		Str("name", body.Name).
 		Str("resourceType", body.ResourceType).
 		Str("mapVisibility", body.MapVisibility).
-		Msg("📥 CreateResourceGroup")
+		Msg("CreateResourceGroup")
 
 	group, err := ctrl.service.CreateGroup(c.UserContext(), devicesvc.CreateGroupInput{
 		TenantID:      tenantId,
@@ -84,18 +87,12 @@ func (ctrl *ResourceGroupController) Create(c *fiber.Ctx) error {
 		CallerID:      callerUserId,
 	})
 	if err != nil {
-		log.Error().Err(err).Msg("❌ CreateResourceGroup failed")
+		log.Error().Err(err).Msg("CreateResourceGroup failed")
 		return handleErr(c, err)
 	}
 
-	log.Info().Str("groupId", group.GroupID).Msg("✅ ResourceGroup created")
-
-	return c.Status(201).JSON(gmod.SuccessDetailsResponse{
-		Code:    gmod.CodeSuccess,
-		Message: "resource group created successfully",
-		Status:  true,
-		Details: group,
-	})
+	log.Info().Str("groupId", group.GroupID).Msg("ResourceGroup created")
+	return httputil.Created(c, group, "resource group created successfully")
 }
 
 // ============================================================
@@ -115,6 +112,9 @@ func (ctrl *ResourceGroupController) Create(c *fiber.Ctx) error {
 // ============================================================
 
 func (ctrl *ResourceGroupController) List(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "ResourceGroupController.List", "deviceapi", "List")
+	defer end()
+
 	tenantId, orgId, _ := ctrl.mustLocals(c)
 
 	groups, total, err := ctrl.service.ListGroups(c.UserContext(), devicesvc.ListGroupsInput{
@@ -128,22 +128,23 @@ func (ctrl *ResourceGroupController) List(c *fiber.Ctx) error {
 		SortOrder:    c.Query("sortOrder", "desc"),
 	})
 	if err != nil {
+		log.Error().Err(err).Msg("ListGroups failed")
 		return handleErr(c, err)
 	}
 
 	perPages := c.QueryInt("perPages", 10)
 	totalPages := (int(total) + perPages - 1) / perPages
 
-	return c.JSON(gmod.PaginatedResponse{
-		Code:    gmod.CodeSuccess,
-		Message: "resource groups fetched successfully",
-		Status:  true,
-		Details: groups,
-		Pagination: gmod.Pagination{
-			Page:         c.QueryInt("page", 1),
-			PerPages:     perPages,
-			TotalRecords: int(total),
-			TotalPages:   totalPages,
+	return c.JSON(fiber.Map{
+		"code":    gmod.CodeSuccess,
+		"message": "resource groups fetched successfully",
+		"status":  true,
+		"details": groups,
+		"pagination": fiber.Map{
+			"page":         c.QueryInt("page", 1),
+			"perPages":     perPages,
+			"totalRecords": int(total),
+			"totalPages":   totalPages,
 		},
 	})
 }
@@ -165,25 +166,21 @@ func (ctrl *ResourceGroupController) List(c *fiber.Ctx) error {
 // ============================================================
 
 func (ctrl *ResourceGroupController) Update(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "ResourceGroupController.Update", "deviceapi", "Update")
+	defer end()
+
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("id")
-	log := logger.FromCtx(c.UserContext(), "deviceapi", "ResourceGroupController.Update")
 
 	var body UpdateGroupRequest
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code: gmod.CodeBadRequest, Message: "invalid body", Status: false,
-		})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if body.Name == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code: gmod.CodeBadRequest, Message: "name is required", Status: false,
-		})
+		return httputil.FailBadRequest(c, "name is required")
 	}
 	if body.MapVisibility != "" && body.MapVisibility != "public" && body.MapVisibility != "private" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{
-			Code: gmod.CodeBadRequest, Message: "mapVisibility must be public or private", Status: false,
-		})
+		return httputil.FailBadRequest(c, "mapVisibility must be public or private")
 	}
 
 	if err := ctrl.service.Update(c.UserContext(), devicesvc.UpdateGroupInput{
@@ -195,16 +192,12 @@ func (ctrl *ResourceGroupController) Update(c *fiber.Ctx) error {
 		Description:   body.Description,
 		MapVisibility: body.MapVisibility,
 	}); err != nil {
-		log.Error().Err(err).Str("groupId", groupId).Msg("❌ UpdateResourceGroup failed")
+		log.Error().Err(err).Str("groupId", groupId).Msg("UpdateResourceGroup failed")
 		return handleErr(c, err)
 	}
 
-	log.Info().Str("groupId", groupId).Msg("✅ ResourceGroup updated")
-	return c.JSON(gmod.SuccessMessageResponse{
-		Code:    gmod.CodeSuccess,
-		Message: "resource group updated successfully",
-		Status:  true,
-	})
+	log.Info().Str("groupId", groupId).Msg("ResourceGroup updated")
+	return httputil.MessageOK(c, "resource group updated successfully")
 }
 
 // ============================================================
@@ -220,9 +213,11 @@ func (ctrl *ResourceGroupController) Update(c *fiber.Ctx) error {
 // ============================================================
 
 func (ctrl *ResourceGroupController) Delete(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "ResourceGroupController.Delete", "deviceapi", "Delete")
+	defer end()
+
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("id")
-	log := logger.FromCtx(c.UserContext(), "deviceapi", "ResourceGroupController.Delete")
 
 	if err := ctrl.service.DeleteGroup(c.UserContext(), devicesvc.DeleteGroupInput{
 		TenantID: tenantId,
@@ -230,16 +225,12 @@ func (ctrl *ResourceGroupController) Delete(c *fiber.Ctx) error {
 		GroupID:  groupId,
 		CallerID: callerUserId,
 	}); err != nil {
-		log.Error().Err(err).Str("groupId", groupId).Msg("❌ DeleteResourceGroup failed")
+		log.Error().Err(err).Str("groupId", groupId).Msg("DeleteResourceGroup failed")
 		return handleErr(c, err)
 	}
 
-	log.Info().Str("groupId", groupId).Msg("✅ ResourceGroup deleted")
-	return c.JSON(gmod.SuccessMessageResponse{
-		Code:    gmod.CodeSuccess,
-		Message: "resource group deleted successfully",
-		Status:  true,
-	})
+	log.Info().Str("groupId", groupId).Msg("ResourceGroup deleted")
+	return httputil.MessageOK(c, "resource group deleted successfully")
 }
 
 // ============================================================
@@ -251,15 +242,18 @@ type AddDeviceToGroupRequest struct {
 }
 
 func (ctrl *ResourceGroupController) AddDevice(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "ResourceGroupController.AddDevice", "deviceapi", "AddDevice")
+	defer end()
+
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("groupId")
 
 	var body AddDeviceToGroupRequest
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body"})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if body.DeviceID == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "deviceId is required"})
+		return httputil.FailBadRequest(c, "deviceId is required")
 	}
 
 	if err := ctrl.service.AddDeviceToGroup(c.UserContext(), devicesvc.AddDeviceToGroupInput{
@@ -269,12 +263,11 @@ func (ctrl *ResourceGroupController) AddDevice(c *fiber.Ctx) error {
 		DeviceID: body.DeviceID,
 		CallerID: callerUserId,
 	}, ctrl.camRepo); err != nil {
+		log.Error().Err(err).Str("groupId", groupId).Msg("AddDevice failed")
 		return handleErr(c, err)
 	}
 
-	return c.JSON(fiber.Map{
-		"code": gmod.CodeSuccess, "message": "device added to group successfully", "status": true,
-	})
+	return httputil.MessageOK(c, "device added to group successfully")
 }
 
 // ============================================================
@@ -282,6 +275,9 @@ func (ctrl *ResourceGroupController) AddDevice(c *fiber.Ctx) error {
 // ============================================================
 
 func (ctrl *ResourceGroupController) RemoveDevice(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "ResourceGroupController.RemoveDevice", "deviceapi", "RemoveDevice")
+	defer end()
+
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("groupId")
 	deviceId := c.Params("deviceId")
@@ -293,12 +289,11 @@ func (ctrl *ResourceGroupController) RemoveDevice(c *fiber.Ctx) error {
 		DeviceID: deviceId,
 		CallerID: callerUserId,
 	}, ctrl.camRepo); err != nil {
+		log.Error().Err(err).Str("groupId", groupId).Msg("RemoveDevice failed")
 		return handleErr(c, err)
 	}
 
-	return c.JSON(fiber.Map{
-		"code": gmod.CodeSuccess, "message": "device removed from group successfully", "status": true,
-	})
+	return httputil.MessageOK(c, "device removed from group successfully")
 }
 
 // ============================================================
@@ -311,15 +306,18 @@ type AssignGroupOURequest struct {
 }
 
 func (ctrl *ResourceGroupController) AssignOU(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "ResourceGroupController.AssignOU", "deviceapi", "AssignOU")
+	defer end()
+
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("groupId")
 
 	var body AssignGroupOURequest
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body"})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if body.OUID == "" || body.Relation == "" {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "ouId and relation are required"})
+		return httputil.FailBadRequest(c, "ouId and relation are required")
 	}
 
 	if err := ctrl.service.AssignGroupToOU(c.UserContext(), devicesvc.AssignGroupToOUInput{
@@ -330,12 +328,11 @@ func (ctrl *ResourceGroupController) AssignOU(c *fiber.Ctx) error {
 		Relation: body.Relation,
 		CallerID: callerUserId,
 	}); err != nil {
+		log.Error().Err(err).Str("groupId", groupId).Msg("AssignOU failed")
 		return handleErr(c, err)
 	}
 
-	return c.JSON(fiber.Map{
-		"code": gmod.CodeSuccess, "message": "group assigned to OU successfully", "status": true,
-	})
+	return httputil.MessageOK(c, "group assigned to OU successfully")
 }
 
 // ============================================================
@@ -343,12 +340,15 @@ func (ctrl *ResourceGroupController) AssignOU(c *fiber.Ctx) error {
 // ============================================================
 
 func (ctrl *ResourceGroupController) RemoveOU(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "ResourceGroupController.RemoveOU", "deviceapi", "RemoveOU")
+	defer end()
+
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("groupId")
 
 	var body AssignGroupOURequest
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body"})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 
 	if err := ctrl.service.RemoveGroupFromOU(c.UserContext(), devicesvc.AssignGroupToOUInput{
@@ -359,12 +359,11 @@ func (ctrl *ResourceGroupController) RemoveOU(c *fiber.Ctx) error {
 		Relation: body.Relation,
 		CallerID: callerUserId,
 	}); err != nil {
+		log.Error().Err(err).Str("groupId", groupId).Msg("RemoveOU failed")
 		return handleErr(c, err)
 	}
 
-	return c.JSON(fiber.Map{
-		"code": gmod.CodeSuccess, "message": "group removed from OU successfully", "status": true,
-	})
+	return httputil.MessageOK(c, "group removed from OU successfully")
 }
 
 // ============================================================
@@ -372,12 +371,14 @@ func (ctrl *ResourceGroupController) RemoveOU(c *fiber.Ctx) error {
 // ============================================================
 
 func (ctrl *ResourceGroupController) CreateDevice(c *fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "ResourceGroupController.CreateDevice", "deviceapi", "CreateDevice")
+	defer end()
+
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
-	log := logger.FromCtx(c.UserContext(), "deviceapi", "ResourceGroupController.CreateDevice")
 
 	var body devmod.Device
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(gmod.ApiErrorResponse{Code: gmod.CodeBadRequest, Message: "invalid body"})
+		return httputil.FailBadRequest(c, "invalid body")
 	}
 
 	deviceId, err := ctrl.service.CreateDevice(c.UserContext(), devicesvc.CreateDeviceInput{
@@ -387,15 +388,10 @@ func (ctrl *ResourceGroupController) CreateDevice(c *fiber.Ctx) error {
 		Device:   body,
 	}, ctrl.camRepo)
 	if err != nil {
-		log.Error().Err(err).Msg("❌ CreateDevice failed")
+		log.Error().Err(err).Msg("CreateDevice failed")
 		return handleErr(c, err)
 	}
 
-	log.Info().Str("deviceId", deviceId).Msg("✅ Device created")
-	return c.Status(201).JSON(fiber.Map{
-		"code":    gmod.CodeSuccess,
-		"message": "device created successfully",
-		"status":  true,
-		"details": fiber.Map{"deviceId": deviceId, "permifySynced": true},
-	})
+	log.Info().Str("deviceId", deviceId).Msg("Device created")
+	return httputil.Created(c, fiber.Map{"deviceId": deviceId, "permifySynced": true}, "device created successfully")
 }

@@ -2,13 +2,11 @@
 package biapi
 
 import (
-	"net/http"
-
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/otel"
 
 	"github.com/hotkhwan/gateway-api/internal/services/bisvc"
-	"github.com/hotkhwan/gateway-api/models/gmod"
+	"github.com/hotkhwan/gateway-api/utils/httputil"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 // SignBIUrl godoc
@@ -24,16 +22,12 @@ import (
 // @Router /bi/signUrl [get]
 // @Security BearerAuth
 func SignBIUrl(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	tr := otel.Tracer("github.com/hotkhwan/gateway-api/biapi")
-	ctx, span := tr.Start(ctx, "BI.SignBIUrl")
-	defer span.End()
+	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.biapi", "BI.SignBIUrl", "biapi", "SignBIUrl")
+	defer end()
 
 	did := c.Query("dashboardId", "")
 	if did == "" {
-		return c.Status(http.StatusBadRequest).JSON(gmod.BadRequestResponse{
-			Code: "ERROR", Message: "invalid dashboardId", Status: false,
-		})
+		return httputil.FailBadRequest(c, "invalid dashboardId")
 	}
 
 	res, err := bisvc.GenerateSignedURL(ctx, did)
@@ -42,12 +36,9 @@ func SignBIUrl(c *fiber.Ctx) error {
 		if err == bisvc.ErrConfigNotSet {
 			msg = "metabase env not configured"
 		}
-		return c.Status(http.StatusInternalServerError).JSON(gmod.BaseErrorResponse{
-			BaseResponse: gmod.BaseResponse{Code: "ERROR", Message: msg, Status: false},
-		})
+		log.Error().Err(err).Msg(msg)
+		return httputil.FailInternal(c, msg)
 	}
 
-	return c.JSON(gmod.SuccessDataResponse{
-		Code: "SUCCESS", Message: "Signed Metabase URL generated", Status: true, Detail: res,
-	})
+	return httputil.Ok(c, res, "Signed Metabase URL generated")
 }
