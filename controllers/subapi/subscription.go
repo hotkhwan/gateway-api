@@ -98,40 +98,6 @@ func (ctrl *SubscriptionController) BootstrapSubscription(c *fiber.Ctx) error {
 	}, "subscription bootstrapped")
 }
 
-// GetMySubscription returns the tenant's current subscription details
-// @Summary      Get my subscription
-// @Description  Returns the tenant's current subscription plan and limits
-// @Tags         Subscription
-// @Security     BearerAuth
-// @Produce      json
-// @Success      200 {object} gmod.SuccessDetailResponseAny
-// @Failure      404 {object} gmod.ApiErrorResponse
-// @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/subscriptions/me [get]
-func (ctrl *SubscriptionController) GetMySubscription(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.subapi", "SubscriptionController.GetMySubscription", "subapi", "GetMySubscription")
-	defer end()
-
-	tenantId, _ := c.Locals("tenantId").(string)
-
-	limits, err := ctrl.svc.GetTenantLimitsCached(ctx, tenantId)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to get subscription")
-		return httputil.FailInternal(c, "failed to get subscription")
-	}
-
-	return httputil.Ok(c, fiber.Map{
-		"planId":                    limits.PlanId,
-		"maxPayloadBytes":           limits.MaxPayloadBytes,
-		"perOrgPerSec":              limits.PerOrgPerSec,
-		"perOrgBurst":               limits.PerOrgBurst,
-		"perIpPerMin":               limits.PerIpPerMin,
-		"storageQuotaBytes":         limits.StorageQuotaBytes,
-		"maxOrganizationsPerTenant": limits.MaxOrganizationsPerTenant,
-		"orgCacheTtlSec":            limits.OrgCacheTtlSec,
-	}, "subscription fetched")
-}
-
 // UpdatePlan updates the tenant's subscription plan (admin only)
 // @Summary      Update subscription plan
 // @Description  Updates the tenant's subscription to a different plan (admin only)
