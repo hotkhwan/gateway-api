@@ -295,7 +295,7 @@ type NotFoundResponse struct {
 
 type SuccessDetailResponseIntrospect struct {
 	Details IntrospectDetail `json:"details"`
-	Status bool             `json:"status"`
+	Status  bool             `json:"status"`
 }
 
 // SuccessDetailResponseMenuAccess is the response for menu access endpoints

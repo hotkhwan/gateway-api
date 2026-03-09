@@ -119,7 +119,7 @@ type EdgeSSOURLDetail struct {
 }
 
 type EdgeSSOURLSuccessResponse struct {
-	Code   string           `json:"code"`
+	Code    string           `json:"code"`
 	Details EdgeSSOURLDetail `json:"details"`
-	Status bool             `json:"status"`
+	Status  bool             `json:"status"`
 }

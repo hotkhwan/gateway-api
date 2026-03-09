@@ -11,7 +11,7 @@ import (
 func SendSuccess[T any](c *fiber.Ctx, data T) error {
 	return c.Status(fiber.StatusOK).JSON(SuccessDetailResponse[T]{
 		Details: data,
-		Status: true,
+		Status:  true,
 	})
 }
 
