@@ -1,42 +1,48 @@
 {
   "info": {
-    "_postman_id": "ingest-api-collection-v2",
+    "_postman_id": "ingest-api-collection-v3",
     "name": "Ingest API",
-    "description": "Gateway API — Ingest pipeline endpoints.\n\nVariables (set in Environment or Collection):\n- `urlapi`        — e.g. https://gateway.aisom.cloud/api/v1  (includes /api/v1)\n- `baseUrl`       — e.g. https://gateway.aisom.cloud          (root, for /events only)\n- `access_token`  — Bearer JWT from Keycloak\n- `orgId`         — Active org UUID\n- `eventId`       — Auto-captured from GET management list/single\n- `templateId`    — Auto-captured from GET mappingTemplates list/single\n- `targetId`      — Delivery target UUID (from delivery_targets collection)",
+    "description": "Gateway API — Ingest pipeline endpoints (V3).\n\nUpdated to match BACKEND_RULES_CHECKLIST and router/ingest.go.\n\nVariables (set in Environment or Collection):\n- `urlapi`           — e.g. https://gateway.aisom.cloud/api/v1 (includes /api/v1)\n- `baseUrl`          — e.g. https://gateway.aisom.cloud (root, for /events only)\n- `access_token`     — Bearer JWT from Keycloak\n- `orgId`            — Active org UUID\n- `sourceFamily`     — Source family name (AIBOX, PVS, dahua, hikvision, mock)\n- `eventId`          — Auto-captured from GET management list/single\n- `templateId`       — Auto-captured from GET mappingTemplates list/single\n- `targetId`         — Delivery target UUID\n- `reviewId`         — Auto-captured from unknownPayloadReviews\n- `patternId`        — Auto-captured from rejectedPayloadPatterns\n- `deviceMgmtId`     — Auto-captured from deviceManagement\n- `dlqMessageId`     — Auto-captured from DLQ\n- `suggestionId`     — Auto-captured from mappingSuggestions\n\nResponse envelope:\n- Success: { code, message, status: true, details }\n- Error:   { code, message, status: false }\n- Field must be `details` (NOT `detail`)\n\nSource Family Modes:\n- active: process normally (AIBOX, PVS)\n- comingSoon: 202 Accepted, log only (dahua, hikvision)\n- mock: accept + store for testing\n- disabled: 423 Locked, drop",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "urlapi",       "value": "https://gateway.aisom.cloud/api/v1", "type": "string" },
-    { "key": "baseUrl",      "value": "https://gateway.aisom.cloud",        "type": "string" },
-    { "key": "access_token", "value": "",                                   "type": "string" },
-    { "key": "orgId",        "value": "",                                   "type": "string" },
-    { "key": "eventId",      "value": "",                                   "type": "string" },
-    { "key": "templateId",   "value": "",                                   "type": "string" },
-    { "key": "targetId",     "value": "",                                   "type": "string" }
+    { "key": "urlapi",        "value": "https://gateway.aisom.cloud/api/v1", "type": "string" },
+    { "key": "baseUrl",       "value": "https://gateway.aisom.cloud",        "type": "string" },
+    { "key": "access_token",  "value": "",  "type": "string" },
+    { "key": "orgId",         "value": "",  "type": "string" },
+    { "key": "sourceFamily",  "value": "AIBOX", "type": "string" },
+    { "key": "eventId",       "value": "",  "type": "string" },
+    { "key": "templateId",    "value": "",  "type": "string" },
+    { "key": "targetId",      "value": "",  "type": "string" },
+    { "key": "reviewId",      "value": "",  "type": "string" },
+    { "key": "patternId",     "value": "",  "type": "string" },
+    { "key": "deviceMgmtId",  "value": "",  "type": "string" },
+    { "key": "dlqMessageId",  "value": "",  "type": "string" },
+    { "key": "suggestionId",  "value": "",  "type": "string" }
   ],
   "item": [
     {
-      "name": "Ingest",
-      "description": "Hot-path event ingestion. No JWT required. Rate-limited per org + IP.\nNote: /events/:orgId is at root (no /api/v1 prefix) — uses {{baseUrl}}.",
+      "name": "01 — Ingest (Hot Path)",
+      "description": "Hot-path event ingestion. No JWT required.\nPOST /events/:orgId/:sourceFamily at root (uses {{baseUrl}}, no /api/v1 prefix).\n\nSource family mode matrix:\n- active (AIBOX, PVS): process ingest pipeline\n- comingSoon (dahua, hikvision): 202 + log, no DB\n- mock: accept + store for testing\n- disabled: 423 Locked, drop",
       "item": [
         {
-          "name": "POST /events/:orgId — Ingest raw event",
+          "name": "POST /events/:orgId/:sourceFamily — Active (AIBOX)",
           "request": {
             "method": "POST",
             "url": {
-              "raw": "{{baseUrl}}/events/{{orgId}}",
+              "raw": "{{baseUrl}}/events/{{orgId}}/AIBOX",
               "host": ["{{baseUrl}}"],
-              "path": ["events", "{{orgId}}"]
+              "path": ["events", "{{orgId}}", "AIBOX"]
             },
             "header": [
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"deviceId\": \"DEV-001\",\n  \"deviceType\": \"camera\",\n  \"temperature\": 36.6,\n  \"location\": {\n    \"lat\": 13.7563,\n    \"lng\": 100.5018\n  },\n  \"ts\": \"2026-03-06T10:00:00Z\"\n}",
+              "raw": "{\n  \"Address\": \"192.168.1.100\",\n  \"ChannelID\": 1,\n  \"Events\": [\n    {\n      \"Code\": \"FaceDetection\",\n      \"Action\": \"Start\",\n      \"Data\": {\n        \"Name\": \"Camera-01\",\n        \"Confidence\": 95.5\n      }\n    }\n  ],\n  \"ts\": \"2026-03-06T10:00:00Z\"\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "description": "POST raw event payload from device or 3rd-party. Returns 202 Accepted with eventId. Returns 423 Locked if device already has an unresolved pending event."
+            "description": "Ingest payload for active sourceFamily AIBOX.\n\nExpected flow:\n1. Generate fingerprint (sorted key paths + normalized value types)\n2. Check rejectedPayloadPattern — if match: 202 IGNORED_REJECTED_PATTERN\n3. Find mappingTemplate — if found: 200 SUCCESS, process ingest\n4. No template match: 202 UNKNOWN_PAYLOAD_RECORDED, create/update unknownPayloadReview"
           },
           "event": [
             {
@@ -44,11 +50,239 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "var json = pm.response.json();",
-                  "if (json && json.detail && json.detail.eventId) {",
-                  "    pm.collectionVariables.set('eventId', json.detail.eventId);",
-                  "    console.log('eventId set:', json.detail.eventId);",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Response has standard envelope', () => {",
+                  "    pm.expect(json).to.have.property('code');",
+                  "    pm.expect(json).to.have.property('message');",
+                  "    pm.expect(json).to.have.property('status');",
+                  "});",
+                  "",
+                  "pm.test('Status code is 200 or 202', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 202]);",
+                  "});",
+                  "",
+                  "pm.test('Code is SUCCESS, UNKNOWN_PAYLOAD_RECORDED, or IGNORED_REJECTED_PATTERN', () => {",
+                  "    pm.expect(json.code).to.be.oneOf([",
+                  "        'SUCCESS',",
+                  "        'UNKNOWN_PAYLOAD_RECORDED',",
+                  "        'IGNORED_REJECTED_PATTERN'",
+                  "    ]);",
+                  "});",
+                  "",
+                  "if (json.details && json.details.fingerprint) {",
+                  "    console.log('Fingerprint:', json.details.fingerprint);",
+                  "    console.log('SourceFamily:', json.details.sourceFamily);",
                   "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /events/:orgId/:sourceFamily — Active (PVS)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/events/{{orgId}}/PVS",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "{{orgId}}", "PVS"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"site_name\": \"BANGPU\",\n  \"event_type\": \"Water Level Notification\",\n  \"latitude\": 13.55,\n  \"longitude\": 100.67,\n  \"water_level\": 2.5,\n  \"threshold\": 3.0,\n  \"ts\": \"2026-03-06T10:00:00Z\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Ingest payload for active sourceFamily PVS.\n\nExpected fingerprint example:\nevent_type:string|latitude:number|longitude:number|site_name:string|threshold:number|ts:string|water_level:number"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Response has standard envelope', () => {",
+                  "    pm.expect(json).to.have.property('code');",
+                  "    pm.expect(json).to.have.property('status');",
+                  "});",
+                  "",
+                  "pm.test('Status code is 200 or 202', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 202]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /events/:orgId/:sourceFamily — ComingSoon (dahua)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/events/{{orgId}}/dahua",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "{{orgId}}", "dahua"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"DAHUA-001\",\n  \"eventType\": \"motion\",\n  \"ts\": \"2026-03-06T10:00:00Z\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Ingest payload for comingSoon sourceFamily.\nExpected: 202 Accepted, message='sourceFamily is coming soon', no DB write."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 202', () => {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "pm.test('Code is ACCEPTED', () => {",
+                  "    pm.expect(json.code).to.eql('ACCEPTED');",
+                  "});",
+                  "",
+                  "pm.test('Message indicates coming soon', () => {",
+                  "    pm.expect(json.message).to.include('coming soon');",
+                  "});",
+                  "",
+                  "pm.test('Status is true', () => {",
+                  "    pm.expect(json.status).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /events/:orgId/:sourceFamily — ComingSoon (hikvision)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/events/{{orgId}}/hikvision",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "{{orgId}}", "hikvision"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"HIK-001\",\n  \"eventType\": \"intrusion\",\n  \"ts\": \"2026-03-06T10:00:00Z\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Ingest payload for comingSoon sourceFamily hikvision.\nExpected: 202 Accepted, no DB write."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 202', () => {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "pm.test('Code is ACCEPTED', () => {",
+                  "    pm.expect(json.code).to.eql('ACCEPTED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /events/:orgId/:sourceFamily — Mock",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/events/{{orgId}}/mock",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "{{orgId}}", "mock"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"testField\": \"hello\",\n  \"value\": 42,\n  \"nested\": {\n    \"key\": \"test\"\n  },\n  \"ts\": \"2026-03-06T10:00:00Z\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Ingest payload for mock sourceFamily.\nMock mode: accept + store in DB for testing unknownPayloadReview and reject fingerprint flow.\nExpected: 200 or 202 depending on template match."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200 or 202', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 202]);",
+                  "});",
+                  "",
+                  "pm.test('Response has standard envelope', () => {",
+                  "    pm.expect(json).to.have.property('code');",
+                  "    pm.expect(json).to.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /events/:orgId/:sourceFamily — Disabled (expect 423)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/events/{{orgId}}/unknownVendor",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "{{orgId}}", "unknownVendor"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Ingest payload for disabled/unknown sourceFamily.\nExpected: 423 Locked, SOURCE_FAMILY_LOCKED, no DB write."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 423 Locked', () => {",
+                  "    pm.response.to.have.status(423);",
+                  "});",
+                  "",
+                  "pm.test('Code is SOURCE_FAMILY_LOCKED', () => {",
+                  "    pm.expect(json.code).to.eql('SOURCE_FAMILY_LOCKED');",
+                  "});",
+                  "",
+                  "pm.test('Status is false', () => {",
+                  "    pm.expect(json.status).to.be.false;",
+                  "});"
                 ]
               }
             }
@@ -57,7 +291,7 @@
       ]
     },
     {
-      "name": "Ingest Config",
+      "name": "02 — Ingest Config",
       "description": "Org-level ingest configuration. Requires Bearer JWT + X-Active-Org.",
       "item": [
         {
@@ -73,8 +307,28 @@
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
               { "key": "X-Active-Org",  "value": "{{orgId}}" }
             ],
-            "description": "Returns ingest configuration for the active org."
-          }
+            "description": "Returns ingest configuration for the active org (endpoint URL, masked secret, enabled source families)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has standard envelope', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json.status).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "POST /ingest/rotateSecret — Rotate ingest secret",
@@ -90,12 +344,32 @@
               { "key": "X-Active-Org",  "value": "{{orgId}}" }
             ],
             "description": "Rotates the ingest webhook secret for the active org."
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Secret rotated successfully', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json.status).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Dashboard",
+      "name": "03 — Dashboard",
       "description": "Ingest statistics dashboard. Requires Bearer JWT + X-Active-Org.",
       "item": [
         {
@@ -103,26 +377,47 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{urlapi}}/ingest/dashboard?dateTime=2026-03-01T00:00:00Z,2026-03-06T23:59:59Z&status=all",
+              "raw": "{{urlapi}}/ingest/dashboard?dateTime=2026-03-01T00:00:00Z,2026-03-09T23:59:59Z&status=all",
               "host": ["{{urlapi}}"],
               "path": ["ingest", "dashboard"],
               "query": [
-                { "key": "dateTime",  "value": "2026-03-01T00:00:00Z,2026-03-06T23:59:59Z", "description": "from,to RFC3339 UTC" },
-                { "key": "status",    "value": "all",                                        "description": "all | pending | approved | rejected" },
-                { "key": "eventType", "value": "",                                           "description": "Optional filter", "disabled": true }
+                { "key": "dateTime",  "value": "2026-03-01T00:00:00Z,2026-03-09T23:59:59Z", "description": "from,to RFC3339 UTC" },
+                { "key": "status",    "value": "all",  "description": "all | pending | approved | rejected" },
+                { "key": "eventType", "value": "",     "description": "Optional filter", "disabled": true }
               ]
             },
             "header": [
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
               { "key": "X-Active-Org",  "value": "{{orgId}}" }
             ],
-            "description": "Returns aggregated ingest statistics.\ndateTime format: from,to (RFC3339 UTC)\nExample: 2026-03-01T00:00:00Z,2026-03-06T23:59:59Z"
-          }
+            "description": "Returns aggregated ingest statistics.\ndateTime format: from,to (RFC3339 UTC)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has details with stats', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json.status).to.be.true;",
+                  "    pm.expect(json).to.have.property('details');",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Management",
+      "name": "04 — Management",
       "description": "Pending event management (list, get, update, approve, reject, delete). Requires Bearer JWT + X-Active-Org.",
       "item": [
         {
@@ -155,8 +450,23 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "var json = pm.response.json();",
-                  "if (json && json.details && json.details.length > 0) {",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response uses details (not detail)', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json).to.have.property('details');",
+                  "    pm.expect(json).to.not.have.property('detail');",
+                  "});",
+                  "",
+                  "pm.test('Has pagination', () => {",
+                  "    pm.expect(json).to.have.property('pagination');",
+                  "});",
+                  "",
+                  "if (json.details && json.details.length > 0) {",
                   "    var id = json.details[0].eventId;",
                   "    pm.collectionVariables.set('eventId', id);",
                   "    console.log('eventId set from list:', id);",
@@ -187,10 +497,19 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "var json = pm.response.json();",
-                  "if (json && json.detail && json.detail.eventId) {",
-                  "    pm.collectionVariables.set('eventId', json.detail.eventId);",
-                  "    console.log('eventId set from get:', json.detail.eventId);",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has details', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json).to.have.property('details');",
+                  "});",
+                  "",
+                  "if (json.details && json.details.eventId) {",
+                  "    pm.collectionVariables.set('eventId', json.details.eventId);",
                   "}"
                 ]
               }
@@ -213,11 +532,31 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"eventType\": \"temperature_alert\",\n  \"name\": \"Temperature Alert\",\n  \"lat\": 13.7563,\n  \"lng\": 100.5018,\n  \"note\": \"manually classified\"\n}",
+              "raw": "{\n  \"eventType\": \"temperature_alert\",\n  \"name\": \"Temperature Alert\",\n  \"lat\": 13.7563,\n  \"lng\": 100.5018,\n  \"priority\": \"high\",\n  \"tags\": [\"temperature\", \"alert\"]\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "description": "Updates metadata fields on a pending event (eventType, name, lat, lng, note)."
-          }
+            "description": "Updates metadata fields on a pending event (eventType, name, lat, lng, priority, tags)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Update successful', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json.status).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "POST /ingest/management/:eventId/approve — Approve event",
@@ -235,11 +574,31 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"note\": \"approved by operator\"\n}",
+              "raw": "{\n  \"eventType\": \"temperature_alert\",\n  \"name\": \"Temperature Alert\",\n  \"priority\": \"high\"\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "description": "Runs approval gate validation (eventType required), builds CanonicalEvent, publishes to raw.events Kafka topic, stores approved event."
-          }
+            "description": "Approve a pending event. Builds CanonicalEvent, publishes to raw.events Kafka topic, stores approved event.\nOptional body fields to set before approval (eventType, name, priority, etc.)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Event approved', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json.status).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "POST /ingest/management/:eventId/reject — Reject event",
@@ -252,16 +611,30 @@
             },
             "header": [
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
-              { "key": "X-Active-Org",  "value": "{{orgId}}" },
-              { "key": "Content-Type",  "value": "application/json" }
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"note\": \"invalid event\"\n}",
-              "options": { "raw": { "language": "json" } }
-            },
             "description": "Rejects a pending event. Sets status to rejected."
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Event rejected', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json.status).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "DELETE /ingest/management/:eventId — Delete pending event",
@@ -277,14 +650,75 @@
               { "key": "X-Active-Org",  "value": "{{orgId}}" }
             ],
             "description": "Hard-deletes a pending event."
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Event deleted', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Bulk",
+      "name": "05 — Bulk Operations",
       "description": "Bulk operations on pending events (up to 100 per request). Requires Bearer JWT + X-Active-Org.",
       "item": [
+        {
+          "name": "POST /ingest/management/bulk/applyTemplate — Bulk apply template",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/ingest/management/bulk/applyTemplate",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "management", "bulk", "applyTemplate"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateId\": \"{{templateId}}\",\n  \"eventIds\": [\n    \"{{eventId}}\"\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Applies a mapping template to up to 100 pending events and auto-approves each one.\nReturns per-event succeeded/failed breakdown."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Has succeeded/failed breakdown', () => {",
+                  "    pm.expect(json).to.have.property('Succeeded');",
+                  "    pm.expect(json).to.have.property('Failed');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "POST /ingest/management/bulk/approve — Bulk approve",
           "request": {
@@ -305,7 +739,27 @@
               "options": { "raw": { "language": "json" } }
             },
             "description": "Approves up to 100 pending events. Returns per-event succeeded/failed breakdown."
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Has succeeded/failed breakdown', () => {",
+                  "    pm.expect(json).to.have.property('Succeeded');",
+                  "    pm.expect(json).to.have.property('Failed');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "POST /ingest/management/bulk/reject — Bulk reject",
@@ -326,8 +780,23 @@
               "raw": "{\n  \"eventIds\": [\n    \"{{eventId}}\"\n  ]\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "description": "Rejects up to 100 pending events. Returns per-event succeeded/failed breakdown."
-          }
+            "description": "Rejects up to 100 pending events."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "POST /ingest/management/bulk/delete — Bulk delete",
@@ -348,17 +817,86 @@
               "raw": "{\n  \"eventIds\": [\n    \"{{eventId}}\"\n  ]\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "description": "Deletes up to 100 pending events. Returns per-event succeeded/failed breakdown."
-          }
+            "description": "Deletes up to 100 pending events."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 — Source Profiles",
+      "description": "Source family configuration (mode matrix: active, comingSoon, mock, disabled).\nRequires Bearer JWT + X-Active-Org.",
+      "item": [
+        {
+          "name": "GET /ingest/sourceProfiles — List all",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/sourceProfiles",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "sourceProfiles"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns all source profiles with their mode (active, comingSoon, mock, disabled)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is successful', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json.status).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Uses details field', () => {",
+                  "    pm.expect(json).to.not.have.property('detail');",
+                  "});",
+                  "",
+                  "if (json.details && Array.isArray(json.details) && json.details.length > 0) {",
+                  "    pm.collectionVariables.set('sourceFamily', json.details[0].sourceFamily);",
+                  "    console.log('sourceFamily set:', json.details[0].sourceFamily);",
+                  "    json.details.forEach(sp => {",
+                  "        console.log(sp.sourceFamily + ': ' + sp.mode);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "POST /ingest/management/bulk/applyTemplate — Bulk apply template",
+          "name": "POST /ingest/sourceProfiles — Create",
           "request": {
             "method": "POST",
             "url": {
-              "raw": "{{urlapi}}/ingest/management/bulk/applyTemplate",
+              "raw": "{{urlapi}}/ingest/sourceProfiles",
               "host": ["{{urlapi}}"],
-              "path": ["ingest", "management", "bulk", "applyTemplate"]
+              "path": ["ingest", "sourceProfiles"]
             },
             "header": [
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
@@ -367,39 +905,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"templateId\": \"{{templateId}}\",\n  \"eventIds\": [\n    \"{{eventId}}\"\n  ]\n}",
+              "raw": "{\n  \"sourceFamily\": \"newVendor\",\n  \"displayName\": \"New Vendor\",\n  \"mode\": \"comingSoon\"\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "description": "Applies a mapping template to up to 100 pending events and auto-approves each one. Returns per-event succeeded/failed breakdown."
-          }
-        }
-      ]
-    },
-    {
-      "name": "Details",
-      "description": "Approved canonical event details. Requires Bearer JWT + X-Active-Org.",
-      "item": [
-        {
-          "name": "GET /ingest/details — List approved events",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{urlapi}}/ingest/details?page=1&perPage=10&sortField=approvedAt&sortOrder=desc",
-              "host": ["{{urlapi}}"],
-              "path": ["ingest", "details"],
-              "query": [
-                { "key": "page",      "value": "1" },
-                { "key": "perPage",   "value": "10" },
-                { "key": "sortField", "value": "approvedAt" },
-                { "key": "sortOrder", "value": "desc" },
-                { "key": "eventType", "value": "", "disabled": true }
-              ]
-            },
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{access_token}}" },
-              { "key": "X-Active-Org",  "value": "{{orgId}}" }
-            ],
-            "description": "Returns paginated list of approved canonical events."
+            "description": "Creates a new source profile.\nmode: active | comingSoon | mock | disabled"
           },
           "event": [
             {
@@ -407,11 +916,154 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "var json = pm.response.json();",
-                  "if (json && json.details && json.details.length > 0) {",
-                  "    var id = json.details[0].eventId;",
-                  "    pm.collectionVariables.set('eventId', id);",
-                  "    console.log('eventId set from details list:', id);",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 201', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Created successfully', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json.status).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /ingest/sourceProfiles/:sourceFamily — Get single",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/sourceProfiles/{{sourceFamily}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "sourceProfiles", "{{sourceFamily}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns a single source profile by sourceFamily name."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Has mode field', () => {",
+                  "    if (json.details) {",
+                  "        pm.expect(json.details).to.have.property('mode');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /ingest/sourceProfiles/:sourceFamily — Update",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/sourceProfiles/{{sourceFamily}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "sourceProfiles", "{{sourceFamily}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Updated Vendor Name\",\n  \"mode\": \"active\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Updates a source profile (displayName, mode)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Updated successfully', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 — Mapping Suggestions (Read-Only)",
+      "description": "System-preset mapping suggestions loaded from JSON files.\nRead-only — runtime uses mappingTemplates, not suggestions.\nRequires Bearer JWT + X-Active-Org.",
+      "item": [
+        {
+          "name": "GET /ingest/mappingSuggestions — List all",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingSuggestions?sourceFamily=AIBOX",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingSuggestions"],
+              "query": [
+                { "key": "sourceFamily", "value": "AIBOX", "description": "Filter by sourceFamily (optional)" },
+                { "key": "sourceFamily", "value": "PVS",   "description": "Alternative filter", "disabled": true }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns all mapping suggestions, optionally filtered by sourceFamily.\nSuggestions are system presets loaded from configs/ingest/mappingSuggestions/."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has details array', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json).to.have.property('details');",
+                  "});",
+                  "",
+                  "if (json.details && json.details.length > 0) {",
+                  "    var s = json.details[0];",
+                  "    pm.collectionVariables.set('suggestionId', s.id);",
+                  "    console.log('suggestionId set:', s.id);",
+                  "    ",
+                  "    pm.test('Suggestion has required fields', () => {",
+                  "        pm.expect(s).to.have.property('id');",
+                  "        pm.expect(s).to.have.property('sourceFamily');",
+                  "        pm.expect(s).to.have.property('displayName');",
+                  "        pm.expect(s).to.have.property('matchRule');",
+                  "        pm.expect(s).to.have.property('fieldMappings');",
+                  "        pm.expect(s).to.have.property('samplePayload');",
+                  "    });",
                   "}"
                 ]
               }
@@ -419,26 +1071,45 @@
           ]
         },
         {
-          "name": "GET /ingest/details/:eventId — Get approved event",
+          "name": "GET /ingest/mappingSuggestions/:id — Get single",
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{urlapi}}/ingest/details/{{eventId}}",
+              "raw": "{{urlapi}}/ingest/mappingSuggestions/{{suggestionId}}",
               "host": ["{{urlapi}}"],
-              "path": ["ingest", "details", "{{eventId}}"]
+              "path": ["ingest", "mappingSuggestions", "{{suggestionId}}"]
             },
             "header": [
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
               { "key": "X-Active-Org",  "value": "{{orgId}}" }
             ],
-            "description": "Returns a single approved canonical event by ID."
-          }
+            "description": "Returns a single mapping suggestion by ID."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has details', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Mapping Templates",
-      "description": "Mapping template CRUD with classification rules and delivery target binding.\nRequires Bearer JWT + X-Active-Org.\n\nclassificationRules: derives canonical eventClass/eventSeverity from payload fields.\ndeliveryTargets: binds targets with optional payload filter, eventClasses, eventSeverities whitelist.\nmessageTemplates: locale-aware notification text (key-based selection via messageTemplateKey).\ndlq: per-template dead-letter queue configuration.\n\neventClass enum: unknown, anonymous, whitelist, watchlist, vip, blacklist, redlist, custom\neventSeverity enum: none, info, warning, critical",
+      "name": "08 — Mapping Templates",
+      "description": "Mapping template CRUD with classification rules and delivery target binding.\nRequires Bearer JWT + X-Active-Org.\n\nMinimal fields for V3: orgId, name, sourceFamily, matchRule, fieldMappings, target, messageTemplate, enabled.\n\nclassificationRules: derives canonical eventClass/eventSeverity from payload fields.\ndeliveryTargets: binds targets with optional payload filter, eventClasses, eventSeverities whitelist.\nmessageTemplates: locale-aware notification text (key-based selection via messageTemplateKey).\ndlq: per-template dead-letter queue configuration.\n\neventClass enum: unknown, anonymous, whitelist, watchlist, vip, blacklist, redlist, custom\neventSeverity enum: none, info, warning, critical",
       "item": [
         {
           "name": "GET /ingest/mappingTemplates — List templates",
@@ -468,8 +1139,18 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "var json = pm.response.json();",
-                  "if (json && json.details && json.details.length > 0) {",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Uses details (not detail)', () => {",
+                  "    pm.expect(json).to.have.property('details');",
+                  "    pm.expect(json).to.not.have.property('detail');",
+                  "});",
+                  "",
+                  "if (json.details && json.details.length > 0) {",
                   "    var id = json.details[0].templateId;",
                   "    pm.collectionVariables.set('templateId', id);",
                   "    console.log('templateId set from list:', id);",
@@ -480,7 +1161,7 @@
           ]
         },
         {
-          "name": "POST /ingest/mappingTemplates — Create full template (classification + delivery)",
+          "name": "POST /ingest/mappingTemplates — Create template",
           "request": {
             "method": "POST",
             "url": {
@@ -495,10 +1176,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"LPR Security Alert\",\n  \"match\": {\n    \"deviceId\": \"DEV-001\"\n  },\n  \"mappings\": [\n    { \"sourcePath\": \"deviceId\",     \"targetPath\": \"deviceId\",     \"required\": true },\n    { \"sourcePath\": \"deviceType\",   \"targetPath\": \"eventType\",    \"required\": true },\n    { \"sourcePath\": \"location.lat\", \"targetPath\": \"location.lat\", \"required\": false },\n    { \"sourcePath\": \"location.lng\", \"targetPath\": \"location.lng\", \"required\": false }\n  ],\n  \"classificationRules\": [\n    {\n      \"name\": \"blacklistCritical\",\n      \"when\": [\n        { \"field\": \"payload.listType\", \"operator\": \"eq\", \"values\": [\"3\"] }\n      ],\n      \"set\": { \"eventClass\": \"blacklist\", \"eventSeverity\": \"critical\" },\n      \"order\": 1\n    },\n    {\n      \"name\": \"watchlistWarning\",\n      \"when\": [\n        { \"field\": \"payload.listType\", \"operator\": \"eq\", \"values\": [\"2\"] }\n      ],\n      \"set\": { \"eventClass\": \"watchlist\", \"eventSeverity\": \"warning\" },\n      \"order\": 2\n    }\n  ],\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"{{targetId}}\"\n    },\n    {\n      \"targetId\": \"line-security-id\",\n      \"eventClasses\": [\"blacklist\", \"watchlist\"],\n      \"eventSeverities\": [\"warning\", \"critical\"],\n      \"messageTemplateKey\": \"securityAlertTh\"\n    }\n  ],\n  \"dlq\": {\n    \"enabled\": true,\n    \"maxRetries\": 3,\n    \"retryTimeoutSeconds\": 60\n  },\n  \"defaultLocale\": \"th\",\n  \"messageTemplates\": [\n    {\n      \"key\": \"securityAlertTh\",\n      \"channelType\": \"line\",\n      \"locale\": \"th\",\n      \"title\": \"[{{.eventSeverity}}] {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\\nLocation: lat={{.location.lat}}, lng={{.location.lng}}\"\n    },\n    {\n      \"key\": \"criticalAlertEn\",\n      \"channelType\": \"discord\",\n      \"locale\": \"en\",\n      \"title\": \"CRITICAL: {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\"\n    }\n  ]\n}",
+              "raw": "{\n  \"name\": \"AIBOX Face Detection\",\n  \"sourceFamily\": \"AIBOX\",\n  \"match\": {\n    \"deviceId\": \"AIBOX-001\"\n  },\n  \"matchAll\": [\n    { \"field\": \"raw.Events.Code\", \"operator\": \"eq\", \"values\": [\"FaceDetection\"] }\n  ],\n  \"mappings\": [\n    { \"sourcePath\": \"Address\",     \"targetPath\": \"deviceId\",     \"required\": true },\n    { \"sourcePath\": \"ChannelID\",   \"targetPath\": \"channelId\",    \"required\": true },\n    { \"sourcePath\": \"Events.Code\", \"targetPath\": \"eventType\",    \"required\": true }\n  ],\n  \"classificationRules\": [\n    {\n      \"name\": \"blacklistCritical\",\n      \"when\": [\n        { \"field\": \"payload.listType\", \"operator\": \"eq\", \"values\": [\"3\"] }\n      ],\n      \"set\": { \"eventClass\": \"blacklist\", \"eventSeverity\": \"critical\" },\n      \"order\": 1\n    }\n  ],\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"{{targetId}}\"\n    }\n  ],\n  \"dlq\": {\n    \"enabled\": true,\n    \"maxRetries\": 3,\n    \"retryTimeoutSeconds\": 60\n  },\n  \"defaultLocale\": \"th\",\n  \"messageTemplates\": [\n    {\n      \"key\": \"faceAlertTh\",\n      \"channelType\": \"line\",\n      \"locale\": \"th\",\n      \"title\": \"[{{.eventSeverity}}] {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\"\n    }\n  ]\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "description": "Creates a mapping template with full classification + delivery setup.\n\nclassificationRules: evaluated in order, first match sets eventClass/eventSeverity.\ndeliveryTargets: webhook (no eventClasses/eventSeverities = accepts all), message channel (with eventClasses/eventSeverities + messageTemplateKey).\nmessageTemplates: key-based selection by messageTemplateKey from deliveryTargets."
+            "description": "Creates a mapping template with sourceFamily, classification rules, delivery targets, DLQ, and message templates."
           },
           "event": [
             {
@@ -506,10 +1187,20 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "var json = pm.response.json();",
-                  "if (json && json.detail && json.detail.templateId) {",
-                  "    pm.collectionVariables.set('templateId', json.detail.templateId);",
-                  "    console.log('templateId set from create:', json.detail.templateId);",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 201', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Created successfully', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json.status).to.be.true;",
+                  "});",
+                  "",
+                  "if (json.details && json.details.templateId) {",
+                  "    pm.collectionVariables.set('templateId', json.details.templateId);",
+                  "    console.log('templateId set from create:', json.details.templateId);",
                   "}"
                 ]
               }
@@ -529,7 +1220,7 @@
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
               { "key": "X-Active-Org",  "value": "{{orgId}}" }
             ],
-            "description": "Returns a single mapping template by ID (includes classificationRules, deliveryTargets, messageTemplates, dlq)."
+            "description": "Returns a single mapping template by ID."
           },
           "event": [
             {
@@ -537,11 +1228,56 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "var json = pm.response.json();",
-                  "if (json && json.detail && json.detail.templateId) {",
-                  "    pm.collectionVariables.set('templateId', json.detail.templateId);",
-                  "    console.log('templateId set from get:', json.detail.templateId);",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (json.details && json.details.templateId) {",
+                  "    pm.collectionVariables.set('templateId', json.details.templateId);",
                   "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /ingest/mappingTemplates/:templateId — Update name + mappings",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"AIBOX Face Detection v2\",\n  \"sourceFamily\": \"AIBOX\",\n  \"mappings\": [\n    { \"sourcePath\": \"Address\",     \"targetPath\": \"deviceId\",     \"required\": true },\n    { \"sourcePath\": \"ChannelID\",   \"targetPath\": \"channelId\",    \"required\": true },\n    { \"sourcePath\": \"Events.Code\", \"targetPath\": \"eventType\",    \"required\": true },\n    { \"sourcePath\": \"Events.Data.Confidence\", \"targetPath\": \"confidence\", \"required\": false }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Patches name and mappings on a mapping template. Only provided fields are updated."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Updated successfully', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "});"
                 ]
               }
             }
@@ -563,14 +1299,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"classificationRules\": [\n    {\n      \"name\": \"blacklistCritical\",\n      \"when\": [\n        { \"field\": \"payload.listType\", \"operator\": \"eq\", \"values\": [\"3\"] }\n      ],\n      \"set\": { \"eventClass\": \"blacklist\", \"eventSeverity\": \"critical\" },\n      \"order\": 1\n    },\n    {\n      \"name\": \"watchlistWarning\",\n      \"when\": [\n        { \"field\": \"payload.listType\", \"operator\": \"eq\", \"values\": [\"2\"] }\n      ],\n      \"set\": { \"eventClass\": \"watchlist\", \"eventSeverity\": \"warning\" },\n      \"order\": 2\n    },\n    {\n      \"name\": \"boolBlacklist\",\n      \"when\": [\n        { \"field\": \"payload.blacklist\", \"operator\": \"eq\", \"values\": [\"true\"] }\n      ],\n      \"set\": { \"eventClass\": \"blacklist\", \"eventSeverity\": \"critical\" },\n      \"order\": 3\n    }\n  ]\n}",
+              "raw": "{\n  \"classificationRules\": [\n    {\n      \"name\": \"blacklistCritical\",\n      \"when\": [\n        { \"field\": \"payload.listType\", \"operator\": \"eq\", \"values\": [\"3\"] }\n      ],\n      \"set\": { \"eventClass\": \"blacklist\", \"eventSeverity\": \"critical\" },\n      \"order\": 1\n    },\n    {\n      \"name\": \"watchlistWarning\",\n      \"when\": [\n        { \"field\": \"payload.listType\", \"operator\": \"eq\", \"values\": [\"2\"] }\n      ],\n      \"set\": { \"eventClass\": \"watchlist\", \"eventSeverity\": \"warning\" },\n      \"order\": 2\n    }\n  ]\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "description": "Sets classificationRules on a template.\nRules evaluated in order (ascending). First match sets eventClass/eventSeverity.\nDefaults if no rule matches: eventClass=unknown, eventSeverity=none.\n\neventClass enum: unknown, anonymous, whitelist, watchlist, vip, blacklist, redlist, custom\neventSeverity enum: none, info, warning, critical"
+            "description": "Sets classificationRules on a template.\nRules evaluated in order (ascending). First match sets eventClass/eventSeverity.\nDefaults if no rule matches: eventClass=unknown, eventSeverity=none."
           }
         },
         {
-          "name": "PATCH — Webhook deliveryTarget (accepts all events)",
+          "name": "PATCH — Combined delivery targets + messageTemplates",
           "request": {
             "method": "PATCH",
             "url": {
@@ -585,14 +1321,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"{{targetId}}\"\n    }\n  ]\n}",
+              "raw": "{\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"{{targetId}}\"\n    },\n    {\n      \"targetId\": \"line-target-id\",\n      \"eventClasses\": [\"blacklist\", \"watchlist\"],\n      \"eventSeverities\": [\"warning\", \"critical\"],\n      \"messageTemplateKey\": \"securityAlertTh\"\n    },\n    {\n      \"targetId\": \"discord-target-id\",\n      \"eventSeverities\": [\"critical\"],\n      \"messageTemplateKey\": \"criticalAlertEn\"\n    }\n  ],\n  \"messageTemplates\": [\n    {\n      \"key\": \"securityAlertTh\",\n      \"channelType\": \"line\",\n      \"locale\": \"th\",\n      \"title\": \"[{{.eventSeverity}}] {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\"\n    },\n    {\n      \"key\": \"criticalAlertEn\",\n      \"channelType\": \"discord\",\n      \"locale\": \"en\",\n      \"title\": \"CRITICAL: {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\"\n    }\n  ]\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "description": "Webhook target that accepts ALL events (no eventClasses/eventSeverities filter).\nWebhook sends raw normalized event JSON."
+            "description": "Full delivery setup: webhook (all events) + LINE (blacklist/watchlist, warning/critical) + Discord (critical only).\nTarget types: webhook, line, discord, telegram."
           }
         },
         {
-          "name": "PATCH — LINE target (blacklist/watchlist + warning/critical)",
+          "name": "PATCH — Update DLQ config",
           "request": {
             "method": "PATCH",
             "url": {
@@ -607,98 +1343,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"{{targetId}}\",\n      \"eventClasses\": [\"blacklist\", \"watchlist\"],\n      \"eventSeverities\": [\"warning\", \"critical\"],\n      \"messageTemplateKey\": \"securityAlertTh\"\n    }\n  ]\n}",
+              "raw": "{\n  \"dlq\": {\n    \"enabled\": true,\n    \"maxRetries\": 5,\n    \"retryTimeoutSeconds\": 120\n  }\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "description": "LINE target that only receives blacklist/watchlist events with warning/critical severity.\nmessageTemplateKey selects the specific MessageTemplate by key for rendering."
-          }
-        },
-        {
-          "name": "PATCH — Discord target (critical only)",
-          "request": {
-            "method": "PATCH",
-            "url": {
-              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
-              "host": ["{{urlapi}}"],
-              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
-            },
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{access_token}}" },
-              { "key": "X-Active-Org",  "value": "{{orgId}}" },
-              { "key": "Content-Type",  "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"discord-target-id\",\n      \"eventSeverities\": [\"critical\"],\n      \"messageTemplateKey\": \"criticalAlertEn\"\n    }\n  ]\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "description": "Discord target that only receives critical severity events.\nAll eventClasses accepted (empty = no filter)."
-          }
-        },
-        {
-          "name": "PATCH — Combined: webhook + LINE + Discord targets",
-          "request": {
-            "method": "PATCH",
-            "url": {
-              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
-              "host": ["{{urlapi}}"],
-              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
-            },
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{access_token}}" },
-              { "key": "X-Active-Org",  "value": "{{orgId}}" },
-              { "key": "Content-Type",  "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"deliveryTargets\": [\n    {\n      \"targetId\": \"{{targetId}}\"\n    },\n    {\n      \"targetId\": \"line-target-id\",\n      \"eventClasses\": [\"blacklist\", \"watchlist\"],\n      \"eventSeverities\": [\"warning\", \"critical\"],\n      \"messageTemplateKey\": \"securityAlertTh\"\n    },\n    {\n      \"targetId\": \"discord-target-id\",\n      \"eventSeverities\": [\"critical\"],\n      \"messageTemplateKey\": \"criticalAlertEn\"\n    }\n  ],\n  \"messageTemplates\": [\n    {\n      \"key\": \"securityAlertTh\",\n      \"channelType\": \"line\",\n      \"locale\": \"th\",\n      \"title\": \"[{{.eventSeverity}}] {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\\nLocation: lat={{.location.lat}}, lng={{.location.lng}}\"\n    },\n    {\n      \"key\": \"criticalAlertEn\",\n      \"channelType\": \"discord\",\n      \"locale\": \"en\",\n      \"title\": \"CRITICAL: {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\"\n    }\n  ]\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "description": "Full delivery setup: webhook (all events) + LINE (blacklist/watchlist, warning/critical) + Discord (critical only).\n\nDispatch flow:\n1. classificationRules derive eventClass/eventSeverity\n2. Each target evaluates: payload filter -> eventClasses -> eventSeverities\n3. webhook sends raw JSON, LINE/Discord render via messageTemplateKey"
-          }
-        },
-        {
-          "name": "PATCH — Update DLQ + messageTemplates",
-          "request": {
-            "method": "PATCH",
-            "url": {
-              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
-              "host": ["{{urlapi}}"],
-              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
-            },
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{access_token}}" },
-              { "key": "X-Active-Org",  "value": "{{orgId}}" },
-              { "key": "Content-Type",  "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"dlq\": {\n    \"enabled\": true,\n    \"maxRetries\": 5,\n    \"retryTimeoutSeconds\": 120\n  },\n  \"defaultLocale\": \"th\",\n  \"messageTemplates\": [\n    {\n      \"key\": \"securityAlertTh\",\n      \"channelType\": \"line\",\n      \"locale\": \"th\",\n      \"title\": \"[{{.eventSeverity}}] {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\\nEvent: {{.eventType}}\"\n    },\n    {\n      \"key\": \"securityAlertEn\",\n      \"channelType\": \"line\",\n      \"locale\": \"en\",\n      \"title\": \"[{{.eventSeverity}}] {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\\nLocation: lat={{.location.lat}}, lng={{.location.lng}}\"\n    },\n    {\n      \"key\": \"criticalAlertEn\",\n      \"channelType\": \"discord\",\n      \"locale\": \"en\",\n      \"title\": \"CRITICAL: {{.eventType}}\",\n      \"body\": \"Class: {{.eventClass}}\\nDevice: {{.source.deviceId}}\"\n    }\n  ]\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "description": "Updates DLQ config and message templates.\nEach messageTemplate now has a key for messageTemplateKey selection.\nRender context includes: {{.eventClass}}, {{.eventSeverity}}, {{.eventType}}, {{.source.*}}, {{.location.*}}, {{.payload.*}}"
-          }
-        },
-        {
-          "name": "PATCH — Update name + mappings",
-          "request": {
-            "method": "PATCH",
-            "url": {
-              "raw": "{{urlapi}}/ingest/mappingTemplates/{{templateId}}",
-              "host": ["{{urlapi}}"],
-              "path": ["ingest", "mappingTemplates", "{{templateId}}"]
-            },
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{access_token}}" },
-              { "key": "X-Active-Org",  "value": "{{orgId}}" },
-              { "key": "Content-Type",  "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Camera Temperature Alert v2\",\n  \"mappings\": [\n    { \"sourcePath\": \"deviceId\",     \"targetPath\": \"deviceId\",     \"required\": true },\n    { \"sourcePath\": \"location.lat\", \"targetPath\": \"location.lat\", \"required\": false },\n    { \"sourcePath\": \"location.lng\", \"targetPath\": \"location.lng\", \"required\": false }\n  ]\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "description": "Patches name and mappings on a mapping template. Only provided fields are updated. Invalidates fingerprint cache immediately."
+            "description": "Updates DLQ configuration on a template."
           }
         },
         {
@@ -715,7 +1363,775 @@
               { "key": "X-Active-Org",  "value": "{{orgId}}" }
             ],
             "description": "Deletes a mapping template. Invalidates fingerprint cache immediately."
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Deleted successfully', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "09 — Device Management",
+      "description": "Device override rules (name, lat, lng). Applied after field mapping succeeds.\nRequires Bearer JWT + X-Active-Org.",
+      "item": [
+        {
+          "name": "GET /ingest/deviceManagement — List all",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/deviceManagement?page=1&perPages=20",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "deviceManagement"],
+              "query": [
+                { "key": "page",     "value": "1" },
+                { "key": "perPages", "value": "20" }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns paginated list of device management override records."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is successful', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json.status).to.be.true;",
+                  "});",
+                  "",
+                  "if (json.details && Array.isArray(json.details) && json.details.length > 0) {",
+                  "    var id = json.details[0].deviceMgmtId || json.details[0].id;",
+                  "    pm.collectionVariables.set('deviceMgmtId', id);",
+                  "    console.log('deviceMgmtId set:', id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /ingest/deviceManagement — Create",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/ingest/deviceManagement",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "deviceManagement"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceFamily\": \"AIBOX\",\n  \"entityType\": \"channel\",\n  \"entityId\": \"31\",\n  \"deviceId\": \"CAM-LOBBY-01\",\n  \"lat\": 13.7563,\n  \"lng\": 100.5018,\n  \"site\": \"Head Office\",\n  \"zone\": \"Lobby\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Creates a device management override record.\nOverwrite fields: name, lat, lng.\nApplied after field mapping succeeds.\nRequired: sourceFamily, entityType, entityId."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 201', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Created successfully', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json.status).to.be.true;",
+                  "});",
+                  "",
+                  "if (json.details && (json.details.deviceMgmtId || json.details.id)) {",
+                  "    var id = json.details.deviceMgmtId || json.details.id;",
+                  "    pm.collectionVariables.set('deviceMgmtId', id);",
+                  "    console.log('deviceMgmtId set from create:', id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /ingest/deviceManagement/:id — Get single",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/deviceManagement/{{deviceMgmtId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "deviceManagement", "{{deviceMgmtId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns a single device management record by ID."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is successful', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /ingest/deviceManagement/:id — Update",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{urlapi}}/ingest/deviceManagement/{{deviceMgmtId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "deviceManagement", "{{deviceMgmtId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"CAM-LOBBY-01-NEW\",\n  \"lat\": 13.76,\n  \"lng\": 100.51,\n  \"site\": \"Head Office Building B\",\n  \"zone\": \"Entrance\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Updates device management override fields (deviceId, lat, lng, site, zone)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Updated successfully', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10 — Unknown Payload Reviews",
+      "description": "Unknown payload review management.\nCreated when ingest receives a payload with no matching template.\nStatus: pending | rejected (no resolved, no archived).\nRequired fields: orgId, sourceFamily, fingerprint, samplePayload, candidateSuggestionIds, seenCount, firstSeenAt, lastSeenAt, status.\nRequires Bearer JWT + X-Active-Org.",
+      "item": [
+        {
+          "name": "GET /ingest/unknownPayloadReviews — List all",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/unknownPayloadReviews?page=1&perPages=10",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "unknownPayloadReviews"],
+              "query": [
+                { "key": "page",     "value": "1" },
+                { "key": "perPages", "value": "10" }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns paginated list of unknown payload reviews.\nEach review includes: fingerprint (sorted key paths + normalized value types), samplePayload, seenCount, candidateSuggestionIds."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Uses details (not detail)', () => {",
+                  "    pm.expect(json).to.have.property('details');",
+                  "    pm.expect(json).to.not.have.property('detail');",
+                  "});",
+                  "",
+                  "pm.test('Has pagination', () => {",
+                  "    pm.expect(json).to.have.property('pagination');",
+                  "});",
+                  "",
+                  "if (json.details && json.details.length > 0) {",
+                  "    var review = json.details[0];",
+                  "    var id = review.reviewId || review.id;",
+                  "    pm.collectionVariables.set('reviewId', id);",
+                  "    console.log('reviewId set:', id);",
+                  "    ",
+                  "    pm.test('Review has required fields', () => {",
+                  "        pm.expect(review).to.have.property('sourceFamily');",
+                  "        pm.expect(review).to.have.property('fingerprint');",
+                  "        pm.expect(review).to.have.property('samplePayload');",
+                  "        pm.expect(review).to.have.property('seenCount');",
+                  "        pm.expect(review).to.have.property('firstSeenAt');",
+                  "        pm.expect(review).to.have.property('lastSeenAt');",
+                  "        pm.expect(review).to.have.property('status');",
+                  "    });",
+                  "    ",
+                  "    pm.test('Status is pending or rejected (no resolved/archived)', () => {",
+                  "        pm.expect(review.status).to.be.oneOf(['pending', 'rejected']);",
+                  "    });",
+                  "    ",
+                  "    pm.test('Uses orgId (not tenantId)', () => {",
+                  "        pm.expect(review).to.have.property('orgId');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /ingest/unknownPayloadReviews/:id — Get single",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/unknownPayloadReviews/{{reviewId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "unknownPayloadReviews", "{{reviewId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns a single unknown payload review by ID.\nIncludes samplePayload, candidateSuggestionIds for template creation assistance."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is successful', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "});",
+                  "",
+                  "if (json.details) {",
+                  "    pm.test('Has candidateSuggestionIds', () => {",
+                  "        pm.expect(json.details).to.have.property('candidateSuggestionIds');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /ingest/unknownPayloadReviews/:id/reject — Reject (creates pattern)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/ingest/unknownPayloadReviews/{{reviewId}}/reject",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "unknownPayloadReviews", "{{reviewId}}", "reject"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Rejects an unknown payload review.\nAutomatically creates a rejectedPayloadPattern so future payloads with the same fingerprint are silently dropped.\nAfter rejection, the review record is deleted (no archive, no resolved history)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Rejection successful', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json.status).to.be.true;",
+                  "});",
+                  "",
+                  "if (json.details && json.details.patternId) {",
+                  "    pm.collectionVariables.set('patternId', json.details.patternId);",
+                  "    console.log('patternId set from reject:', json.details.patternId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "11 — Rejected Payload Patterns",
+      "description": "Rejected payload patterns — silently dropped fingerprints.\nKey: sourceFamily + fingerprint.\nIf a new ingest request matches a rejected pattern, it is dropped without creating a review.\nDelete a pattern to re-enable review for that fingerprint.\nRequired fields: sourceFamily, fingerprint, reason, createdAt, createdBy.\nRequires Bearer JWT + X-Active-Org.",
+      "item": [
+        {
+          "name": "GET /ingest/rejectedPayloadPatterns — List all",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/rejectedPayloadPatterns?page=1&perPages=10",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "rejectedPayloadPatterns"],
+              "query": [
+                { "key": "page",     "value": "1" },
+                { "key": "perPages", "value": "10" }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns paginated list of rejected payload patterns."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Uses details field', () => {",
+                  "    pm.expect(json).to.have.property('details');",
+                  "});",
+                  "",
+                  "if (json.details && json.details.length > 0) {",
+                  "    var pattern = json.details[0];",
+                  "    var id = pattern.patternId || pattern.id;",
+                  "    pm.collectionVariables.set('patternId', id);",
+                  "    console.log('patternId set:', id);",
+                  "    ",
+                  "    pm.test('Pattern has required fields', () => {",
+                  "        pm.expect(pattern).to.have.property('sourceFamily');",
+                  "        pm.expect(pattern).to.have.property('fingerprint');",
+                  "        pm.expect(pattern).to.have.property('reason');",
+                  "        pm.expect(pattern).to.have.property('createdAt');",
+                  "        pm.expect(pattern).to.have.property('createdBy');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /ingest/rejectedPayloadPatterns/:id — Delete (re-enable review)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{urlapi}}/ingest/rejectedPayloadPatterns/{{patternId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "rejectedPayloadPatterns", "{{patternId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Deletes a rejected payload pattern.\nAfter deletion, future payloads with this fingerprint will create unknownPayloadReview records again."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Deleted successfully', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json.status).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "12 — DLQ (Dead-Letter Queue)",
+      "description": "Dead-letter queue for failed ingest processing.\nStages: normalize | deliver | webhook.\nStatus: pending | retrying | resolved | abandoned.\nRequires Bearer JWT + X-Active-Org.",
+      "item": [
+        {
+          "name": "GET /ingest/dlq — List DLQ messages",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/dlq?page=1&perPage=20",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "dlq"],
+              "query": [
+                { "key": "page",    "value": "1" },
+                { "key": "perPage", "value": "20" },
+                { "key": "stage",   "value": "normalize", "description": "normalize | deliver | webhook", "disabled": true },
+                { "key": "status",  "value": "pending",   "description": "pending | retrying | resolved | abandoned", "disabled": true }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns paginated list of DLQ messages."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is successful', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "});",
+                  "",
+                  "if (json.details && json.details.length > 0) {",
+                  "    var msg = json.details[0];",
+                  "    var id = msg.messageId || msg.id;",
+                  "    pm.collectionVariables.set('dlqMessageId', id);",
+                  "    console.log('dlqMessageId set:', id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /ingest/dlq/stats — Get DLQ stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/dlq/stats",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "dlq", "stats"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns DLQ statistics: counts by status and stage, avg retry count, oldest message age."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Has stats details', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "    pm.expect(json).to.have.property('details');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /ingest/dlq/:id — Get single DLQ message",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/dlq/{{dlqMessageId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "dlq", "{{dlqMessageId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns a single DLQ message with full payload and error details."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is successful', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /ingest/dlq/:id/retry — Retry DLQ message",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/ingest/dlq/{{dlqMessageId}}/retry",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "dlq", "{{dlqMessageId}}", "retry"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Schedules a retry for a DLQ message. Increments retryCount, sets status to retrying."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Retry scheduled', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /ingest/dlq/:id/replay — Replay DLQ message",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/ingest/dlq/{{dlqMessageId}}/replay",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "dlq", "{{dlqMessageId}}", "replay"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Replays a DLQ message from the beginning of the pipeline."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Replay successful', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /ingest/dlq/:id/abandon — Abandon DLQ message",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{urlapi}}/ingest/dlq/{{dlqMessageId}}/abandon",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "dlq", "{{dlqMessageId}}", "abandon"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Abandons a DLQ message. Sets status to abandoned, no further retries."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Abandoned successfully', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "13 — Details (Approved Events)",
+      "description": "Approved canonical event details (read-only). Requires Bearer JWT + X-Active-Org.",
+      "item": [
+        {
+          "name": "GET /ingest/details — List approved events",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/details?page=1&perPage=10&sortField=approvedAt&sortOrder=desc",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "details"],
+              "query": [
+                { "key": "page",      "value": "1" },
+                { "key": "perPage",   "value": "10" },
+                { "key": "sortField", "value": "approvedAt" },
+                { "key": "sortOrder", "value": "desc" },
+                { "key": "eventType", "value": "", "disabled": true }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns paginated list of approved canonical events."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Uses details (not detail)', () => {",
+                  "    pm.expect(json).to.have.property('details');",
+                  "    pm.expect(json).to.not.have.property('detail');",
+                  "});",
+                  "",
+                  "if (json.details && json.details.length > 0) {",
+                  "    var id = json.details[0].eventId;",
+                  "    pm.collectionVariables.set('eventId', id);",
+                  "    console.log('eventId set from details list:', id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /ingest/details/:eventId — Get approved event",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{urlapi}}/ingest/details/{{eventId}}",
+              "host": ["{{urlapi}}"],
+              "path": ["ingest", "details", "{{eventId}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "X-Active-Org",  "value": "{{orgId}}" }
+            ],
+            "description": "Returns a single approved canonical event by ID."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Status code is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is successful', () => {",
+                  "    pm.expect(json.code).to.eql('SUCCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     }

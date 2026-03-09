@@ -89,6 +89,10 @@ func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
 		r.Route("/deviceManagement", func(dm fiber.Router) {
 			dm.Get("/", c.DeviceMgmtController.List)
 			dm.Post("/", c.DeviceMgmtController.Create)
+			// Bulk operations — registered before /:id to avoid param capture
+			dm.Get("/template", c.DeviceMgmtController.DownloadTemplate)
+			dm.Get("/export", c.DeviceMgmtController.ExportXlsx)
+			dm.Post("/import", c.DeviceMgmtController.ImportXlsx)
 			dm.Get("/:id", c.DeviceMgmtController.Get)
 			dm.Patch("/:id", c.DeviceMgmtController.Update)
 		})

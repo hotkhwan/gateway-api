@@ -6,7 +6,7 @@ import (
 	"io/fs"
 	"strings"
 
-	mappingsuggestions "github.com/hotkhwan/gateway-api/configs/ingest/mappingsuggestions"
+	mappingsuggestions "github.com/hotkhwan/gateway-api/config/ingest/mappingsuggestions"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
 )
 

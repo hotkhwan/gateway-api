@@ -1,4 +1,4 @@
-// configs/ingest/mappingsuggestions/embed.go
+// config/ingest/mappingsuggestions/embed.go
 package mappingsuggestions
 
 import "embed"
