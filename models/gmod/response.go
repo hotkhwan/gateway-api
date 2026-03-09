@@ -115,6 +115,26 @@ type SuccessMessageBulkCreateResponse struct {
 	Errors   []BulkError `json:"errors,omitempty"`
 }
 
+// BulkImportError represents a per-row error from XLSX import.
+type BulkImportError struct {
+	Row       int    `json:"row"`
+	RecordKey string `json:"recordKey,omitempty"` // e.g. "AIBOX:channel:30"
+	Field     string `json:"field,omitempty"`
+	Message   string `json:"message"`
+}
+
+// BulkImportResponse is the response envelope for device management XLSX import.
+type BulkImportResponse struct {
+	Code     string            `json:"code" example:"SUCCESS"`
+	Message  string            `json:"message" example:"Bulk import completed"`
+	Status   bool              `json:"status" example:"true"`
+	Inserted int               `json:"inserted" example:"5"`
+	Updated  int               `json:"updated" example:"2"`
+	Skipped  int               `json:"skipped" example:"1"`
+	IDs      []string          `json:"ids,omitempty"`
+	Errors   []BulkImportError `json:"errors,omitempty"`
+}
+
 type InternalErrorResponse struct {
 	Message string `json:"message" example:"internal server error"`
 }

@@ -95,28 +95,21 @@ func (s *ApprovalService) ApproveEvent(
 	now := time.Now().UTC()
 	canonical := buildCanonicalEvent(pending, now)
 
-	// 5) Create approved event detail
+	// 5) Create approved event detail (matches NormalizedEvent BSON shape)
 	eventDetail := &ingestmod.EventDetail{
-		EventId:   pending.EventId,
-		TenantId:  pending.TenantId,
-		OrgId:     pending.OrgId,
-		Name:      pending.Name,
-		Lat:       pending.Lat,
-		Lng:       pending.Lng,
-		EventType: pending.EventType,
-		NormalizedData: map[string]any{
-			"eventType":  pending.EventType,
-			"occurredAt": pending.CreatedAt,
-			"source":     canonical.Source,
-			"location":   canonical.Location,
-			"payload":    pending.RawBody,
+		EventId:    pending.EventId,
+		TenantId:   pending.TenantId,
+		EventType:  pending.EventType,
+		Source:     canonical.Source,
+		Location:   canonical.Location,
+		Payload:    pending.RawBody,
+		OccurredAt: pending.CreatedAt,
+		Meta: ingestmod.NormalizationMeta{
+			SchemaVersion: "v1",
+			NormalizedAt:  now,
 		},
-		SourceIp:       pending.SourceIp,
-		IngestedAt:     pending.CreatedAt,
-		ApprovedAt:     now,
-		CreatedAt:      now,
-		UpdatedAt:      now,
-		PendingEventId: pending.ID,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 
 	// 6) Store in event_details
@@ -492,6 +485,7 @@ func buildCanonicalEvent(pending *ingestmod.EventManagement, now time.Time) *ing
 		Source: ingestmod.SourceInfo{
 			DeviceId:   deviceId,
 			DeviceType: deviceType,
+			DeviceName: pending.Name,
 			OrgId:      pending.OrgId,
 		},
 		Location: ingestmod.LocationInfo{

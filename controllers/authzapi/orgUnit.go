@@ -2,6 +2,7 @@
 package authzapi
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -210,6 +211,11 @@ func (ctrl *OrgUnitController) Update(c *fiber.Ctx) error {
 		})
 	}
 
+	// Check if parentId was explicitly provided in the request body
+	var rawBody map[string]json.RawMessage
+	_ = json.Unmarshal(c.Body(), &rawBody)
+	_, parentIdProvided := rawBody["parentId"]
+
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	userId, _ := c.Locals("userId").(string)
@@ -222,6 +228,7 @@ func (ctrl *OrgUnitController) Update(c *fiber.Ctx) error {
 		body.Name,
 		body.Description,
 		body.ParentId,
+		parentIdProvided,
 		userId,
 	)
 
