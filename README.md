@@ -24,7 +24,7 @@
 ## Tech Stack
 
 | Component | Technology |
-|---|---|
+| --- | --- |
 | HTTP Framework | Go Fiber |
 | Database | MongoDB |
 | Cache | Redis |
@@ -41,7 +41,7 @@
 
 ## Project Structure
 
-```
+```text
 .
 ├── config/              # External service initialization
 │   ├── mongo.go         # MongoDB client + bootstrap
@@ -96,7 +96,7 @@
 
 ### Architecture Flow
 
-```
+```text
 repo → service → controller → router
 ```
 
@@ -205,15 +205,18 @@ docker run --rm -p 8080:8080 --env-file .env gateway-api
 Base path: `/api/v1`
 
 ### Authentication
+
 - `POST /auth/signin` — เข้าสู่ระบบ
 - `POST /auth/refresh-token` — ต่ออายุ token
 - `POST /auth/reset-password` — รีเซ็ตรหัสผ่าน
 
 ### Authorization
+
 - `POST /authz/resource/grant` — ให้สิทธิ์ resource
 - `POST /authz/resource/revoke` — ถอนสิทธิ์ resource
 
 ### Event Ingestion
+
 - `POST /events/:orgId` — รับ raw event จาก device (hot-path, no auth)
 - `GET /ingest/management` — ดู pending events
 - `POST /ingest/management/:id/approve` — อนุมัติ event
@@ -221,40 +224,46 @@ Base path: `/api/v1`
 - `POST /ingest/mappingTemplates` — สร้าง mapping template
 
 ### User & Group Management
+
 - `GET /users` — ดึงรายการ users
 - `POST /groups` — สร้าง group
 - `GET /groups/:id/members` — สมาชิกใน group
 - `GET /groups/:id/roles` — roles ใน group
 
 ### Device Management
+
 - `GET /devices` — ดึงรายการ devices
 - `POST /devices` — เพิ่ม device
 - `GET /devices/:id` — ดึงข้อมูล device
 - `PUT /devices/:id` — อัปเดต device
 
 ### Media & Maps
+
 - `POST /media/upload` — อัปโหลดไฟล์
 - `GET /maps/kml` — ดึงไฟล์ KML
 - `POST /maps/kml/upload` — อัปโหลด KML
 
 ### Watchlist
+
 - `GET /watchlist` — ดึง watchlist
 - `POST /watchlist` — สร้าง watchlist
 - `PUT /watchlist/:id` — อัปเดต watchlist
 
 ### System Control (KControl)
+
 - `GET /kcontrol` — ดึงรายการ
 - `POST /kcontrol/export` — export
 - `DELETE /kcontrol/:id` — ลบ
 
 ### Docs
+
 - `GET /docs/index.html` — Swagger UI
 
 ---
 
 ## Event Pipeline
 
-```
+```text
 external device
   → POST /events/:orgId  (stored as "pending")
       ├─ fingerprint match? → YES → auto-approve → Kafka raw.events
@@ -273,7 +282,7 @@ external device
 
 หลังรันแล้วเปิดที่:
 
-```
+```text
 http://localhost:8080/docs/index.html
 ```
 
