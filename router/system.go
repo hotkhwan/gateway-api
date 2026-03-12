@@ -27,6 +27,15 @@ func RegisterSystemRoutes(api fiber.Router) {
 			Effective: middleware.EffectiveGetter(),
 		}))
 
+		// ===== settings (/system/settings) =====
+		r.All("/settings", middleware.AllowMethods("GET"))
+		r.Get("/settings", sysapi.GetSettings)
+
+		// ===== backup (/system/backup/...) =====
+		br := r.Group("/backup")
+		br.All("/status", middleware.AllowMethods("GET"))
+		br.Get("/status", sysapi.GetBackupStatus)
+
 		// ===== options (/system/options) =====
 		optsRepo := optionsrepo.New(config.DB)
 		optsCtl := sysapi.NewOptionsController(optsRepo, func(ctx context.Context, days int) error {
