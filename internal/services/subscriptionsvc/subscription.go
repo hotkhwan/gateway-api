@@ -53,10 +53,13 @@ func (s *SubscriptionService) GetEffectiveLimits(
 	ctx context.Context,
 	tenantId string,
 ) (*EffectiveLimits, error) {
-	// 1. Get tenant subscription
+	// 1. Get tenant subscription (auto-bootstrap freemium if missing)
 	sub, err := s.subRepo.FindByTenantId(ctx, tenantId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get subscription: %w", err)
+		sub, err = s.subRepo.UpsertDefaultIfMissing(ctx, tenantId)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get subscription and bootstrap failed: %w", err)
+		}
 	}
 
 	// 2. Get plan defaults

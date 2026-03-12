@@ -223,6 +223,22 @@ func main() {
 	app.Use(logger.FiberLogger())
 
 	api := app.Group(basePath)
+
+	// ✅ Base path info endpoint
+	appCfg := config.LoadAppConfig()
+	api.All("/", middleware.AllowMethods("GET"))
+	api.Get("/", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"code":    "SUCCESS",
+			"message": "Gateway API",
+			"status":  true,
+			"details": fiber.Map{
+				"service": appCfg.AppName,
+				"version": appCfg.AppVersion,
+			},
+		})
+	})
+
 	// ✅ สร้าง container ครั้งเดียว
 	container := appcontainer.NewContainer()
 
