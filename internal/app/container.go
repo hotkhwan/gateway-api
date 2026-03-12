@@ -2,6 +2,7 @@
 package app
 
 import (
+	"context"
 	"os"
 
 	"github.com/hotkhwan/gateway-api/config"
@@ -308,10 +309,22 @@ func (c *Container) buildIngest() {
 // buildSubscription — subscription service
 // ============================================================
 func (c *Container) buildSubscription() {
+	log := logger.Boot("container", "buildSubscription")
+
 	subRepo := subscriprepo.NewSubscriptionRepo(config.DB)
 	licenseRepo := subscriprepo.NewLicenseRepo(config.DB)
 	c.SubscriptionService = subscriptionsvc.NewSubscriptionService(subRepo, licenseRepo, config.Redis)
 	c.SubscriptionController = subapi.NewSubscriptionController(c.SubscriptionService)
+
+	// Auto-bootstrap freemium subscription for default tenant on startup
+	tenantId := config.PermifyTenantID
+	if tenantId != "" {
+		if _, err := c.SubscriptionService.BootstrapSubscription(context.Background(), tenantId); err != nil {
+			log.Warn().Err(err).Str("tenantId", tenantId).Msg("failed to bootstrap default subscription")
+		} else {
+			log.Info().Str("tenantId", tenantId).Msg("default subscription bootstrapped")
+		}
+	}
 }
 
 // ============================================================
