@@ -79,7 +79,7 @@ var validTargetTypes = map[string]bool{
 func (s *TargetService) checkAdmin(ctx context.Context, tenantId, orgId, userId string) error {
 	allowed, err := s.authzClient.CheckPermissionWithSchemaVersion(
 		ctx, tenantId, config.CurrentSchemaVersion,
-		"organization", orgId, "admin", "user", userId,
+		"organization", orgId, "manage", "user", userId,
 	)
 	if err != nil || !allowed {
 		return ErrForbidden

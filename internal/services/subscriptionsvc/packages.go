@@ -31,7 +31,11 @@ func (s *SubscriptionService) GetCurrentEffective(ctx context.Context, tenantId 
 
 	sub, err := s.subRepo.FindByTenantId(ctx, tenantId)
 	if err != nil {
-		return nil, fmt.Errorf("subscription not found: %w", err)
+		// Auto-bootstrap freemium subscription if not found
+		sub, err = s.subRepo.UpsertDefaultIfMissing(ctx, tenantId)
+		if err != nil {
+			return nil, fmt.Errorf("subscription not found and bootstrap failed: %w", err)
+		}
 	}
 
 	pkgRepo := subscriprepo.NewPackageRepo()
