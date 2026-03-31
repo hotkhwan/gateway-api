@@ -1,46 +1,40 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kapi
-  namespace: aliza
+  name: aisom-gw
+  namespace: aisom
   labels:
-    app: kapi
+    app: aisom-gw
 spec:
+  replicas: 1
   selector:
     matchLabels:
-      app: kapi
+      app: aisom-gw
   template:
     metadata:
       labels:
-        app: kapi
+        app: aisom-gw
     spec:
-      # nodeSelector:
-      #   kubernetes.io/hostname: k8sserver3
+      nodeSelector:
+        kubernetes.io/hostname: klynx-poc-01
       containers:
-        - name: kapi
+        - name: aisom-gw
           image: regis.pointit.co.th/infra/go:1.1.6
-          # command: ["sleep"]
-          # args: ["infinity"]
-          # command: ["go", "run", ".", "--env=prod"]
-          # command: ["./main", "--env=prod"]
           imagePullPolicy: IfNotPresent
+          workingDir: /app
+          command: ["sleep", "infinity"]
           env:
             - name: MASTER_KEYRING_JSON
               valueFrom:
                 secretKeyRef:
                   name: klynx-masterkey
                   key: MASTER_KEYRING_JSON
-          envFrom:
-            - configMapRef:
-                name: kapi-config
-            - secretRef:
-                name: kapi-secrets
           ports:
             - name: http
               containerPort: 3001
           volumeMounts:
-            # - name: src-code
-            #   mountPath: /app
+            - name: src-code
+              mountPath: /app
             - name: rootca-volume
               mountPath: /app/certs/tls.ca
               subPath: tls.ca
@@ -48,10 +42,10 @@ spec:
           securityContext:
             privileged: true
       volumes:
-        # - name: src-code
-        #   hostPath:
-        #     path: /home/klynx/klynx-api
-        #     type: Directory
+        - name: src-code
+          hostPath:
+            path: /home/aisom/gateway-api
+            type: Directory
         - name: rootca-volume
           configMap:
             name: rootca
@@ -62,14 +56,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: kapi
-  namespace: aliza
+  name: aisom-gw
+  namespace: aisom
 spec:
   selector:
-    app: kapi
+    app: aisom-gw
   ports:
     - name: http
       port: 3001
-      targetPort: http
+      targetPort: 3001
       protocol: TCP
-  type: ClusterIP
