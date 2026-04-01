@@ -17,45 +17,32 @@ spec:
       nodeSelector:
         kubernetes.io/hostname: gateway
       imagePullSecrets:
-        - name: regis-secret
+        - name: harbor-credential
       containers:
         - name: kapi
-          image: golang:1.26
-          workingDir: /app
-          command: ["sleep"]
-          args: ["infinity"]
-          # command: ["go", "run", ".", "--env=dev"]
-          # command: ["./main", "--env=dev"]
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: PATH
-              value: /usr/local/go/bin:/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-          # envFrom:
-          #   - configMapRef:
-          #       name: kapi-aisom-config
-          #   - secretRef:
-          #       name: kapi-aisom-secrets
+          image: regis.pointit.co.th/ata/gateway-api:6c4ca14
+          imagePullPolicy: Always
+          command: ["./app"]
           ports:
             - name: http
               containerPort: 3001
           volumeMounts:
-            - name: src-code
-              mountPath: /app
             - name: rootca-volume
               mountPath: /app/certs/tls.ca
               subPath: tls.ca
               readOnly: true
-          securityContext:
-            privileged: true
+            - name: env-volume
+              mountPath: /app/.env.dev
+              subPath: .env.dev
+              readOnly: true
       volumes:
-        - name: src-code
-          hostPath:
-            path: /home/aisom/gateway-api
-            type: Directory
         - name: rootca-volume
           hostPath:
             path: /home/aisom/gateway-api/certs
             type: Directory
+        - name: env-volume
+          secret:
+            secretName: kapi-env-secret
 ---
 apiVersion: v1
 kind: Service
@@ -71,6 +58,3 @@ spec:
       targetPort: http
       protocol: TCP
   type: ClusterIP
-
-
-# go install github.com/swaggo/swag/cmd/swag@latest
