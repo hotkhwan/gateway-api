@@ -26,6 +26,7 @@ WORKDIR /app
 RUN apk --no-cache add ca-certificates tzdata
 
 COPY --from=builder /app/app .
+COPY --from=builder /app/internal/services/authzsvc/schema.perm ./internal/services/authzsvc/schema.perm
 
 # COPY --from=builder /app/.env .
 # COPY --from=builder /app/static ./static
