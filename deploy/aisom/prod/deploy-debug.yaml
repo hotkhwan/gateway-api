@@ -30,6 +30,8 @@ spec:
           env:
             - name: PATH
               value: /usr/local/go/bin:/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+            - name: INGEST_ENABLED_SOURCE_FAMILIES
+              value: "AIBOX,PVS,dahua,hikvision,mock"
           # envFrom:
           #   - configMapRef:
           #       name: kapi-aisom-config
@@ -45,13 +47,6 @@ spec:
               mountPath: /app/certs/tls.ca
               subPath: tls.ca
               readOnly: true
-          resources:
-            requests:
-              cpu: "500m"
-              memory: "512Mi"
-            limits:
-              cpu: "2000m"
-              memory: "2Gi"
           securityContext:
             privileged: true
       volumes:
