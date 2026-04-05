@@ -19,7 +19,7 @@ spec:
         kubernetes.io/hostname: klynx-poc-01
       containers:
         - name: aisom-gw
-          image: regis.pointit.co.th/infra/go:1.1.6
+          image: docker.io/library/golang:1.26
           imagePullPolicy: IfNotPresent
           workingDir: /app
           command: ["sleep", "infinity"]
@@ -29,6 +29,8 @@ spec:
                 secretKeyRef:
                   name: klynx-masterkey
                   key: MASTER_KEYRING_JSON
+            - name: INGEST_ENABLED_SOURCE_FAMILIES
+              value: "AIBOX,PVS,dahua,hikvision,mock"
           ports:
             - name: http
               containerPort: 3001
