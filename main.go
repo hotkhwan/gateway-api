@@ -21,7 +21,7 @@ import (
 	"github.com/hotkhwan/gateway-api/models/systemmod"
 
 	"github.com/hotkhwan/gateway-api/internal/kafka/deliverycons"
-	"github.com/hotkhwan/gateway-api/internal/kafka/kctrlcons"
+	// "github.com/hotkhwan/gateway-api/internal/kafka/kctrlcons"
 	"github.com/hotkhwan/gateway-api/internal/kafka/klivecorns"
 	"github.com/hotkhwan/gateway-api/internal/kafka/kschcorns"
 	"github.com/hotkhwan/gateway-api/internal/kafka/kwatchcons"
@@ -151,11 +151,11 @@ func main() {
 	// Start Kafka Consumers
 	go atacons.StartKafkaATAConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_TOPIC_ATA", "ata.events"))
 	go authzcons.StartKafkaAuthzRelationshipConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_AUTHZ_TOPIC", "authz.relationship.updated"))
-	go kctrlcons.StartKafkaAlarmConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("IOT_TOPIC_ALARM", "kcontrol.alarms"))
+	// go kctrlcons.StartKafkaAlarmConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("IOT_TOPIC_ALARM", "kcontrol.alarms"))
 	go atacons.StartKafkaATAConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_TOPIC_ATA", "ata.events-feature"))
-	go kctrlcons.StartKafkaEventConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("IOT_TOPIC_EVENT", "kcontrol.events"))
-	go kctrlcons.StartKafkaHealthConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("IOT_TOPIC_HEALTH", "kcontrol.health"))
-	go kctrlcons.StartKafkaSensorConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("IOT_TOPIC_SENSOR", "kcontrol.sensor"))
+	// go kctrlcons.StartKafkaEventConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("IOT_TOPIC_EVENT", "kcontrol.events"))
+	// go kctrlcons.StartKafkaHealthConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("IOT_TOPIC_HEALTH", "kcontrol.health"))
+	// go kctrlcons.StartKafkaSensorConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("IOT_TOPIC_SENSOR", "kcontrol.sensor"))
 	go kaicons.StartKafkaDetectConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_DETECTION_TOPIC", "tp.detection"))
 	go klivecorns.StartKliveConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_LIVE_TOPIC", "klive.palyer"))
 	go kschcorns.StartKsearchConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_KSEARCH_TOPIC", "ksearch.video"))
