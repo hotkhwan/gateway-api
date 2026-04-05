@@ -20,9 +20,29 @@ spec:
         - name: harbor-credential
       containers:
         - name: kapi
+<<<<<<< HEAD
           image: regis.pointit.co.th/ata/gateway-api:6c4ca14
           imagePullPolicy: Always
           command: ["./app"]
+=======
+          image: golang:1.26
+          workingDir: /app
+          command: ["sleep"]
+          args: ["infinity"]
+          # command: ["go", "run", ".", "--env=dev"]
+          # command: ["./main", "--env=dev"]
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PATH
+              value: /usr/local/go/bin:/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+            - name: INGEST_ENABLED_SOURCE_FAMILIES
+              value: "AIBOX,PVS,dahua,hikvision,mock"
+          # envFrom:
+          #   - configMapRef:
+          #       name: kapi-aisom-config
+          #   - secretRef:
+          #       name: kapi-aisom-secrets
+>>>>>>> 512e6b2 (:art: Add INGEST_ENABLED_SOURCE_FAMILIES env)
           ports:
             - name: http
               containerPort: 3001
