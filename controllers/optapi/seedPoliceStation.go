@@ -23,7 +23,6 @@ import (
 // @Param payload body []optmod.StationRaw true "raw stations array"
 // @Success 200 {object} gmod.Response
 // @Router /options/seed/policeStation [post]
-// @Security BearerAuth
 func SeedPoliceStation(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.optapi", "SeedPoliceStation", "optapi", "SeedPoliceStation")
 	defer end()

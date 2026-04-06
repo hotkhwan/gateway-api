@@ -122,6 +122,7 @@ func ChatList(c fiber.Ctx) error {
 // @Failure 400 {object} gmod.BaseResponse "Invalid chat ID format"
 // @Failure 404 {object} gmod.BaseResponse "chat not found"
 // @Failure 500 {object} gmod.BaseResponse "Internal server error"
+// @Security BearerAuth
 // @Router /ksearch/chats/{chatId} [put]
 func ChatUpdate(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "ChatStory.ChatUpdate", "kschapi", "ChatUpdate")
@@ -163,6 +164,7 @@ func ChatUpdate(c fiber.Ctx) error {
 // @Failure 400 {object} gmod.BaseResponse "Invalid chat ID format"
 // @Failure 404 {object} gmod.BaseResponse "chat not found"
 // @Failure 500 {object} gmod.BaseResponse "Internal server error"
+// @Security BearerAuth
 // @Router /ksearch/chats/{chatId} [delete]
 func ChatDelete(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "ChatStory.ChatDelete", "kschapi", "ChatDelete")

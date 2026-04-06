@@ -21,7 +21,6 @@ import (
 // @Failure 400 {object} gmod.BadRequestResponse
 // @Failure 401 {object} gmod.UnauthorizedResponse
 // @Router /auth/resetPassword [post]
-// @Security BearerAuth
 func ResetPassword(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.authapi", "ResetPassword.ResetPassword", "authapi", "ResetPassword")
 	defer end()

@@ -637,17 +637,6 @@ definitions:
         description: true / false
         type: boolean
     type: object
-  gmod.BulkError:
-    properties:
-      details:
-        type: string
-      index:
-        example: 3
-        type: integer
-      reason:
-        example: duplicate key
-        type: string
-    type: object
   gmod.BulkImportError:
     properties:
       field:
@@ -1030,32 +1019,6 @@ definitions:
       message:
         type: string
       status:
-        type: boolean
-    type: object
-  gmod.SuccessMessageBulkCreateResponse:
-    properties:
-      code:
-        example: SUCCESS
-        type: string
-      errors:
-        items:
-          $ref: '#/definitions/gmod.BulkError'
-        type: array
-      ids:
-        items:
-          type: string
-        type: array
-      inserted:
-        example: 5
-        type: integer
-      message:
-        example: Bulk operation completed
-        type: string
-      skipped:
-        example: 1
-        type: integer
-      status:
-        example: true
         type: boolean
     type: object
   gmod.SuccessMessageCreateResponse:
@@ -2929,8 +2892,6 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/gmod.UnauthorizedResponse'
-      security:
-      - BearerAuth: []
       summary: Refresh Token
       tags:
       - Auth
@@ -2967,8 +2928,6 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/gmod.UnauthorizedResponse'
-      security:
-      - BearerAuth: []
       summary: Reset Password
       tags:
       - Auth
@@ -3351,6 +3310,40 @@ paths:
       summary: Ingest raw event
       tags:
       - ingest
+  /files/{key}:
+    get:
+      description: Proxy private image from S3/MinIO โดย key จะเป็น path (ต้อง URL-encode
+        ถ้ามี / หรือ space)
+      parameters:
+      - description: Object key (URL-encoded, can contain /)
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Proxy image from S3/MinIO
+      tags:
+      - Files
   /groups:
     get:
       consumes:
@@ -3766,40 +3759,6 @@ paths:
       summary: Group tree with hierarchy and members
       tags:
       - Groups
-  /image/{key}:
-    get:
-      description: Proxy private image from S3/MinIO โดย key จะเป็น path (ต้อง URL-encode
-        ถ้ามี / หรือ space)
-      parameters:
-      - description: Object key (URL-encoded, can contain /)
-        in: path
-        name: key
-        required: true
-        type: string
-      produces:
-      - application/octet-stream
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: file
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Proxy image from S3/MinIO
-      tags:
-      - Files
   /ingest/dashboard:
     get:
       description: Returns aggregated ingest statistics filtered by date range, status,
@@ -5111,6 +5070,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Send message to Kcontrol device
       tags:
       - Kcontrol
@@ -5180,6 +5141,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Update a Kcontrol device
       tags:
       - Kcontrol
@@ -5209,6 +5172,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Acknowledge Kcontrol alarm
       tags:
       - Kcontrol
@@ -5238,6 +5203,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/gmod.InternalErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Reset stats of a Kcontrol device
       tags:
       - Kcontrol
@@ -5287,6 +5254,8 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/gmod.BadRequestResponse'
+      security:
+      - BearerAuth: []
       summary: Receive list of Kcontrol alarms (from events store)
       tags:
       - Kcontrol
@@ -5533,6 +5502,8 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/gmod.BadRequestResponse'
+      security:
+      - BearerAuth: []
       summary: List Kcontrol events (alarms + sensor)
       tags:
       - Kcontrol
@@ -5651,6 +5622,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/gmod.BaseResponse'
+      security:
+      - BearerAuth: []
       summary: Delete a chat
       tags:
       - Ksearch/Chats
@@ -5685,6 +5658,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/gmod.BaseResponse'
+      security:
+      - BearerAuth: []
       summary: Update a chat
       tags:
       - Ksearch/Chats
@@ -7039,8 +7014,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/gmod.Response'
-      security:
-      - BearerAuth: []
       summary: Seed policeStation options
       tags:
       - Options
@@ -8228,40 +8201,6 @@ paths:
       summary: Update resource
       tags:
       - Resource
-  /rsc/v1/resources/bulk:
-    post:
-      consumes:
-      - application/json
-      description: Create multiple resources in one request. The service validates
-        required fields, removes in-payload duplicates by (provider,type,canonicalId),
-        skips existing duplicates in DB, then inserts the rest.
-      parameters:
-      - description: Array of resources to create
-        in: body
-        name: body
-        required: true
-        schema:
-          items:
-            $ref: '#/definitions/rscmod.ResourceUpsert'
-          type: array
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Bulk resources created
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageBulkCreateResponse'
-        "400":
-          description: Bad request / invalid body
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageBulkCreateResponse'
-        "500":
-          description: Internal error
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageBulkCreateResponse'
-      summary: Bulk create resources
-      tags:
-      - Resources
   /subscriptions/bootstrap:
     post:
       description: Creates a default freemium subscription for the tenant if not already
