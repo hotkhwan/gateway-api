@@ -9,7 +9,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // DeviceTemplate godoc
@@ -26,8 +26,8 @@ import (
 // @Failure      500 {object} gmod.ErrorResponse
 // @Router       /devices/import [post]
 // @Security BearerAuth
-func DeviceTemplate(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devapi", "DeviceTemplate", "devapi", "DeviceTemplate")
+func DeviceTemplate(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.devapi", "DeviceTemplate", "devapi", "DeviceTemplate")
 	defer end()
 	log.Info().
 		Msg("📥 [DeviceTemplate] Incoming request")

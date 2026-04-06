@@ -8,7 +8,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // GetEdgeSSOURL godoc
@@ -26,8 +26,8 @@ import (
 // @Failure 500 {object} gmod.InternalErrorResponse
 // @Router /system/edge/{edgeType}/sso/{id} [get]
 // @Security BearerAuth
-func GetEdgeSSOURL(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.edgeapi", "EdgeApi.GetEdgeSSOURL", "sysapi", "GetEdgeSSOURL")
+func GetEdgeSSOURL(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.edgeapi", "EdgeApi.GetEdgeSSOURL", "sysapi", "GetEdgeSSOURL")
 	defer end()
 
 	edgeType := strings.ToLower(strings.TrimSpace(c.Params("edgeType")))

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/ingeststatsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
@@ -36,8 +36,8 @@ func NewIngestDashboardController(service *ingeststatsvc.DashboardStatsService) 
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/dashboard [get]
-func (ctrl *IngestDashboardController) GetIngestDashboard(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "IngestDashboardController.GetIngestDashboard", "ingestapi", "GetIngestDashboard")
+func (ctrl *IngestDashboardController) GetIngestDashboard(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "IngestDashboardController.GetIngestDashboard", "ingestapi", "GetIngestDashboard")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)

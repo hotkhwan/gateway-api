@@ -6,7 +6,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // videoGetByID godoc
@@ -19,8 +19,8 @@ import (
 // @Failure 404 {object} gmod.ErrorMessageResponse
 // @Router /kschapi/video/{id} [get]
 // @Security BearerAuth
-func VideoGetByID(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "Video.VideoGetByID", "kschapi", "VideoGetByID")
+func VideoGetByID(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "Video.VideoGetByID", "kschapi", "VideoGetByID")
 	defer end()
 
 	videoId := c.Params("videoId")

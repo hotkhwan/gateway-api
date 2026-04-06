@@ -6,7 +6,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // @Summary Refresh Token
@@ -20,14 +20,14 @@ import (
 // @Failure 401 {object} gmod.UnauthorizedResponse
 // @Router /auth/refreshToken [post]
 // @Security BearerAuth
-func RefreshToken(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.authapi", "RefreshToken.RefreshToken", "authapi", "RefreshToken")
+func RefreshToken(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.authapi", "RefreshToken.RefreshToken", "authapi", "RefreshToken")
 	defer end()
 
 	var req struct {
 		RefreshToken string `json:"refresh_token"`
 	}
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Warn().Err(err).Msg("invalid request body")
 		return httputil.FailBadRequest(c, "INVALID_REQUEST", "Invalid request")
 	}

@@ -5,7 +5,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // GetBackupStatus returns the current backup status (placeholder).
@@ -17,9 +17,9 @@ import (
 //	@Success      200  {object}  gmod.SuccessDataResponse
 //	@Failure      500  {object}  gmod.ErrorResponse
 //	@Router       /system/backup/status [get]
-func GetBackupStatus(c *fiber.Ctx) error {
+func GetBackupStatus(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(
-		c.UserContext(),
+		c,
 		"gateway.sysapi", "GetBackupStatus",
 		"sysapi", "GetBackupStatus",
 	)

@@ -11,7 +11,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // ListKcontrolDevices godoc
@@ -32,8 +32,8 @@ import (
 // @Failure      500   {object}  gmod.ErrorResponse
 // @Security     BearerAuth
 // @Router       /kcontrol [get]
-func ListDevices(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "devices.ListDevices", "kctrlapi", "ListDevices")
+func ListDevices(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "devices.ListDevices", "kctrlapi", "ListDevices")
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -93,8 +93,8 @@ func ListDevices(c *fiber.Ctx) error {
 // @Failure      500  {object}  gmod.ErrorResponse
 // @Security     BearerAuth
 // @Router       /kcontrol/{id} [get]
-func DeviceGetByID(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "devices.DeviceGetByID", "kctrlapi", "DeviceGetByID")
+func DeviceGetByID(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "devices.DeviceGetByID", "kctrlapi", "DeviceGetByID")
 	defer end()
 
 	id := c.Params("id")
@@ -130,8 +130,8 @@ func DeviceGetByID(c *fiber.Ctx) error {
 // @Success      200   {object}  kctrlmod.PaginationAlarmsResponse
 // @Failure      400   {object}  gmod.BadRequestResponse
 // @Router       /kcontrol/alarms [get]
-func ListAlarms(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.ListAlarms", "kctrlapi", "ListAlarms")
+func ListAlarms(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "alarms.ListAlarms", "kctrlapi", "ListAlarms")
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -190,8 +190,8 @@ func ListAlarms(c *fiber.Ctx) error {
 // @Failure      500  {object}  gmod.ErrorResponse
 // @Security     BearerAuth
 // @Router       /kcontrol/alarms/{id} [get]
-func ListAlarmById(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.ListAlarmById", "kctrlapi", "ListAlarmById")
+func ListAlarmById(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "alarms.ListAlarmById", "kctrlapi", "ListAlarmById")
 	defer end()
 
 	id := strings.TrimSpace(c.Params("id"))
@@ -233,8 +233,8 @@ func ListAlarmById(c *fiber.Ctx) error {
 // @Success      200   {object}  kctrlmod.PaginationAlarmsResponse
 // @Failure      400   {object}  gmod.BadRequestResponse
 // @Router       /kcontrol/events [get]
-func ListEvents(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "events.ListEvents", "kctrlapi", "ListEvents")
+func ListEvents(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "events.ListEvents", "kctrlapi", "ListEvents")
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))

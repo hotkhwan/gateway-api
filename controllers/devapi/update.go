@@ -7,7 +7,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // DeviceUpdate godoc
@@ -24,8 +24,8 @@ import (
 // @Failure 500 {object} gmod.InternalErrorResponse
 // @Router /devices/{id} [patch]
 // @Security BearerAuth
-func DeviceUpdate(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devapi", "DeviceUpdate", "devapi", "DeviceUpdate")
+func DeviceUpdate(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.devapi", "DeviceUpdate", "devapi", "DeviceUpdate")
 	defer end()
 	id := c.Params("id")
 	if id == "" {
@@ -35,7 +35,7 @@ func DeviceUpdate(c *fiber.Ctx) error {
 	}
 
 	var req devmod.Device
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Warn().
 			Str("deviceID", id).Msg("❌ [DeviceUpdate] Invalid request body")
 		return httputil.FailBadRequest(c, "Invalid request body")

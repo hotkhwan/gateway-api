@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
@@ -37,8 +37,8 @@ func NewIngestController(svc *ingestsvc.IngestService) *IngestController {
 // @Failure      429    {object}  gmod.ApiErrorResponse
 // @Failure      500    {object}  gmod.ApiErrorResponse
 // @Router       /events/{orgId}/{sourceFamily} [post]
-func (ctrl *IngestController) Ingest(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "IngestController.Ingest", "ingestapi", "Ingest")
+func (ctrl *IngestController) Ingest(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "IngestController.Ingest", "ingestapi", "Ingest")
 	defer end()
 
 	orgId := strings.TrimSpace(c.Params("orgId"))

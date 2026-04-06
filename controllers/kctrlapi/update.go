@@ -9,7 +9,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -25,8 +25,8 @@ import (
 // @Failure      400   {object}  gmod.BadRequestResponse
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /kcontrol/{id} [patch]
-func UpdateDevice(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "devices.UpdateDevice", "kctrlapi", "UpdateDevice")
+func UpdateDevice(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "devices.UpdateDevice", "kctrlapi", "UpdateDevice")
 	defer end()
 
 	idStr := c.Params("id")
@@ -45,7 +45,7 @@ func UpdateDevice(c *fiber.Ctx) error {
 	}
 
 	var payload kctrlmod.UpdatePayload
-	if err := c.BodyParser(&payload); err != nil {
+	if err := c.Bind().Body(&payload); err != nil {
 		log.Warn().
 			Err(err).
 			Str("id", idStr).
@@ -79,14 +79,14 @@ func UpdateDevice(c *fiber.Ctx) error {
 // @Failure      400   {object}  gmod.BadRequestResponse
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /kcontrol/{id}/ack [patch]
-func AckDeviceAlarm(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.AckDeviceAlarm", "kctrlapi", "AckDeviceAlarm")
+func AckDeviceAlarm(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "alarms.AckDeviceAlarm", "kctrlapi", "AckDeviceAlarm")
 	defer end()
 
 	deviceId := c.Params("id")
 	var payload kctrlmod.EventMessage
 
-	if err := c.BodyParser(&payload); err != nil {
+	if err := c.Bind().Body(&payload); err != nil {
 		log.Warn().
 			Err(err).
 			Str("id", deviceId).
@@ -127,14 +127,14 @@ func AckDeviceAlarm(c *fiber.Ctx) error {
 // @Failure      400   {object}  gmod.BadRequestResponse
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /kcontrol/{id}/ack [patch]
-func AckAlarm(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.AckAlarm", "kctrlapi", "AckAlarm")
+func AckAlarm(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "alarms.AckAlarm", "kctrlapi", "AckAlarm")
 	defer end()
 
 	alarmId := c.Params("id")
 
 	var req kctrlmod.AckAlarmRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, "BAD_REQUEST", "invalid body")
 	}
 	if strings.TrimSpace(req.HwID) == "" {
@@ -173,8 +173,8 @@ func AckAlarm(c *fiber.Ctx) error {
 // @Failure      400   {object}  gmod.BadRequestResponse
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /kcontrol/{id}/reset-stats [patch]
-func ResetStats(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.ResetStats", "kctrlapi", "ResetStats")
+func ResetStats(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "alarms.ResetStats", "kctrlapi", "ResetStats")
 	defer end()
 
 	deviceId := c.Params("id")

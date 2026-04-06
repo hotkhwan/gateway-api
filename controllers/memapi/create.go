@@ -7,7 +7,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // CreateMember godoc
@@ -22,12 +22,12 @@ import (
 // @Failure 500 {object} gmod.InternalErrorResponse
 // @Router /members [post]
 // @Security BearerAuth
-func CreateMember(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.memapi", "memapi.CreateMember", "memapi", "CreateMember")
+func CreateMember(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.memapi", "memapi.CreateMember", "memapi", "CreateMember")
 	defer end()
 
 	var req []memmod.MemberRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Error().Err(err).Msg("❌ Invalid body")
 		return httputil.FailBadRequest(c, "INVALID_BODY", err.Error())
 	}
@@ -55,8 +55,8 @@ func CreateMember(c *fiber.Ctx) error {
 	return httputil.MessageOK(c, "Member created successfully", "MEMBER_CREATED")
 }
 
-func CreateMember2(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.memapi", "memapi.CreateMember2", "memapi", "CreateMember2")
+func CreateMember2(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.memapi", "memapi.CreateMember2", "memapi", "CreateMember2")
 	defer end()
 
 	// ดึง groupID จาก URL: /member/:groupID
@@ -66,7 +66,7 @@ func CreateMember2(c *fiber.Ctx) error {
 	}
 
 	var req memmod.MemberRequest2
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Error().Err(err).Msg("❌ Invalid body")
 		return httputil.FailBadRequest(c, "INVALID_BODY", err.Error())
 	}

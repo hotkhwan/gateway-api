@@ -8,7 +8,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -23,8 +23,8 @@ import (
 // @Failure 500 {object} gmod.InternalErrorResponse
 // @Router /members/{id} [get]
 // @Security BearerAuth
-func MemberGetByID(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.memapi", "memapi.MemberGetByID", "memapi", "MemberGetByID")
+func MemberGetByID(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.memapi", "memapi.MemberGetByID", "memapi", "MemberGetByID")
 	defer end()
 
 	memberId := strings.TrimSpace(c.Params("Id"))

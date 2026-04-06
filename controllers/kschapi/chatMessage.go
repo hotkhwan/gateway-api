@@ -16,7 +16,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -30,12 +30,12 @@ import (
 // @Success 200 {string} string "event-stream"
 // @Router /ksearch/chat [post]
 // @Security BearerAuth
-func ChatMessage(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatMessage.ChatMessage", "kschapi", "ChatMessage")
+func ChatMessage(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "ChatMessage.ChatMessage", "kschapi", "ChatMessage")
 	defer end()
 
 	var req kschmod.LLMRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Error().Err(err).Msg("❌ invalid request body")
 		return httputil.FailBadRequest(c, "BAD_REQUEST", "invalid body")
 	}
@@ -57,7 +57,7 @@ func ChatMessage(c *fiber.Ctx) error {
 	c.Set("Connection", "keep-alive")
 
 	// ใช้ bufio.Writer สำหรับ stream
-	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
+	c.RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
 		for msg := range ch {
 			data, _ := json.Marshal(msg)
 			fmt.Fprintf(w, "data: %s\n\n", data)
@@ -82,8 +82,8 @@ func ChatMessage(c *fiber.Ctx) error {
 // @Router /ksearch/chats/messages [post]
 // @Router /ksearch/chats/{chatId}/messages [post]
 // @Security BearerAuth
-func MessageCreateStream(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatMessage.MessageCreateStream", "kschapi", "MessageCreateStream")
+func MessageCreateStream(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "ChatMessage.MessageCreateStream", "kschapi", "MessageCreateStream")
 	defer end()
 
 	userId, err := middleware.CurrentUserID(c)
@@ -95,7 +95,7 @@ func MessageCreateStream(c *fiber.Ctx) error {
 	var body struct {
 		Prompt string `json:"prompt"`
 	}
-	if err := c.BodyParser(&body); err != nil || body.Prompt == "" {
+	if err := c.Bind().Body(&body); err != nil || body.Prompt == "" {
 		return httputil.FailBadRequest(c, "BAD_REQUEST", "invalid body")
 	}
 
@@ -107,7 +107,7 @@ func MessageCreateStream(c *fiber.Ctx) error {
 	// เรียก service
 	ch := kschsvc.MessageCreateOrStream(ctx, userId, chatId, body.Prompt)
 
-	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
+	c.RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
 		for msg := range ch {
 			data, _ := json.Marshal(msg)
 			fmt.Fprintf(w, "data: %s\n\n", data)
@@ -136,8 +136,8 @@ func MessageCreateStream(c *fiber.Ctx) error {
 // @Success 200 {object} kschmod.ChatMessagePaginationResponse
 // @Router /ksearch/chats/{chatId}/messages [get]
 // @Security BearerAuth
-func MessageList(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatMessage.MessageList", "kschapi", "MessageList")
+func MessageList(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "ChatMessage.MessageList", "kschapi", "MessageList")
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -175,15 +175,15 @@ func MessageList(c *fiber.Ctx) error {
 // @Failure 500 {object} gmod.BaseResponse "Internal server error"
 // @Router /ksearch/chats/{chatId}/messages/{messageId} [patch]
 // @Security BearerAuth
-func MessageUpdate(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatMessage.MessageUpdate", "kschapi", "MessageUpdate")
+func MessageUpdate(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "ChatMessage.MessageUpdate", "kschapi", "MessageUpdate")
 	defer end()
 
 	chatId := c.Params("chatId")
 	messageId := c.Params("messageId")
 
 	var req kschmod.MessageUpdateRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, "BAD_REQUEST", "invalid request body")
 	}
 

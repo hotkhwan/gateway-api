@@ -4,12 +4,12 @@ package kwatmod
 import (
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // ส่ง JSON 200 สำหรับผลลัพธ์แบบ pagination ที่ใช้ generic
-func SendPagination[T any](c *fiber.Ctx, data []T, pagination WatchlistPagination) error {
+func SendPagination[T any](c fiber.Ctx, data []T, pagination WatchlistPagination) error {
 	// ถ้า data เป็น nil บังคับให้เป็น slice ว่าง
 	if data == nil {
 		data = []T{}

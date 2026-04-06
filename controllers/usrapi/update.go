@@ -6,7 +6,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // UpdateUser godoc
@@ -22,8 +22,8 @@ import (
 // @Failure      400   {object}  gmod.ErrorResponse
 // @Failure      500   {object}  gmod.ErrorResponse
 // @Router       /users/{id} [patch]
-func UpdateUser(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.usrapi", "UpdateUser", "usrapi", "UpdateUser")
+func UpdateUser(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.usrapi", "UpdateUser", "usrapi", "UpdateUser")
 	defer end()
 
 	id := c.Params("id")
@@ -32,7 +32,7 @@ func UpdateUser(c *fiber.Ctx) error {
 	}
 
 	var attrs map[string]any
-	if err := c.BodyParser(&attrs); err != nil {
+	if err := c.Bind().Body(&attrs); err != nil {
 		return httputil.FailBadRequest(c, err.Error())
 	}
 

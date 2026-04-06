@@ -7,7 +7,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // SearchGroupsTree godoc
@@ -22,8 +22,8 @@ import (
 // @Failure      500 {object} gmod.InternalErrorResponse
 // @Router       /groups/search [get]
 // @Security     BearerAuth
-func SearchGroupsTree(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.grpapi", "group.SearchGroupsTree", "grpapi", "SearchGroupsTree")
+func SearchGroupsTree(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.grpapi", "group.SearchGroupsTree", "grpapi", "SearchGroupsTree")
 	defer end()
 
 	search := c.Query("name")

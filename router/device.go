@@ -4,7 +4,7 @@ package router
 import (
 	"os"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/config"
 	appcontainer "github.com/hotkhwan/gateway-api/internal/app"
 	"github.com/hotkhwan/gateway-api/internal/middleware"
@@ -85,7 +85,7 @@ func RegisterResourceRoutes(router fiber.Router, c *appcontainer.Container) {
 // 	"github.com/hotkhwan/gateway-api/controllers/devapi"
 // 	"github.com/hotkhwan/gateway-api/internal/middleware"
 
-// 	"github.com/gofiber/fiber/v2"
+// 	"github.com/gofiber/fiber/v3"
 // )
 
 // func RegisterDeviceRoutes(router fiber.Router) {

@@ -7,7 +7,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // @Summary Signout
@@ -20,8 +20,8 @@ import (
 // @Failure 401 {object} gmod.UnauthorizedResponse
 // @Router /auth/signout [post]
 // @Security BearerAuth
-func Signout(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.authapi", "Signout.Signout", "authapi", "Signout")
+func Signout(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.authapi", "Signout.Signout", "authapi", "Signout")
 	defer end()
 
 	accessToken, err := middleware.ExtractBearerToken(c)

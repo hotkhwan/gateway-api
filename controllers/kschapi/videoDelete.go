@@ -8,7 +8,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -24,8 +24,8 @@ import (
 // @Failure 500 {object} gmod.ErrorMessageResponse "Internal Server Error"
 // @Router /ksearch/video/{id} [delete]
 // @Security BearerAuth
-func VideoDelete(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "Video.VideoDelete", "kschapi", "VideoDelete")
+func VideoDelete(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.kschapi", "Video.VideoDelete", "kschapi", "VideoDelete")
 	defer end()
 
 	idStr := c.Params("videoId")
@@ -34,7 +34,7 @@ func VideoDelete(c *fiber.Ctx) error {
 		return httputil.FailBadRequest(c, "INVALID_ID", "Invalid video ID format")
 	}
 
-	if err := kschsvc.VideoDelete(c.Context(), objID); err != nil {
+	if err := kschsvc.VideoDelete(c, objID); err != nil {
 		switch {
 		case errors.Is(err, kschsvc.ErrInvalidObjectID):
 			return httputil.FailBadRequest(c, "INVALID_ID", "Invalid video ID format")

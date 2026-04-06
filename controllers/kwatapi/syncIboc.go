@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 
 	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
@@ -25,9 +25,9 @@ import (
 // @Header       202 {integer} Retry-After  "Client may poll the Location after N seconds"
 // @Router       /kwatch/syncIboc [post]
 // @Security BearerAuth
-func SyncIbocWatchlist(c *fiber.Ctx) error {
+func SyncIbocWatchlist(c fiber.Ctx) error {
 	// keep a short timeout only for building the immediate response
-	baseCtx, cancel := context.WithTimeout(c.UserContext(), 60*time.Second)
+	baseCtx, cancel := context.WithTimeout(c, 60*time.Second)
 	defer cancel()
 
 	reqCtx, end, _ := traceutil.StartLite(baseCtx, "gateway.kwatapi", "SyncIboc.SyncIbocWatchlist", "kwatapi", "SyncIbocWatchlist")

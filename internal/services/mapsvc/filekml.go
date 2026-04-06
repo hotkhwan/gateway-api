@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/models/gmod"
@@ -16,9 +16,9 @@ import (
 )
 
 // GenerateKmlSignedURL handles presigned KML file link generation
-func GenerateKmlSignedURL(c *fiber.Ctx, token string) error {
+func GenerateKmlSignedURL(c fiber.Ctx, token string) error {
 	// ใช้ ctx จาก Fiber เพื่อสืบทอด trace/deadline
-	baseCtx := c.UserContext()
+	baseCtx := c
 
 	ctx, end, log := traceutil.StartLite(
 		baseCtx,
@@ -33,7 +33,7 @@ func GenerateKmlSignedURL(c *fiber.Ctx, token string) error {
 	defer cancel()
 
 	filename := c.Query("filename")
-	expiresIn := c.QueryInt("expiresIn", 3600)
+	expiresIn := fiber.Query[int](c, "expiresIn", 3600)
 
 	log.Info().
 		Str("filename", filename).

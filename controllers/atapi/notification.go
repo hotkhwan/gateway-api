@@ -10,7 +10,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // BlacklistNotificationAll godoc
@@ -29,8 +29,8 @@ import (
 // @Success 200 {object} aimodel.StandardResponse
 // @Router /atapi/blacklist/notification [get]
 // @Security BearerAuth
-func NotificationSummary(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.atapi", "ata.NotificationSummary", "atapi", "NotificationSummary")
+func NotificationSummary(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.atapi", "ata.NotificationSummary", "atapi", "NotificationSummary")
 	defer end()
 
 	dateTime := strings.TrimSpace(c.Query("dateTime", ""))

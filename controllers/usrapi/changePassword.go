@@ -6,7 +6,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // ChangePassword godoc
@@ -22,8 +22,8 @@ import (
 // @Failure      400   {object}  gmod.ErrorResponse
 // @Failure      500   {object}  gmod.ErrorResponse
 // @Router       /users/{id}/password [patch]
-func ChangePassword(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.usrapi", "ChangePassword", "usrapi", "ChangePassword")
+func ChangePassword(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.usrapi", "ChangePassword", "usrapi", "ChangePassword")
 	defer end()
 
 	id := c.Params("id")
@@ -33,7 +33,7 @@ func ChangePassword(c *fiber.Ctx) error {
 		Temporary bool   `json:"temporary"`
 	}
 
-	if err := c.BodyParser(&req); err != nil || req.Password == "" {
+	if err := c.Bind().Body(&req); err != nil || req.Password == "" {
 		return httputil.FailBadRequest(c, "password required")
 	}
 

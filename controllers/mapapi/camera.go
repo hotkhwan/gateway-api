@@ -8,7 +8,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // DeviceMap godoc
@@ -27,8 +27,8 @@ import (
 // @Failure      500  {object}  gmod.ErrorResponse
 // @Security     BearerAuth
 // @Router       /map/camera [get]
-func DeviceMap(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.mapapi", "DeviceMap.DeviceMap", "mapapi", "DeviceMap")
+func DeviceMap(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.mapapi", "DeviceMap.DeviceMap", "mapapi", "DeviceMap")
 	defer end()
 
 	// ---------- parse query ----------

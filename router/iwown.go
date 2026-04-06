@@ -4,7 +4,7 @@ package router
 import (
 	"github.com/hotkhwan/gateway-api/controllers/webhooks/iot/iwownapi"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // RegisterHookIwownAPI ลงที่ main เหมือนเดิม
@@ -31,7 +31,7 @@ func RegisterHookIwownAPI(r fiber.Router) {
 	g.Get("health/sleep", iwownapi.HandleIwownHealthSleep)
 
 	// health check
-	g.Get("healthz", func(c *fiber.Ctx) error {
+	g.Get("healthz", func(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusOK)
 	})
 }

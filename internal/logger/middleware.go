@@ -4,17 +4,17 @@ package logger
 import (
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func FiberLogger() fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		start := time.Now()
 		err := c.Next()
 		lat := time.Since(start)
 
 		status := c.Response().StatusCode()
-		log := FromCtx(c.UserContext(), "http", "request")
+		log := FromCtx(c, "http", "request")
 
 		ev := log.Info()
 		// Downgrade successful GET/HEAD reads to Debug to reduce polling noise

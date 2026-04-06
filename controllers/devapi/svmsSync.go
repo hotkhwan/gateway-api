@@ -11,7 +11,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type svmsSyncReq struct {
@@ -21,12 +21,12 @@ type svmsSyncReq struct {
 	PageSize int    `json:"pageSize"`
 }
 
-func DeviceSyncFromSVMS(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devapi", "DeviceSyncFromSVMS", "devapi", "DeviceSyncFromSVMS")
+func DeviceSyncFromSVMS(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.devapi", "DeviceSyncFromSVMS", "devapi", "DeviceSyncFromSVMS")
 	defer end()
 
 	var req svmsSyncReq
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, "Invalid request body")
 	}
 	if req.BaseURL == "" || req.User == "" || req.Pass == "" {

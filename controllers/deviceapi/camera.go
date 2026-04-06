@@ -4,7 +4,7 @@ package deviceapi
 import (
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
 	"github.com/hotkhwan/gateway-api/models/devmod"
 	"github.com/hotkhwan/gateway-api/models/gmod"
@@ -34,7 +34,7 @@ func NewCameraController(service *devicesvc.CameraService) *CameraController {
 	return &CameraController{service: service}
 }
 
-func (ctrl *CameraController) mustLocals(c *fiber.Ctx) (tenantId, orgId, callerUserId string) {
+func (ctrl *CameraController) mustLocals(c fiber.Ctx) (tenantId, orgId, callerUserId string) {
 	tenantId, _ = c.Locals("tenantId").(string)
 	orgId, _ = c.Locals("activeOrg").(string)
 	callerUserId, _ = c.Locals("userId").(string)
@@ -55,20 +55,20 @@ type CreateCameraRequest struct {
 	MapVisibility string        `json:"mapVisibility"`
 }
 
-func (ctrl *CameraController) Create(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "CameraController.Create", "deviceapi", "Create")
+func (ctrl *CameraController) Create(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "CameraController.Create", "deviceapi", "Create")
 	defer end()
 
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	var body CreateCameraRequest
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if body.Name == "" || body.URL == "" {
 		return httputil.FailBadRequest(c, "name and url are required")
 	}
 	log.Info().Str("orgId", orgId).Str("name", body.Name).Msg("CreateCamera")
-	cam, err := ctrl.service.Create(c.UserContext(), devmod.CreateCameraInput{
+	cam, err := ctrl.service.Create(c, devmod.CreateCameraInput{
 		TenantID: tenantId, OrgID: orgId, CallerID: callerUserId,
 		Name: body.Name, User: body.User, Password: body.Password,
 		URL: body.URL, District: body.District, Lat: body.Lat, Lng: body.Lng,
@@ -83,18 +83,18 @@ func (ctrl *CameraController) Create(c *fiber.Ctx) error {
 	return httputil.Created(c, cam, "camera created successfully")
 }
 
-func (ctrl *CameraController) List(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "CameraController.List", "deviceapi", "List")
+func (ctrl *CameraController) List(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "CameraController.List", "deviceapi", "List")
 	defer end()
 
 	tenantId, orgId, _ := ctrl.mustLocals(c)
 	input := devicesvc.ListCameraInput{
 		TenantID: tenantId, OrgID: orgId,
 		Search: c.Query("search"), GroupID: c.Query("groupId"),
-		Page: c.QueryInt("page", 1), PerPages: c.QueryInt("perPages", 10),
+		Page: fiber.Query[int](c, "page", 1), PerPages: fiber.Query[int](c, "perPages", 10),
 		SortField: c.Query("sortField", "dateTimeCreate"), SortOrder: c.Query("sortOrder", "desc"),
 	}
-	result, err := ctrl.service.List(c.UserContext(), input)
+	result, err := ctrl.service.List(c, input)
 	if err != nil {
 		log.Error().Err(err).Msg("List cameras failed")
 		return handleErr(c, err)
@@ -112,12 +112,12 @@ func (ctrl *CameraController) List(c *fiber.Ctx) error {
 	})
 }
 
-func (ctrl *CameraController) GetByID(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "CameraController.GetByID", "deviceapi", "GetByID")
+func (ctrl *CameraController) GetByID(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "CameraController.GetByID", "deviceapi", "GetByID")
 	defer end()
 
 	tenantId, orgId, _ := ctrl.mustLocals(c)
-	cam, err := ctrl.service.GetByID(c.UserContext(), tenantId, orgId, c.Params("id"))
+	cam, err := ctrl.service.GetByID(c, tenantId, orgId, c.Params("id"))
 	if err != nil {
 		log.Error().Err(err).Msg("GetByID failed")
 		return handleErr(c, err)
@@ -137,17 +137,17 @@ type UpdateCameraRequest struct {
 	MapVisibility string        `json:"mapVisibility"`
 }
 
-func (ctrl *CameraController) Update(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "CameraController.Update", "deviceapi", "Update")
+func (ctrl *CameraController) Update(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "CameraController.Update", "deviceapi", "Update")
 	defer end()
 
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	deviceId := c.Params("id")
 	var body UpdateCameraRequest
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
-	if err := ctrl.service.Update(c.UserContext(), tenantId, orgId, callerUserId, deviceId, devmod.UpdateCameraInput{
+	if err := ctrl.service.Update(c, tenantId, orgId, callerUserId, deviceId, devmod.UpdateCameraInput{
 		Name: body.Name, User: body.User, Password: body.Password,
 		URL: body.URL, District: body.District, Lat: body.Lat, Lng: body.Lng,
 		Roi: body.Roi, MapVisibility: body.MapVisibility,
@@ -158,20 +158,20 @@ func (ctrl *CameraController) Update(c *fiber.Ctx) error {
 	return httputil.MessageOK(c, "camera updated successfully")
 }
 
-func (ctrl *CameraController) Delete(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "CameraController.Delete", "deviceapi", "Delete")
+func (ctrl *CameraController) Delete(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "CameraController.Delete", "deviceapi", "Delete")
 	defer end()
 
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
-	if err := ctrl.service.Delete(c.UserContext(), tenantId, orgId, callerUserId, c.Params("id")); err != nil {
+	if err := ctrl.service.Delete(c, tenantId, orgId, callerUserId, c.Params("id")); err != nil {
 		log.Error().Err(err).Msg("Delete camera failed")
 		return handleErr(c, err)
 	}
 	return httputil.MessageOK(c, "camera deleted successfully")
 }
 
-func (ctrl *CameraController) Import(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "CameraController.Import", "deviceapi", "Import")
+func (ctrl *CameraController) Import(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "CameraController.Import", "deviceapi", "Import")
 	defer end()
 
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
@@ -188,9 +188,9 @@ func (ctrl *CameraController) Import(c *fiber.Ctx) error {
 	filename := strings.ToLower(fileHeader.Filename)
 	var result *devicesvc.ImportResult
 	if strings.HasSuffix(filename, ".xlsx") || strings.HasSuffix(filename, ".xls") {
-		result, err = ctrl.service.ImportFromXLSX(c.UserContext(), tenantId, orgId, callerUserId, file)
+		result, err = ctrl.service.ImportFromXLSX(c, tenantId, orgId, callerUserId, file)
 	} else {
-		result, err = ctrl.service.ImportFromCSV(c.UserContext(), tenantId, orgId, callerUserId, file)
+		result, err = ctrl.service.ImportFromCSV(c, tenantId, orgId, callerUserId, file)
 	}
 	if err != nil {
 		log.Error().Err(err).Msg("Import failed")

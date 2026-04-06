@@ -12,7 +12,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // @Tags Resource
@@ -30,8 +30,8 @@ import (
 // @Failure 500 {object} gmod.ErrorResponse
 // @Router /resources [get]
 // @Security BearerAuth
-func ResourceList(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.rscapi", "ResourceList", "rscapi", "ResourceList")
+func ResourceList(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.rscapi", "ResourceList", "rscapi", "ResourceList")
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -74,12 +74,12 @@ func ResourceList(c *fiber.Ctx) error {
 // @Failure 500 {object} gmod.SuccessMessageCreateResponse
 // @Router /resources [post]
 // @Security BearerAuth
-func ResourceCreate(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.rscapi", "ResourceCreate", "rscapi", "ResourceCreate")
+func ResourceCreate(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.rscapi", "ResourceCreate", "rscapi", "ResourceCreate")
 	defer end()
 
 	var payload rscmod.ResourceUpsert
-	if err := c.BodyParser(&payload); err != nil {
+	if err := c.Bind().Body(&payload); err != nil {
 		return httputil.FailBadRequest(c, "invalid JSON body")
 	}
 
@@ -103,7 +103,7 @@ func ResourceCreate(c *fiber.Ctx) error {
 		UpdatedAt:   now,
 	}
 
-	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(c, 10*time.Second)
 	defer cancel()
 
 	insertedID, err := rscsvc.ResourceCreate(ctx, doc)
@@ -129,13 +129,13 @@ func ResourceCreate(c *fiber.Ctx) error {
 // @Failure 500 {object} gmod.ErrorResponse
 // @Router /resources/{id} [put]
 // @Security BearerAuth
-func ResourceUpdate(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.rscapi", "ResourceUpdate", "rscapi", "ResourceUpdate")
+func ResourceUpdate(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.rscapi", "ResourceUpdate", "rscapi", "ResourceUpdate")
 	defer end()
 
 	id := strings.TrimSpace(c.Params("id"))
 	var body rscmod.ResourceUpsert
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "Invalid request body")
 	}
 	doc := rscmod.Resource{
@@ -167,8 +167,8 @@ func ResourceUpdate(c *fiber.Ctx) error {
 // @Failure 500 {object} gmod.ErrorResponse
 // @Router /resources/{id} [delete]
 // @Security BearerAuth
-func ResourceDelete(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.rscapi", "ResourceDelete", "rscapi", "ResourceDelete")
+func ResourceDelete(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.rscapi", "ResourceDelete", "rscapi", "ResourceDelete")
 	defer end()
 
 	id := strings.TrimSpace(c.Params("id"))

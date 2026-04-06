@@ -9,7 +9,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // Introspect godoc
@@ -25,8 +25,8 @@ import (
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /auth/introspect [get]
 // @Security     BearerAuth
-func Introspect(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.authapi", "Introspect.Introspect", "authapi", "Introspect")
+func Introspect(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.authapi", "Introspect.Introspect", "authapi", "Introspect")
 	defer end()
 
 	authHeader := strings.TrimSpace(c.Get("Authorization"))

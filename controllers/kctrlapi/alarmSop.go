@@ -7,11 +7,11 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
-func AppendAlarmSop(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.AppendAlarmSop", "kctrlapi", "AppendAlarmSop")
+func AppendAlarmSop(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "alarms.AppendAlarmSop", "kctrlapi", "AppendAlarmSop")
 	defer end()
 
 	id := c.Params("id")
@@ -20,11 +20,11 @@ func AppendAlarmSop(c *fiber.Ctx) error {
 	}
 
 	var req kctrlmod.SopStepRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, err.Error())
 	}
 
-	if err := kctrlsvc.AppendAlarmSop(c.UserContext(), id, req, c); err != nil {
+	if err := kctrlsvc.AppendAlarmSop(c, id, req, c); err != nil {
 		log.Error().Err(err).Str("id", id).Msg("AppendAlarmSop failed")
 		return httputil.FailBadRequest(c, err.Error())
 	}

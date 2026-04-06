@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // ListGroupRoles godoc
@@ -28,8 +28,8 @@ import (
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /groups/roles [get]
 // @Security     BearerAuth
-func ListGroupRoles(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.grpapi", "group.ListGroupRoles", "grpapi", "ListGroupRoles")
+func ListGroupRoles(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.grpapi", "group.ListGroupRoles", "grpapi", "ListGroupRoles")
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))

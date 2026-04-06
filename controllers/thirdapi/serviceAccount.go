@@ -10,7 +10,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // @Summary Create Service Account Client (Public, with Admin API Key)
@@ -24,8 +24,8 @@ import (
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 500 {object} gmod.ApiErrorResponse
 // @Router /token/api/serviceAccount [post]
-func CreateServiceAccountClient(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.thirdapi", "ThirdAPI.CreateServiceAccountClient", "thirdapi", "CreateServiceAccountClient")
+func CreateServiceAccountClient(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.thirdapi", "ThirdAPI.CreateServiceAccountClient", "thirdapi", "CreateServiceAccountClient")
 	defer end()
 
 	// ✅ ตรวจสอบ Admin Secret (กันคนเรียกมั่ว)
@@ -45,7 +45,7 @@ func CreateServiceAccountClient(c *fiber.Ctx) error {
 	}
 
 	var req thirdmod.CreateServiceAccountReq
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Warn().Err(err).Msg("invalid request body")
 		return httputil.FailBadRequest(c, "invalid json body")
 	}

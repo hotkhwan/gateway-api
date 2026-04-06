@@ -5,7 +5,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // EdgeIBOC godoc
@@ -17,8 +17,8 @@ import (
 // @Failure 404 {object} gmod.ApiErrorResponse
 // @Failure 500 {object} gmod.ApiErrorResponse
 // @Security BearerAuth
-func EdgeIBOC(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.devsyncapi", "devsync.EdgeIBOC", "devsyncapi", "EdgeIBOC")
+func EdgeIBOC(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.devsyncapi", "devsync.EdgeIBOC", "devsyncapi", "EdgeIBOC")
 	defer end()
 
 	edgeId := c.Params("id")

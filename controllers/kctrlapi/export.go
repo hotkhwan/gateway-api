@@ -6,7 +6,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // ExportKcontrolAlarms godoc
@@ -20,8 +20,8 @@ import (
 // @Failure      500  {object}  gmod.BadRequestResponse
 // @Router       /kcontrol/alarms/export [get]
 // @Security     BearerAuth
-func ExportAlarms(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.ExportAlarms", "kctrlapi", "ExportAlarms")
+func ExportAlarms(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "alarms.ExportAlarms", "kctrlapi", "ExportAlarms")
 	defer end()
 
 	format := c.Query("format", "csv")

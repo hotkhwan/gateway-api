@@ -7,7 +7,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // @Summary Get access token via client_credentials
@@ -19,12 +19,12 @@ import (
 // @Failure 400 {object} gmod.BadRequestResponse
 // @Failure 401 {object} gmod.UnauthorizedResponse
 // @Router /token/api/clientCredentials [post]
-func ClientCredentialsToken(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.thirdapi", "ThirdAPI.ClientCredentialsToken", "thirdapi", "ClientCredentialsToken")
+func ClientCredentialsToken(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.thirdapi", "ThirdAPI.ClientCredentialsToken", "thirdapi", "ClientCredentialsToken")
 	defer end()
 
 	var req thirdmod.ClientCredentialsReq
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Warn().Err(err).Msg("invalid request body")
 		return httputil.FailBadRequest(c, "invalid json body")
 	}

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 
 	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
@@ -37,9 +37,9 @@ type syncIdsRequest struct {
 // @Header       202 {integer} Retry-After  "Client may poll the Location after N seconds"
 // @Router       /kwatch/syncIboc/ids [post]
 // @Security     BearerAuth
-func SyncIbocByIDs(c *fiber.Ctx) error {
+func SyncIbocByIDs(c fiber.Ctx) error {
 	req := syncIdsRequest{}
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, "invalid JSON body")
 	}
 	if len(req.IDs) == 0 {
@@ -59,7 +59,7 @@ func SyncIbocByIDs(c *fiber.Ctx) error {
 	}
 
 	// short timeout for building response only
-	baseCtx, cancel := context.WithTimeout(c.UserContext(), 60*time.Second)
+	baseCtx, cancel := context.WithTimeout(c, 60*time.Second)
 	defer cancel()
 
 	reqCtx, end, _ := traceutil.StartLite(baseCtx, "gateway.kwatapi", "SyncIbocById.SyncIbocByIDs", "kwatapi", "SyncIbocByIDs")

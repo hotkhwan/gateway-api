@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -57,8 +57,8 @@ func NewOrganizationController(svc *authzsvc.OrganizationService) *OrganizationC
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 500 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs [get]
-func (ctrl *OrganizationController) List(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.List", "authzapi", "List")
+func (ctrl *OrganizationController) List(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.List", "authzapi", "List")
 	defer end()
 
 	userId, _ := c.Locals("userId").(string)
@@ -75,8 +75,8 @@ func (ctrl *OrganizationController) List(c *fiber.Ctx) error {
 		return httputil.FailUnauthorized(c, "Unauthorized")
 	}
 
-	page := c.QueryInt("page", 1)
-	perPage := c.QueryInt("perPage", 10)
+	page := fiber.Query[int](c, "page", 1)
+	perPage := fiber.Query[int](c, "perPage", 10)
 
 	if page < 1 {
 		page = 1
@@ -132,15 +132,15 @@ func (ctrl *OrganizationController) List(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Router /api/v1/orgs [post]
-func (ctrl *OrganizationController) Create(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.Create", "authzapi", "Create")
+func (ctrl *OrganizationController) Create(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.Create", "authzapi", "Create")
 	defer end()
 
 	userId, _ := c.Locals("userId").(string)
 	tenantId, _ := c.Locals("tenantId").(string)
 
 	var body CreateOrgRequest
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 
@@ -180,8 +180,8 @@ func (ctrl *OrganizationController) Create(c *fiber.Ctx) error {
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Failure 404 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/{id}/ingest [get]
-func (ctrl *OrganizationController) GetIngestConfig(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.GetIngestConfig", "authzapi", "GetIngestConfig")
+func (ctrl *OrganizationController) GetIngestConfig(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.GetIngestConfig", "authzapi", "GetIngestConfig")
 	defer end()
 
 	orgId := strings.TrimSpace(c.Locals("activeOrg").(string))
@@ -217,8 +217,8 @@ func (ctrl *OrganizationController) GetIngestConfig(c *fiber.Ctx) error {
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Failure 404 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/{id}/ingest/rotateSecret [post]
-func (ctrl *OrganizationController) RotateIngestSecret(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.RotateIngestSecret", "authzapi", "RotateIngestSecret")
+func (ctrl *OrganizationController) RotateIngestSecret(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.RotateIngestSecret", "authzapi", "RotateIngestSecret")
 	defer end()
 
 	orgId := strings.TrimSpace(c.Locals("activeOrg").(string))
@@ -247,14 +247,14 @@ func (ctrl *OrganizationController) RotateIngestSecret(c *fiber.Ctx) error {
 // @Tags Authorization
 // @Security BearerAuth
 // @Router /api/v1/orgs/{id} [patch]
-func (ctrl *OrganizationController) Update(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.Update", "authzapi", "Update")
+func (ctrl *OrganizationController) Update(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.Update", "authzapi", "Update")
 	defer end()
 
 	orgId := strings.TrimSpace(c.Params("id"))
 
 	var body UpdateOrgRequest
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 
@@ -287,8 +287,8 @@ func (ctrl *OrganizationController) Update(c *fiber.Ctx) error {
 // @Tags Authorization
 // @Security BearerAuth
 // @Router /api/v1/orgs/{id} [delete]
-func (ctrl *OrganizationController) Delete(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.Delete", "authzapi", "Delete")
+func (ctrl *OrganizationController) Delete(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.Delete", "authzapi", "Delete")
 	defer end()
 
 	orgId := strings.TrimSpace(c.Params("id"))
@@ -323,8 +323,8 @@ func (ctrl *OrganizationController) Delete(c *fiber.Ctx) error {
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Failure 409 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/{id}/owners/{userId} [post]
-func (ctrl *OrganizationController) PromoteToOwner(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.PromoteToOwner", "authzapi", "PromoteToOwner")
+func (ctrl *OrganizationController) PromoteToOwner(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.PromoteToOwner", "authzapi", "PromoteToOwner")
 	defer end()
 
 	orgId := strings.TrimSpace(c.Params("id"))
@@ -369,8 +369,8 @@ func (ctrl *OrganizationController) PromoteToOwner(c *fiber.Ctx) error {
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Failure 409 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/{id}/owners/{userId} [delete]
-func (ctrl *OrganizationController) DemoteFromOwner(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.DemoteFromOwner", "authzapi", "DemoteFromOwner")
+func (ctrl *OrganizationController) DemoteFromOwner(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.DemoteFromOwner", "authzapi", "DemoteFromOwner")
 	defer end()
 
 	orgId := strings.TrimSpace(c.Params("id"))
@@ -420,8 +420,8 @@ func (ctrl *OrganizationController) DemoteFromOwner(c *fiber.Ctx) error {
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/{id}/transfer-billing-ownership [post]
-func (ctrl *OrganizationController) TransferBillingOwnership(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.TransferBillingOwnership", "authzapi", "TransferBillingOwnership")
+func (ctrl *OrganizationController) TransferBillingOwnership(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.TransferBillingOwnership", "authzapi", "TransferBillingOwnership")
 	defer end()
 
 	orgId := strings.TrimSpace(c.Params("id"))
@@ -431,7 +431,7 @@ func (ctrl *OrganizationController) TransferBillingOwnership(c *fiber.Ctx) error
 	var body struct {
 		NewBillingOwnerId string `json:"newBillingOwnerId"`
 	}
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 

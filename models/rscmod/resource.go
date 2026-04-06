@@ -4,7 +4,7 @@ package rscmod
 import (
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -54,7 +54,7 @@ type ResourcePaginationResponse struct {
 }
 
 // ส่งรูปแบบ pagination เดิมให้ controller เรียก
-func SendPagination(c *fiber.Ctx, items []Resource, pag Pagination) error {
+func SendPagination(c fiber.Ctx, items []Resource, pag Pagination) error {
 	resp := ResourcePaginationResponse{
 		Details:    items,
 		Pagination: pag,

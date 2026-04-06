@@ -9,7 +9,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/middleware"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func RegisterAuthRoutes(router fiber.Router) {

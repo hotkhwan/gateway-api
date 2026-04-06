@@ -44,11 +44,12 @@ import (
 	"github.com/hotkhwan/gateway-api/router"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/contrib/otelfiber/v2"
-	"github.com/gofiber/fiber/v2"
-	recovermw "github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/fiber/v3"
+	recovermw "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/joho/godotenv"
-	fiberSwagger "github.com/swaggo/fiber-swagger" // ✅ ใช้ของ swaggo
+
+	"github.com/hotkhwan/gateway-api/internal/otelfiber"
+	internalswagger "github.com/hotkhwan/gateway-api/internal/swagger"
 )
 
 // @title           Klynx API v2
@@ -177,16 +178,18 @@ func main() {
 		ReadBufferSize: 16 * 1024,
 		BodyLimit:      50 * 1024 * 1024,
 		StrictRouting:  false,
-		Prefork:        false, // ✅ เปิดใช้งาน Prefork multi-core เพื่อรองรับ TPS สูง HTTP API (Stateless) on k8s ใช้ 1 core ต่อ Pod → scale ด้วย HPA ตาม CPU / QPS
+		// Prefork removed in Fiber v3 — use HPA / multiple pods instead
 		// ✅ ให้ Fiber ใช้ X-Forwarded-For เป็นแหล่ง IP และเปิดตรวจ proxy ที่เชื่อถือได้
-		ProxyHeader:             fiber.HeaderXForwardedFor,
-		EnableTrustedProxyCheck: true,
-		TrustedProxies: []string{
-			"10.42.0.0/16",   // Pod CIDR (ปรับตามคลัสเตอร์)
-			"192.168.0.0/16", // LAN/Node
-			"127.0.0.1/32",
+		ProxyHeader: fiber.HeaderXForwardedFor,
+		TrustProxy:  true,
+		TrustProxyConfig: fiber.TrustProxyConfig{
+			Proxies: []string{
+				"10.42.0.0/16",   // Pod CIDR (ปรับตามคลัสเตอร์)
+				"192.168.0.0/16", // LAN/Node
+				"127.0.0.1/32",
+			},
 		},
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
+		ErrorHandler: func(c fiber.Ctx, err error) error {
 			// 1️⃣ Fiber error เช่น 404, 405
 			if e, ok := err.(*fiber.Error); ok {
 				return c.Status(e.Code).JSON(fiber.Map{
@@ -227,7 +230,7 @@ func main() {
 	// ✅ Base path info endpoint
 	appCfg := config.LoadAppConfig()
 	api.All("/", middleware.AllowMethods("GET"))
-	api.Get("/", func(c *fiber.Ctx) error {
+	api.Get("/", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"code":    "SUCCESS",
 			"message": "Gateway API",
@@ -307,10 +310,11 @@ func main() {
 	if swaggerPath == "" {
 		swaggerPath = "/docs"
 	}
-	api.Get(swaggerPath+"/*", fiberSwagger.WrapHandler)
-	// api.Get("/docs/*", fiberSwagger.WrapHandler)
+	api.Get(swaggerPath+"/*", internalswagger.New(internalswagger.Config{
+		Title: "Klynx API",
+	}))
 
-	app.Use(func(c *fiber.Ctx) error {
+	app.Use(func(c fiber.Ctx) error {
 		return c.Status(404).JSON(fiber.Map{
 			"message": "Route not found",
 			"path":    c.OriginalURL(),

@@ -4,7 +4,7 @@ package router
 import (
 	"os"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/app"
 	"github.com/hotkhwan/gateway-api/internal/logger"
@@ -129,7 +129,7 @@ func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
 }
 
 // notImplemented — placeholder handler จนกว่า PR ถัดไปจะ implement controller จริง
-func notImplemented(c *fiber.Ctx) error {
+func notImplemented(c fiber.Ctx) error {
 	return c.Status(fiber.StatusNotImplemented).JSON(fiber.Map{
 		"code":    "NOT_IMPLEMENTED",
 		"message": "this endpoint is not yet implemented",

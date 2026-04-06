@@ -9,7 +9,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // CreateEdge godoc
@@ -25,14 +25,14 @@ import (
 // @Failure 500 {object} gmod.InternalErrorResponse
 // @Router /system/edge/type/{edgeType} [post]
 // @Security BearerAuth
-func CreateEdge(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.edgeapi", "EdgeApi.CreateEdge", "sysapi", "CreateEdge")
+func CreateEdge(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.edgeapi", "EdgeApi.CreateEdge", "sysapi", "CreateEdge")
 	defer end()
 
 	edgeType := strings.TrimSpace(c.Params("edgeType"))
 
 	var req systemmod.EdgeCreateReq
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Error().Err(err).Msg("invalid body")
 		return httputil.FailBadRequest(c, "invalid json body")
 	}

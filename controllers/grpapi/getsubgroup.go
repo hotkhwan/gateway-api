@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // ListSubGroups godoc
@@ -30,8 +30,8 @@ import (
 // @Failure      500         {object}  gmod.InternalErrorResponse
 // @Router       /groups/subgroups [get]
 // @Security     BearerAuth
-func ListSubGroups(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.grpapi", "group.ListSubGroups", "grpapi", "ListSubGroups")
+func ListSubGroups(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.grpapi", "group.ListSubGroups", "grpapi", "ListSubGroups")
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))

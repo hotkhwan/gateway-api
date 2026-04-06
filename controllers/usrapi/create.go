@@ -7,7 +7,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // CreateUser godoc
@@ -22,12 +22,12 @@ import (
 // @Failure      400   {object}  gmod.ErrorResponse
 // @Failure      500   {object}  gmod.ErrorResponse
 // @Router       /users [post]
-func CreateUser(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.usrapi", "CreateUser", "usrapi", "CreateUser")
+func CreateUser(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.usrapi", "CreateUser", "usrapi", "CreateUser")
 	defer end()
 
 	var req usrmod.CreateUserRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, err.Error())
 	}
 

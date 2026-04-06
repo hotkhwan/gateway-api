@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/hotkhwan/gateway-api/internal/kafka"
 	"github.com/hotkhwan/gateway-api/internal/repo/stos3minio"
@@ -21,8 +21,8 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
-func HandleDahua(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.camDahuaapi", "HandleDahua", "webhooks", "HandleDahua")
+func HandleDahua(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.webhooks.camDahuaapi", "HandleDahua", "webhooks", "HandleDahua")
 	defer end()
 
 	// ---- Request meta logs (ช่วยไล่ 400) ----
@@ -266,8 +266,8 @@ func HandleDahua(c *fiber.Ctx) error {
 	return gmod.SendDahuaResponse(c, len(imagePaths), jsonData)
 }
 
-// func HandleDahua(c *fiber.Ctx) error {
-// 	ctx := c.UserContext()
+// func HandleDahua(c fiber.Ctx) error {
+// 	ctx := c
 // 	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/camDahuaapi")
 // 	ctx, span := tracer.Start(ctx, "webhook.HandleDahua")
 // 	defer span.End()

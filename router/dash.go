@@ -5,7 +5,7 @@ import (
 	"github.com/hotkhwan/gateway-api/controllers/dashapi"
 	"github.com/hotkhwan/gateway-api/internal/middleware"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func RegisterKcontrolDashboard(router fiber.Router) {

@@ -10,7 +10,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // BatchGetUsers godoc
@@ -26,8 +26,8 @@ import (
 // @Failure 401 {object} gmod.ErrorResponse
 // @Failure 500 {object} gmod.ErrorResponse
 // @Router /users/batch [post]
-func BatchGetUsers(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.usrapi", "BatchGetUsers", "usrapi", "BatchGetUsers")
+func BatchGetUsers(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.usrapi", "BatchGetUsers", "usrapi", "BatchGetUsers")
 	defer end()
 
 	authHeader := c.Get("Authorization")
@@ -36,7 +36,7 @@ func BatchGetUsers(c *fiber.Ctx) error {
 	}
 
 	var req usrmod.BatchGetUsersRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, "Invalid JSON body")
 	}
 

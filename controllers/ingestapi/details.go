@@ -2,7 +2,7 @@
 package ingestapi
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
@@ -21,7 +21,7 @@ func NewEventDetailsController(service *ingestsvc.ApprovalService) *EventDetails
 	return &EventDetailsController{service: service}
 }
 
-func (ctrl *EventDetailsController) mustLocals(c *fiber.Ctx) (tenantId, orgId, callerUserId string) {
+func (ctrl *EventDetailsController) mustLocals(c fiber.Ctx) (tenantId, orgId, callerUserId string) {
 	tenantId, _ = c.Locals("tenantId").(string)
 	orgId, _ = c.Locals("activeOrg").(string)
 	callerUserId, _ = c.Locals("userId").(string)
@@ -44,8 +44,8 @@ func (ctrl *EventDetailsController) mustLocals(c *fiber.Ctx) (tenantId, orgId, c
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/details [get]
-func (ctrl *EventDetailsController) ListApprovedEvents(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "EventDetailsController.ListApprovedEvents", "ingestapi", "ListApprovedEvents")
+func (ctrl *EventDetailsController) ListApprovedEvents(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventDetailsController.ListApprovedEvents", "ingestapi", "ListApprovedEvents")
 	defer end()
 
 	tenantId, orgId, _ := ctrl.mustLocals(c)
@@ -54,8 +54,8 @@ func (ctrl *EventDetailsController) ListApprovedEvents(c *fiber.Ctx) error {
 		TenantId:  tenantId,
 		OrgId:     orgId,
 		EventType: c.Query("eventType", ""),
-		Page:      c.QueryInt("page", 1),
-		PerPage:   c.QueryInt("perPage", 10),
+		Page:      fiber.Query[int](c, "page", 1),
+		PerPage:   fiber.Query[int](c, "perPage", 10),
 		SortField: c.Query("sortField", "approvedAt"),
 		SortOrder: c.Query("sortOrder", "desc"),
 	}
@@ -107,8 +107,8 @@ func (ctrl *EventDetailsController) ListApprovedEvents(c *fiber.Ctx) error {
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/details/{eventId} [get]
-func (ctrl *EventDetailsController) GetApprovedEvent(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "EventDetailsController.GetApprovedEvent", "ingestapi", "GetApprovedEvent")
+func (ctrl *EventDetailsController) GetApprovedEvent(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventDetailsController.GetApprovedEvent", "ingestapi", "GetApprovedEvent")
 	defer end()
 
 	tenantId, orgId, _ := ctrl.mustLocals(c)

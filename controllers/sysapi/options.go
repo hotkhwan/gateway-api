@@ -11,7 +11,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // ---- Repo interface ----
@@ -36,8 +36,8 @@ func NewOptionsController(repo OptionsRepo, ensureAuditTTLIndex func(ctx context
 }
 
 // GET /system/options
-func (ctl *OptionsController) GetEffective(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.sysapi", "OptionsController.GetEffective", "sysapi", "GetEffective")
+func (ctl *OptionsController) GetEffective(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.sysapi", "OptionsController.GetEffective", "sysapi", "GetEffective")
 	defer end()
 
 	eff, err := ctl.repo.LoadEffective(ctx)
@@ -50,8 +50,8 @@ func (ctl *OptionsController) GetEffective(c *fiber.Ctx) error {
 }
 
 // PATCH /system/options
-func (ctl *OptionsController) Patch(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.sysapi", "OptionsController.Patch", "sysapi", "Patch")
+func (ctl *OptionsController) Patch(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.sysapi", "OptionsController.Patch", "sysapi", "Patch")
 	defer end()
 
 	dec := json.NewDecoder(strings.NewReader(string(c.Body())))

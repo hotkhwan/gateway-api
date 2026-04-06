@@ -6,7 +6,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // watchlistGetByID godoc
@@ -19,8 +19,8 @@ import (
 // @Failure 404 {object} gmod.ErrorMessageResponse
 // @Router /kwatch/watchlist/{id} [get]
 // @Security BearerAuth
-func WatchlistGetByID(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Watchlist.WatchlistGetByID", "kwatapi", "WatchlistGetByID")
+func WatchlistGetByID(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.kwatapi", "Watchlist.WatchlistGetByID", "kwatapi", "WatchlistGetByID")
 	defer end()
 
 	id := c.Params("id") // <-- ใช้ได้ทั้ง ObjectID และ idcard

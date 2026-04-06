@@ -2,7 +2,7 @@
 package ingestapi
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
@@ -21,7 +21,7 @@ func NewEventManagementController(service *ingestsvc.ApprovalService) *EventMana
 	return &EventManagementController{service: service}
 }
 
-func (ctrl *EventManagementController) mustLocals(c *fiber.Ctx) (tenantId, orgId, callerUserId string) {
+func (ctrl *EventManagementController) mustLocals(c fiber.Ctx) (tenantId, orgId, callerUserId string) {
 	tenantId, _ = c.Locals("tenantId").(string)
 	orgId, _ = c.Locals("activeOrg").(string)
 	callerUserId, _ = c.Locals("userId").(string)
@@ -45,8 +45,8 @@ func (ctrl *EventManagementController) mustLocals(c *fiber.Ctx) (tenantId, orgId
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/management [get]
-func (ctrl *EventManagementController) ListPendingEvents(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "github.com/hotkhwan/gateway-api/ingestapi", "EventManagementController.ListPendingEvents", "ingestapi", "ListPendingEvents")
+func (ctrl *EventManagementController) ListPendingEvents(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "github.com/hotkhwan/gateway-api/ingestapi", "EventManagementController.ListPendingEvents", "ingestapi", "ListPendingEvents")
 	defer end()
 
 	tenantId, orgId, _ := ctrl.mustLocals(c)
@@ -56,8 +56,8 @@ func (ctrl *EventManagementController) ListPendingEvents(c *fiber.Ctx) error {
 		OrgId:      orgId,
 		StatusName: c.Query("status", "all"),
 		EventType:  c.Query("eventType", ""),
-		Page:       c.QueryInt("page", 1),
-		PerPage:    c.QueryInt("perPage", 10),
+		Page:       fiber.Query[int](c, "page", 1),
+		PerPage:    fiber.Query[int](c, "perPage", 10),
 		SortField:  c.Query("sortField", "createdAt"),
 		SortOrder:  c.Query("sortOrder", "desc"),
 	}
@@ -110,8 +110,8 @@ func (ctrl *EventManagementController) ListPendingEvents(c *fiber.Ctx) error {
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/management/{eventId} [get]
-func (ctrl *EventManagementController) GetPendingEvent(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "EventManagementController.GetPendingEvent", "ingestapi", "GetPendingEvent")
+func (ctrl *EventManagementController) GetPendingEvent(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventManagementController.GetPendingEvent", "ingestapi", "GetPendingEvent")
 	defer end()
 
 	tenantId, orgId, _ := ctrl.mustLocals(c)
@@ -153,15 +153,15 @@ func (ctrl *EventManagementController) GetPendingEvent(c *fiber.Ctx) error {
 // @Failure      409  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/management/{eventId} [patch]
-func (ctrl *EventManagementController) UpdatePendingEvent(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "EventManagementController.UpdatePendingEvent", "ingestapi", "UpdatePendingEvent")
+func (ctrl *EventManagementController) UpdatePendingEvent(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventManagementController.UpdatePendingEvent", "ingestapi", "UpdatePendingEvent")
 	defer end()
 
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
 	eventId := c.Params("eventId")
 
 	var body ingestmod.EventUpdateInput
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		log.Warn().Str("orgId", orgId).Str("eventId", eventId).Msg("❌ [UpdatePendingEvent] invalid body")
 		return httputil.FailBadRequest(c, "invalid body")
 	}
@@ -211,8 +211,8 @@ func (ctrl *EventManagementController) UpdatePendingEvent(c *fiber.Ctx) error {
 // @Failure      409  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/management/{eventId}/approve [post]
-func (ctrl *EventManagementController) ApproveEvent(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "EventManagementController.ApproveEvent", "ingestapi", "ApproveEvent")
+func (ctrl *EventManagementController) ApproveEvent(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventManagementController.ApproveEvent", "ingestapi", "ApproveEvent")
 	defer end()
 
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
@@ -220,7 +220,7 @@ func (ctrl *EventManagementController) ApproveEvent(c *fiber.Ctx) error {
 
 	var body ingestmod.EventUpdateInput
 	// Optional metadata update during approval
-	c.BodyParser(&body) //nolint:errcheck
+	c.Bind().Body(&body) //nolint:errcheck
 
 	log.Info().
 		Str("orgId", orgId).
@@ -269,8 +269,8 @@ func (ctrl *EventManagementController) ApproveEvent(c *fiber.Ctx) error {
 // @Failure      409  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/management/{eventId}/reject [post]
-func (ctrl *EventManagementController) RejectEvent(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "EventManagementController.RejectEvent", "ingestapi", "RejectEvent")
+func (ctrl *EventManagementController) RejectEvent(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventManagementController.RejectEvent", "ingestapi", "RejectEvent")
 	defer end()
 
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
@@ -319,8 +319,8 @@ func (ctrl *EventManagementController) RejectEvent(c *fiber.Ctx) error {
 // @Failure      409  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/management/{eventId} [delete]
-func (ctrl *EventManagementController) DeletePendingEvent(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "EventManagementController.DeletePendingEvent", "ingestapi", "DeletePendingEvent")
+func (ctrl *EventManagementController) DeletePendingEvent(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventManagementController.DeletePendingEvent", "ingestapi", "DeletePendingEvent")
 	defer end()
 
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)

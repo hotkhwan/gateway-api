@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 
 	"github.com/hotkhwan/gateway-api/internal/logger"
@@ -18,8 +18,8 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
-func HandleKMLUpload(c *fiber.Ctx, token string) error {
-	baseCtx := c.UserContext()
+func HandleKMLUpload(c fiber.Ctx, token string) error {
+	baseCtx := c
 	ctx, end, log := traceutil.StartLite(
 		baseCtx,
 		"github.com/hotkhwan/gateway-api/mapsvc",

@@ -8,7 +8,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // watchlistDelete godoc
@@ -23,8 +23,8 @@ import (
 // @Failure 500 {object} gmod.ErrorMessageResponse "Internal Server Error"
 // @Router /kwatch/watchlist/{id} [delete]
 // @Security BearerAuth
-func WatchlistDelete(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Watchlist.WatchlistDelete", "kwatapi", "WatchlistDelete")
+func WatchlistDelete(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kwatapi", "Watchlist.WatchlistDelete", "kwatapi", "WatchlistDelete")
 	defer end()
 
 	idOrIdCard := c.Params("id")

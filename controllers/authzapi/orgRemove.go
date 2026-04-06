@@ -4,7 +4,7 @@ package authzapi
 import (
 	"fmt"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -22,8 +22,8 @@ import (
 // @Failure 400 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/users/remove [post]
-func (ctrl *OrganizationController) RemoveMembers(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.RemoveMembers", "authzapi", "RemoveMembers")
+func (ctrl *OrganizationController) RemoveMembers(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.RemoveMembers", "authzapi", "RemoveMembers")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -31,7 +31,7 @@ func (ctrl *OrganizationController) RemoveMembers(c *fiber.Ctx) error {
 	orgId, _ := c.Locals("activeOrg").(string)
 
 	var body InviteUsersRequest
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if len(body.Users) == 0 {

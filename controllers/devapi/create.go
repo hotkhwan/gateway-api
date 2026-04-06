@@ -9,7 +9,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // DeviceCreate godoc
@@ -25,12 +25,12 @@ import (
 // @Failure 500 {object} gmod.InternalErrorResponse
 // @Router /devices [post]
 // @Security BearerAuth
-func DeviceCreate(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devapi", "DeviceCreate", "devapi", "DeviceCreate")
+func DeviceCreate(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.devapi", "DeviceCreate", "devapi", "DeviceCreate")
 	defer end()
 	var req devmod.DeviceRequest
 
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Error().
 			Err(err).Msg("❌ [DeviceCreate] Invalid request body")
 		return httputil.FailBadRequest(c, "Invalid request body")

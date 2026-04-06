@@ -6,7 +6,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // UploadKML godoc
@@ -22,8 +22,8 @@ import (
 // @Failure 500 {object} gmod.ErrorResponse
 // @Router /maps/kml [post]
 // @Security BearerAuth
-func UploadKML(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.mapapi", "UploadKML.UploadKML", "mapapi", "UploadKML")
+func UploadKML(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.mapapi", "UploadKML.UploadKML", "mapapi", "UploadKML")
 	defer end()
 
 	token := c.Get("Authorization")

@@ -4,7 +4,7 @@ package mediapi
 import (
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -22,8 +22,8 @@ import (
 // @Failure      500 {object} gmod.ErrorResponse
 // @Router       /system/stream [get]
 // @Security     BearerAuth
-func ListConfig(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.mediapi", "ListConfig", "mediapi", "ListConfig")
+func ListConfig(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.mediapi", "ListConfig", "mediapi", "ListConfig")
 	defer end()
 
 	var opt bson.M
@@ -79,8 +79,8 @@ func ListConfig(c *fiber.Ctx) error {
 // @Failure      500 {object} gmod.ErrorResponse
 // @Router       /system/stream/{id} [patch]
 // @Security     BearerAuth
-func UpdateConfig(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.mediapi", "UpdateConfig", "mediapi", "UpdateConfig")
+func UpdateConfig(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.mediapi", "UpdateConfig", "mediapi", "UpdateConfig")
 	defer end()
 
 	id := c.Params("id")
@@ -95,7 +95,7 @@ func UpdateConfig(c *fiber.Ctx) error {
 			} `json:"mapLocation"`
 		}
 
-		if err := c.BodyParser(&body); err != nil {
+		if err := c.Bind().Body(&body); err != nil {
 			return httputil.FailBadRequest(c, err.Error())
 		}
 
@@ -129,7 +129,7 @@ func UpdateConfig(c *fiber.Ctx) error {
 			ZoomLevel int `json:"zoomLevel"`
 		}
 
-		if err := c.BodyParser(&body); err != nil {
+		if err := c.Bind().Body(&body); err != nil {
 			return httputil.FailBadRequest(c, err.Error())
 		}
 
@@ -161,7 +161,7 @@ func UpdateConfig(c *fiber.Ctx) error {
 			StreamSessionTimeout int `json:"streamSessionTimeout"`
 		}
 
-		if err := c.BodyParser(&body); err != nil {
+		if err := c.Bind().Body(&body); err != nil {
 			return httputil.FailBadRequest(c, err.Error())
 		}
 

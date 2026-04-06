@@ -5,7 +5,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
 	"github.com/hotkhwan/gateway-api/models/kwatmod"
@@ -61,8 +61,8 @@ func toPtr(v string) *string {
 // @Failure 500 {object} gmod.ErrorMessageResponse
 // @Router /kwatch/watchlist/{id} [patch]
 // @Security BearerAuth
-func WatchlistUpdate(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Watchlist.WatchlistUpdate", "kwatapi", "WatchlistUpdate")
+func WatchlistUpdate(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.kwatapi", "Watchlist.WatchlistUpdate", "kwatapi", "WatchlistUpdate")
 	defer end()
 
 	id := c.Params("id")
@@ -115,7 +115,7 @@ func WatchlistUpdate(c *fiber.Ctx) error {
 		}
 	} else {
 		// ✅ ถ้าเป็น JSON → parse ตรงๆ
-		if err := c.BodyParser(&req); err != nil {
+		if err := c.Bind().Body(&req); err != nil {
 			return httputil.FailBadRequest(c, "invalid body")
 		}
 	}

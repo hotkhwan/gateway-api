@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -47,12 +47,12 @@ type UpdateOrgUnitBody struct {
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 409 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/units [post]
-func (ctrl *OrgUnitController) Create(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.Create", "authzapi", "Create")
+func (ctrl *OrgUnitController) Create(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.Create", "authzapi", "Create")
 	defer end()
 
 	var body CreateOrgUnitBody
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 
@@ -95,8 +95,8 @@ func (ctrl *OrgUnitController) Create(c *fiber.Ctx) error {
 // @Produce json
 // @Success 200 {object} map[string]interface{}
 // @Router /api/v1/orgs/units/tree [get]
-func (ctrl *OrgUnitController) Tree(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.Tree", "authzapi", "Tree")
+func (ctrl *OrgUnitController) Tree(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.Tree", "authzapi", "Tree")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -124,8 +124,8 @@ func (ctrl *OrgUnitController) Tree(c *fiber.Ctx) error {
 // @Param id path string true "unitId"
 // @Success 200 {object} map[string]interface{}
 // @Router /api/v1/orgs/units/tree/{id} [get]
-func (ctrl *OrgUnitController) TreeNode(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.TreeNode", "authzapi", "TreeNode")
+func (ctrl *OrgUnitController) TreeNode(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.TreeNode", "authzapi", "TreeNode")
 	defer end()
 
 	unitId := strings.TrimSpace(c.Params("id"))
@@ -157,14 +157,14 @@ func (ctrl *OrgUnitController) TreeNode(c *fiber.Ctx) error {
 // @Param id path string true "unitId"
 // @Param body body UpdateOrgUnitBody true "payload"
 // @Router /api/v1/orgs/units/{id} [patch]
-func (ctrl *OrgUnitController) Update(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.Update", "authzapi", "Update")
+func (ctrl *OrgUnitController) Update(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.Update", "authzapi", "Update")
 	defer end()
 
 	unitId := strings.TrimSpace(c.Params("id"))
 
 	var body UpdateOrgUnitBody
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 
@@ -204,8 +204,8 @@ func (ctrl *OrgUnitController) Update(c *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "unitId"
 // @Router /api/v1/orgs/units/{id} [delete]
-func (ctrl *OrgUnitController) Delete(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.Delete", "authzapi", "Delete")
+func (ctrl *OrgUnitController) Delete(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.Delete", "authzapi", "Delete")
 	defer end()
 
 	unitId := strings.TrimSpace(c.Params("id"))
@@ -235,8 +235,8 @@ func (ctrl *OrgUnitController) Delete(c *fiber.Ctx) error {
 // @Produce json
 // @Success 200 {object} map[string]interface{}
 // @Router /api/v1/orgs/units/tree-debug [get]
-func (ctrl *OrgUnitController) TreeDebug(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.TreeDebug", "authzapi", "TreeDebug")
+func (ctrl *OrgUnitController) TreeDebug(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.TreeDebug", "authzapi", "TreeDebug")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)

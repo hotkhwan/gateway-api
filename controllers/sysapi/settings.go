@@ -6,7 +6,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // GetSettings returns basic system settings (version, app name).
@@ -18,9 +18,9 @@ import (
 //	@Success      200  {object}  gmod.SuccessDataResponse
 //	@Failure      500  {object}  gmod.ErrorResponse
 //	@Router       /system/settings [get]
-func GetSettings(c *fiber.Ctx) error {
+func GetSettings(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(
-		c.UserContext(),
+		c,
 		"gateway.sysapi", "GetSettings",
 		"sysapi", "GetSettings",
 	)

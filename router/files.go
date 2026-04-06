@@ -5,7 +5,7 @@ import (
 	"github.com/hotkhwan/gateway-api/controllers/fileapi"
 	"github.com/hotkhwan/gateway-api/internal/middleware"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func RegisterImageProxy(r fiber.Router) {

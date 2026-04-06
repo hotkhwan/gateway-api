@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func ExportAlarms(ctx context.Context, c *fiber.Ctx) error {
+func ExportAlarms(ctx context.Context, c fiber.Ctx) error {
 	ctx, endSpan, log := traceutil.StartLite(
 		ctx,
 		"github.com/hotkhwan/gateway-api/kctrlsvc",

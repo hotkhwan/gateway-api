@@ -7,7 +7,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // @Summary Reset Password
@@ -22,14 +22,14 @@ import (
 // @Failure 401 {object} gmod.UnauthorizedResponse
 // @Router /auth/resetPassword [post]
 // @Security BearerAuth
-func ResetPassword(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.authapi", "ResetPassword.ResetPassword", "authapi", "ResetPassword")
+func ResetPassword(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.authapi", "ResetPassword.ResetPassword", "authapi", "ResetPassword")
 	defer end()
 
 	var req struct {
 		NewPassword string `json:"new_password"`
 	}
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Warn().Err(err).Msg("invalid request body")
 		return httputil.FailBadRequest(c, "INVALID_REQUEST", "Invalid request")
 	}

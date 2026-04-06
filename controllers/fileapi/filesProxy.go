@@ -12,7 +12,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // GetImage godoc
@@ -27,8 +27,8 @@ import (
 // @Failure      500   {object}  gmod.ErrorResponse
 // @Security     BearerAuth
 // @Router       /image/{key} [get]
-func ProxyFiles(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.fileapi", "file.ProxyFiles", "fileapi", "ProxyFiles")
+func ProxyFiles(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.fileapi", "file.ProxyFiles", "fileapi", "ProxyFiles")
 	defer end()
 
 	raw := strings.TrimSpace(c.Params("*"))

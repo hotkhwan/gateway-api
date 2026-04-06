@@ -10,7 +10,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // watchlistList godoc
@@ -34,8 +34,8 @@ import (
 // @Success 200 {object} kwatmod.WatchlistPagination
 // @Router /kwatch/watchlist [get]
 // @Security BearerAuth
-func WatchlistList(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Watchlist.WatchlistList", "kwatapi", "WatchlistList")
+func WatchlistList(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kwatapi", "Watchlist.WatchlistList", "kwatapi", "WatchlistList")
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))

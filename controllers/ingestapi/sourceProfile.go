@@ -4,7 +4,7 @@ package ingestapi
 import (
 	"errors"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/sourceprofilesvc"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -23,8 +23,8 @@ func NewSourceProfileController(svc *sourceprofilesvc.SourceProfileService) *Sou
 	return &SourceProfileController{svc: svc}
 }
 
-func (h *SourceProfileController) List(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "SourceProfileController.List", "ingestapi", "ListSourceProfiles")
+func (h *SourceProfileController) List(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "SourceProfileController.List", "ingestapi", "ListSourceProfiles")
 	defer end()
 
 	items, err := h.svc.List(ctx)
@@ -37,8 +37,8 @@ func (h *SourceProfileController) List(c *fiber.Ctx) error {
 	return httputil.Ok(c, items, "source profiles fetched successfully")
 }
 
-func (h *SourceProfileController) Get(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "SourceProfileController.Get", "ingestapi", "GetSourceProfile")
+func (h *SourceProfileController) Get(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "SourceProfileController.Get", "ingestapi", "GetSourceProfile")
 	defer end()
 
 	sf := c.Params("sourceFamily")
@@ -53,12 +53,12 @@ func (h *SourceProfileController) Get(c *fiber.Ctx) error {
 	return httputil.Ok(c, p, "source profile fetched successfully")
 }
 
-func (h *SourceProfileController) Create(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "SourceProfileController.Create", "ingestapi", "CreateSourceProfile")
+func (h *SourceProfileController) Create(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "SourceProfileController.Create", "ingestapi", "CreateSourceProfile")
 	defer end()
 
 	var in ingestmod.SourceProfile
-	if err := c.BodyParser(&in); err != nil {
+	if err := c.Bind().Body(&in); err != nil {
 		return httputil.FailBadRequest(c, "invalid request body")
 	}
 	if in.SourceFamily == "" {
@@ -77,14 +77,14 @@ func (h *SourceProfileController) Create(c *fiber.Ctx) error {
 	return httputil.Created(c, in, "source profile created successfully")
 }
 
-func (h *SourceProfileController) Update(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "SourceProfileController.Update", "ingestapi", "UpdateSourceProfile")
+func (h *SourceProfileController) Update(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "SourceProfileController.Update", "ingestapi", "UpdateSourceProfile")
 	defer end()
 
 	sf := c.Params("sourceFamily")
 
 	var body map[string]any
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid request body")
 	}
 

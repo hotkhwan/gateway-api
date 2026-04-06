@@ -8,7 +8,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // ListConfig godoc
@@ -20,8 +20,8 @@ import (
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /system/setting/mapLocation [get]
 // @Security     BearerAuth
-func ListConfig(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.sysapi", "SetApi.ListConfig", "sysapi", "ListConfig")
+func ListConfig(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.sysapi", "SetApi.ListConfig", "sysapi", "ListConfig")
 	defer end()
 
 	setting, err := setsvc.GetMapSetting(ctx, config.DB)
@@ -50,14 +50,14 @@ func ListConfig(c *fiber.Ctx) error {
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /system/setting/mapLocation/{id} [patch]
 // @Security     BearerAuth
-func UpdateConfig(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.sysapi", "SetApi.UpdateConfig", "sysapi", "UpdateConfig")
+func UpdateConfig(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.sysapi", "SetApi.UpdateConfig", "sysapi", "UpdateConfig")
 	defer end()
 
 	id := c.Params("id")
 
 	var body usrmod.MapSetting
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid request body")
 	}
 

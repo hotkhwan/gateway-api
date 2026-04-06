@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
@@ -55,8 +55,8 @@ type updatePermProfileBody struct {
 // @Failure      409 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/resource/permissions [post]
-func (ctrl *ResourcePermissionsProfileController) Create(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "ResourcePermissionsProfileController.Create", "authzapi", "Create")
+func (ctrl *ResourcePermissionsProfileController) Create(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "ResourcePermissionsProfileController.Create", "authzapi", "Create")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -64,7 +64,7 @@ func (ctrl *ResourcePermissionsProfileController) Create(c *fiber.Ctx) error {
 	userId, _ := c.Locals("userId").(string)
 
 	var body createPermProfileBody
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if body.Name == "" {
@@ -74,7 +74,7 @@ func (ctrl *ResourcePermissionsProfileController) Create(c *fiber.Ctx) error {
 		return httputil.FailBadRequest(c, "relations is required")
 	}
 
-	profile, err := ctrl.svc.Create(c.UserContext(), authzsvc.CreatePermProfileInput{
+	profile, err := ctrl.svc.Create(c, authzsvc.CreatePermProfileInput{
 		TenantID:    tenantId,
 		OrgID:       orgId,
 		CallerID:    userId,
@@ -104,8 +104,8 @@ func (ctrl *ResourcePermissionsProfileController) Create(c *fiber.Ctx) error {
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/resource/permissions/{id} [patch]
-func (ctrl *ResourcePermissionsProfileController) Update(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "ResourcePermissionsProfileController.Update", "authzapi", "Update")
+func (ctrl *ResourcePermissionsProfileController) Update(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "ResourcePermissionsProfileController.Update", "authzapi", "Update")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -114,11 +114,11 @@ func (ctrl *ResourcePermissionsProfileController) Update(c *fiber.Ctx) error {
 	profileId := c.Params("id")
 
 	var body updatePermProfileBody
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 
-	updated, err := ctrl.svc.Update(c.UserContext(), authzsvc.UpdatePermProfileInput{
+	updated, err := ctrl.svc.Update(c, authzsvc.UpdatePermProfileInput{
 		TenantID:         tenantId,
 		OrgID:            orgId,
 		ProfileID:        profileId,
@@ -148,8 +148,8 @@ func (ctrl *ResourcePermissionsProfileController) Update(c *fiber.Ctx) error {
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/resource/permissions/{id} [delete]
-func (ctrl *ResourcePermissionsProfileController) Delete(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "ResourcePermissionsProfileController.Delete", "authzapi", "Delete")
+func (ctrl *ResourcePermissionsProfileController) Delete(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "ResourcePermissionsProfileController.Delete", "authzapi", "Delete")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -157,7 +157,7 @@ func (ctrl *ResourcePermissionsProfileController) Delete(c *fiber.Ctx) error {
 	userId, _ := c.Locals("userId").(string)
 	profileId := c.Params("id")
 
-	if err := ctrl.svc.Delete(c.UserContext(), tenantId, orgId, profileId, userId); err != nil {
+	if err := ctrl.svc.Delete(c, tenantId, orgId, profileId, userId); err != nil {
 		return handlePermProfileErr(c, err)
 	}
 
@@ -178,8 +178,8 @@ func (ctrl *ResourcePermissionsProfileController) Delete(c *fiber.Ctx) error {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/resource/permissions [get]
-func (ctrl *ResourcePermissionsProfileController) List(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "ResourcePermissionsProfileController.List", "authzapi", "List")
+func (ctrl *ResourcePermissionsProfileController) List(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "ResourcePermissionsProfileController.List", "authzapi", "List")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -188,7 +188,7 @@ func (ctrl *ResourcePermissionsProfileController) List(c *fiber.Ctx) error {
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
 
-	profiles, total, err := ctrl.svc.List(c.UserContext(), authzsvc.ListPermProfileInput{
+	profiles, total, err := ctrl.svc.List(c, authzsvc.ListPermProfileInput{
 		TenantID:  tenantId,
 		OrgID:     orgId,
 		Search:    c.Query("search"),
@@ -231,15 +231,15 @@ func (ctrl *ResourcePermissionsProfileController) List(c *fiber.Ctx) error {
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/resource/permissions/{id} [get]
-func (ctrl *ResourcePermissionsProfileController) GetOne(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "ResourcePermissionsProfileController.GetOne", "authzapi", "GetOne")
+func (ctrl *ResourcePermissionsProfileController) GetOne(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "ResourcePermissionsProfileController.GetOne", "authzapi", "GetOne")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	profileId := c.Params("id")
 
-	profile, err := ctrl.svc.Get(c.UserContext(), tenantId, orgId, profileId)
+	profile, err := ctrl.svc.Get(c, tenantId, orgId, profileId)
 	if err != nil {
 		return handlePermProfileErr(c, err)
 	}
@@ -251,7 +251,7 @@ func (ctrl *ResourcePermissionsProfileController) GetOne(c *fiber.Ctx) error {
 // Error handler
 // ============================================================
 
-func handlePermProfileErr(c *fiber.Ctx, err error) error {
+func handlePermProfileErr(c fiber.Ctx, err error) error {
 	switch {
 	case errors.Is(err, authzsvc.ErrForbidden):
 		return httputil.FailForbidden(c, "forbidden")

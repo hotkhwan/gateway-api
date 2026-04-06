@@ -2,13 +2,13 @@
 package middleware
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.opentelemetry.io/otel/trace"
 )
 
 func TraceHeader() fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		if sc := trace.SpanContextFromContext(c.UserContext()); sc.IsValid() {
+	return func(c fiber.Ctx) error {
+		if sc := trace.SpanContextFromContext(c); sc.IsValid() {
 			traceId := sc.TraceID().String()
 			spanId := sc.SpanID().String()
 

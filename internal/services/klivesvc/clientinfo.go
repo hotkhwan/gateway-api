@@ -6,11 +6,11 @@ import (
 
 	"github.com/hotkhwan/gateway-api/models/klivemod"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // ExtractClientInfo เก็บข้อมูลฝั่ง user "ตอนยิง API" เช่น CreateStream
-func ExtractClientInfo(c *fiber.Ctx) klivemod.ClientInfo {
+func ExtractClientInfo(c fiber.Ctx) klivemod.ClientInfo {
 	ip := strings.TrimSpace(c.IP())
 	ua := strings.TrimSpace(c.Get("User-Agent"))
 	lang := strings.TrimSpace(c.Get("Accept-Language"))

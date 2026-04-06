@@ -7,7 +7,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // @Summary Signin
@@ -19,12 +19,12 @@ import (
 // @Failure 400 {object} gmod.BadRequestResponse
 // @Failure 401 {object} gmod.UnauthorizedResponse
 // @Router /auth/signin [post]
-func Signin(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.authapi", "Signin.Signin", "authapi", "Signin")
+func Signin(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.authapi", "Signin.Signin", "authapi", "Signin")
 	defer end()
 
 	var req authmod.SigninRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Info().Err(err).Msg("invalid request body")
 		return httputil.FailBadRequest(c, "INVALID_REQUEST", err.Error())
 	}

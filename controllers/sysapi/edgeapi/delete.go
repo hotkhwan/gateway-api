@@ -8,7 +8,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // DeleteEdge godoc
@@ -23,8 +23,8 @@ import (
 // @Failure 500 {object} gmod.InternalErrorResponse
 // @Router /system/edge/{id} [delete]
 // @Security BearerAuth
-func DeleteEdge(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.edgeapi", "EdgeApi.DeleteEdge", "sysapi", "DeleteEdge")
+func DeleteEdge(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.edgeapi", "EdgeApi.DeleteEdge", "sysapi", "DeleteEdge")
 	defer end()
 
 	id := strings.TrimSpace(c.Params("id"))

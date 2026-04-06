@@ -4,7 +4,7 @@ package authzapi
 import (
 	"strconv"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -32,8 +32,8 @@ func NewMemberAccessController(svc *authzsvc.MemberAccessService) *MemberAccessC
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/menu/access [get]
-func (ctrl *MemberAccessController) MyMenuAccess(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "MemberAccessController.MyMenuAccess", "authzapi", "MyMenuAccess")
+func (ctrl *MemberAccessController) MyMenuAccess(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MemberAccessController.MyMenuAccess", "authzapi", "MyMenuAccess")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -69,8 +69,8 @@ func (ctrl *MemberAccessController) MyMenuAccess(c *fiber.Ctx) error {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/resource/access [get]
-func (ctrl *MemberAccessController) MyResourceAccess(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "MemberAccessController.MyResourceAccess", "authzapi", "MyResourceAccess")
+func (ctrl *MemberAccessController) MyResourceAccess(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MemberAccessController.MyResourceAccess", "authzapi", "MyResourceAccess")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)

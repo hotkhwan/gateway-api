@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/hotkhwan/gateway-api/internal/kafka"
 	"github.com/hotkhwan/gateway-api/models/aimodel"
@@ -19,8 +19,8 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
-func HandleIboc(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.ibocapi", "HandleIboc", "webhooks", "HandleIboc")
+func HandleIboc(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.webhooks.ibocapi", "HandleIboc", "webhooks", "HandleIboc")
 	defer end()
 
 	clientIP := c.IP()
