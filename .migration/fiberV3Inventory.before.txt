@@ -1,0 +1,16 @@
+=== *fiber.Ctx (files) ===
+152
+=== *fiber.Ctx (lines) ===
+347
+=== .UserContext() ===
+317
+=== .BodyParser( ===
+102
+=== gofiber/fiber/v2 (files) ===
+175
+=== otelfiber/v2 (files) ===
+1
+=== fiber-swagger (files) ===
+1
+=== .Route( ===
+78
