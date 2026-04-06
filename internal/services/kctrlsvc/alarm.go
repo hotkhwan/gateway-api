@@ -16,7 +16,7 @@ import (
 	"github.com/hotkhwan/gateway-api/models/kctrlmod"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -688,7 +688,7 @@ func DeleteAlarmBulk(ctx context.Context, ids []string) error {
 	return nil
 }
 
-func AckAlarm(ctx context.Context, alarmId string, req kctrlmod.AckAlarmRequest, c *fiber.Ctx) error {
+func AckAlarm(ctx context.Context, alarmId string, req kctrlmod.AckAlarmRequest, c fiber.Ctx) error {
 	traceCtx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kctrlsvc", "alarms.AckAlarm", "kctrlsvc", "AckAlarm")
 	defer end()
 
@@ -816,7 +816,7 @@ func AckAlarm(ctx context.Context, alarmId string, req kctrlmod.AckAlarmRequest,
 	return nil
 }
 
-func getActorFromCtx(c *fiber.Ctx) (actorId, actorName, actorIp string) {
+func getActorFromCtx(c fiber.Ctx) (actorId, actorName, actorIp string) {
 	actorIp = c.IP()
 
 	if u := c.Locals("user"); u != nil {

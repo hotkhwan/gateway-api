@@ -4,7 +4,7 @@ package authzapi
 import (
 	"fmt"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -32,8 +32,8 @@ type InviteUsersRequest struct {
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Failure 409 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/{id}/invite [post]
-func (ctrl *OrganizationController) Invite(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.Invite", "authzapi", "Invite")
+func (ctrl *OrganizationController) Invite(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.Invite", "authzapi", "Invite")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -41,7 +41,7 @@ func (ctrl *OrganizationController) Invite(c *fiber.Ctx) error {
 	orgId, _ := c.Locals("activeOrg").(string)
 
 	var body InviteUsersRequest
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 

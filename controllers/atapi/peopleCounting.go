@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v4"
 
 	"github.com/hotkhwan/gateway-api/internal/services/atasvc"
@@ -18,7 +18,7 @@ import (
 )
 
 // queryCSV: CSV-only: supports camera=cam1,cam2 and direction=in,out
-func queryCSV(c *fiber.Ctx, key string) []string {
+func queryCSV(c fiber.Ctx, key string) []string {
 	val := strings.TrimSpace(c.Query(key, ""))
 	if val == "" {
 		return nil
@@ -81,8 +81,8 @@ func defaultDateTimeRangeBangkokToNowUTC() string {
 // @Failure 500 {object} gmod.InternalErrorResponse
 // @Router /atapi/peopleCounting/summary [get]
 // @Security BearerAuth
-func PeopleCountingSummary(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.atapi", "ata.PeopleCountingSummary", "atapi", "PeopleCountingSummary")
+func PeopleCountingSummary(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.atapi", "ata.PeopleCountingSummary", "atapi", "PeopleCountingSummary")
 	defer end()
 
 	rawUser := c.Locals("user")

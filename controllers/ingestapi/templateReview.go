@@ -4,7 +4,7 @@ package ingestapi
 import (
 	"errors"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/rejectedpayloadpatternsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/unknownpayloadreviewsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
@@ -30,12 +30,12 @@ func NewUnknownPayloadReviewController(
 	return &UnknownPayloadReviewController{svc: svc, patternSvc: patternSvc}
 }
 
-func (h *UnknownPayloadReviewController) orgId(c *fiber.Ctx) string {
+func (h *UnknownPayloadReviewController) orgId(c fiber.Ctx) string {
 	oid, _ := c.Locals("activeOrg").(string)
 	return oid
 }
 
-func (h *UnknownPayloadReviewController) userId(c *fiber.Ctx) string {
+func (h *UnknownPayloadReviewController) userId(c fiber.Ctx) string {
 	uid, _ := c.Locals("userId").(string)
 	return uid
 }
@@ -50,13 +50,13 @@ func (h *UnknownPayloadReviewController) userId(c *fiber.Ctx) string {
 // @Success      200  {object}  gmod.PaginationResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/unknownPayloadReviews [get]
-func (h *UnknownPayloadReviewController) List(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "UnknownPayloadReviewController.List", "ingestapi", "ListUnknownPayloadReviews")
+func (h *UnknownPayloadReviewController) List(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "UnknownPayloadReviewController.List", "ingestapi", "ListUnknownPayloadReviews")
 	defer end()
 
 	orgId := h.orgId(c)
-	page := c.QueryInt("page", 1)
-	perPage := c.QueryInt("perPages", 10)
+	page := fiber.Query[int](c, "page", 1)
+	perPage := fiber.Query[int](c, "perPages", 10)
 
 	items, pag, err := h.svc.List(ctx, orgId, page, perPage)
 	if err != nil {
@@ -81,8 +81,8 @@ func (h *UnknownPayloadReviewController) List(c *fiber.Ctx) error {
 // @Success      200  {object}  gmod.SuccessDataResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/unknownPayloadReviews/{id} [get]
-func (h *UnknownPayloadReviewController) Get(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "UnknownPayloadReviewController.Get", "ingestapi", "GetUnknownPayloadReview")
+func (h *UnknownPayloadReviewController) Get(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "UnknownPayloadReviewController.Get", "ingestapi", "GetUnknownPayloadReview")
 	defer end()
 
 	orgId := h.orgId(c)
@@ -108,8 +108,8 @@ func (h *UnknownPayloadReviewController) Get(c *fiber.Ctx) error {
 // @Success      200  {object}  gmod.SuccessDataResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/unknownPayloadReviews/{id}/reject [post]
-func (h *UnknownPayloadReviewController) Reject(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "UnknownPayloadReviewController.Reject", "ingestapi", "RejectUnknownPayloadReview")
+func (h *UnknownPayloadReviewController) Reject(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "UnknownPayloadReviewController.Reject", "ingestapi", "RejectUnknownPayloadReview")
 	defer end()
 
 	orgId := h.orgId(c)

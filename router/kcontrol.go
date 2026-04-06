@@ -8,7 +8,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"os"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func RegisterKcontrolRoutes(router fiber.Router) {

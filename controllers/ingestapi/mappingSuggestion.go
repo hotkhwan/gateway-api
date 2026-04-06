@@ -2,7 +2,7 @@
 package ingestapi
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/mappingsuggestionsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -29,8 +29,8 @@ func NewMappingSuggestionController(svc *mappingsuggestionsvc.MappingSuggestionS
 // @Success      200  {object}  gmod.SuccessDataResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/mappingSuggestions [get]
-func (h *MappingSuggestionController) List(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "MappingSuggestionController.List", "ingestapi", "ListMappingSuggestions")
+func (h *MappingSuggestionController) List(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.ingestapi", "MappingSuggestionController.List", "ingestapi", "ListMappingSuggestions")
 	defer end()
 	_ = ctx
 
@@ -63,8 +63,8 @@ func (h *MappingSuggestionController) List(c *fiber.Ctx) error {
 // @Success      200  {object}  gmod.SuccessDataResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/mappingSuggestions/{id} [get]
-func (h *MappingSuggestionController) Get(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "MappingSuggestionController.Get", "ingestapi", "GetMappingSuggestion")
+func (h *MappingSuggestionController) Get(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.ingestapi", "MappingSuggestionController.Get", "ingestapi", "GetMappingSuggestion")
 	defer end()
 	_ = ctx
 

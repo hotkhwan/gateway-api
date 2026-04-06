@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // ListGroupDevices godoc
@@ -28,8 +28,8 @@ import (
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /groups/devices [get]
 // @Security     BearerAuth
-func ListGroupDevices(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.grpapi", "group.ListGroupDevices", "grpapi", "ListGroupDevices")
+func ListGroupDevices(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.grpapi", "group.ListGroupDevices", "grpapi", "ListGroupDevices")
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))

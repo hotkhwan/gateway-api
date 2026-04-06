@@ -9,7 +9,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // videoList godoc
@@ -27,8 +27,8 @@ import (
 // @Success 200 {object} gmod.PaginationResponse
 // @Router /ksearch/video [get]
 // @Security BearerAuth
-func VideoList(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "Video.VideoList", "kschapi", "VideoList")
+func VideoList(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "Video.VideoList", "kschapi", "VideoList")
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))

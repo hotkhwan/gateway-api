@@ -6,7 +6,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // DisableUser godoc
@@ -21,8 +21,8 @@ import (
 // @Failure      400   {object}  gmod.ErrorResponse
 // @Failure      500   {object}  gmod.ErrorResponse
 // @Router       /users/{id}/disable [patch]
-func DisableUser(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.usrapi", "DisableUser", "usrapi", "DisableUser")
+func DisableUser(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.usrapi", "DisableUser", "usrapi", "DisableUser")
 	defer end()
 
 	id := c.Params("id")

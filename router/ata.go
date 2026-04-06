@@ -6,7 +6,7 @@ import (
 	ataWebhook "github.com/hotkhwan/gateway-api/controllers/webhooks/analytic/atapi"
 	"github.com/hotkhwan/gateway-api/internal/middleware"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func RegisterHookATA(r fiber.Router) {
@@ -16,7 +16,7 @@ func RegisterHookATA(r fiber.Router) {
 	g.Post("", ataWebhook.HandleATA)
 	g.Post("/pusher-event", ataWebhook.HandlePusherEvent)
 
-	g.Get("/healthz", func(c *fiber.Ctx) error { return c.SendStatus(fiber.StatusOK) })
+	g.Get("/healthz", func(c fiber.Ctx) error { return c.SendStatus(fiber.StatusOK) })
 }
 
 func RegisterAPIATA(router fiber.Router) {

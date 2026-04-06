@@ -13,7 +13,7 @@ import (
 	"github.com/hotkhwan/gateway-api/models/authzmod"
 	"github.com/hotkhwan/gateway-api/models/systemmod"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
@@ -99,7 +99,7 @@ func init() {
 }
 
 func Audit(cfg AuditConfig) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		if done, _ := c.Locals("__audit_done").(bool); done {
 			return c.Next()
 		}
@@ -114,11 +114,11 @@ func Audit(cfg AuditConfig) fiber.Handler {
 		eff, _ := func() (*systemmod.EffectiveConfig, error) {
 			// 1) ตัวที่ส่งมาทาง cfg (ถ้ากำหนด)
 			if cfg.Effective != nil {
-				return cfg.Effective(c.Context())
+				return cfg.Effective(c)
 			}
 			// 2) global getter ที่ตั้งจาก main.go
 			if g := EffectiveGetter(); g != nil {
-				return g(c.Context())
+				return g(c)
 			}
 			return nil, nil
 		}()
@@ -146,13 +146,12 @@ func Audit(cfg AuditConfig) fiber.Handler {
 			return c.Next()
 		}
 
-		// tracing
-		ctx := c.UserContext()
+		// tracing — c implements context.Context; start a child span
 		tracer := otel.Tracer("github.com/hotkhwan/gateway-api/mw/audit")
-		ctx, span := tracer.Start(ctx, "Audit")
+		spanCtx, span := tracer.Start(c, "Audit")
 		defer span.End()
-		traceId := currentTraceID(ctx)
-		_ = logger.FromCtx(ctx, "audit", op)
+		traceId := currentTraceID(spanCtx)
+		_ = logger.FromCtx(spanCtx, "audit", op)
 
 		// payload redact
 		var payload any
@@ -177,7 +176,7 @@ func Audit(cfg AuditConfig) fiber.Handler {
 			Resource:  short,
 			Method:    m,
 			Path:      fullPath,
-			Query:     string(c.Context().QueryArgs().QueryString()),
+			Query:     string(c.RequestCtx().QueryArgs().QueryString()),
 			Status:    c.Response().StatusCode(),
 			LatencyMs: latency,
 			Payload:   payload,
@@ -260,7 +259,7 @@ func persistAudit(cfg AuditConfig, a *authzmod.AuditLog) {
 
 // ----- Actor helpers -----
 // internal/middleware/audit.go
-func resolveActor(c *fiber.Ctx) (atype, id, name, ip string) {
+func resolveActor(c fiber.Ctx) (atype, id, name, ip string) {
 	ip = realIP(c)
 	atype = "user" // default
 
@@ -341,7 +340,7 @@ func resolveActor(c *fiber.Ctx) (atype, id, name, ip string) {
 	return
 }
 
-func realIP(c *fiber.Ctx) string {
+func realIP(c fiber.Ctx) string {
 	if ips := c.IPs(); len(ips) > 0 {
 		return ips[0]
 	}

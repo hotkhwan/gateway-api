@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/hotkhwan/gateway-api/internal/gateways/mediagw"
 	"github.com/hotkhwan/gateway-api/internal/repo/cachego/cacheklive"
@@ -58,8 +58,8 @@ func d01p(p *int, def int) int {
 // @Failure      502 {object} gmod.ErrorResponse
 // @Router       /media/stream [get]
 // @Security     BearerAuth
-func ListStream(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.mediapi", "ListStream", "mediapi", "ListStream")
+func ListStream(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.mediapi", "ListStream", "mediapi", "ListStream")
 	defer end()
 
 	out, status, err := getClient().GetMediaList(ctx)
@@ -87,15 +87,15 @@ func ListStream(c *fiber.Ctx) error {
 // @Failure      502 {object} gmod.ErrorResponse
 // @Router       /media/stream [post]
 // @Security     BearerAuth
-func CreateStream(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.mediapi", "CreateStream", "mediapi", "CreateStream")
+func CreateStream(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.mediapi", "CreateStream", "mediapi", "CreateStream")
 	defer end()
 
 	ctx2, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
 	var req models.CreateStreamRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, "Invalid request body")
 	}
 
@@ -311,8 +311,8 @@ func CreateStream(c *fiber.Ctx) error {
 // @Failure      502 {object} gmod.ErrorResponse
 // @Router       /media/stream/{streamId} [delete]
 // @Security     BearerAuth
-func DeleteStream(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.mediapi", "DeleteStream", "mediapi", "DeleteStream")
+func DeleteStream(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.mediapi", "DeleteStream", "mediapi", "DeleteStream")
 	defer end()
 
 	streamID := c.Params("streamId")
@@ -393,7 +393,7 @@ func parseReady(info map[string]any) (alive int, speed float64, ready bool) {
 	return
 }
 
-func extractClientInfo(c *fiber.Ctx) klivemod.ClientInfo {
+func extractClientInfo(c fiber.Ctx) klivemod.ClientInfo {
 	ip := strings.TrimSpace(c.IP())
 	ua := strings.TrimSpace(c.Get("User-Agent"))
 	lang := strings.TrimSpace(c.Get("Accept-Language"))
@@ -419,7 +419,7 @@ func extractClientInfo(c *fiber.Ctx) klivemod.ClientInfo {
 
 	ipChain := extractIPChain(ip, raw["cf-connecting-ip"], raw["true-client-ip"], raw["x-real-ip"], raw["x-forwarded-for"], raw["forwarded"])
 	browser, osName, device := parseUAQuick(ua, raw["sec-ch-ua"], raw["sec-ch-ua-platform"], raw["sec-ch-ua-mobile"])
-	traceID := traceutil.TraceIDFromCtx(c.UserContext())
+	traceID := traceutil.TraceIDFromCtx(c)
 
 	return klivemod.ClientInfo{
 		IP:         ip,

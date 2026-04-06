@@ -8,7 +8,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // UpdateGroup godoc
@@ -26,8 +26,8 @@ import (
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /groups/{id} [patch]
 // @Security     BearerAuth
-func UpdateGroup(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.grpapi", "group.UpdateGroup", "grpapi", "UpdateGroup")
+func UpdateGroup(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.grpapi", "group.UpdateGroup", "grpapi", "UpdateGroup")
 	defer end()
 
 	id := c.Params("id")
@@ -36,7 +36,7 @@ func UpdateGroup(c *fiber.Ctx) error {
 	}
 
 	var req grpmod.GroupRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Error().Err(err).Msg("❌ Invalid body")
 		return httputil.FailBadRequest(c, "INVALID_BODY", err.Error())
 	}

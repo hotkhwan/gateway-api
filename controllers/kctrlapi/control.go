@@ -7,7 +7,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // MessageKcontrolDevice godoc
@@ -21,12 +21,12 @@ import (
 // @Failure      400   {object}  gmod.BadRequestResponse
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /kcontrol [post]
-func SendMessage(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "messages.SendMessage", "kctrlapi", "SendMessage")
+func SendMessage(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "messages.SendMessage", "kctrlapi", "SendMessage")
 	defer end()
 
 	var msg kctrlmod.ControlMessage
-	if err := c.BodyParser(&msg); err != nil {
+	if err := c.Bind().Body(&msg); err != nil {
 		log.Warn().Err(err).Msg("❌ [SendMessage] Invalid request body")
 		return httputil.FailBadRequest(c, "INVALID_BODY", "Invalid request body")
 	}

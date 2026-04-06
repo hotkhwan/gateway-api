@@ -8,7 +8,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // StreamDetails is the details payload for stream URL responses
@@ -34,8 +34,8 @@ type StreamDetails struct {
 // @Failure      500 {object} gmod.ApiErrorResponse "Internal Server Error - config or build failed"
 // @Router       /ata/stream/{channelId} [get]
 // @Security     BearerAuth
-func GetStreamWSS(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.atapi", "ata.GetStreamWSS", "atapi", "GetStreamWSS")
+func GetStreamWSS(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.atapi", "ata.GetStreamWSS", "atapi", "GetStreamWSS")
 	defer end()
 
 	channelIDStr := c.Params("channelId")

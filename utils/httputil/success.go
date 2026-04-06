@@ -4,11 +4,11 @@ package httputil
 import (
 	"github.com/hotkhwan/gateway-api/models/gmod"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // Ok sends 200 OK with data payload.
-func Ok(c *fiber.Ctx, data any, message ...string) error {
+func Ok(c fiber.Ctx, data any, message ...string) error {
 	msg := "ok"
 	if len(message) > 0 && message[0] != "" {
 		msg = message[0]
@@ -23,7 +23,7 @@ func Ok(c *fiber.Ctx, data any, message ...string) error {
 }
 
 // Created sends 201 Created with data payload.
-func Created(c *fiber.Ctx, data any, message ...string) error {
+func Created(c fiber.Ctx, data any, message ...string) error {
 	msg := "created"
 	if len(message) > 0 && message[0] != "" {
 		msg = message[0]
@@ -38,7 +38,7 @@ func Created(c *fiber.Ctx, data any, message ...string) error {
 }
 
 // Accepted sends 202 Accepted with data payload (for async jobs).
-func Accepted(c *fiber.Ctx, data any, message ...string) error {
+func Accepted(c fiber.Ctx, data any, message ...string) error {
 	msg := "accepted"
 	if len(message) > 0 && message[0] != "" {
 		msg = message[0]
@@ -53,12 +53,12 @@ func Accepted(c *fiber.Ctx, data any, message ...string) error {
 }
 
 // NoContent sends 204 No Content (no body).
-func NoContent(c *fiber.Ctx) error {
+func NoContent(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
 // MessageOK sends 200 OK with message only (no data payload).
-func MessageOK(c *fiber.Ctx, message string, code ...string) error {
+func MessageOK(c fiber.Ctx, message string, code ...string) error {
 	cde := gmod.CodeSuccess
 	if len(code) > 0 && code[0] != "" {
 		cde = code[0]

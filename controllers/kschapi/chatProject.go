@@ -14,7 +14,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -28,12 +28,12 @@ import (
 // @Success 201 {object} gmod.SuccessMessageCreateResponse
 // @Router /ksearch/projects [post]
 // @Security BearerAuth
-func ProjectCreate(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatProject.ProjectCreate", "kschapi", "ProjectCreate")
+func ProjectCreate(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "ChatProject.ProjectCreate", "kschapi", "ProjectCreate")
 	defer end()
 
 	var req kschmod.ProjectRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, "INVALID_BODY", "Invalid request body")
 	}
 
@@ -72,8 +72,8 @@ func ProjectCreate(c *fiber.Ctx) error {
 // @Success 200 {object} gmod.PaginationResponse
 // @Router /ksearch/projects [get]
 // @Security BearerAuth
-func ProjectList(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatProject.ProjectList", "kschapi", "ProjectList")
+func ProjectList(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "ChatProject.ProjectList", "kschapi", "ProjectList")
 	defer end()
 
 	userId, err := middleware.CurrentUserID(c)
@@ -118,8 +118,8 @@ func ProjectList(c *fiber.Ctx) error {
 // @Failure 500 {object} gmod.BaseResponse "Internal server error"
 // @Router /ksearch/projects/{projectId} [get]
 // @Security BearerAuth
-func ProjectGetByID(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatProject.ProjectGetByID", "kschapi", "ProjectGetByID")
+func ProjectGetByID(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "ChatProject.ProjectGetByID", "kschapi", "ProjectGetByID")
 	defer end()
 
 	projectId := c.Params("projectId")
@@ -170,12 +170,12 @@ func ProjectGetByID(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /ksearch/projects/{id} [put]
 // @Security BearerAuth
-func ProjectUpdate(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatProject.ProjectUpdate", "kschapi", "ProjectUpdate")
+func ProjectUpdate(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "ChatProject.ProjectUpdate", "kschapi", "ProjectUpdate")
 	defer end()
 	id := c.Params("id")
 	var req kschmod.ProjectRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, "INVALID_BODY", "Invalid request body")
 	}
 
@@ -208,8 +208,8 @@ func ProjectUpdate(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /ksearch/projects/{id} [delete]
 // @Security BearerAuth
-func ProjectDelete(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatProject.ProjectDelete", "kschapi", "ProjectDelete")
+func ProjectDelete(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "ChatProject.ProjectDelete", "kschapi", "ProjectDelete")
 	defer end()
 
 	id := c.Params("id")

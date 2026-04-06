@@ -12,7 +12,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -28,12 +28,12 @@ import (
 // @Failure 500 {object} gmod.ErrorResponse
 // @Router /ksearch/chats [post]
 // @Security BearerAuth
-func ChatCreate(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatStory.ChatCreate", "kschapi", "ChatCreate")
+func ChatCreate(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "ChatStory.ChatCreate", "kschapi", "ChatCreate")
 	defer end()
 
 	var req kschmod.ChatRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, "INVALID_BODY", "Invalid request body")
 	}
 
@@ -72,8 +72,8 @@ func ChatCreate(c *fiber.Ctx) error {
 // @Failure 500 {object} gmod.ErrorResponse
 // @Router /ksearch/projects/{projectId}/chats [get]
 // @Security BearerAuth
-func ChatList(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatStory.ChatList", "kschapi", "ChatList")
+func ChatList(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.kschapi", "ChatStory.ChatList", "kschapi", "ChatList")
 	defer end()
 
 	projectId := c.Params("id") // ถ้ามี param id จาก /projects/:id/chats
@@ -123,12 +123,12 @@ func ChatList(c *fiber.Ctx) error {
 // @Failure 404 {object} gmod.BaseResponse "chat not found"
 // @Failure 500 {object} gmod.BaseResponse "Internal server error"
 // @Router /ksearch/chats/{chatId} [put]
-func ChatUpdate(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatStory.ChatUpdate", "kschapi", "ChatUpdate")
+func ChatUpdate(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "ChatStory.ChatUpdate", "kschapi", "ChatUpdate")
 	defer end()
 	chatId := c.Params("chatId")
 	var req kschmod.ChatRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, "INVALID_BODY", "Invalid request body")
 	}
 
@@ -164,8 +164,8 @@ func ChatUpdate(c *fiber.Ctx) error {
 // @Failure 404 {object} gmod.BaseResponse "chat not found"
 // @Failure 500 {object} gmod.BaseResponse "Internal server error"
 // @Router /ksearch/chats/{chatId} [delete]
-func ChatDelete(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "ChatStory.ChatDelete", "kschapi", "ChatDelete")
+func ChatDelete(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kschapi", "ChatStory.ChatDelete", "kschapi", "ChatDelete")
 	defer end()
 	chatId := c.Params("chatId")
 	if err := kschsvc.ChatDelete(ctx, chatId); err != nil {

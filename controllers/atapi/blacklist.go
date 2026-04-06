@@ -11,7 +11,7 @@ import (
 
 	"github.com/hotkhwan/gateway-api/internal/services/atasvc"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // BlacklistSummary godoc
@@ -32,8 +32,8 @@ import (
 // @Success 200 {object} aimodel.BlacklistSummaryResponse
 // @Router /atapi/blacklist/summary [get]
 // @Security BearerAuth
-func BlacklistSummary(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.atapi", "ata.BlacklistSummary", "atapi", "BlacklistSummary")
+func BlacklistSummary(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.atapi", "ata.BlacklistSummary", "atapi", "BlacklistSummary")
 	defer end()
 
 	dateTime := strings.TrimSpace(c.Query("dateTime", ""))

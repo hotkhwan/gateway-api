@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
@@ -57,11 +57,11 @@ type updateMenuProfileBody struct {
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/menu/list [get]
-func (ctrl *MenuPermissionsProfileController) ListMenus(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "MenuPermissionsProfileController.ListMenus", "authzapi", "ListMenus")
+func (ctrl *MenuPermissionsProfileController) ListMenus(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.ListMenus", "authzapi", "ListMenus")
 	defer end()
 
-	menus, err := ctrl.menuRepo.LoadMenuList(c.UserContext())
+	menus, err := ctrl.menuRepo.LoadMenuList(c)
 	if err != nil {
 		if errors.Is(err, authzrepo.ErrMenuListNotFound) {
 			return httputil.FailNotFound(c, "menu list not found")
@@ -84,8 +84,8 @@ func (ctrl *MenuPermissionsProfileController) ListMenus(c *fiber.Ctx) error {
 // @Failure      409 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/menu/permissions [post]
-func (ctrl *MenuPermissionsProfileController) Create(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "MenuPermissionsProfileController.Create", "authzapi", "Create")
+func (ctrl *MenuPermissionsProfileController) Create(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.Create", "authzapi", "Create")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -93,14 +93,14 @@ func (ctrl *MenuPermissionsProfileController) Create(c *fiber.Ctx) error {
 	userId, _ := c.Locals("userId").(string)
 
 	var body createMenuProfileBody
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if body.Name == "" {
 		return httputil.FailBadRequest(c, "name is required")
 	}
 
-	profile, err := ctrl.svc.Create(c.UserContext(), authzsvc.CreateMenuProfileInput{
+	profile, err := ctrl.svc.Create(c, authzsvc.CreateMenuProfileInput{
 		TenantID:    tenantId,
 		OrgID:       orgId,
 		CallerID:    userId,
@@ -131,8 +131,8 @@ func (ctrl *MenuPermissionsProfileController) Create(c *fiber.Ctx) error {
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/menu/permissions/{id} [patch]
-func (ctrl *MenuPermissionsProfileController) Update(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "MenuPermissionsProfileController.Update", "authzapi", "Update")
+func (ctrl *MenuPermissionsProfileController) Update(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.Update", "authzapi", "Update")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -141,11 +141,11 @@ func (ctrl *MenuPermissionsProfileController) Update(c *fiber.Ctx) error {
 	profileId := c.Params("id")
 
 	var body updateMenuProfileBody
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 
-	updated, err := ctrl.svc.Update(c.UserContext(), authzsvc.UpdateMenuProfileInput{
+	updated, err := ctrl.svc.Update(c, authzsvc.UpdateMenuProfileInput{
 		TenantID:    tenantId,
 		OrgID:       orgId,
 		ProfileID:   profileId,
@@ -175,8 +175,8 @@ func (ctrl *MenuPermissionsProfileController) Update(c *fiber.Ctx) error {
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/menu/permissions/{id} [delete]
-func (ctrl *MenuPermissionsProfileController) Delete(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "MenuPermissionsProfileController.Delete", "authzapi", "Delete")
+func (ctrl *MenuPermissionsProfileController) Delete(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.Delete", "authzapi", "Delete")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -184,7 +184,7 @@ func (ctrl *MenuPermissionsProfileController) Delete(c *fiber.Ctx) error {
 	userId, _ := c.Locals("userId").(string)
 	profileId := c.Params("id")
 
-	if err := ctrl.svc.Delete(c.UserContext(), tenantId, orgId, profileId, userId); err != nil {
+	if err := ctrl.svc.Delete(c, tenantId, orgId, profileId, userId); err != nil {
 		return handleMenuProfileErr(c, err)
 	}
 
@@ -205,8 +205,8 @@ func (ctrl *MenuPermissionsProfileController) Delete(c *fiber.Ctx) error {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/menu/permissions [get]
-func (ctrl *MenuPermissionsProfileController) List(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "MenuPermissionsProfileController.List", "authzapi", "List")
+func (ctrl *MenuPermissionsProfileController) List(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.List", "authzapi", "List")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -215,7 +215,7 @@ func (ctrl *MenuPermissionsProfileController) List(c *fiber.Ctx) error {
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
 
-	profiles, total, err := ctrl.svc.List(c.UserContext(), authzsvc.ListMenuProfileInput{
+	profiles, total, err := ctrl.svc.List(c, authzsvc.ListMenuProfileInput{
 		TenantID:  tenantId,
 		OrgID:     orgId,
 		Search:    c.Query("search"),
@@ -258,15 +258,15 @@ func (ctrl *MenuPermissionsProfileController) List(c *fiber.Ctx) error {
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/orgs/menu/permissions/{id} [get]
-func (ctrl *MenuPermissionsProfileController) GetOne(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "MenuPermissionsProfileController.GetOne", "authzapi", "GetOne")
+func (ctrl *MenuPermissionsProfileController) GetOne(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.GetOne", "authzapi", "GetOne")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	orgId, _ := c.Locals("activeOrg").(string)
 	profileId := c.Params("id")
 
-	profile, err := ctrl.svc.Get(c.UserContext(), tenantId, orgId, profileId)
+	profile, err := ctrl.svc.Get(c, tenantId, orgId, profileId)
 	if err != nil {
 		return handleMenuProfileErr(c, err)
 	}
@@ -278,7 +278,7 @@ func (ctrl *MenuPermissionsProfileController) GetOne(c *fiber.Ctx) error {
 // Error handler
 // ============================================================
 
-func handleMenuProfileErr(c *fiber.Ctx, err error) error {
+func handleMenuProfileErr(c fiber.Ctx, err error) error {
 	switch {
 	case errors.Is(err, authzsvc.ErrForbidden):
 		return httputil.FailForbidden(c, "forbidden")

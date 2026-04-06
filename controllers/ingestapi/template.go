@@ -4,7 +4,7 @@ package ingestapi
 import (
 	"errors"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/templatesvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -23,7 +23,7 @@ func NewTemplateController(svc *templatesvc.TemplateService) *TemplateController
 	return &TemplateController{svc: svc}
 }
 
-func (h *TemplateController) orgId(c *fiber.Ctx) string {
+func (h *TemplateController) orgId(c fiber.Ctx) string {
 	orgId, _ := c.Locals("activeOrg").(string)
 	return orgId
 }
@@ -41,15 +41,15 @@ func (h *TemplateController) orgId(c *fiber.Ctx) string {
 // @Success      200  {object}  gmod.PaginatedResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/mappingTemplates [get]
-func (h *TemplateController) List(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "TemplateController.List", "ingestapi", "ListTemplates")
+func (h *TemplateController) List(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "TemplateController.List", "ingestapi", "ListTemplates")
 	defer end()
 
 	in := &templatesvc.ListTemplatesInput{
 		OrgId:     h.orgId(c),
 		Search:    c.Query("search"),
-		Page:      c.QueryInt("page", 1),
-		PerPage:   c.QueryInt("perPages", 10),
+		Page:      fiber.Query[int](c, "page", 1),
+		PerPage:   fiber.Query[int](c, "perPages", 10),
 		SortField: c.Query("sortField", "createdAt"),
 		SortOrder: c.Query("sortOrder", "desc"),
 	}
@@ -88,8 +88,8 @@ func (h *TemplateController) List(c *fiber.Ctx) error {
 // @Success      200  {object}  gmod.SuccessDataResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/mappingTemplates/{templateId} [get]
-func (h *TemplateController) Get(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "TemplateController.Get", "ingestapi", "GetTemplate")
+func (h *TemplateController) Get(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "TemplateController.Get", "ingestapi", "GetTemplate")
 	defer end()
 
 	orgId := h.orgId(c)
@@ -124,14 +124,14 @@ func (h *TemplateController) Get(c *fiber.Ctx) error {
 // @Success      201  {object}  gmod.SuccessDataResponse
 // @Failure      400  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/mappingTemplates [post]
-func (h *TemplateController) Create(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "TemplateController.Create", "ingestapi", "CreateTemplate")
+func (h *TemplateController) Create(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "TemplateController.Create", "ingestapi", "CreateTemplate")
 	defer end()
 
 	orgId := h.orgId(c)
 
 	var in templatesvc.CreateTemplateInput
-	if err := c.BodyParser(&in); err != nil {
+	if err := c.Bind().Body(&in); err != nil {
 		log.Warn().Str("orgId", orgId).Msg("❌ [CreateTemplate] invalid request body")
 		return httputil.FailBadRequest(c, "invalid request body")
 	}
@@ -165,15 +165,15 @@ func (h *TemplateController) Create(c *fiber.Ctx) error {
 // @Failure      400  {object}  gmod.ApiErrorResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/mappingTemplates/{templateId} [patch]
-func (h *TemplateController) Update(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "TemplateController.Update", "ingestapi", "UpdateTemplate")
+func (h *TemplateController) Update(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "TemplateController.Update", "ingestapi", "UpdateTemplate")
 	defer end()
 
 	orgId := h.orgId(c)
 	templateId := c.Params("templateId")
 
 	var in templatesvc.UpdateTemplateInput
-	if err := c.BodyParser(&in); err != nil {
+	if err := c.Bind().Body(&in); err != nil {
 		log.Warn().Str("orgId", orgId).Str("templateId", templateId).Msg("❌ [UpdateTemplate] invalid request body")
 		return httputil.FailBadRequest(c, "invalid request body")
 	}
@@ -202,8 +202,8 @@ func (h *TemplateController) Update(c *fiber.Ctx) error {
 // @Success      200  {object}  gmod.SuccessMessageResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/mappingTemplates/{templateId} [delete]
-func (h *TemplateController) Delete(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "TemplateController.Delete", "ingestapi", "DeleteTemplate")
+func (h *TemplateController) Delete(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "TemplateController.Delete", "ingestapi", "DeleteTemplate")
 	defer end()
 
 	orgId := h.orgId(c)

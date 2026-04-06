@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicerepo"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
@@ -58,8 +58,8 @@ type ouResourceBulkResponse struct {
 // @Router       /api/v1/orgs/units/{unitId}/resources [get]
 // ============================================================
 
-func (ctrl *OrgUnitResourcesController) ListResourceGroups(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitResourcesController.ListResourceGroups", "authzapi", "ListResourceGroups")
+func (ctrl *OrgUnitResourcesController) ListResourceGroups(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitResourcesController.ListResourceGroups", "authzapi", "ListResourceGroups")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -70,7 +70,7 @@ func (ctrl *OrgUnitResourcesController) ListResourceGroups(c *fiber.Ctx) error {
 	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
 
 	result, err := ctrl.groupSvc.ListResourceGroupsInOU(
-		c.UserContext(),
+		c,
 		tenantId, orgId, unitId,
 		devicesvc.ListInGroupParams{
 			Search:    c.Query("search"),
@@ -98,7 +98,7 @@ func (ctrl *OrgUnitResourcesController) ListResourceGroups(c *fiber.Ctx) error {
 	})
 }
 
-func handleOUResourceErr(c *fiber.Ctx, err error) error {
+func handleOUResourceErr(c fiber.Ctx, err error) error {
 	switch {
 	case errors.Is(err, devicesvc.ErrForbidden):
 		return httputil.FailForbidden(c, "forbidden")
@@ -128,8 +128,8 @@ func handleOUResourceErr(c *fiber.Ctx, err error) error {
 // @Router       /api/v1/orgs/units/{unitId}/resources [post]
 // ============================================================
 
-func (ctrl *OrgUnitResourcesController) AssignResourceGroups(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitResourcesController.AssignResourceGroups", "authzapi", "AssignResourceGroups")
+func (ctrl *OrgUnitResourcesController) AssignResourceGroups(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitResourcesController.AssignResourceGroups", "authzapi", "AssignResourceGroups")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -138,7 +138,7 @@ func (ctrl *OrgUnitResourcesController) AssignResourceGroups(c *fiber.Ctx) error
 	unitId := c.Params("unitId")
 
 	var body ouResourceGroupsBody
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if body.Relation == "" {
@@ -159,7 +159,7 @@ func (ctrl *OrgUnitResourcesController) AssignResourceGroups(c *fiber.Ctx) error
 	}
 
 	results, inserted, duplicates, err := ctrl.groupSvc.BulkAssignGroupsToOU(
-		c.UserContext(),
+		c,
 		tenantId, orgId, unitId, body.Relation, userId,
 		items,
 	)
@@ -197,8 +197,8 @@ func (ctrl *OrgUnitResourcesController) AssignResourceGroups(c *fiber.Ctx) error
 // @Router       /api/v1/orgs/units/{unitId}/resources [delete]
 // ============================================================
 
-func (ctrl *OrgUnitResourcesController) RemoveResourceGroups(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitResourcesController.RemoveResourceGroups", "authzapi", "RemoveResourceGroups")
+func (ctrl *OrgUnitResourcesController) RemoveResourceGroups(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitResourcesController.RemoveResourceGroups", "authzapi", "RemoveResourceGroups")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -207,7 +207,7 @@ func (ctrl *OrgUnitResourcesController) RemoveResourceGroups(c *fiber.Ctx) error
 	unitId := c.Params("unitId")
 
 	var body ouResourceGroupsBody
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 	if body.Relation == "" {
@@ -228,7 +228,7 @@ func (ctrl *OrgUnitResourcesController) RemoveResourceGroups(c *fiber.Ctx) error
 	}
 
 	results, removed, err := ctrl.groupSvc.BulkRemoveGroupsFromOU(
-		c.UserContext(),
+		c,
 		tenantId, orgId, unitId, body.Relation, userId,
 		items,
 	)

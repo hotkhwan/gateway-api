@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v4"
 
 	"github.com/hotkhwan/gateway-api/internal/services/devsvc"
@@ -30,8 +30,8 @@ import (
 // @Success 200 {object} devmod.DeviceListResponse
 // @Router /devices [get]
 // @Security BearerAuth
-func DevicesList(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devapi", "DevicesList", "devapi", "DevicesList")
+func DevicesList(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.devapi", "DevicesList", "devapi", "DevicesList")
 	defer end()
 
 	// 👀 ดูว่าปัจจุบัน middleware ยัดอะไรไว้ใน Locals("user")
@@ -140,8 +140,8 @@ func DevicesList(c *fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-func DevicesListWithPermission(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devapi", "DevicesListWithPermission", "devapi", "DevicesListWithPermission")
+func DevicesListWithPermission(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.devapi", "DevicesListWithPermission", "devapi", "DevicesListWithPermission")
 	defer end()
 
 	// 👀 ดูว่าปัจจุบัน middleware ยัดอะไรไว้ใน Locals("user")

@@ -2,7 +2,7 @@
 package biapi
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/hotkhwan/gateway-api/internal/services/bisvc"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -21,8 +21,8 @@ import (
 // @Failure 500 {object} gmod.BaseErrorResponse
 // @Router /bi/signUrl [get]
 // @Security BearerAuth
-func SignBIUrl(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.biapi", "BI.SignBIUrl", "biapi", "SignBIUrl")
+func SignBIUrl(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.biapi", "BI.SignBIUrl", "biapi", "SignBIUrl")
 	defer end()
 
 	did := c.Query("dashboardId", "")

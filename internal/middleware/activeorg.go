@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
 	"github.com/hotkhwan/gateway-api/models/gmod"
@@ -24,7 +24,7 @@ func maskId(v string) string {
 }
 
 func ActiveOrg() fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		userId, _ := c.Locals("userId").(string)
 		tenantId, _ := c.Locals("tenantId").(string)
 
@@ -57,7 +57,7 @@ func ActiveOrg() fiber.Handler {
 			})
 		}
 
-		ctx, cancel := context.WithTimeout(c.UserContext(), 3*time.Second)
+		ctx, cancel := context.WithTimeout(c, 3*time.Second)
 		defer cancel()
 
 		ctx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/middleware", "activeOrg.check", "middleware", "ActiveOrg")

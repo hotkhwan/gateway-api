@@ -9,7 +9,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // GetKML godoc
@@ -25,8 +25,8 @@ import (
 // @Failure 500 {object} gmod.ErrorResponse
 // @Router /maps/kml [get]
 // @Security BearerAuth
-func GetMAPPosition(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.mapapi", "GetMAPPosition.GetMAPPosition", "mapapi", "GetMAPPosition")
+func GetMAPPosition(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.mapapi", "GetMAPPosition.GetMAPPosition", "mapapi", "GetMAPPosition")
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))

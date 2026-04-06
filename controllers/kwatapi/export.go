@@ -4,7 +4,7 @@ package kwatapi
 import (
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/hotkhwan/gateway-api/internal/services/kwatsvc"
 	"github.com/hotkhwan/gateway-api/models/kwatmod"
@@ -23,12 +23,12 @@ import (
 // @Success  202 {object} map[string]any
 // @Router   /watchlists/exports [post]
 // @Security BearerAuth
-func CreateWatchlistExport(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Export.CreateWatchlistExport", "kwatapi", "CreateWatchlistExport")
+func CreateWatchlistExport(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kwatapi", "Export.CreateWatchlistExport", "kwatapi", "CreateWatchlistExport")
 	defer end()
 
 	var p kwatmod.ExportWatchlistParams
-	if err := c.QueryParser(&p); err != nil {
+	if err := c.Bind().Query(&p); err != nil {
 		return httputil.FailBadRequest(c, err.Error())
 	}
 	jobID, err := kwatsvc.StartWatchlistExport(ctx, p)
@@ -46,8 +46,8 @@ func CreateWatchlistExport(c *fiber.Ctx) error {
 // @Success  200 {object} kwatmod.ExportJob
 // @Router   /watchlist/exports/jobs/{id} [get]
 // @Security BearerAuth
-func GetExportJob(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Export.GetExportJob", "kwatapi", "GetExportJob")
+func GetExportJob(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.kwatapi", "Export.GetExportJob", "kwatapi", "GetExportJob")
 	defer end()
 
 	id := c.Params("id")
@@ -65,8 +65,8 @@ func GetExportJob(c *fiber.Ctx) error {
 // @Success  302 {string} string "redirect to S3 URL"
 // @Router   /watchlist/exports/{id} [get]
 // @Security BearerAuth
-func DownloadExport(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Export.DownloadExport", "kwatapi", "DownloadExport")
+func DownloadExport(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.kwatapi", "Export.DownloadExport", "kwatapi", "DownloadExport")
 	defer end()
 
 	id := c.Params("id")

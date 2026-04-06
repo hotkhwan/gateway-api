@@ -15,7 +15,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 const maxVideoBytes = int64(10 * 1024 * 1024 * 1024) // 10GB
@@ -37,11 +37,11 @@ const maxVideoBytes = int64(10 * 1024 * 1024 * 1024) // 10GB
 // @Failure 500 {object} gmod.ErrorMessageResponse
 // @Router /ksearch/video [post]
 // @Security BearerAuth
-func VideoCreate(c *fiber.Ctx) error {
-	_, end, _ := traceutil.StartLite(c.UserContext(), "gateway.kschapi", "Video.VideoCreate", "kschapi", "VideoCreate")
+func VideoCreate(c fiber.Ctx) error {
+	_, end, _ := traceutil.StartLite(c, "gateway.kschapi", "Video.VideoCreate", "kschapi", "VideoCreate")
 	defer end()
 
-	ctx, cancel := context.WithTimeout(c.Context(), 30*time.Minute)
+	ctx, cancel := context.WithTimeout(c, 30*time.Minute)
 	defer cancel()
 
 	name := c.FormValue("name")

@@ -9,7 +9,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // UpdateEdge godoc
@@ -26,8 +26,8 @@ import (
 // @Failure 500 {object} gmod.ApiErrorResponse
 // @Router /system/edge/{id} [patch]
 // @Security BearerAuth
-func UpdateEdge(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.edgeapi", "EdgeApi.UpdateEdge", "sysapi", "UpdateEdge")
+func UpdateEdge(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.edgeapi", "EdgeApi.UpdateEdge", "sysapi", "UpdateEdge")
 	defer end()
 
 	id := strings.TrimSpace(c.Params("id"))
@@ -36,7 +36,7 @@ func UpdateEdge(c *fiber.Ctx) error {
 	}
 
 	var req systemmod.EdgeUpdateReq
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Warn().Err(err).Msg("invalid body")
 		return httputil.FailBadRequestReason(c, "invalid json body", "INVALID_BODY")
 	}

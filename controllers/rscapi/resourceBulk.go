@@ -10,7 +10,7 @@ import (
 	"github.com/hotkhwan/gateway-api/models/rscmod"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // BulkCreateResources godoc
@@ -24,12 +24,12 @@ import (
 // @Failure     400   {object} gmod.SuccessMessageBulkCreateResponse "Bad request / invalid body"
 // @Failure     500   {object} gmod.SuccessMessageBulkCreateResponse "Internal error"
 // @Router      /rsc/v1/resources/bulk [post]
-func BulkCreateResources(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.rscapi", "BulkCreateResources", "rscapi", "BulkCreateResources")
+func BulkCreateResources(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.rscapi", "BulkCreateResources", "rscapi", "BulkCreateResources")
 	defer end()
 
 	var payload []rscmod.ResourceUpsert
-	if err := c.BodyParser(&payload); err != nil || len(payload) == 0 {
+	if err := c.Bind().Body(&payload); err != nil || len(payload) == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(gmod.SuccessMessageBulkCreateResponse{
 			Code:     "BAD_REQUEST",
 			Message:  "body must be a non-empty JSON array of ResourceUpsert",
@@ -41,7 +41,7 @@ func BulkCreateResources(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx, cancel := context.WithTimeout(c.Context(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(c, 20*time.Second)
 	defer cancel()
 
 	result, err := rscsvc.ResourceBulkCreate(ctx, payload)

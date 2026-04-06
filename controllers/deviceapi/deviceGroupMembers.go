@@ -4,7 +4,7 @@ package deviceapi
 import (
 	"fmt"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -38,9 +38,9 @@ type DeviceBulkResponse struct {
 
 // parseResourceItems — reads body `{ "<resource>": [{"camId": "..."}] }`
 // and converts to []GroupDeviceItem
-func parseResourceItems(c *fiber.Ctx, resource string) ([]devicesvc.GroupDeviceItem, error) {
+func parseResourceItems(c fiber.Ctx, resource string) ([]devicesvc.GroupDeviceItem, error) {
 	var body map[string][]CameraItem
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return nil, err
 	}
 	items, ok := body[resource]
@@ -77,8 +77,8 @@ func buildDeviceBulkMessage(inserted, removed, duplicates, errors int) string {
 // @Router       /api/v1/resources/groups/{groupId}/{resource} [get]
 // ============================================================
 
-func (ctrl *ResourceGroupController) ListCameras(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "ResourceGroupController.ListCameras", "deviceapi", "ListCameras")
+func (ctrl *ResourceGroupController) ListCameras(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "ResourceGroupController.ListCameras", "deviceapi", "ListCameras")
 	defer end()
 
 	tenantId, orgId, _ := ctrl.mustLocals(c)
@@ -90,12 +90,12 @@ func (ctrl *ResourceGroupController) ListCameras(c *fiber.Ctx) error {
 	}
 
 	result, err := ctrl.service.ListCamerasInGroup(
-		c.UserContext(),
+		c,
 		tenantId, orgId, groupId,
 		devicesvc.ListInGroupParams{
 			Search:    c.Query("search"),
-			Page:      c.QueryInt("page", 1),
-			PerPage:   c.QueryInt("perPages", 10),
+			Page:      fiber.Query[int](c, "page", 1),
+			PerPage:   fiber.Query[int](c, "perPages", 10),
 			SortField: c.Query("sortField", "createAt"),
 			SortOrder: c.Query("sortOrder", "desc"),
 		},
@@ -136,8 +136,8 @@ func (ctrl *ResourceGroupController) ListCameras(c *fiber.Ctx) error {
 // @Router       /api/v1/devices/groups/{groupId}/devices [post]
 // ============================================================
 
-func (ctrl *ResourceGroupController) AddDevices(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "ResourceGroupController.AddDevices", "deviceapi", "AddDevices")
+func (ctrl *ResourceGroupController) AddDevices(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "ResourceGroupController.AddDevices", "deviceapi", "AddDevices")
 	defer end()
 
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
@@ -166,7 +166,7 @@ func (ctrl *ResourceGroupController) AddDevices(c *fiber.Ctx) error {
 		Msg("AddDevices request")
 
 	results, inserted, duplicates, err := ctrl.service.AddDevicesToGroup(
-		c.UserContext(),
+		c,
 		tenantId,
 		orgId,
 		groupId,
@@ -217,8 +217,8 @@ func (ctrl *ResourceGroupController) AddDevices(c *fiber.Ctx) error {
 // @Router       /api/v1/devices/groups/{groupId}/devices [patch]
 // ============================================================
 
-func (ctrl *ResourceGroupController) RemoveDevices(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.deviceapi", "ResourceGroupController.RemoveDevices", "deviceapi", "RemoveDevices")
+func (ctrl *ResourceGroupController) RemoveDevices(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "ResourceGroupController.RemoveDevices", "deviceapi", "RemoveDevices")
 	defer end()
 
 	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
@@ -247,7 +247,7 @@ func (ctrl *ResourceGroupController) RemoveDevices(c *fiber.Ctx) error {
 		Msg("RemoveDevices request")
 
 	results, removed, err := ctrl.service.RemoveDevicesFromGroup(
-		c.UserContext(),
+		c,
 		tenantId,
 		orgId,
 		groupId,

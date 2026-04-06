@@ -4,7 +4,7 @@ package ingestapi
 import (
 	"errors"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/rejectedpayloadpatternsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -22,7 +22,7 @@ func NewRejectedPayloadPatternController(svc *rejectedpayloadpatternsvc.Rejected
 	return &RejectedPayloadPatternController{svc: svc}
 }
 
-func (h *RejectedPayloadPatternController) orgId(c *fiber.Ctx) string {
+func (h *RejectedPayloadPatternController) orgId(c fiber.Ctx) string {
 	oid, _ := c.Locals("activeOrg").(string)
 	return oid
 }
@@ -37,13 +37,13 @@ func (h *RejectedPayloadPatternController) orgId(c *fiber.Ctx) string {
 // @Success      200  {object}  gmod.PaginationResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/rejectedPayloadPatterns [get]
-func (h *RejectedPayloadPatternController) List(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "RejectedPayloadPatternController.List", "ingestapi", "ListRejectedPayloadPatterns")
+func (h *RejectedPayloadPatternController) List(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "RejectedPayloadPatternController.List", "ingestapi", "ListRejectedPayloadPatterns")
 	defer end()
 
 	orgId := h.orgId(c)
-	page := c.QueryInt("page", 1)
-	perPage := c.QueryInt("perPages", 10)
+	page := fiber.Query[int](c, "page", 1)
+	perPage := fiber.Query[int](c, "perPages", 10)
 
 	items, pag, err := h.svc.List(ctx, orgId, page, perPage)
 	if err != nil {
@@ -68,8 +68,8 @@ func (h *RejectedPayloadPatternController) List(c *fiber.Ctx) error {
 // @Success      200  {object}  gmod.SuccessDataResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/rejectedPayloadPatterns/{id} [delete]
-func (h *RejectedPayloadPatternController) Delete(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "RejectedPayloadPatternController.Delete", "ingestapi", "DeleteRejectedPayloadPattern")
+func (h *RejectedPayloadPatternController) Delete(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "RejectedPayloadPatternController.Delete", "ingestapi", "DeleteRejectedPayloadPattern")
 	defer end()
 
 	orgId := h.orgId(c)

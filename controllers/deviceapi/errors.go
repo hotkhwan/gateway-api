@@ -4,14 +4,14 @@ package deviceapi
 import (
 	"errors"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicerepo"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 )
 
 // handleErr — maps service/repo errors → HTTP status + code
-func handleErr(c *fiber.Ctx, err error) error {
+func handleErr(c fiber.Ctx, err error) error {
 	switch {
 	case errors.Is(err, devicesvc.ErrForbidden):
 		return httputil.FailForbidden(c, "forbidden")

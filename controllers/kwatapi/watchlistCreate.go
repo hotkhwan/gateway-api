@@ -18,7 +18,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 var validate = validator.New()
@@ -65,8 +65,8 @@ var validate = validator.New()
 // @Failure 500 {object} gmod.ErrorMessageResponse
 // @Router /watchlist [post]
 // @Security BearerAuth
-func WatchlistCreate(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kwatapi", "Watchlist.WatchlistCreate", "kwatapi", "WatchlistCreate")
+func WatchlistCreate(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kwatapi", "Watchlist.WatchlistCreate", "kwatapi", "WatchlistCreate")
 	defer end()
 
 	var req kwatmod.WatchlistCreateRequest
@@ -275,7 +275,7 @@ func filenameFromURL(u string, contentType string) string {
 // 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
 // 	"github.com/go-playground/validator/v10"
-// 	"github.com/gofiber/fiber/v2"
+// 	"github.com/gofiber/fiber/v3"
 // 	"go.opentelemetry.io/otel"
 // 	"go.opentelemetry.io/otel/trace"
 // )
@@ -321,8 +321,8 @@ func filenameFromURL(u string, contentType string) string {
 // // @Failure 500 {object} gmod.ErrorMessageResponse
 // // @Router /watchlist [post]
 // // @Security BearerAuth
-// func WatchlistCreate(c *fiber.Ctx) error {
-// 	ctx := c.UserContext()
+// func WatchlistCreate(c fiber.Ctx) error {
+// 	ctx := c
 // 	tracer := otel.Tracer("github.com/hotkhwan/gateway-api/kwatapi")
 // 	ctx, span := tracer.Start(ctx, "Kwatch.WatchlistCreate")
 // 	defer span.End()

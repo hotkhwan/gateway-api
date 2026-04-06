@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -47,8 +47,8 @@ func buildBulkMessage(inserted int, removed int, duplicates int, errors int) str
 // @Router /api/v1/orgs/units/{id}/members [get]
 // controllers/authzapi/orgUnitMembers.go
 
-func (ctrl *OrgUnitController) ListMembers(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.ListMembers", "authzapi", "ListMembers")
+func (ctrl *OrgUnitController) ListMembers(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.ListMembers", "authzapi", "ListMembers")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -113,8 +113,8 @@ func (ctrl *OrgUnitController) ListMembers(c *fiber.Ctx) error {
 // @Failure 400 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/units/{id}/members [post]
-func (ctrl *OrgUnitController) AssignMembers(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.AssignMembers", "authzapi", "AssignMembers")
+func (ctrl *OrgUnitController) AssignMembers(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.AssignMembers", "authzapi", "AssignMembers")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -123,7 +123,7 @@ func (ctrl *OrgUnitController) AssignMembers(c *fiber.Ctx) error {
 	ouId := c.Params("id")
 
 	var req AssignUsersRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 
@@ -170,8 +170,8 @@ func (ctrl *OrgUnitController) AssignMembers(c *fiber.Ctx) error {
 // @Failure 400 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/units/{id}/members [patch]
-func (ctrl *OrgUnitController) RemoveMembers(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrgUnitController.RemoveMembers", "authzapi", "RemoveMembers")
+func (ctrl *OrgUnitController) RemoveMembers(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.RemoveMembers", "authzapi", "RemoveMembers")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -180,7 +180,7 @@ func (ctrl *OrgUnitController) RemoveMembers(c *fiber.Ctx) error {
 	ouId := c.Params("id")
 
 	var req RemoveUsersRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 

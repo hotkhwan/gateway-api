@@ -2,7 +2,7 @@
 package subapi
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
 	"github.com/hotkhwan/gateway-api/models/subscripmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
@@ -29,11 +29,11 @@ func NewSubscriptionController(svc *subscriptionsvc.SubscriptionService) *Subscr
 // @Success      200 {object} gmod.SuccessDetailResponseAny
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/subscriptions/packages [get]
-func (ctrl *SubscriptionController) ListPackages(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.subapi", "SubscriptionController.ListPackages", "subapi", "ListPackages")
+func (ctrl *SubscriptionController) ListPackages(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.subapi", "SubscriptionController.ListPackages", "subapi", "ListPackages")
 	defer end()
 
-	publicOnly := c.QueryBool("publicOnly", true)
+	publicOnly := fiber.Query[bool](c, "publicOnly", true)
 
 	packages, err := ctrl.svc.ListPackages(ctx, publicOnly)
 	if err != nil {
@@ -54,8 +54,8 @@ func (ctrl *SubscriptionController) ListPackages(c *fiber.Ctx) error {
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/subscriptions/current [get]
-func (ctrl *SubscriptionController) GetCurrentSubscription(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.subapi", "SubscriptionController.GetCurrentSubscription", "subapi", "GetCurrentSubscription")
+func (ctrl *SubscriptionController) GetCurrentSubscription(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.subapi", "SubscriptionController.GetCurrentSubscription", "subapi", "GetCurrentSubscription")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -78,8 +78,8 @@ func (ctrl *SubscriptionController) GetCurrentSubscription(c *fiber.Ctx) error {
 // @Success      200 {object} gmod.SuccessDetailResponseAny
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/subscriptions/bootstrap [post]
-func (ctrl *SubscriptionController) BootstrapSubscription(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.subapi", "SubscriptionController.BootstrapSubscription", "subapi", "BootstrapSubscription")
+func (ctrl *SubscriptionController) BootstrapSubscription(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.subapi", "SubscriptionController.BootstrapSubscription", "subapi", "BootstrapSubscription")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -111,8 +111,8 @@ func (ctrl *SubscriptionController) BootstrapSubscription(c *fiber.Ctx) error {
 // @Failure      403 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/subscriptions/plan [patch]
-func (ctrl *SubscriptionController) UpdatePlan(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.subapi", "SubscriptionController.UpdatePlan", "subapi", "UpdatePlan")
+func (ctrl *SubscriptionController) UpdatePlan(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.subapi", "SubscriptionController.UpdatePlan", "subapi", "UpdatePlan")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -122,7 +122,7 @@ func (ctrl *SubscriptionController) UpdatePlan(c *fiber.Ctx) error {
 		PlanId       string                   `json:"planId"`
 		BillingCycle subscripmod.BillingCycle `json:"billingCycle"`
 	}
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, "invalid request body")
 	}
 
@@ -150,8 +150,8 @@ func (ctrl *SubscriptionController) UpdatePlan(c *fiber.Ctx) error {
 // @Failure      400 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
 // @Router       /api/v1/subscriptions/enterprise/activate [post]
-func (ctrl *SubscriptionController) ActivateEnterprise(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.subapi", "SubscriptionController.ActivateEnterprise", "subapi", "ActivateEnterprise")
+func (ctrl *SubscriptionController) ActivateEnterprise(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.subapi", "SubscriptionController.ActivateEnterprise", "subapi", "ActivateEnterprise")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -161,7 +161,7 @@ func (ctrl *SubscriptionController) ActivateEnterprise(c *fiber.Ctx) error {
 		LicenseKey string                          `json:"licenseKey"`
 		Limits     *subscripmod.SubscriptionLimits `json:"limits,omitempty"`
 	}
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		return httputil.FailBadRequest(c, "invalid request body")
 	}
 

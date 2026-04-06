@@ -6,7 +6,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // DeleteAlarm godoc
@@ -21,8 +21,8 @@ import (
 // @Failure 500 {object} gmod.InternalErrorResponse
 // @Router /kcontrol/alarms/{id} [delete]
 // @Security BearerAuth
-func DeleteAlarm(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.DeleteAlarm", "kctrlapi", "DeleteAlarm")
+func DeleteAlarm(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "alarms.DeleteAlarm", "kctrlapi", "DeleteAlarm")
 	defer end()
 
 	id := c.Params("id")
@@ -55,12 +55,12 @@ func DeleteAlarm(c *fiber.Ctx) error {
 // @Failure 500 {object} gmod.InternalErrorResponse
 // @Security BearerAuth
 // @Router /kcontrol/alarms/bulk-delete [post]
-func DeleteAlarmBulk(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.DeleteAlarmBulk", "kctrlapi", "DeleteAlarmBulk")
+func DeleteAlarmBulk(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "alarms.DeleteAlarmBulk", "kctrlapi", "DeleteAlarmBulk")
 	defer end()
 
 	var ids []string
-	if err := c.BodyParser(&ids); err != nil || len(ids) == 0 {
+	if err := c.Bind().Body(&ids); err != nil || len(ids) == 0 {
 		log.Warn().Msg("❌ [DeleteAlarms] Invalid or missing alarm ID list")
 		return httputil.FailBadRequest(c, "INVALID_IDS", "Invalid or missing alarm ID list")
 	}

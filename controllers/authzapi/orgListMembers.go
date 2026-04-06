@@ -5,7 +5,7 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
@@ -21,8 +21,8 @@ import (
 // @Success 200 {object} gmod.OrgListResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Router /api/v1/orgs/users/members [get]
-func (ctrl *OrganizationController) ListMembers(c *fiber.Ctx) error {
-	ctx, end, _ := traceutil.StartLite(c.UserContext(), "gateway.authzapi", "OrganizationController.ListMembers", "authzapi", "ListMembers")
+func (ctrl *OrganizationController) ListMembers(c fiber.Ctx) error {
+	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.ListMembers", "authzapi", "ListMembers")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)

@@ -6,7 +6,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // DeviceSyncFromEdgeID godoc
@@ -18,8 +18,8 @@ import (
 // @Failure 404 {object} gmod.ApiErrorResponse
 // @Failure 500 {object} gmod.ApiErrorResponse
 // @Security BearerAuth
-func DeviceSyncFromEdgeID(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ibocapi", "iboc.DeviceSyncFromEdgeID", "ibocapi", "DeviceSyncFromEdgeID")
+func DeviceSyncFromEdgeID(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ibocapi", "iboc.DeviceSyncFromEdgeID", "ibocapi", "DeviceSyncFromEdgeID")
 	defer end()
 
 	edgeId := c.Params("edgeId")

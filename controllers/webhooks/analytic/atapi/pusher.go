@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/hotkhwan/gateway-api/internal/kafka"
 	"github.com/hotkhwan/gateway-api/models/aimodel"
@@ -20,8 +20,8 @@ import (
 
 // -------------------- ATA (JSON ตรง) --------------------
 
-func HandleATA(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.atapi", "HandleATA", "webhooks", "HandleATA")
+func HandleATA(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.webhooks.atapi", "HandleATA", "webhooks", "HandleATA")
 	defer end()
 
 	rawBody := c.Body()
@@ -78,8 +78,8 @@ func HandleATA(c *fiber.Ctx) error {
 
 // -------------------- Pusher-style Envelope --------------------
 
-func HandlePusherEvent(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.atapi", "HandlePusherEvent", "webhooks", "HandlePusherEvent")
+func HandlePusherEvent(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.webhooks.atapi", "HandlePusherEvent", "webhooks", "HandlePusherEvent")
 	defer end()
 
 	// ==== Request meta (help debug) ====

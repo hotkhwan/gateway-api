@@ -5,7 +5,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // GetKMLFile godoc
@@ -21,8 +21,8 @@ import (
 // @Failure 500 {object} gmod.ErrorResponse
 // @Router /maps/kml/file [get]
 // @Security BearerAuth
-func GetKMLFile(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.mapapi", "GetKMLFile.GetKMLFile", "mapapi", "GetKMLFile")
+func GetKMLFile(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.mapapi", "GetKMLFile.GetKMLFile", "mapapi", "GetKMLFile")
 	defer end()
 
 	format := c.Query("format", "kml") // default = kml

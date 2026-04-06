@@ -9,15 +9,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/hotkhwan/gateway-api/internal/kafka"
 	"github.com/hotkhwan/gateway-api/models/iwownmod"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
-func HandleIwownPbUpload(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.iwownapi", "HandleIwownPbUpload", "webhooks", "HandleIwownPbUpload")
+func HandleIwownPbUpload(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.webhooks.iwownapi", "HandleIwownPbUpload", "webhooks", "HandleIwownPbUpload")
 	defer end()
 
 	payload := c.Body()
@@ -130,8 +130,8 @@ func HandleIwownPbUpload(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).Send([]byte{0x00})
 }
 
-func HandleIwownAlarmUpload(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.iwownapi", "HandleIwownAlarmUpload", "webhooks", "HandleIwownAlarmUpload")
+func HandleIwownAlarmUpload(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.webhooks.iwownapi", "HandleIwownAlarmUpload", "webhooks", "HandleIwownAlarmUpload")
 	defer end()
 
 	payload := c.Body()
@@ -243,12 +243,12 @@ func HandleIwownAlarmUpload(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).Send([]byte{0x00})
 }
 
-func HandleIwownCallLogUpload(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.iwownapi", "HandleIwownCallLogUpload", "webhooks", "HandleIwownCallLogUpload")
+func HandleIwownCallLogUpload(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.webhooks.iwownapi", "HandleIwownCallLogUpload", "webhooks", "HandleIwownCallLogUpload")
 	defer end()
 
 	var req iwownmod.IwownDeviceCallLogs
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Error().Err(err).Msg("❌ parse call_log payload failed")
 		return c.Status(fiber.StatusOK).JSON(iwownmod.IwownResponseCode{ReturnCode: 10002})
 	}
@@ -284,12 +284,12 @@ func HandleIwownCallLogUpload(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(iwownmod.IwownResponseCode{ReturnCode: 0})
 }
 
-func HandleIwownDeviceInfoUpload(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.iwownapi", "HandleIwownDeviceInfoUpload", "webhooks", "HandleIwownDeviceInfoUpload")
+func HandleIwownDeviceInfoUpload(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.webhooks.iwownapi", "HandleIwownDeviceInfoUpload", "webhooks", "HandleIwownDeviceInfoUpload")
 	defer end()
 
 	var req iwownmod.IwownDeviceInfo
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Error().Err(err).Msg("❌ parse deviceinfo payload failed")
 		return c.Status(fiber.StatusOK).JSON(iwownmod.IwownResponseCode{ReturnCode: 10002})
 	}
@@ -325,12 +325,12 @@ func HandleIwownDeviceInfoUpload(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(iwownmod.IwownResponseCode{ReturnCode: 0})
 }
 
-func HandleIwownStatusNotify(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.iwownapi", "HandleIwownStatusNotify", "webhooks", "HandleIwownStatusNotify")
+func HandleIwownStatusNotify(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.webhooks.iwownapi", "HandleIwownStatusNotify", "webhooks", "HandleIwownStatusNotify")
 	defer end()
 
 	var req iwownmod.IwownDeviceStatus
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Error().Err(err).Msg("❌ parse status notify payload failed")
 		return c.Status(fiber.StatusOK).JSON(iwownmod.IwownResponseCode{ReturnCode: 10002})
 	}
@@ -366,8 +366,8 @@ func HandleIwownStatusNotify(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(iwownmod.IwownResponseCode{ReturnCode: 0})
 }
 
-func HandleIwownHealthSleep(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.iwownapi", "HandleIwownHealthSleep", "webhooks", "HandleIwownHealthSleep")
+func HandleIwownHealthSleep(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.webhooks.iwownapi", "HandleIwownHealthSleep", "webhooks", "HandleIwownHealthSleep")
 	defer end()
 
 	deviceid := c.Query("deviceid")

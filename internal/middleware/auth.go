@@ -9,13 +9,13 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/utils/authutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v4"
 )
 
 // ExtractBearerToken ดึง Bearer Token ออกมาจาก Header Authorization
-func ExtractBearerToken(c *fiber.Ctx) (string, error) {
-	log := logger.FromCtx(c.UserContext(), "middleware", "authz-ExtractBearerToken")
+func ExtractBearerToken(c fiber.Ctx) (string, error) {
+	log := logger.FromCtx(c, "middleware", "authz-ExtractBearerToken")
 	authHeader := c.Get("Authorization")
 	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 		log.Warn().
@@ -30,8 +30,8 @@ func ExtractBearerToken(c *fiber.Ctx) (string, error) {
 // AuthBearer Middleware สำหรับ Validate Token กับ Keycloak
 
 func AuthBearer() fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		log := logger.FromCtx(c.UserContext(), "middleware", "authz-AuthBearer")
+	return func(c fiber.Ctx) error {
+		log := logger.FromCtx(c, "middleware", "authz-AuthBearer")
 
 		token, err := ExtractBearerToken(c)
 		if err != nil {
@@ -95,7 +95,7 @@ func AuthBearer() fiber.Handler {
 }
 
 func AuthBearerOrCookie() fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		auth := c.Get("Authorization")
 		if auth == "" {
 			tok := c.Cookies("KAPI_TOKEN")
@@ -109,8 +109,8 @@ func AuthBearerOrCookie() fiber.Handler {
 
 // RequireRoles ตรวจสอบ role ของผู้ใช้ใน JWT
 func RequireRoles(roles []string) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		log := logger.FromCtx(c.UserContext(), "middleware", "authz-RequireRoles")
+	return func(c fiber.Ctx) error {
+		log := logger.FromCtx(c, "middleware", "authz-RequireRoles")
 
 		claims, ok := c.Locals("user").(map[string]interface{})
 		if !ok {
@@ -156,8 +156,8 @@ func RequireRoles(roles []string) fiber.Handler {
 }
 
 // CurrentUser ดึงผู้ใช้จาก context
-func CurrentUser(c *fiber.Ctx) (map[string]interface{}, error) {
-	log := logger.FromCtx(c.UserContext(), "middleware", "authz-CurrentUser")
+func CurrentUser(c fiber.Ctx) (map[string]interface{}, error) {
+	log := logger.FromCtx(c, "middleware", "authz-CurrentUser")
 
 	switch v := c.Locals("user").(type) {
 	case map[string]interface{}:
@@ -171,7 +171,7 @@ func CurrentUser(c *fiber.Ctx) (map[string]interface{}, error) {
 }
 
 // CurrentUserID ดึง userId ("sub") จาก context
-func CurrentUserID(c *fiber.Ctx) (string, error) {
+func CurrentUserID(c fiber.Ctx) (string, error) {
 	claims, err := CurrentUser(c)
 	if err != nil {
 		return "", err

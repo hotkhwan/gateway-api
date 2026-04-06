@@ -2,7 +2,7 @@
 package ingestapi
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
@@ -32,7 +32,7 @@ type bulkApplyTemplateRequest struct {
 	EventIds   []string `json:"eventIds"`
 }
 
-func mustBulkLocals(c *fiber.Ctx) (tenantId, orgId, callerUserId string) {
+func mustBulkLocals(c fiber.Ctx) (tenantId, orgId, callerUserId string) {
 	tenantId, _ = c.Locals("tenantId").(string)
 	orgId, _ = c.Locals("activeOrg").(string)
 	callerUserId, _ = c.Locals("userId").(string)
@@ -53,15 +53,15 @@ func mustBulkLocals(c *fiber.Ctx) (tenantId, orgId, callerUserId string) {
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/management/bulk/approve [post]
-func (ctrl *BulkController) BulkApprove(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "BulkController.BulkApprove", "ingestapi", "BulkApprove")
+func (ctrl *BulkController) BulkApprove(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "BulkController.BulkApprove", "ingestapi", "BulkApprove")
 	defer end()
 
 	tenantId, orgId, callerUserId := mustBulkLocals(c)
 	log.Info().Str("orgId", orgId).Msg("📥 [BulkApprove] request received")
 
 	var req bulkRequest
-	if err := c.BodyParser(&req); err != nil || len(req.EventIds) == 0 {
+	if err := c.Bind().Body(&req); err != nil || len(req.EventIds) == 0 {
 		log.Warn().Str("orgId", orgId).Msg("❌ [BulkApprove] invalid or empty eventIds")
 		return httputil.FailBadRequest(c, "eventIds is required and must not be empty")
 	}
@@ -89,15 +89,15 @@ func (ctrl *BulkController) BulkApprove(c *fiber.Ctx) error {
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/management/bulk/reject [post]
-func (ctrl *BulkController) BulkReject(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "BulkController.BulkReject", "ingestapi", "BulkReject")
+func (ctrl *BulkController) BulkReject(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "BulkController.BulkReject", "ingestapi", "BulkReject")
 	defer end()
 
 	tenantId, orgId, callerUserId := mustBulkLocals(c)
 	log.Info().Str("orgId", orgId).Msg("📥 [BulkReject] request received")
 
 	var req bulkRequest
-	if err := c.BodyParser(&req); err != nil || len(req.EventIds) == 0 {
+	if err := c.Bind().Body(&req); err != nil || len(req.EventIds) == 0 {
 		log.Warn().Str("orgId", orgId).Msg("❌ [BulkReject] invalid or empty eventIds")
 		return httputil.FailBadRequest(c, "eventIds is required and must not be empty")
 	}
@@ -125,15 +125,15 @@ func (ctrl *BulkController) BulkReject(c *fiber.Ctx) error {
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/management/bulk/delete [post]
-func (ctrl *BulkController) BulkDelete(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "BulkController.BulkDelete", "ingestapi", "BulkDelete")
+func (ctrl *BulkController) BulkDelete(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "BulkController.BulkDelete", "ingestapi", "BulkDelete")
 	defer end()
 
 	tenantId, orgId, callerUserId := mustBulkLocals(c)
 	log.Info().Str("orgId", orgId).Msg("📥 [BulkDelete] request received")
 
 	var req bulkRequest
-	if err := c.BodyParser(&req); err != nil || len(req.EventIds) == 0 {
+	if err := c.Bind().Body(&req); err != nil || len(req.EventIds) == 0 {
 		log.Warn().Str("orgId", orgId).Msg("❌ [BulkDelete] invalid or empty eventIds")
 		return httputil.FailBadRequest(c, "eventIds is required and must not be empty")
 	}
@@ -161,15 +161,15 @@ func (ctrl *BulkController) BulkDelete(c *fiber.Ctx) error {
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/management/bulk/applyTemplate [post]
-func (ctrl *BulkController) BulkApplyTemplate(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "BulkController.BulkApplyTemplate", "ingestapi", "BulkApplyTemplate")
+func (ctrl *BulkController) BulkApplyTemplate(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "BulkController.BulkApplyTemplate", "ingestapi", "BulkApplyTemplate")
 	defer end()
 
 	tenantId, orgId, callerUserId := mustBulkLocals(c)
 	log.Info().Str("orgId", orgId).Msg("📥 [BulkApplyTemplate] request received")
 
 	var req bulkApplyTemplateRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Warn().Str("orgId", orgId).Err(err).Msg("❌ [BulkApplyTemplate] body parse error")
 		return httputil.FailBadRequest(c, "invalid request body")
 	}

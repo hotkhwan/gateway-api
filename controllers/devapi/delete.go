@@ -6,7 +6,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // DeviceDelete godoc
@@ -21,8 +21,8 @@ import (
 // @Failure 500 {object} gmod.InternalErrorResponse
 // @Router /devices/{id} [delete]
 // @Security BearerAuth
-func DeviceDelete(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devapi", "DeviceDelete", "devapi", "DeviceDelete")
+func DeviceDelete(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.devapi", "DeviceDelete", "devapi", "DeviceDelete")
 	defer end()
 	id := c.Params("id")
 	if id == "" {

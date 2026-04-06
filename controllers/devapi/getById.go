@@ -9,7 +9,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -23,8 +23,8 @@ import (
 // @Failure 404 {object} gmod.ErrorMessageResponse
 // @Router /devices/{id} [get]
 // @Security BearerAuth
-func DeviceGetByID(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "github.com/hotkhwan/gateway-api/devapi", "devapi.DeviceGetByID", "devapi", "DeviceGetByID")
+func DeviceGetByID(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "github.com/hotkhwan/gateway-api/devapi", "devapi.DeviceGetByID", "devapi", "DeviceGetByID")
 	defer end()
 
 	deviceId := strings.TrimSpace(c.Params("deviceId"))

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // ListGroups godoc
@@ -29,8 +29,8 @@ import (
 // @Failure      500   {object}  gmod.InternalErrorResponse
 // @Router       /groups [get]
 // @Security     BearerAuth
-func ListGroups(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.grpapi", "group.ListGroups", "grpapi", "ListGroups")
+func ListGroups(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.grpapi", "group.ListGroups", "grpapi", "ListGroups")
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -84,8 +84,8 @@ func ListGroups(c *fiber.Ctx) error {
 // @Failure      500 {object} gmod.InternalErrorResponse
 // @Router       /groups/tree [get]
 // @Security     BearerAuth
-func GetGroupTree(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.grpapi", "group.GetGroupTree", "grpapi", "GetGroupTree")
+func GetGroupTree(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.grpapi", "group.GetGroupTree", "grpapi", "GetGroupTree")
 	defer end()
 
 	// ดึงทั้งหมด

@@ -6,7 +6,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // EdgeSVMS godoc
@@ -18,8 +18,8 @@ import (
 // @Failure 404 {object} gmod.ApiErrorResponse
 // @Failure 500 {object} gmod.ApiErrorResponse
 // @Security BearerAuth
-func EdgeSVMS(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.devsyncapi", "devsync.EdgeSVMS", "devsyncapi", "EdgeSVMS")
+func EdgeSVMS(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.devsyncapi", "devsync.EdgeSVMS", "devsyncapi", "EdgeSVMS")
 	defer end()
 
 	edgeId := c.Params("id")

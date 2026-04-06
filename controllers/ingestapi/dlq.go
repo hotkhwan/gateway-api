@@ -4,7 +4,7 @@ package ingestapi
 import (
 	"errors"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/dlqsvc"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
@@ -22,12 +22,12 @@ func NewDLQController(svc *dlqsvc.DLQService) *DLQController {
 	return &DLQController{svc: svc}
 }
 
-func (h *DLQController) tenantId(c *fiber.Ctx) string {
+func (h *DLQController) tenantId(c fiber.Ctx) string {
 	tid, _ := c.Locals("tenantId").(string)
 	return tid
 }
 
-func (h *DLQController) orgId(c *fiber.Ctx) string {
+func (h *DLQController) orgId(c fiber.Ctx) string {
 	org, _ := c.Locals("activeOrg").(string)
 	return org
 }
@@ -44,16 +44,16 @@ func (h *DLQController) orgId(c *fiber.Ctx) string {
 // @Success      200  {object}  gmod.PaginatedResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/dlq [get]
-func (h *DLQController) ListDLQ(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "DLQController.ListDLQ", "ingestapi", "ListDLQ")
+func (h *DLQController) ListDLQ(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DLQController.ListDLQ", "ingestapi", "ListDLQ")
 	defer end()
 
 	tenantId := h.tenantId(c)
 	orgId := h.orgId(c)
 	stage := c.Query("stage")
 	status := c.Query("status")
-	page := c.QueryInt("page", 1)
-	perPage := c.QueryInt("perPage", 20)
+	page := fiber.Query[int](c, "page", 1)
+	perPage := fiber.Query[int](c, "perPage", 20)
 
 	log.Debug().Str("tenantId", tenantId).Str("orgId", orgId).Str("stage", stage).Str("status", status).Msg("[ListDLQ] listing")
 
@@ -80,8 +80,8 @@ func (h *DLQController) ListDLQ(c *fiber.Ctx) error {
 // @Success      200  {object}  gmod.SuccessDataResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/dlq/stats [get]
-func (h *DLQController) GetDLQStats(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "DLQController.GetDLQStats", "ingestapi", "GetDLQStats")
+func (h *DLQController) GetDLQStats(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DLQController.GetDLQStats", "ingestapi", "GetDLQStats")
 	defer end()
 
 	tenantId := h.tenantId(c)
@@ -107,8 +107,8 @@ func (h *DLQController) GetDLQStats(c *fiber.Ctx) error {
 // @Success      200  {object}  gmod.SuccessDataResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/dlq/{id} [get]
-func (h *DLQController) GetDLQMessage(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "DLQController.GetDLQMessage", "ingestapi", "GetDLQMessage")
+func (h *DLQController) GetDLQMessage(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DLQController.GetDLQMessage", "ingestapi", "GetDLQMessage")
 	defer end()
 
 	tenantId := h.tenantId(c)
@@ -138,8 +138,8 @@ func (h *DLQController) GetDLQMessage(c *fiber.Ctx) error {
 // @Failure      400  {object}  gmod.ApiErrorResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/dlq/{id}/retry [post]
-func (h *DLQController) RetryDLQ(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "DLQController.RetryDLQ", "ingestapi", "RetryDLQ")
+func (h *DLQController) RetryDLQ(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DLQController.RetryDLQ", "ingestapi", "RetryDLQ")
 	defer end()
 
 	tenantId := h.tenantId(c)
@@ -174,8 +174,8 @@ func (h *DLQController) RetryDLQ(c *fiber.Ctx) error {
 // @Success      200  {object}  gmod.SuccessDataResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/dlq/{id}/replay [post]
-func (h *DLQController) ReplayDLQ(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "DLQController.ReplayDLQ", "ingestapi", "ReplayDLQ")
+func (h *DLQController) ReplayDLQ(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DLQController.ReplayDLQ", "ingestapi", "ReplayDLQ")
 	defer end()
 
 	tenantId := h.tenantId(c)
@@ -205,8 +205,8 @@ func (h *DLQController) ReplayDLQ(c *fiber.Ctx) error {
 // @Success      200  {object}  gmod.SuccessMessageResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/dlq/{id}/abandon [post]
-func (h *DLQController) AbandonDLQ(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "DLQController.AbandonDLQ", "ingestapi", "AbandonDLQ")
+func (h *DLQController) AbandonDLQ(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DLQController.AbandonDLQ", "ingestapi", "AbandonDLQ")
 	defer end()
 
 	tenantId := h.tenantId(c)

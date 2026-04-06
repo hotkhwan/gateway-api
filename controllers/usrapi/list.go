@@ -10,10 +10,10 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
-func parseUserIds(c *fiber.Ctx) []string {
+func parseUserIds(c fiber.Ctx) []string {
 	seen := make(map[string]struct{})
 	out := make([]string, 0, 8)
 
@@ -33,7 +33,7 @@ func parseUserIds(c *fiber.Ctx) []string {
 	}
 
 	// 2) Repeat: userId=1&userId=2
-	args := c.Context().QueryArgs()
+	args := c.RequestCtx().QueryArgs()
 	args.VisitAll(func(k, v []byte) {
 		key := strings.TrimSpace(string(k))
 		if key != "userId" {
@@ -73,8 +73,8 @@ func parseUserIds(c *fiber.Ctx) []string {
 // @Failure 401 {object} gmod.ErrorResponse
 // @Failure 500 {object} gmod.ErrorResponse
 // @Router       /users [get]
-func ListUsers(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.usrapi", "ListUsers", "usrapi", "ListUsers")
+func ListUsers(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.usrapi", "ListUsers", "usrapi", "ListUsers")
 	defer end()
 
 	authHeader := c.Get("Authorization")
@@ -113,9 +113,9 @@ func ListUsers(c *fiber.Ctx) error {
 	}
 
 	// --- เดิมทั้งหมด (pagination/search/sort) ---
-	page := c.QueryInt("page", 1)
+	page := fiber.Query[int](c, "page", 1)
 
-	perPages := c.QueryInt("perPages", 0)
+	perPages := fiber.Query[int](c, "perPages", 0)
 	if perPages <= 0 {
 		if v := c.Query("perPage"); v != "" {
 			if n, err := strconv.Atoi(v); err == nil && n > 0 {

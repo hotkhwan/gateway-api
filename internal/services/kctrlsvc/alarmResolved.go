@@ -12,13 +12,13 @@ import (
 	"github.com/hotkhwan/gateway-api/models/kctrlmod"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func ResolvedAlarm(ctx context.Context, alarmId string, req kctrlmod.ResolvedAlarmRequest, c *fiber.Ctx) (kctrlmod.ResolvedAlarmResult, error) {
+func ResolvedAlarm(ctx context.Context, alarmId string, req kctrlmod.ResolvedAlarmRequest, c fiber.Ctx) (kctrlmod.ResolvedAlarmResult, error) {
 	traceCtx, end, log := traceutil.StartLite(ctx, "github.com/hotkhwan/gateway-api/kctrlsvc", "alarms.ResolvedAlarm", "kctrlsvc", "ResolvedAlarm")
 	defer end()
 

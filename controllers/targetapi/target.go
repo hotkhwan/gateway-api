@@ -4,7 +4,7 @@ package targetapi
 import (
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
 	"github.com/hotkhwan/gateway-api/models/authzmod"
 	"github.com/hotkhwan/gateway-api/models/gmod"
@@ -44,8 +44,8 @@ type UpdateTargetRequest struct {
 // Create  POST /api/v1/targets
 // ============================================================
 
-func (ctrl *TargetController) Create(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.targetapi", "TargetController.Create", "targetapi", "Create")
+func (ctrl *TargetController) Create(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.targetapi", "TargetController.Create", "targetapi", "Create")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -57,7 +57,7 @@ func (ctrl *TargetController) Create(c *fiber.Ctx) error {
 	}
 
 	var body CreateTargetRequest
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 
@@ -96,8 +96,8 @@ func (ctrl *TargetController) Create(c *fiber.Ctx) error {
 // List  GET /api/v1/targets
 // ============================================================
 
-func (ctrl *TargetController) List(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.targetapi", "TargetController.List", "targetapi", "List")
+func (ctrl *TargetController) List(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.targetapi", "TargetController.List", "targetapi", "List")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -107,8 +107,8 @@ func (ctrl *TargetController) List(c *fiber.Ctx) error {
 		return httputil.FailUnauthorized(c, "unauthorized")
 	}
 
-	page := c.QueryInt("page", 1)
-	perPage := c.QueryInt("perPage", 20)
+	page := fiber.Query[int](c, "page", 1)
+	perPage := fiber.Query[int](c, "perPage", 20)
 	search := strings.TrimSpace(c.Query("search"))
 	sortField := c.Query("sortField", "createdAt")
 	sortOrder := c.Query("sortOrder", "desc")
@@ -153,8 +153,8 @@ func (ctrl *TargetController) List(c *fiber.Ctx) error {
 // GetOne  GET /api/v1/targets/:id
 // ============================================================
 
-func (ctrl *TargetController) GetOne(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.targetapi", "TargetController.GetOne", "targetapi", "GetOne")
+func (ctrl *TargetController) GetOne(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.targetapi", "TargetController.GetOne", "targetapi", "GetOne")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -180,8 +180,8 @@ func (ctrl *TargetController) GetOne(c *fiber.Ctx) error {
 // Update  PATCH /api/v1/targets/:id
 // ============================================================
 
-func (ctrl *TargetController) Update(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.targetapi", "TargetController.Update", "targetapi", "Update")
+func (ctrl *TargetController) Update(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.targetapi", "TargetController.Update", "targetapi", "Update")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
@@ -194,7 +194,7 @@ func (ctrl *TargetController) Update(c *fiber.Ctx) error {
 	}
 
 	var body UpdateTargetRequest
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
 
@@ -220,8 +220,8 @@ func (ctrl *TargetController) Update(c *fiber.Ctx) error {
 // Delete  DELETE /api/v1/targets/:id
 // ============================================================
 
-func (ctrl *TargetController) Delete(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.targetapi", "TargetController.Delete", "targetapi", "Delete")
+func (ctrl *TargetController) Delete(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.targetapi", "TargetController.Delete", "targetapi", "Delete")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)

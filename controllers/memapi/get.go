@@ -10,7 +10,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // ListMembers godoc
@@ -31,8 +31,8 @@ import (
 // @Router /members [get]
 // @Security BearerAuth
 
-func ListMembers(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.memapi", "memapi.ListMembers", "memapi", "ListMembers")
+func ListMembers(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.memapi", "memapi.ListMembers", "memapi", "ListMembers")
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))

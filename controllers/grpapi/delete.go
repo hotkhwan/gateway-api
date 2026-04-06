@@ -7,7 +7,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // DeleteGroup godoc
@@ -25,8 +25,8 @@ import (
 // @Failure      500 {object} gmod.InternalErrorResponse
 // @Router       /groups/{id} [delete]
 // @Security     BearerAuth
-func DeleteGroup(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.grpapi", "group.DeleteGroup", "grpapi", "DeleteGroup")
+func DeleteGroup(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.grpapi", "group.DeleteGroup", "grpapi", "DeleteGroup")
 	defer end()
 
 	id := c.Params("id")

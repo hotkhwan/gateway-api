@@ -6,7 +6,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // SyncRequest is reserved for future sync options
@@ -24,8 +24,8 @@ type SyncRequest struct{}
 // @Failure      500 {object} gmod.ApiErrorResponse "Internal Server Error - config or DB error"
 // @Router       /ata/svms/sync [post]
 // @Security     BearerAuth
-func DeviceSyncFromSVMS(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.atapi", "ata.DeviceSyncFromSVMS", "atapi", "DeviceSyncFromSVMS")
+func DeviceSyncFromSVMS(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.atapi", "ata.DeviceSyncFromSVMS", "atapi", "DeviceSyncFromSVMS")
 	defer end()
 
 	res, err := devsync.SyncDevicesAndChannelsDefault(ctx)

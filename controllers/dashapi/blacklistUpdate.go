@@ -7,7 +7,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // UpdateBlacklist godoc
@@ -21,8 +21,8 @@ import (
 // @Success 200 {object} map[string]any
 // @Router /dashboard/blacklist/{id} [patch]
 // @Security BearerAuth
-func UpdateBlacklist(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.dashapi", "Dashboard.UpdateBlacklist", "dashapi", "UpdateBlacklist")
+func UpdateBlacklist(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.dashapi", "Dashboard.UpdateBlacklist", "dashapi", "UpdateBlacklist")
 	defer end()
 
 	id := c.Params("id")
@@ -31,7 +31,7 @@ func UpdateBlacklist(c *fiber.Ctx) error {
 	}
 
 	var body dashmod.UpdateBlacklistReq
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		log.Error().Err(err).Msg("❌ invalid body")
 		return httputil.FailBadRequest(c, "invalid request body")
 	}

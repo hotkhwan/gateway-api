@@ -14,7 +14,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/optionsrepo"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func RegisterSystemRoutes(api fiber.Router) {

@@ -4,7 +4,7 @@ package router
 import (
 	"os"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/app"
 	"github.com/hotkhwan/gateway-api/internal/middleware"
 )

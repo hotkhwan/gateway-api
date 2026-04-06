@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.opentelemetry.io/otel"
 
 	"github.com/hotkhwan/gateway-api/internal/gateways/mediagw"
@@ -22,12 +22,12 @@ import (
 )
 
 // ---------- onPlay ----------
-func OnPlay(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.streamzkt", "OnPlay", "webhooks", "OnPlay")
+func OnPlay(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.webhooks.streamzkt", "OnPlay", "webhooks", "OnPlay")
 	defer end()
 
 	var req zktmod.ZlmOnPlayReq
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Warn().Err(err).Msg("invalid onPlay payload")
 		return c.JSON(zktmod.HookResp{Code: -1, Msg: "invalid payload"})
 	}
@@ -75,12 +75,12 @@ func OnPlay(c *fiber.Ctx) error {
 }
 
 // ---------- onPublish ----------
-func OnPublish(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.streamzkt", "OnPublish", "webhooks", "OnPublish")
+func OnPublish(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.webhooks.streamzkt", "OnPublish", "webhooks", "OnPublish")
 	defer end()
 
 	var req zktmod.ZlmOnPublishReq
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Warn().Err(err).Msg("invalid onPublish payload")
 		return c.JSON(zktmod.HookResp{Code: -1, Msg: "invalid payload"})
 	}
@@ -142,12 +142,12 @@ func getMediaClient() *mediagw.Client {
 	return mediagwClient
 }
 
-func OnStreamNoneReader(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.streamzkt", "OnStreamNoneReader", "webhooks", "OnStreamNoneReader")
+func OnStreamNoneReader(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.webhooks.streamzkt", "OnStreamNoneReader", "webhooks", "OnStreamNoneReader")
 	defer end()
 
 	var req zktmod.ZlmOnStreamNoneReaderReq
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Warn().Err(err).Msg("invalid onStreamNoneReader payload")
 		return c.JSON(zktmod.HookResp{Code: -1, Msg: "invalid payload"})
 	}
@@ -228,12 +228,12 @@ func OnStreamNoneReader(c *fiber.Ctx) error {
 }
 
 // ---------- onStreamNotFound ----------
-func OnStreamNotFound(c *fiber.Ctx) error {
-	_, end, log := traceutil.StartLite(c.UserContext(), "gateway.webhooks.streamzkt", "OnStreamNotFound", "webhooks", "OnStreamNotFound")
+func OnStreamNotFound(c fiber.Ctx) error {
+	_, end, log := traceutil.StartLite(c, "gateway.webhooks.streamzkt", "OnStreamNotFound", "webhooks", "OnStreamNotFound")
 	defer end()
 
 	var req zktmod.OnStreamNotFoundReq
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Warn().Err(err).Str("body", string(c.Body())).Msg("invalid onStreamNotFound payload")
 		return c.JSON(zktmod.HookResp{Code: 0, Msg: "ok"})
 	}

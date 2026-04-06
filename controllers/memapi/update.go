@@ -7,7 +7,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // UpdateMember godoc
@@ -21,8 +21,8 @@ import (
 // @Failure 500 {object} gmod.InternalErrorResponse
 // @Router /members/{id} [put]
 // @Security BearerAuth
-func UpdateMember(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.memapi", "memapi.UpdateMember", "memapi", "UpdateMember")
+func UpdateMember(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.memapi", "memapi.UpdateMember", "memapi", "UpdateMember")
 	defer end()
 
 	id := c.Params("id")
@@ -31,7 +31,7 @@ func UpdateMember(c *fiber.Ctx) error {
 	}
 
 	var req memmod.MemberRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		log.Error().Err(err).Msg("❌ Invalid body")
 		return httputil.FailBadRequest(c, "INVALID_BODY", err.Error())
 	}

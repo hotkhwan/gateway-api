@@ -10,7 +10,7 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // ListAlarmsLogs godoc
@@ -37,12 +37,12 @@ import (
 // @Failure      500 {object} gmod.InternalErrorResponse
 // @Router       /kcontrol/alarms/logs [get]
 
-func ListAlarmsLogs(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.kctrlapi", "alarms.ListAlarmsLogs", "kctrlapi", "ListAlarmsLogs")
+func ListAlarmsLogs(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "alarms.ListAlarmsLogs", "kctrlapi", "ListAlarmsLogs")
 	defer end()
 
-	page := c.QueryInt("page", 1)
-	perPages := c.QueryInt("perPages", 20)
+	page := fiber.Query[int](c, "page", 1)
+	perPages := fiber.Query[int](c, "perPages", 20)
 
 	sortOrder := strings.ToLower(strings.TrimSpace(c.Query("sortOrder", "desc")))
 	sortField := strings.TrimSpace(c.Query("sortField", "createdAt"))

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/devicemgmtsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
@@ -25,24 +25,24 @@ func NewDeviceManagementController(svc *devicemgmtsvc.DeviceManagementService) *
 	return &DeviceManagementController{svc: svc}
 }
 
-func (h *DeviceManagementController) tenantId(c *fiber.Ctx) string {
+func (h *DeviceManagementController) tenantId(c fiber.Ctx) string {
 	tid, _ := c.Locals("tenantId").(string)
 	return tid
 }
 
-func (h *DeviceManagementController) orgId(c *fiber.Ctx) string {
+func (h *DeviceManagementController) orgId(c fiber.Ctx) string {
 	oid, _ := c.Locals("activeOrg").(string)
 	return oid
 }
 
-func (h *DeviceManagementController) List(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "DeviceMgmtController.List", "ingestapi", "ListDeviceMgmt")
+func (h *DeviceManagementController) List(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DeviceMgmtController.List", "ingestapi", "ListDeviceMgmt")
 	defer end()
 
 	tenantId := h.tenantId(c)
 	orgId := h.orgId(c)
-	page := c.QueryInt("page", 1)
-	perPage := c.QueryInt("perPages", 20)
+	page := fiber.Query[int](c, "page", 1)
+	perPage := fiber.Query[int](c, "perPages", 20)
 
 	items, err := h.svc.List(ctx, tenantId, orgId, page, perPage)
 	if err != nil {
@@ -52,8 +52,8 @@ func (h *DeviceManagementController) List(c *fiber.Ctx) error {
 	return httputil.Ok(c, items, "device management records fetched")
 }
 
-func (h *DeviceManagementController) Get(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "DeviceMgmtController.Get", "ingestapi", "GetDeviceMgmt")
+func (h *DeviceManagementController) Get(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DeviceMgmtController.Get", "ingestapi", "GetDeviceMgmt")
 	defer end()
 
 	tenantId := h.tenantId(c)
@@ -71,15 +71,15 @@ func (h *DeviceManagementController) Get(c *fiber.Ctx) error {
 	return httputil.Ok(c, d, "device management record fetched")
 }
 
-func (h *DeviceManagementController) Create(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "DeviceMgmtController.Create", "ingestapi", "CreateDeviceMgmt")
+func (h *DeviceManagementController) Create(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DeviceMgmtController.Create", "ingestapi", "CreateDeviceMgmt")
 	defer end()
 
 	tenantId := h.tenantId(c)
 	orgId := h.orgId(c)
 
 	var in ingestmod.DeviceManagement
-	if err := c.BodyParser(&in); err != nil {
+	if err := c.Bind().Body(&in); err != nil {
 		return httputil.FailBadRequest(c, "invalid request body")
 	}
 	if in.SourceFamily == "" || in.EntityType == "" || in.EntityId == "" {
@@ -98,8 +98,8 @@ func (h *DeviceManagementController) Create(c *fiber.Ctx) error {
 	return httputil.Created(c, in, "device management record created")
 }
 
-func (h *DeviceManagementController) Update(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "DeviceMgmtController.Update", "ingestapi", "UpdateDeviceMgmt")
+func (h *DeviceManagementController) Update(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DeviceMgmtController.Update", "ingestapi", "UpdateDeviceMgmt")
 	defer end()
 
 	tenantId := h.tenantId(c)
@@ -107,7 +107,7 @@ func (h *DeviceManagementController) Update(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	var body map[string]any
-	if err := c.BodyParser(&body); err != nil {
+	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid request body")
 	}
 
@@ -143,8 +143,8 @@ func (h *DeviceManagementController) Update(c *fiber.Ctx) error {
 // @Success      200
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/deviceManagement/template [get]
-func (h *DeviceManagementController) DownloadTemplate(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "DeviceMgmtController.DownloadTemplate", "ingestapi", "DownloadTemplate")
+func (h *DeviceManagementController) DownloadTemplate(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DeviceMgmtController.DownloadTemplate", "ingestapi", "DownloadTemplate")
 	defer end()
 
 	tenantId := h.tenantId(c)
@@ -173,8 +173,8 @@ func (h *DeviceManagementController) DownloadTemplate(c *fiber.Ctx) error {
 // @Success      200
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/deviceManagement/export [get]
-func (h *DeviceManagementController) ExportXlsx(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "DeviceMgmtController.ExportXlsx", "ingestapi", "ExportXlsx")
+func (h *DeviceManagementController) ExportXlsx(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DeviceMgmtController.ExportXlsx", "ingestapi", "ExportXlsx")
 	defer end()
 
 	tenantId := h.tenantId(c)
@@ -207,8 +207,8 @@ func (h *DeviceManagementController) ExportXlsx(c *fiber.Ctx) error {
 // @Failure      400  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /api/v1/ingest/deviceManagement/import [post]
-func (h *DeviceManagementController) ImportXlsx(c *fiber.Ctx) error {
-	ctx, end, log := traceutil.StartLite(c.UserContext(), "gateway.ingestapi", "DeviceMgmtController.ImportXlsx", "ingestapi", "ImportXlsx")
+func (h *DeviceManagementController) ImportXlsx(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DeviceMgmtController.ImportXlsx", "ingestapi", "ImportXlsx")
 	defer end()
 
 	tenantId := h.tenantId(c)

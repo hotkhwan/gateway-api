@@ -5,13 +5,13 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/logger"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func AllowOnly(method string) fiber.Handler { // Remide remove this function
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		if c.Method() != method {
-			log := logger.FromCtx(c.UserContext(), "middleware", "AllowOnly")
+			log := logger.FromCtx(c, "middleware", "AllowOnly")
 			log.Warn().
 				Str("method", c.Method()).
 				Str("allowed", method).
@@ -34,7 +34,7 @@ func AllowMethods(allowed ...string) fiber.Handler {
 	for _, m := range allowed {
 		set[strings.ToUpper(strings.TrimSpace(m))] = struct{}{}
 	}
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		// CORS preflight ผ่านไปก่อน (ถ้ามี CORS middleware อยู่หน้าสุด ให้ลบส่วนนี้ได้)
 		if c.Method() == fiber.MethodOptions {
 			return c.Next()
