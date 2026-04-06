@@ -44,7 +44,7 @@ func (ctrl *EventManagementController) mustLocals(c fiber.Ctx) (tenantId, orgId,
 // @Success      200  {object}  gmod.PaginatedResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/management [get]
+// @Router       /ingest/management [get]
 func (ctrl *EventManagementController) ListPendingEvents(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "github.com/hotkhwan/gateway-api/ingestapi", "EventManagementController.ListPendingEvents", "ingestapi", "ListPendingEvents")
 	defer end()
@@ -109,7 +109,7 @@ func (ctrl *EventManagementController) ListPendingEvents(c fiber.Ctx) error {
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/management/{eventId} [get]
+// @Router       /ingest/management/{eventId} [get]
 func (ctrl *EventManagementController) GetPendingEvent(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventManagementController.GetPendingEvent", "ingestapi", "GetPendingEvent")
 	defer end()
@@ -152,7 +152,7 @@ func (ctrl *EventManagementController) GetPendingEvent(c fiber.Ctx) error {
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Failure      409  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/management/{eventId} [patch]
+// @Router       /ingest/management/{eventId} [patch]
 func (ctrl *EventManagementController) UpdatePendingEvent(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventManagementController.UpdatePendingEvent", "ingestapi", "UpdatePendingEvent")
 	defer end()
@@ -210,7 +210,7 @@ func (ctrl *EventManagementController) UpdatePendingEvent(c fiber.Ctx) error {
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Failure      409  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/management/{eventId}/approve [post]
+// @Router       /ingest/management/{eventId}/approve [post]
 func (ctrl *EventManagementController) ApproveEvent(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventManagementController.ApproveEvent", "ingestapi", "ApproveEvent")
 	defer end()
@@ -268,7 +268,7 @@ func (ctrl *EventManagementController) ApproveEvent(c fiber.Ctx) error {
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Failure      409  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/management/{eventId}/reject [post]
+// @Router       /ingest/management/{eventId}/reject [post]
 func (ctrl *EventManagementController) RejectEvent(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventManagementController.RejectEvent", "ingestapi", "RejectEvent")
 	defer end()
@@ -318,7 +318,7 @@ func (ctrl *EventManagementController) RejectEvent(c fiber.Ctx) error {
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Failure      409  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/management/{eventId} [delete]
+// @Router       /ingest/management/{eventId} [delete]
 func (ctrl *EventManagementController) DeletePendingEvent(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventManagementController.DeletePendingEvent", "ingestapi", "DeletePendingEvent")
 	defer end()

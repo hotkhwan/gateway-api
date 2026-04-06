@@ -74,7 +74,7 @@ func buildDeviceBulkMessage(inserted, removed, duplicates, errors int) string {
 // @Param        sortField query  string  false  "sort field"
 // @Param        sortOrder query  string  false  "asc|desc"
 // @Success      200  {object}  map[string]interface{}
-// @Router       /api/v1/resources/groups/{groupId}/{resource} [get]
+// @Router       /resources/groups/{groupId}/{resource} [get]
 // ============================================================
 
 func (ctrl *ResourceGroupController) ListCameras(c fiber.Ctx) error {
@@ -133,7 +133,7 @@ func (ctrl *ResourceGroupController) ListCameras(c fiber.Ctx) error {
 // @Success      200      {object}  DeviceBulkResponse
 // @Failure      400      {object}  gmod.ApiErrorResponse
 // @Failure      403      {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/devices/groups/{groupId}/devices [post]
+// @Router       /devices/groups/{groupId}/devices [post]
 // ============================================================
 
 func (ctrl *ResourceGroupController) AddDevices(c fiber.Ctx) error {
@@ -214,7 +214,7 @@ func (ctrl *ResourceGroupController) AddDevices(c fiber.Ctx) error {
 // @Success      200      {object}  DeviceBulkResponse
 // @Failure      400      {object}  gmod.ApiErrorResponse
 // @Failure      403      {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/devices/groups/{groupId}/devices [patch]
+// @Router       /devices/groups/{groupId}/devices [patch]
 // ============================================================
 
 func (ctrl *ResourceGroupController) RemoveDevices(c fiber.Ctx) error {

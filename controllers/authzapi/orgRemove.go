@@ -21,7 +21,7 @@ import (
 // @Success 200 {object} map[string]any
 // @Failure 400 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/users/remove [post]
+// @Router /orgs/users/remove [post]
 func (ctrl *OrganizationController) RemoveMembers(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.RemoveMembers", "authzapi", "RemoveMembers")
 	defer end()

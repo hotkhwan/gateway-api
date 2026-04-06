@@ -20,7 +20,7 @@ import (
 // @Param X-Active-Org header string true "Active Organization ID"
 // @Success 200 {object} gmod.OrgListResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/users/members [get]
+// @Router /orgs/users/members [get]
 func (ctrl *OrganizationController) ListMembers(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.ListMembers", "authzapi", "ListMembers")
 	defer end()

@@ -45,7 +45,7 @@ func (ctrl *ResourceGroupController) mustLocals(c fiber.Ctx) (tenantId, orgId, c
 // @Failure      400   {object}  gmod.ApiErrorResponse
 // @Failure      403   {object}  gmod.ApiErrorResponse
 // @Failure      409   {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/resources/groups [post]
+// @Router       /resources/groups [post]
 // ============================================================
 
 type CreateResourceGroupRequest struct {
@@ -108,7 +108,7 @@ func (ctrl *ResourceGroupController) Create(c fiber.Ctx) error {
 // @Param        sortField     query  string  false  "sort field"
 // @Param        sortOrder     query  string  false  "asc|desc"
 // @Success      200  {object}  gmod.PaginatedResponse
-// @Router       /api/v1/resources/groups [get]
+// @Router       /resources/groups [get]
 // ============================================================
 
 func (ctrl *ResourceGroupController) List(c fiber.Ctx) error {
@@ -162,7 +162,7 @@ func (ctrl *ResourceGroupController) List(c fiber.Ctx) error {
 // @Failure      400   {object}  gmod.ApiErrorResponse
 // @Failure      403   {object}  gmod.ApiErrorResponse
 // @Failure      404   {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/resources/groups/{id} [patch]
+// @Router       /resources/groups/{id} [patch]
 // ============================================================
 
 func (ctrl *ResourceGroupController) Update(c fiber.Ctx) error {
@@ -209,7 +209,7 @@ func (ctrl *ResourceGroupController) Update(c fiber.Ctx) error {
 // @Success      200  {object}  gmod.SuccessMessageResponse
 // @Failure      403  {object}  gmod.ApiErrorResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/resources/groups/{id} [delete]
+// @Router       /resources/groups/{id} [delete]
 // ============================================================
 
 func (ctrl *ResourceGroupController) Delete(c fiber.Ctx) error {

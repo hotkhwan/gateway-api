@@ -43,7 +43,7 @@ func (ctrl *EventDetailsController) mustLocals(c fiber.Ctx) (tenantId, orgId, ca
 // @Success      200  {object}  gmod.PaginatedResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/details [get]
+// @Router       /ingest/details [get]
 func (ctrl *EventDetailsController) ListApprovedEvents(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventDetailsController.ListApprovedEvents", "ingestapi", "ListApprovedEvents")
 	defer end()
@@ -106,7 +106,7 @@ func (ctrl *EventDetailsController) ListApprovedEvents(c fiber.Ctx) error {
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/details/{eventId} [get]
+// @Router       /ingest/details/{eventId} [get]
 func (ctrl *EventDetailsController) GetApprovedEvent(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventDetailsController.GetApprovedEvent", "ingestapi", "GetApprovedEvent")
 	defer end()

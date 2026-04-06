@@ -35,7 +35,7 @@ func NewIngestDashboardController(service *ingeststatsvc.DashboardStatsService) 
 // @Failure      400  {object}  gmod.ApiErrorResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/dashboard [get]
+// @Router       /ingest/dashboard [get]
 func (ctrl *IngestDashboardController) GetIngestDashboard(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "IngestDashboardController.GetIngestDashboard", "ingestapi", "GetIngestDashboard")
 	defer end()
