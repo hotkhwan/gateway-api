@@ -482,11 +482,6 @@ const docTemplate = `{
         },
         "/auth/refreshToken": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -535,11 +530,6 @@ const docTemplate = `{
         },
         "/auth/resetPassword": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -1179,6 +1169,58 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/{key}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Proxy private image from S3/MinIO โดย key จะเป็น path (ต้อง URL-encode ถ้ามี / หรือ space)",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "Files"
+                ],
+                "summary": "Proxy image from S3/MinIO",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Object key (URL-encoded, can contain /)",
+                        "name": "key",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
                         }
                     }
                 }
@@ -1825,58 +1867,6 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/gmod.InternalErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/image/{key}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Proxy private image from S3/MinIO โดย key จะเป็น path (ต้อง URL-encode ถ้ามี / หรือ space)",
-                "produces": [
-                    "application/octet-stream"
-                ],
-                "tags": [
-                    "Files"
-                ],
-                "summary": "Proxy image from S3/MinIO",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Object key (URL-encoded, can contain /)",
-                        "name": "key",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "file"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ErrorResponse"
                         }
                     }
                 }
@@ -3867,6 +3857,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Accepts an EventMessage and publishes it as JSON to MQTT",
                 "consumes": [
                     "application/json"
@@ -3913,6 +3908,11 @@ const docTemplate = `{
         },
         "/kcontrol/alarms": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Returns paginated alarm events (kind=alarms) with device details, backed by kcontrol_events",
                 "consumes": [
                     "application/json"
@@ -4297,6 +4297,11 @@ const docTemplate = `{
         },
         "/kcontrol/events": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Returns paginated events with kind filter (from kcontrol_events)",
                 "consumes": [
                     "application/json"
@@ -4417,6 +4422,11 @@ const docTemplate = `{
                 }
             },
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Sends update instructions to a device",
                 "consumes": [
                     "application/json"
@@ -4470,6 +4480,11 @@ const docTemplate = `{
         },
         "/kcontrol/{id}/ack": {
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Updates MongoDB by device ID and publishes ACK to MQTT using hwId",
                 "consumes": [
                     "application/json"
@@ -4514,6 +4529,11 @@ const docTemplate = `{
         },
         "/kcontrol/{id}/reset-stats": {
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Reset stats (online, offline, warning, alarm) by device ID",
                 "consumes": [
                     "application/json"
@@ -4739,6 +4759,11 @@ const docTemplate = `{
         },
         "/ksearch/chats/{chatId}": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "อัปเดตข้อมูล Chat",
                 "consumes": [
                     "application/json"
@@ -4790,6 +4815,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "ลบ Chat ตาม ID",
                 "produces": [
                     "application/json"
@@ -6833,11 +6863,6 @@ const docTemplate = `{
         },
         "/options/seed/policeStation": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "options for policeStation {\u003cparent\u003e:[{id,title}]}; if write=true for upsert into _id=\"list.\u003cns\u003e\"",
                 "consumes": [
                     "application/json"
@@ -8739,55 +8764,6 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/gmod.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/rsc/v1/resources/bulk": {
-            "post": {
-                "description": "Create multiple resources in one request. The service validates required fields, removes in-payload duplicates by (provider,type,canonicalId), skips existing duplicates in DB, then inserts the rest.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Resources"
-                ],
-                "summary": "Bulk create resources",
-                "parameters": [
-                    {
-                        "description": "Array of resources to create",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/rscmod.ResourceUpsert"
-                            }
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Bulk resources created",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.SuccessMessageBulkCreateResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request / invalid body",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.SuccessMessageBulkCreateResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal error",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.SuccessMessageBulkCreateResponse"
                         }
                     }
                 }
@@ -11384,22 +11360,6 @@ const docTemplate = `{
                 }
             }
         },
-        "gmod.BulkError": {
-            "type": "object",
-            "properties": {
-                "details": {
-                    "type": "string"
-                },
-                "index": {
-                    "type": "integer",
-                    "example": 3
-                },
-                "reason": {
-                    "type": "string",
-                    "example": "duplicate key"
-                }
-            }
-        },
         "gmod.BulkImportError": {
             "type": "object",
             "properties": {
@@ -11972,43 +11932,6 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "boolean"
-                }
-            }
-        },
-        "gmod.SuccessMessageBulkCreateResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string",
-                    "example": "SUCCESS"
-                },
-                "errors": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/gmod.BulkError"
-                    }
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "inserted": {
-                    "type": "integer",
-                    "example": 5
-                },
-                "message": {
-                    "type": "string",
-                    "example": "Bulk operation completed"
-                },
-                "skipped": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "status": {
-                    "type": "boolean",
-                    "example": true
                 }
             }
         },

@@ -26,7 +26,7 @@ import (
 // @Failure      404   {object}  gmod.ErrorResponse
 // @Failure      500   {object}  gmod.ErrorResponse
 // @Security     BearerAuth
-// @Router       /image/{key} [get]
+// @Router       /files/{key} [get]
 func ProxyFiles(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.fileapi", "file.ProxyFiles", "fileapi", "ProxyFiles")
 	defer end()

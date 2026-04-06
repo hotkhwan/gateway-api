@@ -20,6 +20,7 @@ import (
 // @Success      200   {object}  gmod.SuccessMessageResponse
 // @Failure      400   {object}  gmod.BadRequestResponse
 // @Failure      500   {object}  gmod.InternalErrorResponse
+// @Security     BearerAuth
 // @Router       /kcontrol [post]
 func SendMessage(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "messages.SendMessage", "kctrlapi", "SendMessage")

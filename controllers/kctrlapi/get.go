@@ -129,6 +129,7 @@ func DeviceGetByID(c fiber.Ctx) error {
 // @Param        unacked    query     string  false  "Filter unacknowledged alarms only (true|false)"
 // @Success      200   {object}  kctrlmod.PaginationAlarmsResponse
 // @Failure      400   {object}  gmod.BadRequestResponse
+// @Security     BearerAuth
 // @Router       /kcontrol/alarms [get]
 func ListAlarms(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "alarms.ListAlarms", "kctrlapi", "ListAlarms")
@@ -232,6 +233,7 @@ func ListAlarmById(c fiber.Ctx) error {
 // @Param        search     query     string  false  "Search by name/message"
 // @Success      200   {object}  kctrlmod.PaginationAlarmsResponse
 // @Failure      400   {object}  gmod.BadRequestResponse
+// @Security     BearerAuth
 // @Router       /kcontrol/events [get]
 func ListEvents(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "events.ListEvents", "kctrlapi", "ListEvents")
