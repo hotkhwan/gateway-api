@@ -52,9 +52,9 @@ import (
 	internalswagger "github.com/hotkhwan/gateway-api/internal/swagger"
 )
 
-// @title           Klynx API v2
+// @title           Gateway API
 // @version         1.0
-// @description     REST API for Klynx system
+// @description     REST API for Gateway system
 // @BasePath        /api/v1
 // @securityDefinitions.apikey BearerAuth
 // @in header
@@ -311,7 +311,7 @@ func main() {
 		swaggerPath = "/docs"
 	}
 	api.Get(swaggerPath+"/*", internalswagger.New(internalswagger.Config{
-		Title: "Klynx API",
+		Title: "Gateway API",
 	}))
 
 	app.Use(func(c fiber.Ctx) error {
