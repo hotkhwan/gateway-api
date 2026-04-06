@@ -56,7 +56,7 @@ func NewOrganizationController(svc *authzsvc.OrganizationService) *OrganizationC
 // @Success 200 {object} gmod.OrgListResponse
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 500 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs [get]
+// @Router /orgs [get]
 func (ctrl *OrganizationController) List(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.List", "authzapi", "List")
 	defer end()
@@ -131,7 +131,7 @@ func (ctrl *OrganizationController) List(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Router /api/v1/orgs [post]
+// @Router /orgs [post]
 func (ctrl *OrganizationController) Create(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.Create", "authzapi", "Create")
 	defer end()
@@ -179,7 +179,7 @@ func (ctrl *OrganizationController) Create(c fiber.Ctx) error {
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Failure 404 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/{id}/ingest [get]
+// @Router /orgs/{id}/ingest [get]
 func (ctrl *OrganizationController) GetIngestConfig(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.GetIngestConfig", "authzapi", "GetIngestConfig")
 	defer end()
@@ -216,7 +216,7 @@ func (ctrl *OrganizationController) GetIngestConfig(c fiber.Ctx) error {
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Failure 404 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/{id}/ingest/rotateSecret [post]
+// @Router /orgs/{id}/ingest/rotateSecret [post]
 func (ctrl *OrganizationController) RotateIngestSecret(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.RotateIngestSecret", "authzapi", "RotateIngestSecret")
 	defer end()
@@ -246,7 +246,7 @@ func (ctrl *OrganizationController) RotateIngestSecret(c fiber.Ctx) error {
 // @Summary Update organization
 // @Tags Authorization
 // @Security BearerAuth
-// @Router /api/v1/orgs/{id} [patch]
+// @Router /orgs/{id} [patch]
 func (ctrl *OrganizationController) Update(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.Update", "authzapi", "Update")
 	defer end()
@@ -286,7 +286,7 @@ func (ctrl *OrganizationController) Update(c fiber.Ctx) error {
 // @Summary Delete organization
 // @Tags Authorization
 // @Security BearerAuth
-// @Router /api/v1/orgs/{id} [delete]
+// @Router /orgs/{id} [delete]
 func (ctrl *OrganizationController) Delete(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.Delete", "authzapi", "Delete")
 	defer end()
@@ -322,7 +322,7 @@ func (ctrl *OrganizationController) Delete(c fiber.Ctx) error {
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Failure 409 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/{id}/owners/{userId} [post]
+// @Router /orgs/{id}/owners/{userId} [post]
 func (ctrl *OrganizationController) PromoteToOwner(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.PromoteToOwner", "authzapi", "PromoteToOwner")
 	defer end()
@@ -368,7 +368,7 @@ func (ctrl *OrganizationController) PromoteToOwner(c fiber.Ctx) error {
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Failure 409 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/{id}/owners/{userId} [delete]
+// @Router /orgs/{id}/owners/{userId} [delete]
 func (ctrl *OrganizationController) DemoteFromOwner(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.DemoteFromOwner", "authzapi", "DemoteFromOwner")
 	defer end()
@@ -419,7 +419,7 @@ func (ctrl *OrganizationController) DemoteFromOwner(c fiber.Ctx) error {
 // @Failure 400 {object} gmod.ApiErrorResponse
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/{id}/transfer-billing-ownership [post]
+// @Router /orgs/{id}/transfer-billing-ownership [post]
 func (ctrl *OrganizationController) TransferBillingOwnership(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.TransferBillingOwnership", "authzapi", "TransferBillingOwnership")
 	defer end()

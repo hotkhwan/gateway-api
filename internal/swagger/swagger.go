@@ -6,12 +6,14 @@ package swagger
 import (
 	"fmt"
 	"html/template"
+	"io"
+	"mime"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/static"
 	swaggerFiles "github.com/swaggo/files/v2"
 	"github.com/swaggo/swag"
 )
@@ -29,6 +31,9 @@ type Config struct {
 	Title string
 	// URL overrides the doc.json URL shown in Swagger UI.
 	URL string
+	// AssetBase is the base path for static assets (computed from route prefix).
+	// Set automatically on first request; do not set manually.
+	AssetBase string
 }
 
 // HandlerDefault is a default handler instance.
@@ -54,18 +59,20 @@ func New(config ...Config) fiber.Handler {
 		once   sync.Once
 	)
 
-	// Static file server for swagger-ui assets (bundle, css, etc.)
-	fsHandler := static.New("", static.Config{FS: swaggerFiles.FS})
-
 	return func(c fiber.Ctx) error {
 		once.Do(func() {
 			prefix = strings.ReplaceAll(c.Route().Path, "*", "")
 			if fwdPrefix := getForwardedPrefix(c); fwdPrefix != "" {
 				prefix = fwdPrefix + prefix
 			}
-			if cfg.URL == "" {
-				cfg.URL = path.Join(prefix, defaultDocURL)
+			// Ensure prefix ends with / so asset URLs are correct.
+			if !strings.HasSuffix(prefix, "/") {
+				prefix += "/"
 			}
+			if cfg.URL == "" {
+				cfg.URL = prefix + defaultDocURL
+			}
+			cfg.AssetBase = prefix
 		})
 
 		p := c.Params("*")
@@ -83,9 +90,22 @@ func New(config ...Config) fiber.Handler {
 		case "/":
 			return c.Redirect().Status(fiber.StatusMovedPermanently).To(path.Join(prefix, defaultIndex))
 		default:
-			// Set the path to the matched wildcard segment so static can find the file.
-			c.Path(p)
-			return fsHandler(c)
+			// Serve asset directly from the embedded FS.
+			f, err := swaggerFiles.FS.Open(p)
+			if err != nil {
+				return fiber.ErrNotFound
+			}
+			defer f.Close()
+			data, err := io.ReadAll(f)
+			if err != nil {
+				return fiber.ErrInternalServerError
+			}
+			mimeType := mime.TypeByExtension(filepath.Ext(p))
+			if mimeType == "" {
+				mimeType = fiber.MIMEOctetStream
+			}
+			c.Set(fiber.HeaderContentType, mimeType)
+			return c.Send(data)
 		}
 	}
 }
@@ -107,19 +127,21 @@ func getForwardedPrefix(c fiber.Ctx) string {
 }
 
 // indexTmpl is the minimal Swagger UI HTML page template.
+// AssetBase is an absolute path prefix (e.g. /api/v4/docs/) so assets load
+// correctly regardless of whether the URL has a trailing slash.
 const indexTmpl = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>{{.Title}}</title>
-  <link rel="stylesheet" type="text/css" href="./swagger-ui.css">
-  <link rel="icon" type="image/png" href="./favicon-32x32.png" sizes="32x32"/>
-  <link rel="icon" type="image/png" href="./favicon-16x16.png" sizes="16x16"/>
+  <link rel="stylesheet" type="text/css" href="{{.AssetBase}}swagger-ui.css">
+  <link rel="icon" type="image/png" href="{{.AssetBase}}favicon-32x32.png" sizes="32x32"/>
+  <link rel="icon" type="image/png" href="{{.AssetBase}}favicon-16x16.png" sizes="16x16"/>
 </head>
 <body>
   <div id="swagger-ui"></div>
-  <script src="./swagger-ui-bundle.js"></script>
-  <script src="./swagger-ui-standalone-preset.js"></script>
+  <script src="{{.AssetBase}}swagger-ui-bundle.js"></script>
+  <script src="{{.AssetBase}}swagger-ui-standalone-preset.js"></script>
   <script>
     window.onload = function() {
       SwaggerUIBundle({

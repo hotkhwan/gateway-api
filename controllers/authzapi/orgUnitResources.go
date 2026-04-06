@@ -55,7 +55,7 @@ type ouResourceBulkResponse struct {
 // @Param        sortField query  string  false  "sort field"
 // @Param        sortOrder query  string  false  "asc|desc"
 // @Success      200  {object}  map[string]interface{}
-// @Router       /api/v1/orgs/units/{unitId}/resources [get]
+// @Router       /orgs/units/{unitId}/resources [get]
 // ============================================================
 
 func (ctrl *OrgUnitResourcesController) ListResourceGroups(c fiber.Ctx) error {
@@ -125,7 +125,7 @@ func handleOUResourceErr(c fiber.Ctx, err error) error {
 // @Success      200     {object}  ouResourceBulkResponse
 // @Failure      400     {object}  gmod.ApiErrorResponse
 // @Failure      403     {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/units/{unitId}/resources [post]
+// @Router       /orgs/units/{unitId}/resources [post]
 // ============================================================
 
 func (ctrl *OrgUnitResourcesController) AssignResourceGroups(c fiber.Ctx) error {
@@ -194,7 +194,7 @@ func (ctrl *OrgUnitResourcesController) AssignResourceGroups(c fiber.Ctx) error 
 // @Success      200     {object}  ouResourceBulkResponse
 // @Failure      400     {object}  gmod.ApiErrorResponse
 // @Failure      403     {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/units/{unitId}/resources [delete]
+// @Router       /orgs/units/{unitId}/resources [delete]
 // ============================================================
 
 func (ctrl *OrgUnitResourcesController) RemoveResourceGroups(c fiber.Ctx) error {

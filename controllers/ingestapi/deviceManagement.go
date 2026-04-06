@@ -142,7 +142,7 @@ func (h *DeviceManagementController) Update(c fiber.Ctx) error {
 // @Param        X-Active-Org  header  string  true  "Active Org ID"
 // @Success      200
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/deviceManagement/template [get]
+// @Router       /ingest/deviceManagement/template [get]
 func (h *DeviceManagementController) DownloadTemplate(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DeviceMgmtController.DownloadTemplate", "ingestapi", "DownloadTemplate")
 	defer end()
@@ -172,7 +172,7 @@ func (h *DeviceManagementController) DownloadTemplate(c fiber.Ctx) error {
 // @Param        entityType     query   string  false  "Filter by entity type"
 // @Success      200
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/deviceManagement/export [get]
+// @Router       /ingest/deviceManagement/export [get]
 func (h *DeviceManagementController) ExportXlsx(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DeviceMgmtController.ExportXlsx", "ingestapi", "ExportXlsx")
 	defer end()
@@ -206,7 +206,7 @@ func (h *DeviceManagementController) ExportXlsx(c fiber.Ctx) error {
 // @Success      200  {object}  gmod.BulkImportResponse
 // @Failure      400  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/deviceManagement/import [post]
+// @Router       /ingest/deviceManagement/import [post]
 func (h *DeviceManagementController) ImportXlsx(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DeviceMgmtController.ImportXlsx", "ingestapi", "ImportXlsx")
 	defer end()

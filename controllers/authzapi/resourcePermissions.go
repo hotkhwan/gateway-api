@@ -54,7 +54,7 @@ type updatePermProfileBody struct {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      409 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/resource/permissions [post]
+// @Router       /orgs/resource/permissions [post]
 func (ctrl *ResourcePermissionsProfileController) Create(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "ResourcePermissionsProfileController.Create", "authzapi", "Create")
 	defer end()
@@ -103,7 +103,7 @@ func (ctrl *ResourcePermissionsProfileController) Create(c fiber.Ctx) error {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/resource/permissions/{id} [patch]
+// @Router       /orgs/resource/permissions/{id} [patch]
 func (ctrl *ResourcePermissionsProfileController) Update(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "ResourcePermissionsProfileController.Update", "authzapi", "Update")
 	defer end()
@@ -147,7 +147,7 @@ func (ctrl *ResourcePermissionsProfileController) Update(c fiber.Ctx) error {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/resource/permissions/{id} [delete]
+// @Router       /orgs/resource/permissions/{id} [delete]
 func (ctrl *ResourcePermissionsProfileController) Delete(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "ResourcePermissionsProfileController.Delete", "authzapi", "Delete")
 	defer end()
@@ -177,7 +177,7 @@ func (ctrl *ResourcePermissionsProfileController) Delete(c fiber.Ctx) error {
 // @Success      200 {object} gmod.PaginatedResponse
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/resource/permissions [get]
+// @Router       /orgs/resource/permissions [get]
 func (ctrl *ResourcePermissionsProfileController) List(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "ResourcePermissionsProfileController.List", "authzapi", "List")
 	defer end()
@@ -230,7 +230,7 @@ func (ctrl *ResourcePermissionsProfileController) List(c fiber.Ctx) error {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/resource/permissions/{id} [get]
+// @Router       /orgs/resource/permissions/{id} [get]
 func (ctrl *ResourcePermissionsProfileController) GetOne(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "ResourcePermissionsProfileController.GetOne", "authzapi", "GetOne")
 	defer end()

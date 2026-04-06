@@ -28,7 +28,7 @@ func NewMappingSuggestionController(svc *mappingsuggestionsvc.MappingSuggestionS
 // @Param        sourceFamily   query   string  false  "Filter by sourceFamily"
 // @Success      200  {object}  gmod.SuccessDataResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/mappingSuggestions [get]
+// @Router       /ingest/mappingSuggestions [get]
 func (h *MappingSuggestionController) List(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.ingestapi", "MappingSuggestionController.List", "ingestapi", "ListMappingSuggestions")
 	defer end()
@@ -62,7 +62,7 @@ func (h *MappingSuggestionController) List(c fiber.Ctx) error {
 // @Param        id            path    string  true  "Suggestion ID"
 // @Success      200  {object}  gmod.SuccessDataResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/mappingSuggestions/{id} [get]
+// @Router       /ingest/mappingSuggestions/{id} [get]
 func (h *MappingSuggestionController) Get(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.ingestapi", "MappingSuggestionController.Get", "ingestapi", "GetMappingSuggestion")
 	defer end()

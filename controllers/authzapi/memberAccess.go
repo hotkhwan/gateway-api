@@ -31,7 +31,7 @@ func NewMemberAccessController(svc *authzsvc.MemberAccessService) *MemberAccessC
 // @Success      200 {object} gmod.SuccessDetailResponseMenuAccess
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/menu/access [get]
+// @Router       /orgs/menu/access [get]
 func (ctrl *MemberAccessController) MyMenuAccess(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MemberAccessController.MyMenuAccess", "authzapi", "MyMenuAccess")
 	defer end()
@@ -68,7 +68,7 @@ func (ctrl *MemberAccessController) MyMenuAccess(c fiber.Ctx) error {
 // @Success      200 {object} gmod.SuccessDetailResponseResourceAccess
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/resource/access [get]
+// @Router       /orgs/resource/access [get]
 func (ctrl *MemberAccessController) MyResourceAccess(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MemberAccessController.MyResourceAccess", "authzapi", "MyResourceAccess")
 	defer end()

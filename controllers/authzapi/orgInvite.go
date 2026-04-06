@@ -31,7 +31,7 @@ type InviteUsersRequest struct {
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Failure 409 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/{id}/invite [post]
+// @Router /orgs/{id}/invite [post]
 func (ctrl *OrganizationController) Invite(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.Invite", "authzapi", "Invite")
 	defer end()

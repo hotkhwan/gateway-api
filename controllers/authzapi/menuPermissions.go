@@ -56,7 +56,7 @@ type updateMenuProfileBody struct {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/menu/list [get]
+// @Router       /orgs/menu/list [get]
 func (ctrl *MenuPermissionsProfileController) ListMenus(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.ListMenus", "authzapi", "ListMenus")
 	defer end()
@@ -83,7 +83,7 @@ func (ctrl *MenuPermissionsProfileController) ListMenus(c fiber.Ctx) error {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      409 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/menu/permissions [post]
+// @Router       /orgs/menu/permissions [post]
 func (ctrl *MenuPermissionsProfileController) Create(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.Create", "authzapi", "Create")
 	defer end()
@@ -130,7 +130,7 @@ func (ctrl *MenuPermissionsProfileController) Create(c fiber.Ctx) error {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/menu/permissions/{id} [patch]
+// @Router       /orgs/menu/permissions/{id} [patch]
 func (ctrl *MenuPermissionsProfileController) Update(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.Update", "authzapi", "Update")
 	defer end()
@@ -174,7 +174,7 @@ func (ctrl *MenuPermissionsProfileController) Update(c fiber.Ctx) error {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/menu/permissions/{id} [delete]
+// @Router       /orgs/menu/permissions/{id} [delete]
 func (ctrl *MenuPermissionsProfileController) Delete(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.Delete", "authzapi", "Delete")
 	defer end()
@@ -204,7 +204,7 @@ func (ctrl *MenuPermissionsProfileController) Delete(c fiber.Ctx) error {
 // @Success      200 {object} gmod.PaginatedResponse
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/menu/permissions [get]
+// @Router       /orgs/menu/permissions [get]
 func (ctrl *MenuPermissionsProfileController) List(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.List", "authzapi", "List")
 	defer end()
@@ -257,7 +257,7 @@ func (ctrl *MenuPermissionsProfileController) List(c fiber.Ctx) error {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/menu/permissions/{id} [get]
+// @Router       /orgs/menu/permissions/{id} [get]
 func (ctrl *MenuPermissionsProfileController) GetOne(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.GetOne", "authzapi", "GetOne")
 	defer end()

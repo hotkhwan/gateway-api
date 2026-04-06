@@ -161,42 +161,6 @@ definitions:
       status:
         type: boolean
     type: object
-  atapi.StreamDetails:
-    properties:
-      channelId:
-        example: 42
-        type: integer
-      name:
-        example: Entrance
-        type: string
-      rtspUrl:
-        example: rtsp://admin:***@172.16.10.151/axis-media/media.amp
-        type: string
-      sn:
-        example: 60038008431d6040
-        type: string
-      wssFlvUrl:
-        description: flv wss url
-        example: wss://atanywhere.ddns.net:8081/media-api/ws/flv?src=...
-        type: string
-      zone:
-        example: AT
-        type: string
-    type: object
-  atapi.StreamResponse:
-    properties:
-      code:
-        example: SUCCESS
-        type: string
-      details:
-        $ref: '#/definitions/atapi.StreamDetails'
-      message:
-        example: OK
-        type: string
-      status:
-        example: true
-        type: boolean
-    type: object
   atapi.SyncRequest:
     type: object
   authmod.MenuGrant:
@@ -280,7 +244,7 @@ definitions:
     type: object
   authmod.SigninResponseWrapper:
     properties:
-      detail:
+      details:
         $ref: '#/definitions/authmod.SigninResponse'
       status:
         type: boolean
@@ -523,7 +487,7 @@ definitions:
       code:
         example: SUCCESS
         type: string
-      detail:
+      details:
         $ref: '#/definitions/devmod.Device'
       message:
         example: Device retrieved successfully
@@ -613,67 +577,11 @@ definitions:
       type:
         type: string
     type: object
-  devsyncmod.ATASyncResponse:
-    properties:
-      code:
-        example: ATA_SYNC_OK
-        type: string
-      detail:
-        $ref: '#/definitions/devsyncmod.SyncResult'
-      message:
-        example: ATA devices/channels synced
-        type: string
-      status:
-        example: true
-        type: boolean
-    type: object
-  devsyncmod.IBOCSyncResponse:
-    properties:
-      code:
-        type: string
-      detail:
-        $ref: '#/definitions/devsyncmod.SyncResult'
-      message:
-        type: string
-      status:
-        type: boolean
-    type: object
-  devsyncmod.SVMSSyncResponse:
-    properties:
-      code:
-        type: string
-      detail:
-        $ref: '#/definitions/devsyncmod.SyncResult'
-      message:
-        type: string
-      status:
-        type: boolean
-    type: object
-  devsyncmod.SyncResult:
-    properties:
-      channels:
-        type: integer
-      channelsSample:
-        items:
-          additionalProperties: {}
-          type: object
-        type: array
-      devices:
-        type: integer
-      inserted:
-        type: integer
-      perDeviceCounts:
-        additionalProperties:
-          type: integer
-        type: object
-      updated:
-        type: integer
-    type: object
   gmod.AcceptedResponse:
     properties:
       code:
         type: string
-      detail:
+      details:
         $ref: '#/definitions/gmod.JobInfo'
       message:
         type: string
@@ -739,6 +647,47 @@ definitions:
       reason:
         example: duplicate key
         type: string
+    type: object
+  gmod.BulkImportError:
+    properties:
+      field:
+        type: string
+      message:
+        type: string
+      recordKey:
+        description: e.g. "AIBOX:channel:30"
+        type: string
+      row:
+        type: integer
+    type: object
+  gmod.BulkImportResponse:
+    properties:
+      code:
+        example: SUCCESS
+        type: string
+      errors:
+        items:
+          $ref: '#/definitions/gmod.BulkImportError'
+        type: array
+      ids:
+        items:
+          type: string
+        type: array
+      inserted:
+        example: 5
+        type: integer
+      message:
+        example: Bulk import completed
+        type: string
+      skipped:
+        example: 1
+        type: integer
+      status:
+        example: true
+        type: boolean
+      updated:
+        example: 2
+        type: integer
     type: object
   gmod.DemoteFromOwnerResponse:
     properties:
@@ -1028,7 +977,7 @@ definitions:
     properties:
       code:
         type: string
-      detail: {}
+      details: {}
       message:
         type: string
       status:
@@ -1036,13 +985,13 @@ definitions:
     type: object
   gmod.SuccessDetailResponseAny:
     properties:
-      detail: {}
+      details: {}
       status:
         type: boolean
     type: object
   gmod.SuccessDetailResponseIntrospect:
     properties:
-      detail:
+      details:
         $ref: '#/definitions/gmod.IntrospectDetail'
       status:
         type: boolean
@@ -1052,7 +1001,7 @@ definitions:
       code:
         example: SUCCESS
         type: string
-      detail: {}
+      details: {}
       message:
         example: accessible menus fetched
         type: string
@@ -1065,7 +1014,7 @@ definitions:
       code:
         example: SUCCESS
         type: string
-      detail: {}
+      details: {}
       message:
         example: accessible cameras fetched
         type: string
@@ -1274,40 +1223,6 @@ definitions:
       status:
         example: true
         type: boolean
-    type: object
-  ibocapi.IBOCSyncResponse:
-    properties:
-      code:
-        example: IBOC_SYNC_OK
-        type: string
-      detail:
-        $ref: '#/definitions/ibocsvc.SyncResult'
-      message:
-        example: IBOC devices/channels synced
-        type: string
-      status:
-        example: true
-        type: boolean
-    type: object
-  ibocsvc.SyncResult:
-    properties:
-      channels:
-        type: integer
-      channelsSample:
-        items:
-          additionalProperties: {}
-          type: object
-        type: array
-      devices:
-        type: integer
-      inserted:
-        type: integer
-      perDeviceCounts:
-        additionalProperties:
-          type: integer
-        type: object
-      updated:
-        type: integer
     type: object
   ingestapi.bulkApplyTemplateRequest:
     properties:
@@ -2447,7 +2362,7 @@ definitions:
     properties:
       code:
         type: string
-      detail:
+      details:
         $ref: '#/definitions/systemmod.EdgeSSOURLDetail'
       status:
         type: boolean
@@ -2676,2337 +2591,10 @@ definitions:
     type: object
 info:
   contact: {}
-  description: REST API for Klynx system
-  title: Klynx API v2
+  description: REST API for Gateway system
+  title: Gateway API
   version: "1.0"
 paths:
-  /api/v1/ingest/dashboard:
-    get:
-      description: Returns aggregated ingest statistics filtered by date range, status,
-        and event type.
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: 'Date range: from,to (RFC3339 UTC, e.g. 2026-03-01T00:00:00Z,2026-03-06T23:59:59Z)'
-        in: query
-        name: dateTime
-        type: string
-      - default: all
-        description: Filter by status (all|pending|approved|rejected)
-        in: query
-        name: status
-        type: string
-      - description: Filter by event type
-        in: query
-        name: eventType
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get ingest dashboard stats
-      tags:
-      - ingest-dashboard
-  /api/v1/ingest/details:
-    get:
-      description: Returns paginated list of approved ingest events, optionally filtered
-        by eventType.
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Filter by event type
-        in: query
-        name: eventType
-        type: string
-      - default: 1
-        description: Page number
-        in: query
-        name: page
-        type: integer
-      - default: 10
-        description: Items per page
-        in: query
-        name: perPage
-        type: integer
-      - default: approvedAt
-        description: Sort field
-        in: query
-        name: sortField
-        type: string
-      - default: desc
-        description: Sort order
-        in: query
-        name: sortOrder
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.PaginatedResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List approved events
-      tags:
-      - ingest-details
-  /api/v1/ingest/details/{eventId}:
-    get:
-      description: Returns a single approved ingest event by ID.
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Event ID
-        in: path
-        name: eventId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get approved event
-      tags:
-      - ingest-details
-  /api/v1/ingest/dlq:
-    get:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Filter by stage (normalize|deliver|webhook)
-        in: query
-        name: stage
-        type: string
-      - description: Filter by status (pending|retrying|resolved|abandoned)
-        in: query
-        name: status
-        type: string
-      - default: 1
-        description: Page number
-        in: query
-        name: page
-        type: integer
-      - default: 20
-        description: Items per page
-        in: query
-        name: perPage
-        type: integer
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.PaginatedResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List DLQ messages
-      tags:
-      - ingest-dlq
-  /api/v1/ingest/dlq/{id}:
-    get:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Message ID
-        in: path
-        name: id
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get DLQ message by ID
-      tags:
-      - ingest-dlq
-  /api/v1/ingest/dlq/{id}/abandon:
-    post:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Message ID
-        in: path
-        name: id
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Abandon a DLQ message (no further retries)
-      tags:
-      - ingest-dlq
-  /api/v1/ingest/dlq/{id}/replay:
-    post:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Message ID
-        in: path
-        name: id
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Force-replay a DLQ message (bypasses retry limits)
-      tags:
-      - ingest-dlq
-  /api/v1/ingest/dlq/{id}/retry:
-    post:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Message ID
-        in: path
-        name: id
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Schedule a retry for a DLQ message
-      tags:
-      - ingest-dlq
-  /api/v1/ingest/dlq/stats:
-    get:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: DLQ aggregate stats
-      tags:
-      - ingest-dlq
-  /api/v1/ingest/management:
-    get:
-      description: Returns paginated list of ingest events filtered by status, eventType,
-        and sort options.
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - default: all
-        description: Event status (all|pending|approved|rejected)
-        in: query
-        name: status
-        type: string
-      - description: Filter by event type
-        in: query
-        name: eventType
-        type: string
-      - default: 1
-        description: Page number
-        in: query
-        name: page
-        type: integer
-      - default: 10
-        description: Items per page
-        in: query
-        name: perPage
-        type: integer
-      - default: createdAt
-        description: Sort field
-        in: query
-        name: sortField
-        type: string
-      - default: desc
-        description: Sort order
-        in: query
-        name: sortOrder
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.PaginatedResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List pending events
-      tags:
-      - ingest-management
-  /api/v1/ingest/management/{eventId}:
-    delete:
-      description: Permanently deletes a pending event. Cannot delete already-approved
-        events.
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Event ID
-        in: path
-        name: eventId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete pending event
-      tags:
-      - ingest-management
-    get:
-      description: Returns a single ingest event by ID.
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Event ID
-        in: path
-        name: eventId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get pending event
-      tags:
-      - ingest-management
-    patch:
-      consumes:
-      - application/json
-      description: Patches metadata fields on a pending event.
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Event ID
-        in: path
-        name: eventId
-        required: true
-        type: string
-      - description: Fields to update
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/ingestmod.EventUpdateInput'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update pending event
-      tags:
-      - ingest-management
-  /api/v1/ingest/management/{eventId}/approve:
-    post:
-      consumes:
-      - application/json
-      description: Approves a pending event and triggers downstream processing. Optionally
-        updates metadata in the same request.
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Event ID
-        in: path
-        name: eventId
-        required: true
-        type: string
-      - description: Optional metadata update
-        in: body
-        name: body
-        schema:
-          $ref: '#/definitions/ingestmod.EventUpdateInput'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Approve pending event
-      tags:
-      - ingest-management
-  /api/v1/ingest/management/{eventId}/reject:
-    post:
-      description: Rejects a pending event and removes it from the approval queue.
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Event ID
-        in: path
-        name: eventId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Reject pending event
-      tags:
-      - ingest-management
-  /api/v1/ingest/management/bulk/applyTemplate:
-    post:
-      consumes:
-      - application/json
-      description: Applies a mapping template to up to 100 pending events and auto-approves
-        each one. Returns per-event success/failure detail.
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Template ID and list of event IDs (max 100)
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/ingestapi.bulkApplyTemplateRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/ingestsvc.BulkResult'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Bulk apply template and auto-approve events
-      tags:
-      - ingest-bulk
-  /api/v1/ingest/management/bulk/approve:
-    post:
-      consumes:
-      - application/json
-      description: Approves up to 100 pending events in a single request. Returns
-        per-event success/failure detail.
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: List of event IDs to approve (max 100)
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/ingestapi.bulkRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/ingestsvc.BulkResult'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Bulk approve pending events
-      tags:
-      - ingest-bulk
-  /api/v1/ingest/management/bulk/delete:
-    post:
-      consumes:
-      - application/json
-      description: Deletes up to 100 pending events in a single request. Returns per-event
-        success/failure detail.
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: List of event IDs to delete (max 100)
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/ingestapi.bulkRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/ingestsvc.BulkResult'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Bulk delete pending events
-      tags:
-      - ingest-bulk
-  /api/v1/ingest/management/bulk/reject:
-    post:
-      consumes:
-      - application/json
-      description: Rejects up to 100 pending events in a single request. Returns per-event
-        success/failure detail.
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: List of event IDs to reject (max 100)
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/ingestapi.bulkRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/ingestsvc.BulkResult'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Bulk reject pending events
-      tags:
-      - ingest-bulk
-  /api/v1/ingest/mappingSuggestions:
-    get:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Filter by sourceFamily
-        in: query
-        name: sourceFamily
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List mapping suggestions
-      tags:
-      - ingest-mapping-suggestions
-  /api/v1/ingest/mappingSuggestions/{id}:
-    get:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Suggestion ID
-        in: path
-        name: id
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get mapping suggestion by ID
-      tags:
-      - ingest-mapping-suggestions
-  /api/v1/ingest/mappingTemplates:
-    get:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - default: 1
-        description: Page number
-        in: query
-        name: page
-        type: integer
-      - default: 10
-        description: Items per page
-        in: query
-        name: perPages
-        type: integer
-      - description: Search by name
-        in: query
-        name: search
-        type: string
-      - default: createdAt
-        description: Sort field
-        in: query
-        name: sortField
-        type: string
-      - default: desc
-        description: Sort order
-        in: query
-        name: sortOrder
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.PaginatedResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List mapping templates
-      tags:
-      - ingest-mapping-templates
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Template definition
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/templatesvc.CreateTemplateInput'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create mapping template
-      tags:
-      - ingest-mapping-templates
-  /api/v1/ingest/mappingTemplates/{templateId}:
-    delete:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Template ID
-        in: path
-        name: templateId
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete mapping template
-      tags:
-      - ingest-mapping-templates
-    get:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Template ID
-        in: path
-        name: templateId
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get mapping template
-      tags:
-      - ingest-mapping-templates
-    patch:
-      consumes:
-      - application/json
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Template ID
-        in: path
-        name: templateId
-        required: true
-        type: string
-      - description: Fields to update
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/templatesvc.UpdateTemplateInput'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update mapping template
-      tags:
-      - ingest-mapping-templates
-  /api/v1/ingest/rejectedPayloadPatterns:
-    get:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - default: 1
-        description: Page
-        in: query
-        name: page
-        type: integer
-      - default: 10
-        description: Per page
-        in: query
-        name: perPages
-        type: integer
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.PaginationResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List rejected payload patterns
-      tags:
-      - ingest-rejected-payload-patterns
-  /api/v1/ingest/rejectedPayloadPatterns/{id}:
-    delete:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Pattern ID
-        in: path
-        name: id
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete rejected payload pattern
-      tags:
-      - ingest-rejected-payload-patterns
-  /api/v1/ingest/unknownPayloadReviews:
-    get:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - default: 1
-        description: Page
-        in: query
-        name: page
-        type: integer
-      - default: 10
-        description: Per page
-        in: query
-        name: perPages
-        type: integer
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.PaginationResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List unknown payload reviews
-      tags:
-      - ingest-unknown-payload-reviews
-  /api/v1/ingest/unknownPayloadReviews/{id}:
-    get:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Review ID
-        in: path
-        name: id
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get unknown payload review
-      tags:
-      - ingest-unknown-payload-reviews
-  /api/v1/ingest/unknownPayloadReviews/{id}/reject:
-    post:
-      parameters:
-      - description: Active Org ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: Review ID
-        in: path
-        name: id
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Reject unknown payload review and create a rejected payload pattern
-      tags:
-      - ingest-unknown-payload-reviews
-  /api/v1/orgs:
-    get:
-      description: Return organizations that current user can access (via FGA lookup)
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.OrgListResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List organizations for current user
-      tags:
-      - Authorization
-    post:
-      consumes:
-      - application/json
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: Create organization
-      tags:
-      - Authorization
-  /api/v1/orgs/{id}:
-    delete:
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: Delete organization
-      tags:
-      - Authorization
-    patch:
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: Update organization
-      tags:
-      - Authorization
-  /api/v1/orgs/{id}/ingest:
-    get:
-      description: Returns ingest endpoint, masked secret, and rate limit config
-      parameters:
-      - description: Organization ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get ingest config for an organization (admin only)
-      tags:
-      - Authorization
-  /api/v1/orgs/{id}/ingest/rotateSecret:
-    post:
-      description: Generates a new HMAC signing key and returns the masked version
-      parameters:
-      - description: Organization ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDataResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Rotate ingest secret for an organization (admin only)
-      tags:
-      - Authorization
-  /api/v1/orgs/{id}/invite:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: orgId
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/gmod.InviteUserRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.InviteUserResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Invite user to organization
-      tags:
-      - Authorization
-  /api/v1/orgs/{id}/owners/{userId}:
-    delete:
-      description: Demote an owner to member or admin with invariant checks + race
-        protection
-      parameters:
-      - description: Organization ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: User ID to demote
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: New role (member or admin)
-        in: query
-        name: newRole
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.DemoteFromOwnerResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Demote an owner to member or admin
-      tags:
-      - Authorization
-    post:
-      description: Promote a member to owner with invariant checks + race protection
-      parameters:
-      - description: Organization ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: User ID to promote
-        in: path
-        name: userId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.PromoteToOwnerResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Promote a member to owner
-      tags:
-      - Authorization
-  /api/v1/orgs/{id}/transfer-billing-ownership:
-    post:
-      consumes:
-      - application/json
-      description: Transfer billing ownership - only current billingOwnerId or owners
-        can transfer
-      parameters:
-      - description: Organization ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Transfer request
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/gmod.TransferBillingOwnershipRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.TransferBillingOwnershipResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Transfer billing ownership to another user
-      tags:
-      - Authorization
-  /api/v1/orgs/menu/access:
-    get:
-      description: Returns menu IDs the caller can access via their OrgUnit membership
-        and active MenuPermissionProfiles.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDetailResponseMenuAccess'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List menus accessible to the current user
-      tags:
-      - MemberAccess
-  /api/v1/orgs/menu/list:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List all available menus
-      tags:
-      - MenuPermissionProfile
-  /api/v1/orgs/menu/permissions:
-    get:
-      parameters:
-      - description: page (default 1)
-        in: query
-        name: page
-        type: integer
-      - description: items per page (default 10)
-        in: query
-        name: perPages
-        type: integer
-      - description: search keyword
-        in: query
-        name: search
-        type: string
-      - description: sort field (default createdAt)
-        in: query
-        name: sortField
-        type: string
-      - description: 'sort order: asc|desc (default desc)'
-        in: query
-        name: sortOrder
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.PaginatedResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List menu permission profiles
-      tags:
-      - MenuPermissionProfile
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/authzapi.createMenuProfileBody'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create menu permission profile
-      tags:
-      - MenuPermissionProfile
-  /api/v1/orgs/menu/permissions/{id}:
-    delete:
-      parameters:
-      - description: profileId
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete menu permission profile
-      tags:
-      - MenuPermissionProfile
-    get:
-      parameters:
-      - description: profileId
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get menu permission profile by ID
-      tags:
-      - MenuPermissionProfile
-    patch:
-      consumes:
-      - application/json
-      parameters:
-      - description: profileId
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/authzapi.updateMenuProfileBody'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update menu permission profile
-      tags:
-      - MenuPermissionProfile
-  /api/v1/orgs/resource/access:
-    get:
-      description: Returns paginated cameras the caller can access via OrgUnit membership
-        and active ResourcePermissionProfiles, enriched with the union of Permify
-        relations (viewer, editor, …).
-      parameters:
-      - description: Filter by resource type (e.g. camera)
-        in: query
-        name: resourceType
-        type: string
-      - description: Search camera name
-        in: query
-        name: search
-        type: string
-      - description: Page number (default 1)
-        in: query
-        name: page
-        type: integer
-      - description: Items per page (default 10)
-        in: query
-        name: perPages
-        type: integer
-      - description: Sort field (default createAt)
-        in: query
-        name: sortField
-        type: string
-      - description: 'Sort order: asc | desc (default desc)'
-        in: query
-        name: sortOrder
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDetailResponseResourceAccess'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List cameras accessible to the current user
-      tags:
-      - MemberAccess
-  /api/v1/orgs/resource/permissions:
-    get:
-      parameters:
-      - description: page (default 1)
-        in: query
-        name: page
-        type: integer
-      - description: items per page (default 10)
-        in: query
-        name: perPages
-        type: integer
-      - description: search keyword
-        in: query
-        name: search
-        type: string
-      - description: sort field (default createdAt)
-        in: query
-        name: sortField
-        type: string
-      - description: 'sort order: asc|desc (default desc)'
-        in: query
-        name: sortOrder
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.PaginatedResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List resource permission profiles
-      tags:
-      - ResourcePermissionProfile
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/authzapi.createPermProfileBody'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create resource permission profile
-      tags:
-      - ResourcePermissionProfile
-  /api/v1/orgs/resource/permissions/{id}:
-    delete:
-      parameters:
-      - description: profileId
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete resource permission profile
-      tags:
-      - ResourcePermissionProfile
-    get:
-      parameters:
-      - description: profileId
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get resource permission profile by ID
-      tags:
-      - ResourcePermissionProfile
-    patch:
-      consumes:
-      - application/json
-      parameters:
-      - description: profileId
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/authzapi.updatePermProfileBody'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update resource permission profile
-      tags:
-      - ResourcePermissionProfile
-  /api/v1/orgs/units:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/authzapi.CreateOrgUnitBody'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessMessageCreateResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create org unit
-      tags:
-      - OrgUnit
-  /api/v1/orgs/units/{id}:
-    delete:
-      parameters:
-      - description: unitId
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: Delete org unit
-      tags:
-      - OrgUnit
-    patch:
-      consumes:
-      - application/json
-      parameters:
-      - description: unitId
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/authzapi.UpdateOrgUnitBody'
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: Update org unit
-      tags:
-      - OrgUnit
-  /api/v1/orgs/units/{id}/members:
-    patch:
-      consumes:
-      - application/json
-      description: Bulk remove users from an OrgUnit (organization admin only)
-      parameters:
-      - description: Active Organization ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: OrgUnit ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Remove users payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/authzapi.RemoveUsersRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/authzapi.OUBulkResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Remove users from OrgUnit
-      tags:
-      - Authorization
-    post:
-      consumes:
-      - application/json
-      description: Bulk assign users into an OrgUnit (organization admin only)
-      parameters:
-      - description: Active Organization ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      - description: OrgUnit ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Assign users payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/authzapi.AssignUsersRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/authzapi.OUBulkResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Assign users to OrgUnit
-      tags:
-      - Authorization
-  /api/v1/orgs/units/tree:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get org unit tree (root nodes only)
-      tags:
-      - OrgUnit
-  /api/v1/orgs/units/tree-debug:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: 'Debug: Get org unit tree with raw data'
-      tags:
-      - OrgUnit
-  /api/v1/orgs/units/tree/{id}:
-    get:
-      parameters:
-      - description: unitId
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get org unit node with immediate children (1 level only)
-      tags:
-      - OrgUnit
-  /api/v1/orgs/users/members:
-    get:
-      description: Return list of members in active organization (admin only)
-      parameters:
-      - description: Active Organization ID
-        in: header
-        name: X-Active-Org
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.OrgListResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List organization members
-      tags:
-      - Authorization
-  /api/v1/orgs/users/remove:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/authzapi.InviteUsersRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Remove users from organization
-      tags:
-      - Authorization
-  /api/v1/subscriptions/bootstrap:
-    post:
-      description: Creates a default freemium subscription for the tenant if not already
-        exists
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Bootstrap subscription
-      tags:
-      - Subscription
-  /api/v1/subscriptions/current:
-    get:
-      description: Returns the effective subscription with resolved limits (package
-        + overrides merged)
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get current subscription
-      tags:
-      - Subscription
-  /api/v1/subscriptions/enterprise/activate:
-    post:
-      consumes:
-      - application/json
-      description: Activates enterprise plan using a license key
-      parameters:
-      - description: Enterprise activation request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/subscripmod.ActivateEnterpriseRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Activate enterprise
-      tags:
-      - Subscription
-  /api/v1/subscriptions/me:
-    get:
-      description: Returns the tenant's current subscription plan and limits
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get my subscription
-      tags:
-      - Subscription
-  /api/v1/subscriptions/packages:
-    get:
-      description: Returns all active subscription packages ordered by sortOrder.
-        Used for pricing/upgrade UI.
-      parameters:
-      - default: en
-        description: Locale for i18n fields
-        in: query
-        name: locale
-        type: string
-      - default: true
-        description: Return only public packages
-        in: query
-        name: publicOnly
-        type: boolean
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List subscription packages
-      tags:
-      - Subscription
-  /api/v1/subscriptions/plan:
-    patch:
-      consumes:
-      - application/json
-      description: Updates the tenant's subscription to a different plan (admin only)
-      parameters:
-      - description: Plan update request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/subscripmod.UpdatePlanRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/gmod.ApiErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update subscription plan
-      tags:
-      - Subscription
   /ata/stream/{channelId}:
     get:
       consumes:
@@ -5025,19 +2613,19 @@ paths:
         "200":
           description: Stream URL info
           schema:
-            $ref: '#/definitions/atapi.StreamResponse'
+            $ref: '#/definitions/gmod.SuccessDataResponse'
         "400":
-          description: Bad Request – invalid or missing channelId
+          description: Bad Request - invalid or missing channelId
           schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
+            $ref: '#/definitions/gmod.ApiErrorResponse'
         "500":
-          description: Internal Server Error – config or build failed
+          description: Internal Server Error - config or build failed
           schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
+            $ref: '#/definitions/gmod.ApiErrorResponse'
         "502":
-          description: Bad Gateway – ATA upstream error
+          description: Bad Gateway - ATA upstream error
           schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
+            $ref: '#/definitions/gmod.ApiErrorResponse'
       security:
       - BearerAuth: []
       summary: Get ATA FLV WebSocket stream URL
@@ -5061,15 +2649,15 @@ paths:
         "200":
           description: Sync result
           schema:
-            $ref: '#/definitions/devsyncmod.ATASyncResponse'
+            $ref: '#/definitions/gmod.SuccessDataResponse'
         "500":
-          description: Internal Server Error – config or DB error
+          description: Internal Server Error - config or DB error
           schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
+            $ref: '#/definitions/gmod.ApiErrorResponse'
         "502":
-          description: Bad Gateway – ATA upstream error
+          description: Bad Gateway - ATA upstream error
           schema:
-            $ref: '#/definitions/gmod.ErrorMessageResponse'
+            $ref: '#/definitions/gmod.ApiErrorResponse'
       security:
       - BearerAuth: []
       summary: Sync ATA devices & channels from Edge AI to Klynx
@@ -6212,6 +3800,1237 @@ paths:
       summary: Proxy image from S3/MinIO
       tags:
       - Files
+  /ingest/dashboard:
+    get:
+      description: Returns aggregated ingest statistics filtered by date range, status,
+        and event type.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: 'Date range: from,to (RFC3339 UTC, e.g. 2026-03-01T00:00:00Z,2026-03-06T23:59:59Z)'
+        in: query
+        name: dateTime
+        type: string
+      - default: all
+        description: Filter by status (all|pending|approved|rejected)
+        in: query
+        name: status
+        type: string
+      - description: Filter by event type
+        in: query
+        name: eventType
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get ingest dashboard stats
+      tags:
+      - ingest-dashboard
+  /ingest/details:
+    get:
+      description: Returns paginated list of approved ingest events, optionally filtered
+        by eventType.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Filter by event type
+        in: query
+        name: eventType
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: perPage
+        type: integer
+      - default: approvedAt
+        description: Sort field
+        in: query
+        name: sortField
+        type: string
+      - default: desc
+        description: Sort order
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PaginatedResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List approved events
+      tags:
+      - ingest-details
+  /ingest/details/{eventId}:
+    get:
+      description: Returns a single approved ingest event by ID.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Event ID
+        in: path
+        name: eventId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get approved event
+      tags:
+      - ingest-details
+  /ingest/deviceManagement/export:
+    get:
+      description: Exports current device management records as XLSX file, scoped
+        to active org.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Filter by source family
+        in: query
+        name: sourceFamily
+        type: string
+      - description: Filter by entity type
+        in: query
+        name: entityType
+        type: string
+      produces:
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Export device management data
+      tags:
+      - ingest-deviceManagement
+  /ingest/deviceManagement/import:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Parses an XLSX file and upserts device management records by business
+        key.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: XLSX file
+        in: formData
+        name: file
+        required: true
+        type: file
+      - default: "false"
+        description: Preview mode
+        in: formData
+        name: dryRun
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.BulkImportResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bulk import device management from XLSX
+      tags:
+      - ingest-deviceManagement
+  /ingest/deviceManagement/template:
+    get:
+      description: Returns an empty XLSX template prefilled with auth context for
+        device management bulk import.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      produces:
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Download XLSX template
+      tags:
+      - ingest-deviceManagement
+  /ingest/dlq:
+    get:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Filter by stage (normalize|deliver|webhook)
+        in: query
+        name: stage
+        type: string
+      - description: Filter by status (pending|retrying|resolved|abandoned)
+        in: query
+        name: status
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: perPage
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PaginatedResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List DLQ messages
+      tags:
+      - ingest-dlq
+  /ingest/dlq/{id}:
+    get:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Message ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get DLQ message by ID
+      tags:
+      - ingest-dlq
+  /ingest/dlq/{id}/abandon:
+    post:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Message ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Abandon a DLQ message (no further retries)
+      tags:
+      - ingest-dlq
+  /ingest/dlq/{id}/replay:
+    post:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Message ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Force-replay a DLQ message (bypasses retry limits)
+      tags:
+      - ingest-dlq
+  /ingest/dlq/{id}/retry:
+    post:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Message ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Schedule a retry for a DLQ message
+      tags:
+      - ingest-dlq
+  /ingest/dlq/stats:
+    get:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: DLQ aggregate stats
+      tags:
+      - ingest-dlq
+  /ingest/management:
+    get:
+      description: Returns paginated list of ingest events filtered by status, eventType,
+        and sort options.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - default: all
+        description: Event status (all|pending|approved|rejected)
+        in: query
+        name: status
+        type: string
+      - description: Filter by event type
+        in: query
+        name: eventType
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: perPage
+        type: integer
+      - default: createdAt
+        description: Sort field
+        in: query
+        name: sortField
+        type: string
+      - default: desc
+        description: Sort order
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PaginatedResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List pending events
+      tags:
+      - ingest-management
+  /ingest/management/{eventId}:
+    delete:
+      description: Permanently deletes a pending event. Cannot delete already-approved
+        events.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Event ID
+        in: path
+        name: eventId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete pending event
+      tags:
+      - ingest-management
+    get:
+      description: Returns a single ingest event by ID.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Event ID
+        in: path
+        name: eventId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get pending event
+      tags:
+      - ingest-management
+    patch:
+      consumes:
+      - application/json
+      description: Patches metadata fields on a pending event.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Event ID
+        in: path
+        name: eventId
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/ingestmod.EventUpdateInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update pending event
+      tags:
+      - ingest-management
+  /ingest/management/{eventId}/approve:
+    post:
+      consumes:
+      - application/json
+      description: Approves a pending event and triggers downstream processing. Optionally
+        updates metadata in the same request.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Event ID
+        in: path
+        name: eventId
+        required: true
+        type: string
+      - description: Optional metadata update
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/ingestmod.EventUpdateInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Approve pending event
+      tags:
+      - ingest-management
+  /ingest/management/{eventId}/reject:
+    post:
+      description: Rejects a pending event and removes it from the approval queue.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Event ID
+        in: path
+        name: eventId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reject pending event
+      tags:
+      - ingest-management
+  /ingest/management/bulk/applyTemplate:
+    post:
+      consumes:
+      - application/json
+      description: Applies a mapping template to up to 100 pending events and auto-approves
+        each one. Returns per-event success/failure detail.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Template ID and list of event IDs (max 100)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/ingestapi.bulkApplyTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ingestsvc.BulkResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bulk apply template and auto-approve events
+      tags:
+      - ingest-bulk
+  /ingest/management/bulk/approve:
+    post:
+      consumes:
+      - application/json
+      description: Approves up to 100 pending events in a single request. Returns
+        per-event success/failure detail.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: List of event IDs to approve (max 100)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/ingestapi.bulkRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ingestsvc.BulkResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bulk approve pending events
+      tags:
+      - ingest-bulk
+  /ingest/management/bulk/delete:
+    post:
+      consumes:
+      - application/json
+      description: Deletes up to 100 pending events in a single request. Returns per-event
+        success/failure detail.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: List of event IDs to delete (max 100)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/ingestapi.bulkRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ingestsvc.BulkResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bulk delete pending events
+      tags:
+      - ingest-bulk
+  /ingest/management/bulk/reject:
+    post:
+      consumes:
+      - application/json
+      description: Rejects up to 100 pending events in a single request. Returns per-event
+        success/failure detail.
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: List of event IDs to reject (max 100)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/ingestapi.bulkRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ingestsvc.BulkResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bulk reject pending events
+      tags:
+      - ingest-bulk
+  /ingest/mappingSuggestions:
+    get:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Filter by sourceFamily
+        in: query
+        name: sourceFamily
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List mapping suggestions
+      tags:
+      - ingest-mapping-suggestions
+  /ingest/mappingSuggestions/{id}:
+    get:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Suggestion ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get mapping suggestion by ID
+      tags:
+      - ingest-mapping-suggestions
+  /ingest/mappingTemplates:
+    get:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: perPages
+        type: integer
+      - description: Search by name
+        in: query
+        name: search
+        type: string
+      - default: createdAt
+        description: Sort field
+        in: query
+        name: sortField
+        type: string
+      - default: desc
+        description: Sort order
+        in: query
+        name: sortOrder
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PaginatedResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List mapping templates
+      tags:
+      - ingest-mapping-templates
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Template definition
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/templatesvc.CreateTemplateInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create mapping template
+      tags:
+      - ingest-mapping-templates
+  /ingest/mappingTemplates/{templateId}:
+    delete:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete mapping template
+      tags:
+      - ingest-mapping-templates
+    get:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get mapping template
+      tags:
+      - ingest-mapping-templates
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/templatesvc.UpdateTemplateInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update mapping template
+      tags:
+      - ingest-mapping-templates
+  /ingest/rejectedPayloadPatterns:
+    get:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - default: 1
+        description: Page
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Per page
+        in: query
+        name: perPages
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PaginationResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List rejected payload patterns
+      tags:
+      - ingest-rejected-payload-patterns
+  /ingest/rejectedPayloadPatterns/{id}:
+    delete:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Pattern ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete rejected payload pattern
+      tags:
+      - ingest-rejected-payload-patterns
+  /ingest/unknownPayloadReviews:
+    get:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - default: 1
+        description: Page
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Per page
+        in: query
+        name: perPages
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PaginationResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List unknown payload reviews
+      tags:
+      - ingest-unknown-payload-reviews
+  /ingest/unknownPayloadReviews/{id}:
+    get:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Review ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get unknown payload review
+      tags:
+      - ingest-unknown-payload-reviews
+  /ingest/unknownPayloadReviews/{id}/reject:
+    post:
+      parameters:
+      - description: Active Org ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: Review ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reject unknown payload review and create a rejected payload pattern
+      tags:
+      - ingest-unknown-payload-reviews
   /kcontrol:
     get:
       consumes:
@@ -8225,6 +7044,1034 @@ paths:
       summary: Seed policeStation options
       tags:
       - Options
+  /orgs:
+    get:
+      description: Return organizations that current user can access (via FGA lookup)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.OrgListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List organizations for current user
+      tags:
+      - Authorization
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create organization
+      tags:
+      - Authorization
+  /orgs/{id}:
+    delete:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete organization
+      tags:
+      - Authorization
+    patch:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Update organization
+      tags:
+      - Authorization
+  /orgs/{id}/ingest:
+    get:
+      description: Returns ingest endpoint, masked secret, and rate limit config
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get ingest config for an organization (admin only)
+      tags:
+      - Authorization
+  /orgs/{id}/ingest/rotateSecret:
+    post:
+      description: Generates a new HMAC signing key and returns the masked version
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Rotate ingest secret for an organization (admin only)
+      tags:
+      - Authorization
+  /orgs/{id}/invite:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: orgId
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/gmod.InviteUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.InviteUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Invite user to organization
+      tags:
+      - Authorization
+  /orgs/{id}/owners/{userId}:
+    delete:
+      description: Demote an owner to member or admin with invariant checks + race
+        protection
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID to demote
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: New role (member or admin)
+        in: query
+        name: newRole
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.DemoteFromOwnerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Demote an owner to member or admin
+      tags:
+      - Authorization
+    post:
+      description: Promote a member to owner with invariant checks + race protection
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID to promote
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PromoteToOwnerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Promote a member to owner
+      tags:
+      - Authorization
+  /orgs/{id}/transfer-billing-ownership:
+    post:
+      consumes:
+      - application/json
+      description: Transfer billing ownership - only current billingOwnerId or owners
+        can transfer
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Transfer request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/gmod.TransferBillingOwnershipRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.TransferBillingOwnershipResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Transfer billing ownership to another user
+      tags:
+      - Authorization
+  /orgs/menu/access:
+    get:
+      description: Returns menu IDs the caller can access via their OrgUnit membership
+        and active MenuPermissionProfiles.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseMenuAccess'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List menus accessible to the current user
+      tags:
+      - MemberAccess
+  /orgs/menu/list:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all available menus
+      tags:
+      - MenuPermissionProfile
+  /orgs/menu/permissions:
+    get:
+      parameters:
+      - description: page (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: items per page (default 10)
+        in: query
+        name: perPages
+        type: integer
+      - description: search keyword
+        in: query
+        name: search
+        type: string
+      - description: sort field (default createdAt)
+        in: query
+        name: sortField
+        type: string
+      - description: 'sort order: asc|desc (default desc)'
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PaginatedResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List menu permission profiles
+      tags:
+      - MenuPermissionProfile
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.createMenuProfileBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create menu permission profile
+      tags:
+      - MenuPermissionProfile
+  /orgs/menu/permissions/{id}:
+    delete:
+      parameters:
+      - description: profileId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete menu permission profile
+      tags:
+      - MenuPermissionProfile
+    get:
+      parameters:
+      - description: profileId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get menu permission profile by ID
+      tags:
+      - MenuPermissionProfile
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: profileId
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.updateMenuProfileBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update menu permission profile
+      tags:
+      - MenuPermissionProfile
+  /orgs/resource/access:
+    get:
+      description: Returns paginated cameras the caller can access via OrgUnit membership
+        and active ResourcePermissionProfiles, enriched with the union of Permify
+        relations (viewer, editor, …).
+      parameters:
+      - description: Filter by resource type (e.g. camera)
+        in: query
+        name: resourceType
+        type: string
+      - description: Search camera name
+        in: query
+        name: search
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 10)
+        in: query
+        name: perPages
+        type: integer
+      - description: Sort field (default createAt)
+        in: query
+        name: sortField
+        type: string
+      - description: 'Sort order: asc | desc (default desc)'
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseResourceAccess'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List cameras accessible to the current user
+      tags:
+      - MemberAccess
+  /orgs/resource/permissions:
+    get:
+      parameters:
+      - description: page (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: items per page (default 10)
+        in: query
+        name: perPages
+        type: integer
+      - description: search keyword
+        in: query
+        name: search
+        type: string
+      - description: sort field (default createdAt)
+        in: query
+        name: sortField
+        type: string
+      - description: 'sort order: asc|desc (default desc)'
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.PaginatedResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List resource permission profiles
+      tags:
+      - ResourcePermissionProfile
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.createPermProfileBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create resource permission profile
+      tags:
+      - ResourcePermissionProfile
+  /orgs/resource/permissions/{id}:
+    delete:
+      parameters:
+      - description: profileId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete resource permission profile
+      tags:
+      - ResourcePermissionProfile
+    get:
+      parameters:
+      - description: profileId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get resource permission profile by ID
+      tags:
+      - ResourcePermissionProfile
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: profileId
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.updatePermProfileBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update resource permission profile
+      tags:
+      - ResourcePermissionProfile
+  /orgs/units:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.CreateOrgUnitBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageCreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create org unit
+      tags:
+      - OrgUnit
+  /orgs/units/{id}:
+    delete:
+      parameters:
+      - description: unitId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete org unit
+      tags:
+      - OrgUnit
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: unitId
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.UpdateOrgUnitBody'
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Update org unit
+      tags:
+      - OrgUnit
+  /orgs/units/{id}/members:
+    patch:
+      consumes:
+      - application/json
+      description: Bulk remove users from an OrgUnit (organization admin only)
+      parameters:
+      - description: Active Organization ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: OrgUnit ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Remove users payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.RemoveUsersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authzapi.OUBulkResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove users from OrgUnit
+      tags:
+      - Authorization
+    post:
+      consumes:
+      - application/json
+      description: Bulk assign users into an OrgUnit (organization admin only)
+      parameters:
+      - description: Active Organization ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      - description: OrgUnit ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Assign users payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.AssignUsersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authzapi.OUBulkResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Assign users to OrgUnit
+      tags:
+      - Authorization
+  /orgs/units/tree:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get org unit tree (root nodes only)
+      tags:
+      - OrgUnit
+  /orgs/units/tree-debug:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 'Debug: Get org unit tree with raw data'
+      tags:
+      - OrgUnit
+  /orgs/units/tree/{id}:
+    get:
+      parameters:
+      - description: unitId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get org unit node with immediate children (1 level only)
+      tags:
+      - OrgUnit
+  /orgs/users/members:
+    get:
+      description: Return list of members in active organization (admin only)
+      parameters:
+      - description: Active Organization ID
+        in: header
+        name: X-Active-Org
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.OrgListResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List organization members
+      tags:
+      - Authorization
+  /orgs/users/remove:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/authzapi.InviteUsersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove users from organization
+      tags:
+      - Authorization
   /resources:
     get:
       description: List resources with pagination, search and filters.
@@ -8415,6 +8262,166 @@ paths:
       summary: Bulk create resources
       tags:
       - Resources
+  /subscriptions/bootstrap:
+    post:
+      description: Creates a default freemium subscription for the tenant if not already
+        exists
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bootstrap subscription
+      tags:
+      - Subscription
+  /subscriptions/current:
+    get:
+      description: Returns the effective subscription with resolved limits (package
+        + overrides merged)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current subscription
+      tags:
+      - Subscription
+  /subscriptions/enterprise/activate:
+    post:
+      consumes:
+      - application/json
+      description: Activates enterprise plan using a license key
+      parameters:
+      - description: Enterprise activation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/subscripmod.ActivateEnterpriseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Activate enterprise
+      tags:
+      - Subscription
+  /subscriptions/packages:
+    get:
+      description: Returns all active subscription packages ordered by sortOrder.
+        Used for pricing/upgrade UI.
+      parameters:
+      - default: en
+        description: Locale for i18n fields
+        in: query
+        name: locale
+        type: string
+      - default: true
+        description: Return only public packages
+        in: query
+        name: publicOnly
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List subscription packages
+      tags:
+      - Subscription
+  /subscriptions/plan:
+    patch:
+      consumes:
+      - application/json
+      description: Updates the tenant's subscription to a different plan (admin only)
+      parameters:
+      - description: Plan update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/subscripmod.UpdatePlanRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDetailResponseAny'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update subscription plan
+      tags:
+      - Subscription
+  /system/backup/status:
+    get:
+      description: Returns the current backup status
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get backup status
+      tags:
+      - system
   /system/edge/{edgeType}/sso/{id}:
     get:
       consumes:
@@ -8643,6 +8650,23 @@ paths:
       summary: Update map location center
       tags:
       - System
+  /system/settings:
+    get:
+      description: Returns gateway version and basic system info
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get system settings
+      tags:
+      - system
   /system/stream:
     get:
       description: Get stream session timeout configs

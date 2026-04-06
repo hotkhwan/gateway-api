@@ -37,7 +37,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/kafka/kaicons"
 
 	"github.com/hotkhwan/gateway-api/config"
-	_ "github.com/hotkhwan/gateway-api/docs"
+	gatewaydocs "github.com/hotkhwan/gateway-api/docs"
 	"github.com/hotkhwan/gateway-api/internal/mqtt/kcontrolmsg"
 	"github.com/hotkhwan/gateway-api/internal/mqtt/kwatchmsg"
 	"github.com/hotkhwan/gateway-api/internal/services/crimes"
@@ -78,6 +78,10 @@ func main() {
 	if basePath == "" {
 		basePath = "/api/v1" // fallback default
 	}
+	// Propagate runtime values into the generated swagger spec.
+	gatewaydocs.SwaggerInfo.BasePath = basePath
+	gatewaydocs.SwaggerInfo.Version = Version
+
 	iwownPath := os.Getenv("IWOWN_PATH")
 	if iwownPath == "" {
 		iwownPath = "/4g" // fallback default
@@ -228,7 +232,6 @@ func main() {
 	api := app.Group(basePath)
 
 	// ✅ Base path info endpoint
-	appCfg := config.LoadAppConfig()
 	api.All("/", middleware.AllowMethods("GET"))
 	api.Get("/", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{
@@ -236,8 +239,8 @@ func main() {
 			"message": "Gateway API",
 			"status":  true,
 			"details": fiber.Map{
-				"service": appCfg.AppName,
-				"version": appCfg.AppVersion,
+				"service": "gateway",
+				"version": Version,
 			},
 		})
 	})
@@ -363,7 +366,7 @@ func main() {
 	// 	}
 	// }()
 
-	log.Info().Msg("✅ Service is already started")
+	log.Info().Str("version", Version).Str("basePath", basePath).Msg("✅ Service is already started")
 	// Start serverCurrentSchemaVersion
 	port := os.Getenv("PORT")
 	if port == "" {
