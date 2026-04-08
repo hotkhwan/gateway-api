@@ -10,10 +10,9 @@ import (
 	"time"
 
 	appcontainer "github.com/hotkhwan/gateway-api/internal/app"
+	"github.com/hotkhwan/gateway-api/internal/grpc/workspacegrpc"
 	"github.com/hotkhwan/gateway-api/internal/configruntime"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/ingestrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/optionsrepo"
 	_ "github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
@@ -21,6 +20,9 @@ import (
 	"github.com/hotkhwan/gateway-api/models/systemmod"
 
 	"github.com/hotkhwan/gateway-api/internal/kafka/deliverycons"
+	"github.com/hotkhwan/gateway-api/internal/kafka/entitlementcons"
+	"github.com/hotkhwan/gateway-api/internal/kafka/klynxdeliverycons"
+	"github.com/hotkhwan/gateway-api/internal/kafka/orglifecyclecons"
 	// "github.com/hotkhwan/gateway-api/internal/kafka/kctrlcons"
 	"github.com/hotkhwan/gateway-api/internal/kafka/klivecorns"
 	"github.com/hotkhwan/gateway-api/internal/kafka/kschcorns"
@@ -170,13 +172,9 @@ func main() {
 	// Delivery consumer started after container is built — deps come from container
 	// (wired below after container is created)
 
-	go normalizedcons.StartNormalizerConsumer(ctx, normalizedcons.ConsumerDeps{
-		EventDetailsRepo: ingestdetailsrepo.NewEventDetailsRepo(),
-		TemplateRepo:     ingestrepo.NewMappingTemplateRepo(),
-		GeoCfg:           normalizedcons.DefaultGeoConfig(),
-		S3BucketKey:      os.Getenv("S3_EVENTS_BUCKET_KEY"),
-		Logger:           logger.WithMeta("normalizer", "consumer"),
-	})
+	// normalizer consumer started after container — uses container.NormalizerDeps
+	// (includes entitlement gate, authz gate, EventBridge routing)
+	// started below after appcontainer.NewContainer()
 
 	app := fiber.New(fiber.Config{
 		ReadBufferSize: 16 * 1024,
@@ -248,8 +246,29 @@ func main() {
 	// ✅ สร้าง container ครั้งเดียว
 	container := appcontainer.NewContainer()
 
+	// Start normalizer consumer (uses container deps — includes gates + EventBridge routing)
+	go normalizedcons.StartNormalizerConsumer(ctx, container.NormalizerDeps)
+
 	// Start delivery consumer (template-driven dispatch to webhook/LINE/Discord/Telegram)
 	go deliverycons.StartDeliveryConsumer(ctx, container.DeliveryDeps)
+
+	// Start entitlement consumer — syncs klynx.entitlement.snapshot.v1 into Redis TTL cache
+	go entitlementcons.StartEntitlementConsumer(container.EntitlementService)
+
+	// Start org lifecycle consumers — provision/suspend phibek workspace on klynx org events
+	orglifecyclecons.StartOrgLifecycleConsumers(container.WorkspaceService)
+
+	// Start gRPC workspace provisioning server (appliance mode: klynx calls phibek directly)
+	go func() {
+		if err := workspacegrpc.Start(ctx, container.WorkspaceService); err != nil {
+			log.Error().Err(err).Msg("❌ gRPC workspace server exited")
+		}
+	}()
+
+	// Start klynx delivery consumer — saasPublic only (POSTs phibek.delivery.events.v1 → klynx webhook)
+	if os.Getenv("DEPLOYMENT_PROFILE") == "saasPublic" {
+		go klynxdeliverycons.StartKlynxDeliveryConsumer(ctx)
+	}
 
 	// ✅ router ที่ migrate แล้ว — รับ container
 	router.RegisterAuthzNewRoutes(api, container)

@@ -12,11 +12,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hotkhwan/gateway-api/config"
-	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/cacheevt"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/workspacerepo"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
+	"github.com/hotkhwan/gateway-api/models/workspacemod"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 )
@@ -83,7 +84,7 @@ func (l *localEmergencyLimiter) Check(key string, limit int) bool {
 // IngestService — thin hot-path service
 // V3: env-guarded sourceFamily, mode matrix, fingerprint-based review
 type IngestService struct {
-	orgRepo            *authzrepo.OrgRepo
+	workspaceRepo      *workspacerepo.WorkspaceRepo
 	eventMgmtRepo      *ingestmgmtrepo.EventManagementRepo
 	subSvc             *subscriptionsvc.SubscriptionService
 	redis              *redis.Client
@@ -126,7 +127,7 @@ type DeviceResolver interface {
 }
 
 func NewIngestService(
-	orgRepo *authzrepo.OrgRepo,
+	workspaceRepo *workspacerepo.WorkspaceRepo,
 	eventMgmtRepo *ingestmgmtrepo.EventManagementRepo,
 	subSvc *subscriptionsvc.SubscriptionService,
 	redis *redis.Client,
@@ -138,14 +139,14 @@ func NewIngestService(
 	deviceMgmtSvc DeviceResolver,
 	logger zerolog.Logger,
 ) *IngestService {
-	if orgRepo == nil || subSvc == nil || redis == nil {
-		panic("IngestService: orgRepo, subSvc, redis are required")
+	if workspaceRepo == nil || subSvc == nil || redis == nil {
+		panic("IngestService: workspaceRepo, subSvc, redis are required")
 	}
 	if tmplMatcher == nil {
 		panic("IngestService: tmplMatcher is required")
 	}
 	return &IngestService{
-		orgRepo:            orgRepo,
+		workspaceRepo:      workspaceRepo,
 		eventMgmtRepo:      eventMgmtRepo,
 		subSvc:             subSvc,
 		redis:              redis,
@@ -198,18 +199,18 @@ func (s *IngestService) getSourceFamilyMode(ctx context.Context, sourceFamily st
 	return profile.Mode
 }
 
-// resolveOrgPolicy returns effective ingest policy for an org
-// This includes subscription limits + org overrides
-func (s *IngestService) resolveOrgPolicy(ctx context.Context, orgId string) (*cachedOrgPolicy, error) {
+// resolveOrgPolicy returns effective ingest policy for a workspace
+// This includes subscription limits from tenantId
+func (s *IngestService) resolveOrgPolicy(ctx context.Context, workspaceId string) (*cachedOrgPolicy, error) {
 	// Cache key includes version for future schema changes
-	key := fmt.Sprintf("orgcache:ingest:v1:%s", orgId)
+	key := fmt.Sprintf("orgcache:ingest:v1:%s", workspaceId)
 
 	// Try cache first
 	if val, err := s.redis.Get(ctx, key).Bytes(); err == nil {
 		var policy cachedOrgPolicy
 		if json.Unmarshal(val, &policy) == nil {
 			s.logger.Debug().
-				Str("orgId", orgId).
+				Str("orgId", workspaceId).
 				Str("tenantId", policy.TenantId).
 				Str("planId", "cached").
 				Bool("cacheHit", true).
@@ -219,12 +220,12 @@ func (s *IngestService) resolveOrgPolicy(ctx context.Context, orgId string) (*ca
 	}
 
 	s.logger.Debug().
-		Str("orgId", orgId).
+		Str("orgId", workspaceId).
 		Bool("cacheHit", false).
 		Msg("org policy cache miss")
 
 	// Cache miss → fetch from Mongo
-	org, err := s.orgRepo.FindById(ctx, orgId)
+	ws, err := s.workspaceRepo.FindByWorkspaceID(ctx, workspaceId)
 	if err != nil {
 		// Negative cache 10s to prevent hammering Mongo
 		empty, _ := json.Marshal(&cachedOrgPolicy{Exists: false})
@@ -232,42 +233,38 @@ func (s *IngestService) resolveOrgPolicy(ctx context.Context, orgId string) (*ca
 		return &cachedOrgPolicy{Exists: false}, nil
 	}
 
+	// Reject suspended/archived workspaces
+	if ws.Status != workspacemod.WorkspaceActive {
+		empty, _ := json.Marshal(&cachedOrgPolicy{Exists: false})
+		_ = s.redis.Set(ctx, key, empty, negativeCacheTTL).Err()
+		return &cachedOrgPolicy{Exists: false}, nil
+	}
+
 	// Get tenant subscription limits
-	limits, subErr := s.subSvc.GetTenantLimitsCached(ctx, org.TenantId)
+	limits, subErr := s.subSvc.GetTenantLimitsCached(ctx, ws.TenantID)
 	if subErr != nil {
 		// If subscription unavailable, return error (fail-closed)
 		s.logger.Error().
-			Str("orgId", orgId).
-			Str("tenantId", org.TenantId).
+			Str("orgId", workspaceId).
+			Str("tenantId", ws.TenantID).
 			Err(subErr).
 			Msg("failed to get tenant limits")
 		return nil, ErrSubscriptionUnavailable
 	}
 
-	// Merge org config with subscription limits
-	// Safety: org config cannot exceed subscription limits
-	rateLimitPerSec := limits.PerOrgPerSec
-	rateLimitBurst := limits.PerOrgBurst
-	if org.IngestConfig.RateLimitPerSec > 0 && org.IngestConfig.RateLimitPerSec <= limits.PerOrgPerSec {
-		rateLimitPerSec = org.IngestConfig.RateLimitPerSec
-	}
-	if org.IngestConfig.RateLimitBurst > 0 && org.IngestConfig.RateLimitBurst <= limits.PerOrgBurst {
-		rateLimitBurst = org.IngestConfig.RateLimitBurst
-	}
-
 	policy := &cachedOrgPolicy{
 		Exists:          true,
-		TenantId:        org.TenantId,
+		TenantId:        ws.TenantID,
 		MaxPayloadBytes: limits.MaxPayloadBytes,
-		RateLimitPerSec: rateLimitPerSec,
-		RateLimitBurst:  rateLimitBurst,
+		RateLimitPerSec: limits.PerOrgPerSec,
+		RateLimitBurst:  limits.PerOrgBurst,
 		PerIpPerMin:     limits.PerIpPerMin,
 		OrgCacheTtlSec:  limits.OrgCacheTtlSec,
 	}
 
 	s.logger.Debug().
-		Str("orgId", orgId).
-		Str("tenantId", org.TenantId).
+		Str("orgId", workspaceId).
+		Str("tenantId", ws.TenantID).
 		Str("planId", limits.PlanId).
 		Int64("maxPayloadBytes", limits.MaxPayloadBytes).
 		Int("perOrgPerSec", limits.PerOrgPerSec).

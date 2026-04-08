@@ -55,6 +55,12 @@ func ensureKafkaWriter() error {
 			{"KAFKA_TOPIC_ATA", "ata.events"},
 			{"KAFKA_TOPIC_RAW_EVENTS", "raw.events"},
 			{"KAFKA_TOPIC_NORMALIZED_EVENTS", "normalized.events"},
+			{"KAFKA_TOPIC_PHIBEK_NORMALIZED", "phibek.events.normalized.v1"},
+			{"KAFKA_TOPIC_PHIBEK_DELIVERY", "phibek.delivery.events.v1"},
+			{"KAFKA_TOPIC_WORKSPACE_PROVISIONED", "phibek.workspace.provisioned.v1"},
+			{"KAFKA_TOPIC_ORG_CREATED", "klynx.org.created.v1"},
+			{"KAFKA_TOPIC_ORG_DELETED", "klynx.org.deleted.v1"},
+			{"KAFKA_TOPIC_ENTITLEMENT_SNAPSHOT", "klynx.entitlement.snapshot.v1"},
 		})...)
 
 		// (ถ้าต้องการ topic เพิ่มเติมเฉพาะกิจ ก็ append ต่อได้)

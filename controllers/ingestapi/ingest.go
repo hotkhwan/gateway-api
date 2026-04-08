@@ -2,17 +2,23 @@
 package ingestapi
 
 import (
+	"encoding/json"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/hotkhwan/gateway-api/internal/adapters/alertdispatcher"
+	"github.com/hotkhwan/gateway-api/internal/services/alertdetectorsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 type IngestController struct {
-	service *ingestsvc.IngestService
+	service   *ingestsvc.IngestService
+	alertDisp *alertdispatcher.Dispatcher      // nil = fast alert disabled
+	alertDet  *alertdetectorsvc.AlertDetector  // nil = fast alert disabled
 }
 
 func NewIngestController(svc *ingestsvc.IngestService) *IngestController {
@@ -20,6 +26,13 @@ func NewIngestController(svc *ingestsvc.IngestService) *IngestController {
 		panic("IngestController: service required")
 	}
 	return &IngestController{service: svc}
+}
+
+// SetAlertDispatcher wires the bounded alert dispatcher and detector.
+// Call from container after construction.
+func (ctrl *IngestController) SetAlertDispatcher(d *alertdispatcher.Dispatcher, det *alertdetectorsvc.AlertDetector) {
+	ctrl.alertDisp = d
+	ctrl.alertDet = det
 }
 
 // Ingest godoc
@@ -65,6 +78,27 @@ func (ctrl *IngestController) Ingest(c fiber.Ctx) error {
 		Str("contentType", contentType).
 		Int("bodySize", len(body)).
 		Msg("📥 [Ingest] incoming event")
+
+	// Path A — Fast Alert (provisional, non-blocking)
+	// Runs before Path B (Kafka publish) so the alert reaches UI before canonical storage.
+	// Uses traceutil.DetachWithParent so the dispatcher goroutine outlives the request.
+	if ctrl.alertDisp != nil && ctrl.alertDet != nil {
+		var payload map[string]any
+		if jsonErr := json.Unmarshal(body, &payload); jsonErr == nil && ctrl.alertDet.HasAlert(payload) {
+			alertCtx := traceutil.DetachWithParent(ctx)
+			_ = alertCtx // ctx carried implicitly via closure below
+			alert := alertdispatcher.FastAlertEnvelope{
+				EventID:      "", // will be populated by Path B; UI reconciles later
+				WorkspaceID:  orgId,
+				SourceFamily: sourceFamily,
+				OccurredAt:   time.Now().UTC().Format(time.RFC3339),
+				Provisional:  true,
+				Canonical:    false,
+				AlertFields:  ctrl.alertDet.Extract(payload),
+			}
+			ctrl.alertDisp.Dispatch(alert)
+		}
+	}
 
 	result, err := ctrl.service.Ingest(ctx, orgId, sourceFamily, sourceIp, contentType, body)
 	if err != nil {
