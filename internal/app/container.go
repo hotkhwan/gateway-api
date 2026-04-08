@@ -11,8 +11,15 @@ import (
 	"github.com/hotkhwan/gateway-api/controllers/ingestapi"
 	"github.com/hotkhwan/gateway-api/controllers/subapi"
 	"github.com/hotkhwan/gateway-api/controllers/targetapi"
+	"github.com/hotkhwan/gateway-api/internal/adapters/alertdispatcher"
+	"github.com/hotkhwan/gateway-api/internal/eventbridge"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/alertmsg"
+	"github.com/hotkhwan/gateway-api/internal/repo/workspacerepo"
+	"github.com/hotkhwan/gateway-api/internal/services/alertdetectorsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/entitlementsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/workspacesvc"
 	"github.com/hotkhwan/gateway-api/internal/kafka/deliverycons"
 	"github.com/hotkhwan/gateway-api/internal/kafka/normalizedcons"
 	"github.com/hotkhwan/gateway-api/internal/logger"
@@ -51,8 +58,15 @@ import (
 
 type Container struct {
 	// ===== Shared clients (singleton) =====
-	AuthzClient authzgw.Client
-	IDClient    *authgw.Client
+	AuthzClient   authzgw.Client
+	IngestAuthzGw authzgw.IngestAuthzGateway
+	IDClient      *authgw.Client
+
+	// ===== Entitlement domain (phibek-scoped) =====
+	EntitlementService *entitlementsvc.EntitlementService
+
+	// ===== Workspace domain (phibek-scoped) =====
+	WorkspaceService *workspacesvc.WorkspaceService
 
 	// ===== Authz domain =====
 	OrgService                           *authzsvc.OrganizationService
@@ -138,6 +152,8 @@ type Container struct {
 func NewContainer() *Container {
 	c := &Container{}
 	c.buildShared()
+	c.buildEntitlement()
+	c.buildWorkspace()
 	c.buildAuthz()
 	c.buildDevice()
 	c.buildSubscription()
@@ -147,6 +163,7 @@ func NewContainer() *Container {
 	c.buildTemplateReview()
 	c.buildMappingSuggestion()
 	c.buildIngest()
+	c.buildAlertDispatcher()
 	c.buildEvents()
 	c.buildTargets()
 	c.buildTemplate()
@@ -164,6 +181,7 @@ func NewContainer() *Container {
 
 func (c *Container) buildShared() {
 	c.AuthzClient = authzgw.NewClient()
+	c.IngestAuthzGw = authzgw.NewIngestAuthzGateway(c.AuthzClient)
 
 	c.IDClient = authgw.New(authgw.Config{
 		BaseURL:      os.Getenv("KEYCLOAK_URL"),
@@ -282,7 +300,7 @@ func (c *Container) buildTemplateReview() {
 // ============================================================
 
 func (c *Container) buildIngest() {
-	orgRepo := authzrepo.NewOrgRepo(config.DB)
+	wsRepo := workspacerepo.NewWorkspaceRepo()
 	eventMgmtRepo := ingestmgmtrepo.NewEventManagementRepo()
 
 	// fingerprint template matcher
@@ -290,7 +308,7 @@ func (c *Container) buildIngest() {
 	tmplMatcher := ingestsvc.NewTemplateMatcher(templateRepo, logger.WithMeta("ingest", "template-matcher"))
 
 	c.IngestService = ingestsvc.NewIngestService(
-		orgRepo,
+		wsRepo,
 		eventMgmtRepo,
 		c.SubscriptionService,
 		config.Redis,
@@ -408,6 +426,11 @@ func (c *Container) buildDLQ() {
 // ============================================================
 
 func (c *Container) buildNormalizer() {
+	var ebPub normalizedcons.EventBridgePublisher
+	if os.Getenv("DEPLOYMENT_PROFILE") == "appliance" {
+		ebPub = eventbridge.NewKafkaEventBridgePublisher()
+	}
+
 	c.NormalizerDeps = normalizedcons.ConsumerDeps{
 		EventDetailsRepo: ingestdetailsrepo.NewEventDetailsRepo(),
 		TemplateRepo:     ingestrepo.NewMappingTemplateRepo(),
@@ -415,7 +438,50 @@ func (c *Container) buildNormalizer() {
 		GeoCfg:           normalizedcons.DefaultGeoConfig(),
 		S3BucketKey:      os.Getenv("S3_EVENTS_BUCKET_KEY"),
 		Logger:           logger.WithMeta("normalizer", "consumer"),
+		EntitlementSvc:   c.EntitlementService,
+		IngestAuthzGw:    c.IngestAuthzGw,
+		EventBridgePub:   ebPub,
 	}
+}
+
+// ============================================================
+// buildEntitlement — phibek runtime entitlement (Redis TTL cache)
+// ============================================================
+
+func (c *Container) buildEntitlement() {
+	c.EntitlementService = entitlementsvc.New(config.Redis)
+}
+
+// ============================================================
+// buildWorkspace — phibek workspace provisioning domain
+// ============================================================
+
+func (c *Container) buildWorkspace() {
+	repo := workspacerepo.NewWorkspaceRepo()
+	// In appliance mode: Permify is co-located — use pure gRPC, no REST fallback.
+	// In other profiles: use HybridClient (gRPC-first with REST fallback).
+	var authzWriter workspacesvc.AuthzWriter
+	if os.Getenv("DEPLOYMENT_PROFILE") == "appliance" {
+		authzWriter = authzgw.NewGrpcClient()
+	} else {
+		authzWriter = c.AuthzClient
+	}
+	c.WorkspaceService = workspacesvc.New(repo, authzWriter)
+}
+
+// ============================================================
+// buildAlertDispatcher — wires fast alert (Path A) into IngestController
+// ============================================================
+
+func (c *Container) buildAlertDispatcher() {
+	det := alertdetectorsvc.New(nil) // uses DefaultAlertKeys
+	disp := alertdispatcher.New(1000, 4, func(alert alertdispatcher.FastAlertEnvelope) {
+		if err := alertmsg.PublishAlert(alert); err != nil {
+			// non-fatal: MQTT publish failure must not affect Path B
+			_ = err
+		}
+	})
+	c.IngestController.SetAlertDispatcher(disp, det)
 }
 
 // ============================================================

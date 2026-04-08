@@ -9,7 +9,10 @@ import (
 	"time"
 
 	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/eventschema"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/alertmsg"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -126,6 +129,25 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 		},
 	}
 
+	// 6b) Entitlement gate (non-fatal — parallel mode)
+	if deps.EntitlementSvc != nil {
+		if err := deps.EntitlementSvc.CheckIngestAllowed(ctx, orgId, len(m.Value)); err != nil {
+			log.Warn().Str("eventId", canonical.EventId).Str("orgId", orgId).Err(err).
+				Msg("[normalizer] entitlement gate denied (continuing — parallel mode)")
+		}
+	}
+
+	// 6c) Authz gate (non-fatal — parallel mode)
+	if deps.IngestAuthzGw != nil {
+		if ok, err := deps.IngestAuthzGw.CanIngest(ctx, orgId, canonical.Source.DeviceId); err != nil {
+			log.Warn().Str("eventId", canonical.EventId).Str("orgId", orgId).Err(err).
+				Msg("[normalizer] authz gate error (continuing — parallel mode)")
+		} else if !ok {
+			log.Warn().Str("eventId", canonical.EventId).Str("orgId", orgId).Str("deviceId", canonical.Source.DeviceId).
+				Msg("[normalizer] authz gate denied (continuing — parallel mode)")
+		}
+	}
+
 	// 7) Upsert to event_details (idempotent)
 	if err := deps.EventDetailsRepo.Upsert(ctx, event); err != nil {
 		log.Error().
@@ -136,7 +158,13 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 		return err
 	}
 
-	// 7b) If this was a DLQ retry that succeeded, mark DLQ message resolved.
+	// 7b) Path A reconciliation — MQTT canonical notify (non-blocking, non-fatal)
+	// Allows UI to reconcile the provisional fast alert (Path A) with the canonical event.
+	go func() {
+		_ = alertmsg.PublishCanonicalNotify(orgId, canonical.SourceFamily, canonical.EventId)
+	}()
+
+	// 7c) If this was a DLQ retry that succeeded, mark DLQ message resolved.
 	if hdrs["dlqRetry"] == "true" && deps.DLQRepo != nil {
 		msgId := fmt.Sprintf("%s:normalize", canonical.EventId)
 		if uerr := deps.DLQRepo.UpdateStatus(ctx, tenantId, msgId, "resolved", 0); uerr != nil {
@@ -158,6 +186,63 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 			Str("eventId", canonical.EventId).
 			Err(err).
 			Msg("[normalizer] publish to normalized.events failed (non-blocking, event already saved)")
+	}
+
+	// 9) Profile-based klynx handoff
+	// appliance: EventBridge → Kafka internal (low latency, no HTTP)
+	// saasPublic: publish to phibek.delivery.events.v1; klynxdeliverycons POSTs to klynx webhook
+	profile := os.Getenv("DEPLOYMENT_PROFILE")
+	if deps.EventBridgePub != nil && profile == "appliance" {
+		var rawRef string
+		if len(event.BinaryRefs) > 0 {
+			rawRef = event.BinaryRefs[0].ObjectId
+		}
+		bridgeEvt := eventschema.NormalizedEvent{
+			EventID:       event.EventId,
+			SchemaVersion: "1.0",
+			WorkspaceID:   orgId,
+			OrgID:         orgId,
+			SourceType:    canonical.Source.DeviceType,
+			SourceFamily:  canonical.SourceFamily,
+			OccurredAt:    canonical.OccurredAt,
+			ReceivedAt:    event.Meta.NormalizedAt,
+			DeviceID:      canonical.Source.DeviceId,
+			MappedFields:  event.Payload,
+			RawPayloadRef: rawRef,
+			TraceID:       traceId,
+		}
+		if err := deps.EventBridgePub.Publish(ctx, bridgeEvt); err != nil {
+			log.Warn().Str("eventId", canonical.EventId).Err(err).
+				Msg("[normalizer] eventbridge publish failed (non-blocking)")
+		}
+	} else if profile == "saasPublic" {
+		// Publish to phibek.delivery.events.v1; klynxdeliverycons handles HTTP delivery
+		deliveryTopic := config.TopicEnv("KAFKA_TOPIC_PHIBEK_DELIVERY", "phibek.delivery.events.v1")
+		var rawRef string
+		if len(event.BinaryRefs) > 0 {
+			rawRef = event.BinaryRefs[0].ObjectId
+		}
+		bridgeEvt := eventschema.NormalizedEvent{
+			EventID:       event.EventId,
+			SchemaVersion: "1.0",
+			WorkspaceID:   orgId,
+			OrgID:         orgId,
+			SourceType:    canonical.Source.DeviceType,
+			SourceFamily:  canonical.SourceFamily,
+			OccurredAt:    canonical.OccurredAt,
+			ReceivedAt:    event.Meta.NormalizedAt,
+			DeviceID:      canonical.Source.DeviceId,
+			MappedFields:  event.Payload,
+			RawPayloadRef: rawRef,
+			TraceID:       traceId,
+		}
+		deliveryHeaders := map[string]string{}
+		traceutil.InjectHeaders(ctx, deliveryHeaders)
+		deliveryPayload, _ := json.Marshal(bridgeEvt)
+		if err := config.SendToKafkaWithCtx(ctx, deliveryTopic, orgId, deliveryPayload, deliveryHeaders); err != nil {
+			log.Warn().Str("eventId", canonical.EventId).Err(err).
+				Msg("[normalizer] saasPublic delivery publish failed (non-blocking)")
+		}
 	}
 
 	log.Debug().

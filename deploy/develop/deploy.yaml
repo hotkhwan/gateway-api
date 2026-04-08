@@ -95,3 +95,18 @@ spec:
   - group: ""
     kind: Service
     name: kapi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aisom-mongodb-external
+  namespace: aisom
+spec:
+  type: LoadBalancer
+  selector:
+    app: aisom-mongodb-svc
+  ports:
+    - name: mongodb
+      port: 27017
+      targetPort: 27017
+      protocol: TCP
