@@ -52,7 +52,7 @@ func (ctrl *OrgUnitController) ListMembers(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	ouId := c.Params("id")
 
 	// ✅ query params
@@ -119,7 +119,7 @@ func (ctrl *OrgUnitController) AssignMembers(c fiber.Ctx) error {
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	callerUserId, _ := c.Locals("userId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	ouId := c.Params("id")
 
 	var req AssignUsersRequest
@@ -176,7 +176,7 @@ func (ctrl *OrgUnitController) RemoveMembers(c fiber.Ctx) error {
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	callerUserId, _ := c.Locals("userId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	ouId := c.Params("id")
 
 	var req RemoveUsersRequest

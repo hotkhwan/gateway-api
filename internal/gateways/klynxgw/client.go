@@ -28,7 +28,7 @@ import (
 // Config loaded from env:
 //
 //	KLYNX_DELIVERY_WEBHOOK_URL    — klynx-api endpoint (e.g. https://api.klynx.io/phibek/events)
-//	KLYNX_DELIVERY_WEBHOOK_SECRET — HMAC secret (must match klynx-api PHIBEK_WEBHOOK_SECRET)
+//	KLYNX_DELIVERY_WEBHOOK_SECRET — HMAC secret (must match klynx-api EVENTS_WEBHOOK_SECRET)
 type Client struct {
 	url    string
 	secret string

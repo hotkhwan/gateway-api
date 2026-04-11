@@ -89,7 +89,7 @@ func (ctrl *MenuPermissionsProfileController) Create(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 
 	var body createMenuProfileBody
@@ -136,7 +136,7 @@ func (ctrl *MenuPermissionsProfileController) Update(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 	profileId := c.Params("id")
 
@@ -180,7 +180,7 @@ func (ctrl *MenuPermissionsProfileController) Delete(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 	profileId := c.Params("id")
 
@@ -210,7 +210,7 @@ func (ctrl *MenuPermissionsProfileController) List(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
@@ -263,7 +263,7 @@ func (ctrl *MenuPermissionsProfileController) GetOne(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	profileId := c.Params("id")
 
 	profile, err := ctrl.svc.Get(c, tenantId, orgId, profileId)

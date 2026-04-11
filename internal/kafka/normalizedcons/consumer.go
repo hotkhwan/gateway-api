@@ -190,7 +190,7 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 
 	// 9) Profile-based klynx handoff
 	// appliance: EventBridge → Kafka internal (low latency, no HTTP)
-	// saasPublic: publish to phibek.delivery.events.v1; klynxdeliverycons POSTs to klynx webhook
+	// saasPublic: publish to events.delivery.v1; klynxdeliverycons POSTs to klynx webhook
 	profile := os.Getenv("DEPLOYMENT_PROFILE")
 	if deps.EventBridgePub != nil && profile == "appliance" {
 		var rawRef string
@@ -216,8 +216,8 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 				Msg("[normalizer] eventbridge publish failed (non-blocking)")
 		}
 	} else if profile == "saasPublic" {
-		// Publish to phibek.delivery.events.v1; klynxdeliverycons handles HTTP delivery
-		deliveryTopic := config.TopicEnv("KAFKA_TOPIC_PHIBEK_DELIVERY", "phibek.delivery.events.v1")
+		// Publish to events.delivery.v1; klynxdeliverycons handles HTTP delivery
+		deliveryTopic := config.TopicEnv("KAFKA_TOPIC_EVENTS_DELIVERY", "events.delivery.v1")
 		var rawRef string
 		if len(event.BinaryRefs) > 0 {
 			rawRef = event.BinaryRefs[0].ObjectId

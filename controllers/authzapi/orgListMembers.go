@@ -27,7 +27,7 @@ func (ctrl *OrganizationController) ListMembers(c fiber.Ctx) error {
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	callerUserId, _ := c.Locals("userId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 

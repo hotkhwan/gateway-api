@@ -62,7 +62,7 @@ func (ctrl *OrgUnitController) Create(c fiber.Ctx) error {
 	}
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 
 	unitId, err := ctrl.service.CreateOrgUnit(
@@ -100,7 +100,7 @@ func (ctrl *OrgUnitController) Tree(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	tree, err := ctrl.service.GetOrgUnitTree(
 		ctx,
@@ -131,7 +131,7 @@ func (ctrl *OrgUnitController) TreeNode(c fiber.Ctx) error {
 	unitId := strings.TrimSpace(c.Params("id"))
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	node, err := ctrl.service.GetOrgUnitTreeNode(
 		ctx,
@@ -174,7 +174,7 @@ func (ctrl *OrgUnitController) Update(c fiber.Ctx) error {
 	_, parentIdProvided := rawBody["parentId"]
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 
 	err := ctrl.service.UpdateOrgUnit(
@@ -211,7 +211,7 @@ func (ctrl *OrgUnitController) Delete(c fiber.Ctx) error {
 	unitId := strings.TrimSpace(c.Params("id"))
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	err := ctrl.service.DeleteOrgUnit(
 		ctx,
@@ -240,7 +240,7 @@ func (ctrl *OrgUnitController) TreeDebug(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	// Get raw units from DB
 	units, err := ctrl.service.GetOrgUnitsRaw(ctx, tenantId, orgId)

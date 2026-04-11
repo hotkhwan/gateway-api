@@ -31,7 +31,7 @@ func NewUnknownPayloadReviewController(
 }
 
 func (h *UnknownPayloadReviewController) orgId(c fiber.Ctx) string {
-	oid, _ := c.Locals("activeOrg").(string)
+	oid, _ := c.Locals("activeWorkspace").(string)
 	return oid
 }
 

@@ -7,13 +7,15 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/workspacesvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 type OrganizationController struct {
-	service *authzsvc.OrganizationService
+	service      *authzsvc.OrganizationService
+	workspaceSvc *workspacesvc.WorkspaceService
 }
 
 type CreateOrgRequest struct {
@@ -36,11 +38,11 @@ type DemoteFromOwnerRequest struct {
 	NewRole string `json:"newRole"` // "member" or "admin"
 }
 
-func NewOrganizationController(svc *authzsvc.OrganizationService) *OrganizationController {
+func NewOrganizationController(svc *authzsvc.OrganizationService, workspaceSvc *workspacesvc.WorkspaceService) *OrganizationController {
 	if svc == nil {
 		panic("organizationService required")
 	}
-	return &OrganizationController{service: svc}
+	return &OrganizationController{service: svc, workspaceSvc: workspaceSvc}
 }
 
 // =========================
@@ -63,12 +65,11 @@ func (ctrl *OrganizationController) List(c fiber.Ctx) error {
 
 	userId, _ := c.Locals("userId").(string)
 	tenantId, _ := c.Locals("tenantId").(string)
-	// Use user's stored activeOrgId from JWT attributes, fallback to X-Active-Org header
 	userActiveOrgId, _ := c.Locals("userActiveOrgId").(string)
-	activeOrg, _ := c.Locals("activeOrg").(string)
+	activeWorkspace, _ := c.Locals("activeWorkspace").(string)
 	activeOrgId := userActiveOrgId
 	if activeOrgId == "" {
-		activeOrgId = activeOrg
+		activeOrgId = activeWorkspace
 	}
 
 	if userId == "" || tenantId == "" {
@@ -169,33 +170,38 @@ func (ctrl *OrganizationController) Create(c fiber.Ctx) error {
 // =========================
 
 // GetIngestConfig godoc
-// @Summary Get ingest config for an organization (admin only)
-// @Description Returns ingest endpoint, masked secret, and rate limit config
-// @Tags Authorization
+// @Summary Get ingest config for the active workspace
+// @Description Returns ingest endpoint, masked secret, and rate limit config. Auto-provisions ingest key on first call.
+// @Tags Ingest
 // @Security BearerAuth
 // @Produce json
-// @Param id path string true "Organization ID"
 // @Success 200 {object} gmod.SuccessDataResponse
-// @Failure 401 {object} gmod.ApiErrorResponse
-// @Failure 403 {object} gmod.ApiErrorResponse
-// @Failure 404 {object} gmod.ApiErrorResponse
-// @Router /orgs/{id}/ingest [get]
+// @Failure 401 {object} gmod.ErrorResponse
+// @Failure 404 {object} gmod.ErrorResponse
+// @Failure 500 {object} gmod.ErrorResponse
+// @Router /ingest [get]
 func (ctrl *OrganizationController) GetIngestConfig(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.GetIngestConfig", "authzapi", "GetIngestConfig")
 	defer end()
 
-	orgId := strings.TrimSpace(c.Locals("activeOrg").(string))
+	workspaceId := strings.TrimSpace(c.Locals("activeWorkspace").(string))
 	userId, _ := c.Locals("userId").(string)
 	tenantId, _ := c.Locals("tenantId").(string)
 
 	if userId == "" || tenantId == "" {
 		return httputil.FailUnauthorized(c, "Unauthorized")
 	}
+	if workspaceId == "" {
+		return httputil.FailBadRequest(c, "activeWorkspace required")
+	}
 
-	cfg, err := ctrl.service.GetIngestConfig(ctx, tenantId, userId, orgId)
+	if ctrl.workspaceSvc == nil {
+		return httputil.FailInternal(c, "workspace service not configured")
+	}
+
+	cfg, err := ctrl.workspaceSvc.GetIngestConfig(ctx, workspaceId)
 	if err != nil {
-		status, code := authzsvc.MapSvcError(err)
-		return httputil.Fail(c, status, code, err.Error())
+		return httputil.FailInternal(c, "get ingest config failed")
 	}
 
 	return httputil.Ok(c, cfg, "ingest config fetched")
@@ -217,22 +223,39 @@ func (ctrl *OrganizationController) GetIngestConfig(c fiber.Ctx) error {
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Failure 404 {object} gmod.ApiErrorResponse
 // @Router /orgs/{id}/ingest/rotateSecret [post]
+// RotateIngestSecret godoc
+// @Summary Rotate ingest secret for the active workspace
+// @Description Generates a new HMAC signing key and returns the masked version
+// @Tags Ingest
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} gmod.SuccessDataResponse
+// @Failure 401 {object} gmod.ErrorResponse
+// @Failure 404 {object} gmod.ErrorResponse
+// @Failure 500 {object} gmod.ErrorResponse
+// @Router /ingest/rotateSecret [post]
 func (ctrl *OrganizationController) RotateIngestSecret(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.RotateIngestSecret", "authzapi", "RotateIngestSecret")
 	defer end()
 
-	orgId := strings.TrimSpace(c.Locals("activeOrg").(string))
+	workspaceId := strings.TrimSpace(c.Locals("activeWorkspace").(string))
 	userId, _ := c.Locals("userId").(string)
 	tenantId, _ := c.Locals("tenantId").(string)
 
 	if userId == "" || tenantId == "" {
 		return httputil.FailUnauthorized(c, "Unauthorized")
 	}
+	if workspaceId == "" {
+		return httputil.FailBadRequest(c, "activeWorkspace required")
+	}
 
-	cfg, err := ctrl.service.RotateIngestSecret(ctx, tenantId, userId, orgId)
+	if ctrl.workspaceSvc == nil {
+		return httputil.FailInternal(c, "workspace service not configured")
+	}
+
+	cfg, err := ctrl.workspaceSvc.RotateIngestSecret(ctx, workspaceId)
 	if err != nil {
-		status, code := authzsvc.MapSvcError(err)
-		return httputil.Fail(c, status, code, err.Error())
+		return httputil.FailInternal(c, "rotate ingest secret failed")
 	}
 
 	return httputil.Ok(c, cfg, "ingest secret rotated")

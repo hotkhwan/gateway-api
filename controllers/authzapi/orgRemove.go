@@ -28,7 +28,7 @@ func (ctrl *OrganizationController) RemoveMembers(c fiber.Ctx) error {
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	callerUserId, _ := c.Locals("userId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	var body InviteUsersRequest
 	if err := c.Bind().Body(&body); err != nil {

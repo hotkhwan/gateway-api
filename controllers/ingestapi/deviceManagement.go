@@ -31,7 +31,7 @@ func (h *DeviceManagementController) tenantId(c fiber.Ctx) string {
 }
 
 func (h *DeviceManagementController) orgId(c fiber.Ctx) string {
-	oid, _ := c.Locals("activeOrg").(string)
+	oid, _ := c.Locals("activeWorkspace").(string)
 	return oid
 }
 

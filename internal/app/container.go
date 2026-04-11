@@ -11,6 +11,7 @@ import (
 	"github.com/hotkhwan/gateway-api/controllers/ingestapi"
 	"github.com/hotkhwan/gateway-api/controllers/subapi"
 	"github.com/hotkhwan/gateway-api/controllers/targetapi"
+	"github.com/hotkhwan/gateway-api/controllers/workspaceapi"
 	"github.com/hotkhwan/gateway-api/internal/adapters/alertdispatcher"
 	"github.com/hotkhwan/gateway-api/internal/eventbridge"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
@@ -66,7 +67,11 @@ type Container struct {
 	EntitlementService *entitlementsvc.EntitlementService
 
 	// ===== Workspace domain (phibek-scoped) =====
-	WorkspaceService *workspacesvc.WorkspaceService
+	WorkspaceService              *workspacesvc.WorkspaceService
+	WorkspaceMemberService        *workspacesvc.WorkspaceMemberService
+	WorkspaceController           *workspaceapi.WorkspaceController
+	WorkspaceMemberController     *workspaceapi.WorkspaceMemberController
+	WorkspaceEntitlementController *workspaceapi.WorkspaceEntitlementController
 
 	// ===== Authz domain =====
 	OrgService                           *authzsvc.OrganizationService
@@ -200,7 +205,7 @@ func (c *Container) buildAuthz() {
 	orgUnitRepo := authzrepo.NewOrgUnitRepo()
 
 	c.OrgService = authzsvc.NewOrganizationService(orgRepo, orgUnitRepo, c.AuthzClient, c.IDClient)
-	c.OrgController = authzapi.NewOrganizationController(c.OrgService)
+	c.OrgController = authzapi.NewOrganizationController(c.OrgService, c.WorkspaceService)
 
 	c.OrgUnitService = authzsvc.NewOrgUnitService(orgUnitRepo, c.AuthzClient, c.IDClient)
 	c.OrgUnitController = authzapi.NewOrgUnitController(c.OrgUnitService)
@@ -467,6 +472,11 @@ func (c *Container) buildWorkspace() {
 		authzWriter = c.AuthzClient
 	}
 	c.WorkspaceService = workspacesvc.New(repo, authzWriter)
+	c.WorkspaceMemberService = workspacesvc.NewWorkspaceMemberService(c.AuthzClient, c.IDClient)
+
+	c.WorkspaceController = workspaceapi.NewWorkspaceController(c.WorkspaceService, c.AuthzClient)
+	c.WorkspaceMemberController = workspaceapi.NewWorkspaceMemberController(c.WorkspaceMemberService)
+	c.WorkspaceEntitlementController = workspaceapi.NewWorkspaceEntitlementController(c.EntitlementService)
 }
 
 // ============================================================

@@ -37,7 +37,7 @@ func (ctrl *MemberAccessController) MyMenuAccess(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 
 	menus, err := ctrl.svc.GetMemberMenuAccess(ctx, tenantId, orgId, userId)
@@ -74,7 +74,7 @@ func (ctrl *MemberAccessController) MyResourceAccess(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
