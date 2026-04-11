@@ -16,11 +16,11 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-// StartKlynxDeliveryConsumer consumes phibek.delivery.events.v1 and forwards each event
+// StartKlynxDeliveryConsumer consumes events.delivery.v1 and forwards each event
 // to klynx-api via HTTPS POST (saasPublic profile only).
 //
 // Must only be started when DEPLOYMENT_PROFILE=saasPublic.
-// For appliance profile, phibek hands off via EventBridge (Kafka internal).
+// For appliance profile, EVENTS hands off via EventBridge (Kafka internal).
 func StartKlynxDeliveryConsumer(ctx context.Context) {
 	log := logger.Boot("klynxdeliverycons", "StartKlynxDeliveryConsumer")
 
@@ -31,8 +31,8 @@ func StartKlynxDeliveryConsumer(ctx context.Context) {
 	}
 
 	broker := os.Getenv("KAFKA_BROKER")
-	topic := config.TopicEnv("KAFKA_TOPIC_PHIBEK_DELIVERY", "phibek.delivery.events.v1")
-	groupID := "phibek-klynx-delivery-grp"
+	topic := config.TopicEnv("KAFKA_TOPIC_EVENTS_DELIVERY", "events.delivery.v1")
+	groupID := "events-klynx-delivery-grp"
 
 	consLog := log.With().Str("topic", topic).Str("group", groupID).Logger()
 

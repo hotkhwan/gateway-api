@@ -59,10 +59,21 @@ entity serviceAccount {
     permission use = act
 }
 
-entity workspace {
-    relation owner @user
-    relation org   @organization
+entity platform {
+    relation admin @user
 
-    permission manage = owner or org.manage
-    permission view   = manage or org.view
+    permission manage = admin
+    permission view   = manage
+}
+
+entity workspace {
+    relation owner    @user
+    relation admin    @user
+    relation operator @user
+    relation viewer   @user
+    relation platform @platform
+    relation org      @organization
+
+    permission manage = owner or admin or platform.manage or org.manage
+    permission view   = manage or operator or viewer or org.view
 }

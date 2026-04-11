@@ -23,7 +23,7 @@ func NewRejectedPayloadPatternController(svc *rejectedpayloadpatternsvc.Rejected
 }
 
 func (h *RejectedPayloadPatternController) orgId(c fiber.Ctx) string {
-	oid, _ := c.Locals("activeOrg").(string)
+	oid, _ := c.Locals("activeWorkspace").(string)
 	return oid
 }
 

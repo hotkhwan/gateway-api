@@ -37,7 +37,12 @@ func GetSafeSchemaVersionForCheck() string {
 func InitPermifygRPC() {
 	log := logger.Boot("permify", "config-InitPermify")
 
-	PermifyTenantID = os.Getenv("KEYCLOAK_REALM")
+	// PERMIFY_TENANT_ID takes precedence — allows phibek to use its own tenant
+	// even when KEYCLOAK_REALM is shared with klynx.
+	PermifyTenantID = os.Getenv("PERMIFY_TENANT_ID")
+	if PermifyTenantID == "" {
+		PermifyTenantID = os.Getenv("KEYCLOAK_REALM")
+	}
 	if PermifyTenantID == "" {
 		PermifyTenantID = "klynx"
 	}

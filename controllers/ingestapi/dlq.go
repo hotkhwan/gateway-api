@@ -28,7 +28,7 @@ func (h *DLQController) tenantId(c fiber.Ctx) string {
 }
 
 func (h *DLQController) orgId(c fiber.Ctx) string {
-	org, _ := c.Locals("activeOrg").(string)
+	org, _ := c.Locals("activeWorkspace").(string)
 	return org
 }
 

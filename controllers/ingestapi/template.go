@@ -24,7 +24,7 @@ func NewTemplateController(svc *templatesvc.TemplateService) *TemplateController
 }
 
 func (h *TemplateController) orgId(c fiber.Ctx) string {
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	return orgId
 }
 

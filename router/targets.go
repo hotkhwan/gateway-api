@@ -23,7 +23,7 @@ import (
 func RegisterTargetsRoutes(router fiber.Router, c *app.Container) {
 	router.Route("/targets", func(r fiber.Router) {
 		r.Use(middleware.AuthBearer())
-		r.Use(middleware.ActiveOrg())
+		r.Use(middleware.ActiveWorkspace())
 		r.Use(middleware.Audit(middleware.AuditConfig{
 			AuditRepo: authzrepo.NewAuditLogRepo(config.DB),
 			AuditChan: nil,

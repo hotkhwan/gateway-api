@@ -867,30 +867,30 @@ PHIBEK_WEBHOOK_SECRET=<hmac_secret>  # saasPublic เท่านั้น — �
 
 ## Phase 7 — Migration Checklist
 
-### phibek Tasks
+### EVENTS-api Tasks
 
 **Phase 1 — Access Control (ingest-scoped)**
-- [ ] **P-1** สร้าง `internal/gateways/authzgw/` — lightweight IngestAuthzGateway (ไม่ copy จาก klynx)
-- [ ] **P-2** เพิ่ม Permify client config เฉพาะ gate check (canIngest, isAssetOwned)
+- [x] **P-1** สร้าง `internal/gateways/authzgw/` — lightweight IngestAuthzGateway (ไม่ copy จาก klynx)
+- [x] **P-2** เพิ่ม Permify client config เฉพาะ gate check (canIngest, isAssetOwned)
 
 **Phase 2 — Runtime Entitlement**
-- [ ] **P-3** สร้าง `internal/services/entitlementsvc/` — phibek-specific entitlement (ไม่ copy subscriptionsvc)
-- [ ] **P-4** สร้าง `internal/kafka/entitlementcons/` — consume `klynx.entitlement.snapshot.v1` → Redis TTL cache
+- [x] **P-3** สร้าง `internal/services/entitlementsvc/` — EVENTS-specific entitlement
+- [x] **P-4** สร้าง `internal/kafka/entitlementcons/` — consume `klynx.entitlement.snapshot.v1` → Redis TTL cache
 
 **Phase 3 — Event Pipeline**
-- [ ] **P-5** ย้าย `controllers/webhooks/` ทั้งหมดจาก klynx-api มา phibek
-- [ ] **P-6** Port `internal/kafka/normalizedcons/` จาก klynx-api
-- [ ] **P-7** Port `internal/kafka/deliverycons/` จาก klynx-api
-- [ ] **P-8** สร้าง `internal/eventbridge/publisher.go` — publish ไป `phibek.events.normalized.v1`
-- [ ] **P-9** สร้าง delivery connector adapters: webhookAdapter, grpcAdapter, kafkaPrivateAdapter
+- [x] **P-5** `controllers/webhooks/` — iot/iwownapi, analytic/atapi, analytic/camDahuaapi, analytic/ibocapi, streamzkt
+- [x] **P-6** `internal/kafka/normalizedcons/` — normalize, geo, s3writer, delivery wired
+- [x] **P-7** `internal/kafka/deliverycons/` + `klynxdeliverycons/` — dispatch wired
+- [x] **P-8** `internal/eventbridge/publisher.go` — publishes to `events.normalized.v1`
+- [x] **P-9** delivery connectors: webhookgw, linegw, telegw, discordgw
 - [ ] ~~**P-10** สร้าง proto + generate code~~ — future option เท่านั้น
-- [ ] **P-11** Wire ทุกอย่างใน AppContainer + main.go
-- [ ] **P-12** เพิ่ม env vars ทั้งหมดใน `.env.example` / deploy config
+- [x] **P-11** Wire ทุกอย่างใน AppContainer + main.go
+- [x] **P-12** สร้าง `.env.example` ครบทุก env var
 
-**phibek Domain (ถ้าเริ่ม productize)**
-- [ ] **P-D1** สร้าง workspace domain (แทน organization)
-- [ ] **P-D2** สร้าง site, asset, source, pipeline, deliveryTarget domains
-- [ ] **P-D3** สร้าง phibek subscription/plan catalog แยกจาก klynx
+**EVENTS Domain (ถ้าเริ่ม productize)**
+- [x] **P-D1** สร้าง workspace domain — `internal/models/workspacemod/`
+- [ ] **P-D2** สร้าง site, asset, source, pipeline, deliveryTarget domains (future)
+- [ ] **P-D3** สร้าง EVENTS subscription/plan catalog แยกจาก klynx (future)
 
 ### klynx-api Tasks
 
@@ -928,9 +928,9 @@ PHIBEK_WEBHOOK_SECRET=<hmac_secret>  # saasPublic เท่านั้น — �
 
 ### Shared Tasks
 
-- [ ] **S-1** ตกลง NormalizedEvent schema (layered: envelope + normalized fields + payload ref) พร้อม `schemaVersion`
+- [x] **S-1** NormalizedEvent schema (layered: envelope + normalized fields + payload ref) — `internal/eventschema/`
 - [ ] **S-2** เลือก shared contract strategy: Go module กลาง หรือ proto repo กลาง (ห้าม copy file)
-- [ ] **S-3** สร้าง Kafka topics: `phibek.events.normalized.v1`, `phibek.assets.changed.v1`, `klynx.entitlement.snapshot.v1`
+- [x] **S-3** Kafka topics สร้างอัตโนมัติตอน init: `events.normalized.v1`, `events.delivery.v1`, `klynx.entitlement.snapshot.v1`
 - [ ] **S-4** ทดสอบ Appliance Profile บน local docker-compose (Kafka EventBridge)
 - [ ] **S-5** ทดสอบ SaaS Public Profile บน local ด้วย 2 process แยก (deliveryOrchestrator webhook)
 - [ ] ~~**S-6** ทดสอบ gRPC profile~~ — ตัดออก (ไม่ implement ใน 2 profiles ปัจจุบัน)
@@ -1235,19 +1235,84 @@ kafka.StartConsumerWithHeaders(brokers, "klynx.org.created.v1", "phibek-workspac
 
 ### Checklist เพิ่มเติม (Provisioning)
 
-**phibek:**
-- [ ] **P-W1** สร้าง `internal/models/workspacemod/` — Workspace domain model
-- [ ] **P-W2** สร้าง `internal/repo/workspacerepo/` — workspace CRUD
-- [ ] **P-W3** สร้าง `internal/services/workspacesvc/` — ProvisionFromOrg, Suspend, Archive
-- [ ] **P-W4** สร้าง `internal/kafka/workspaceprovcons/` — consume `klynx.org.created.v1`
-- [ ] **P-W5** publish `phibek.workspace.provisioned.v1` หลัง provision สำเร็จ
-- [ ] **P-W6** register ingest URI route: `POST /events/:workspaceId/:sourceFamily`
-- [ ] **P-W7** write Permify workspace owner tuple เมื่อ provision
+**phibek (EVENTS-api):**
+- [x] **P-W1** สร้าง `internal/models/workspacemod/` — Workspace domain model
+- [x] **P-W2** สร้าง `internal/repo/workspacerepo/` — workspace CRUD + ListByIDs, UpdateName, Delete
+- [x] **P-W3** สร้าง `internal/services/workspacesvc/` — ProvisionFromOrg, Suspend + standalone CRUD + memberSvc
+- [x] **P-W4** สร้าง `internal/kafka/orglifecyclecons/` — consume `klynx.org.created.v1`
+- [x] **P-W5** publish `events.workspace.provisioned.v1` หลัง provision สำเร็จ
+- [x] **P-W6** register ingest URI route: `POST /events/:orgId/:sourceFamily`
+- [x] **P-W7** write Permify workspace owner tuple เมื่อ provision
+- [x] **P-W8** `models/workspacemod/member.go` — WorkspaceMemberRole (owner/admin/operator/viewer) + WorkspaceMember DTO
+- [x] **P-W9** `internal/services/workspacesvc/memberSvc.go` — Invite, Remove, List, ChangeRole ผ่าน Permify tuples
+- [x] **P-W10** `controllers/workspaceapi/` — workspace CRUD + member + entitlement controllers
+- [x] **P-W11** `router/workspace.go` — `/workspaces/*` routes (GET/POST/PATCH/DELETE + members + entitlement)
+- [x] **P-W12** `middleware/activeWorkspace.go` — `X-Active-Workspace` header + Permify `workspace` entity check + `activeWorkspace` local
+- [x] **P-W13** `authzgw.Client.LookupWorkspaces` — Permify stream lookup workspace IDs ที่ user มีสิทธิ์
+- [x] **P-W14** ย้ายทุก controller จาก `c.Locals("activeOrg")` → `c.Locals("activeWorkspace")`
+- [x] **P-W15** ย้ายทุก router ที่เป็น phibek domain จาก `middleware.ActiveOrg()` → `middleware.ActiveWorkspace()`
 
 **klynx-api:**
-- [ ] **K-W1** publish `klynx.org.created.v1` เมื่อสร้าง org สำเร็จ
-- [ ] **K-W2** consume `phibek.workspace.provisioned.v1` → update org `workspaceId` + `eventIngestUri`
+- [ ] **K-W1** publish `klynx.org.created.v1` เมื่อสร้าง org สำเร็จ (พร้อม `createdBy`, `tenantId`)
+- [ ] **K-W2** consume `events.workspace.provisioned.v1` → update org `workspaceId` + `eventIngestUri`
 - [ ] **K-W3** เพิ่ม `workspaceId`, `eventIngestUri` field ใน org model + response DTO
+- [ ] **K-W4** เปลี่ยน header ที่ส่งมาใน FE/API calls จาก `X-Active-Org` → `X-Active-Workspace` (ค่าคือ workspaceId ไม่ใช่ orgId)
+
+---
+
+## Backend Migration: Workspace REST API (Phase W)
+
+> สถานะ ณ 2026-04-10 — implement แล้วใน phibek พร้อม FE ทำต่อได้
+
+### Header ที่ FE ต้องส่ง
+
+| เดิม | ใหม่ | หมายเหตุ |
+|------|------|---------|
+| `X-Active-Org: <klynxOrgId>` | `X-Active-Workspace: <workspaceId>` | workspaceId = phibek UUID (ไม่ใช่ klynxOrgId) |
+
+### Endpoint Map
+
+| Method | Path | Middleware | หมายเหตุ |
+|--------|------|-----------|---------|
+| GET | `/workspaces` | AuthBearer | list workspaces ที่ user มีสิทธิ์ |
+| POST | `/workspaces` | AuthBearer | create standalone workspace (caller = owner) |
+| GET | `/workspaces/:id` | AuthBearer + ActiveWorkspace | workspace detail |
+| PATCH | `/workspaces/:id` | AuthBearer + ActiveWorkspace | update name |
+| DELETE | `/workspaces/:id` | AuthBearer + ActiveWorkspace | delete (standalone only) |
+| GET | `/workspaces/entitlement` | AuthBearer + ActiveWorkspace | RuntimeEntitlement snapshot (read-only) |
+| GET | `/workspaces/members` | AuthBearer + ActiveWorkspace | list members + roles |
+| POST | `/workspaces/members/invite` | AuthBearer + ActiveWorkspace | invite user with role |
+| PATCH | `/workspaces/members/remove` | AuthBearer + ActiveWorkspace | remove members |
+| PATCH | `/workspaces/members/:userId/role` | AuthBearer + ActiveWorkspace | change role |
+
+### Workspace Roles
+
+| Role | Permissions |
+|------|-------------|
+| `owner` | all (manage + view) |
+| `admin` | manageAssets, manageSources, managePipelines, manageDeliveryTargets, viewEvents |
+| `operator` | managePipelines, viewEvents |
+| `viewer` | viewEvents |
+
+### Workspace Creation Flows
+
+| Flow | ใครสร้าง | ผ่านไหน |
+|------|----------|---------|
+| **Klynx-provisioned** | Auto จาก `klynx.org.created.v1` Kafka event | `orglifecyclecons` → `workspacesvc.ProvisionFromOrg` |
+| **Standalone** | User เรียก `POST /workspaces` โดยตรง | `WorkspaceController.Create` → `workspacesvc.CreateStandalone` |
+
+Klynx-provisioned workspace จะมี `klynxOrgId` field — standalone จะไม่มี
+
+### คำถาม FE ที่ตอบแล้ว
+
+| คำถาม | คำตอบ |
+|-------|-------|
+| Header ชื่ออะไร? | `X-Active-Workspace` — implement แล้วใน middleware |
+| `/workspaces/*` พร้อมใช้? | ✅ พร้อม — implement แล้วทั้งหมด |
+| Permission profile ยังมีไหม? | Permify workspace RBAC (4 roles) — middleware ใหม่ใช้ `workspace` entity แทน `organization` |
+| Entitlement endpoint? | `GET /workspaces/entitlement` |
+| Workspace `status` values? | `active`, `suspended`, `archived` |
+| สร้าง workspace จาก UI ได้ไหม? | ✅ ได้ — `POST /workspaces` (standalone mode) |
 
 ---
 
@@ -1400,15 +1465,15 @@ func IngestEvent(c *fiber.Ctx) error {
 
 ### Checklist เพิ่มเติม (Dual-Path Pipeline)
 
-- [ ] **P-E1** สร้าง `internal/services/alertdetectorsvc/` — detect alert key/value ตาม workspace config
-- [ ] **P-E2** MQTT publish ใน Fast Alert Path ต้องผ่าน MQTT adapter (ไม่ inline ใน controller)
-- [ ] **P-E3** MQTT topic structure: `phibek/ws/{workspaceId}/alert/{sourceFamily}`
-- [ ] **P-E4** normalizedcons: เพิ่ม MQTT publish หลัง canonical event เขียน MongoDB สำเร็จ
-- [ ] **P-E5** deliverycons: เพิ่ม SOP connector (n8n webhook, LINE Notify, Discord, Telegram)
-- [ ] **P-E6** Fast Alert Path ต้องใช้ `traceutil.DetachWithParent` สำหรับ goroutine ที่ fire-and-forget
-- [ ] **P-E7** กำหนด MQTT topic ACL ต่อ workspace ใน MQTT broker config
-- [ ] **P-E8** Fast Alert path ต้องใช้ bounded worker pool แทน raw goroutine เพื่อป้องกัน goroutine storm ตอน burst
-- [ ] **P-E9** Path A และ Path B ต้องใช้ `eventId` เดียวกัน — UI reconcile event ด้วย `eventId`
+- [x] **P-E1** สร้าง `internal/services/alertdetectorsvc/` — detect alert key/value ตาม workspace config
+- [x] **P-E2** MQTT publish ใน Fast Alert Path ผ่าน `alertmsg` adapter (ไม่ inline ใน controller)
+- [x] **P-E3** MQTT topic structure: `events/ws/{workspaceId}/alert/{sourceFamily}`
+- [x] **P-E4** normalizedcons: MQTT canonical notify (`alertmsg.PublishCanonicalNotify`) หลัง write MongoDB
+- [x] **P-E5** deliverycons: SOP connectors — webhookgw, linegw, telegw, discordgw
+- [x] **P-E6** Fast Alert Path ใช้ `traceutil.DetachWithParent` สำหรับ goroutine fire-and-forget
+- [ ] **P-E7** กำหนด MQTT topic ACL ต่อ workspace ใน MQTT broker config (infra — ทำที่ broker)
+- [x] **P-E8** Fast Alert path ใช้ bounded `alertdispatcher.Dispatcher` (bufferSize=1000, workers=4)
+- [x] **P-E9** Path A และ Path B ใช้ `eventId` เดียวกัน — UI reconcile ด้วย `eventId`
 
 ---
 

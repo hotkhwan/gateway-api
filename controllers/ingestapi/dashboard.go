@@ -41,7 +41,7 @@ func (ctrl *IngestDashboardController) GetIngestDashboard(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	// Parse dateTime=from,to (RFC3339 UTC)
 	startDate, endDate := "", ""

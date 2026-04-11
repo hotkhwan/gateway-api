@@ -49,7 +49,7 @@ func (ctrl *TargetController) Create(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 
 	if tenantId == "" || orgId == "" || userId == "" {
@@ -101,7 +101,7 @@ func (ctrl *TargetController) List(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	if tenantId == "" || orgId == "" {
 		return httputil.FailUnauthorized(c, "unauthorized")
@@ -158,7 +158,7 @@ func (ctrl *TargetController) GetOne(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 	targetId := strings.TrimSpace(c.Params("id"))
 
@@ -185,7 +185,7 @@ func (ctrl *TargetController) Update(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 	targetId := strings.TrimSpace(c.Params("id"))
 
@@ -225,7 +225,7 @@ func (ctrl *TargetController) Delete(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 	targetId := strings.TrimSpace(c.Params("id"))
 

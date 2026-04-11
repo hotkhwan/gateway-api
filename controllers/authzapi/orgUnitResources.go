@@ -63,7 +63,7 @@ func (ctrl *OrgUnitResourcesController) ListResourceGroups(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	unitId := c.Params("unitId")
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -133,7 +133,7 @@ func (ctrl *OrgUnitResourcesController) AssignResourceGroups(c fiber.Ctx) error 
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 	unitId := c.Params("unitId")
 
@@ -202,7 +202,7 @@ func (ctrl *OrgUnitResourcesController) RemoveResourceGroups(c fiber.Ctx) error 
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 	unitId := c.Params("unitId")
 

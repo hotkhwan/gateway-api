@@ -9,15 +9,15 @@ import (
 )
 
 // TopicAlert returns the MQTT topic for fast alerts.
-// Pattern: phibek/ws/{workspaceId}/alert/{sourceFamily}
+// Pattern: events/ws/{workspaceId}/alert/{sourceFamily}
 func TopicAlert(workspaceID, sourceFamily string) string {
-	return fmt.Sprintf("phibek/ws/%s/alert/%s", workspaceID, sourceFamily)
+	return fmt.Sprintf("events/ws/%s/alert/%s", workspaceID, sourceFamily)
 }
 
 // TopicCanonical returns the MQTT topic for canonical event notifications.
-// Pattern: phibek/ws/{workspaceId}/events/{sourceFamily}
+// Pattern: events/ws/{workspaceId}/events/{sourceFamily}
 func TopicCanonical(workspaceID, sourceFamily string) string {
-	return fmt.Sprintf("phibek/ws/%s/events/%s", workspaceID, sourceFamily)
+	return fmt.Sprintf("events/ws/%s/events/%s", workspaceID, sourceFamily)
 }
 
 // PublishAlert sends a provisional fast alert via MQTT (Path A).

@@ -54,17 +54,17 @@ import (
 	internalswagger "github.com/hotkhwan/gateway-api/internal/swagger"
 )
 
-// @title           Gateway API
+// @title           phibek API
 // @version         1.0
-// @description     REST API for Gateway system
+// @description     Event ingestion, normalization, and delivery gateway
 // @BasePath        /api/v1
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @Security BearerAuth
 // @name Authorization
 // @Tags 1.Auth
-// @Tags 2.devices
-// @Tags 3.kcontrol
+// @Tags 2.Workspaces
+// @Tags 3.Ingest
 func main() {
 	env := flag.String("env", "dev", "Environment: dev / uat / prod")
 	flag.Parse()
@@ -146,6 +146,8 @@ func main() {
 			log.Warn().Msg("⚠️ Initial sync failed, using real-time events only")
 		}
 	}
+	authzsvc.BootstrapPlatformAdmins(ctx)
+	authzsvc.BackfillWorkspaceTuples(ctx)
 
 	// Redis podID Generation
 	podID := os.Getenv("HOSTNAME")
@@ -255,22 +257,23 @@ func main() {
 	// Start entitlement consumer — syncs klynx.entitlement.snapshot.v1 into Redis TTL cache
 	go entitlementcons.StartEntitlementConsumer(container.EntitlementService)
 
-	// Start org lifecycle consumers — provision/suspend phibek workspace on klynx org events
+	// Start org lifecycle consumers — provision/suspend EVENTS workspace on klynx org events
 	orglifecyclecons.StartOrgLifecycleConsumers(container.WorkspaceService)
 
-	// Start gRPC workspace provisioning server (appliance mode: klynx calls phibek directly)
+	// Start gRPC workspace provisioning server (appliance mode: klynx calls EVENTS-api directly)
 	go func() {
 		if err := workspacegrpc.Start(ctx, container.WorkspaceService); err != nil {
 			log.Error().Err(err).Msg("❌ gRPC workspace server exited")
 		}
 	}()
 
-	// Start klynx delivery consumer — saasPublic only (POSTs phibek.delivery.events.v1 → klynx webhook)
+	// Start klynx delivery consumer — saasPublic only (POSTs events.delivery.v1 → klynx webhook)
 	if os.Getenv("DEPLOYMENT_PROFILE") == "saasPublic" {
 		go klynxdeliverycons.StartKlynxDeliveryConsumer(ctx)
 	}
 
 	// ✅ router ที่ migrate แล้ว — รับ container
+	router.RegisterWorkspaceRoutes(api, container)
 	router.RegisterAuthzNewRoutes(api, container)
 	router.RegisterResourceRoutes(api, container)
 	// ✅ router เก่าที่ยังไม่ migrate — ยังทำงานได้ปกติ

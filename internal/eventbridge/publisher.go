@@ -20,19 +20,19 @@ type EventBridgePublisher interface {
 	Publish(ctx context.Context, event eventschema.NormalizedEvent) error
 }
 
-// kafkaEventBridgePublisher publishes to phibek.events.normalized.v1.
+// kafkaEventBridgePublisher publishes to events.normalized.v1.
 type kafkaEventBridgePublisher struct {
 	topic string
 }
 
 // NewKafkaEventBridgePublisher creates an EventBridgePublisher that writes to the
-// phibek.events.normalized.v1 Kafka topic.
-// The topic name is read from KAFKA_TOPIC_PHIBEK_NORMALIZED env var, defaulting
-// to "phibek.events.normalized.v1".
+// gw.events.normalized.v1 Kafka topic.
+// The topic name is read from KAFKA_TOPIC_EVENTS_NORMALIZED env var, defaulting
+// to "gw.events.normalized.v1".
 func NewKafkaEventBridgePublisher() EventBridgePublisher {
-	topic := os.Getenv("KAFKA_TOPIC_PHIBEK_NORMALIZED")
+	topic := os.Getenv("KAFKA_TOPIC_EVENTS_NORMALIZED")
 	if topic == "" {
-		topic = "phibek.events.normalized.v1"
+		topic = "gw.events.normalized.v1"
 	}
 	return &kafkaEventBridgePublisher{topic: topic}
 }

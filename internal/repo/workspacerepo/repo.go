@@ -88,6 +88,70 @@ func (r *WorkspaceRepo) UpdateStatus(ctx context.Context, workspaceID, status st
 	return err
 }
 
+// ListByIDs returns workspaces matching the given workspaceId list.
+// Used by WorkspaceSvc to list workspaces visible to a user (IDs come from Permify lookup).
+func (r *WorkspaceRepo) ListByIDs(ctx context.Context, ids []string) ([]*workspacemod.Workspace, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	col := config.DB.Collection(collection)
+	cursor, err := col.Find(ctx, bson.M{"workspaceId": bson.M{"$in": ids}})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	var out []*workspacemod.Workspace
+	if err := cursor.All(ctx, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ListAll returns all workspaces regardless of ownership. Used by platform admins.
+func (r *WorkspaceRepo) ListAll(ctx context.Context) ([]*workspacemod.Workspace, error) {
+	col := config.DB.Collection(collection)
+	cursor, err := col.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	var out []*workspacemod.Workspace
+	if err := cursor.All(ctx, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// UpdateName patches the workspace name (and updatedAt).
+func (r *WorkspaceRepo) UpdateName(ctx context.Context, workspaceID, name string) error {
+	col := config.DB.Collection(collection)
+	_, err := col.UpdateOne(ctx,
+		bson.M{"workspaceId": workspaceID},
+		bson.M{"$set": bson.M{"name": name, "updatedAt": time.Now().UTC()}},
+	)
+	return err
+}
+
+// UpdateIngestKey sets the ingestKey on the workspace's ingestConfig subdocument.
+func (r *WorkspaceRepo) UpdateIngestKey(ctx context.Context, workspaceID, ingestKey string) error {
+	col := config.DB.Collection(collection)
+	_, err := col.UpdateOne(ctx,
+		bson.M{"workspaceId": workspaceID},
+		bson.M{"$set": bson.M{
+			"ingestConfig.ingestKey": ingestKey,
+			"updatedAt":              time.Now().UTC(),
+		}},
+	)
+	return err
+}
+
+// Delete hard-deletes a workspace record. Use only for standalone (non-klynx-provisioned) workspaces.
+func (r *WorkspaceRepo) Delete(ctx context.Context, workspaceID string) error {
+	col := config.DB.Collection(collection)
+	_, err := col.DeleteOne(ctx, bson.M{"workspaceId": workspaceID})
+	return err
+}
+
 func init() {
 	config.RegisterMongoBootstrap(func(ctx context.Context) error {
 		return NewWorkspaceRepo().EnsureIndexes(ctx)

@@ -28,7 +28,7 @@ func NewResourceGroupController(
 
 func (ctrl *ResourceGroupController) mustLocals(c fiber.Ctx) (tenantId, orgId, callerUserId string) {
 	tenantId, _ = c.Locals("tenantId").(string)
-	orgId, _ = c.Locals("activeOrg").(string)
+	orgId, _ = c.Locals("activeWorkspace").(string)
 	callerUserId, _ = c.Locals("userId").(string)
 	return
 }

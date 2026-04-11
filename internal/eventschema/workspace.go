@@ -4,7 +4,7 @@ package eventschema
 import "time"
 
 // OrgCreatedEvent is published by klynx-api on klynx.org.created.v1
-// when a new organization is created. phibek consumes this to provision a workspace.
+// when a new organization is created. EVENTS-api consumes this to provision a workspace.
 type OrgCreatedEvent struct {
 	OrgID     string    `json:"orgId"`
 	TenantID  string    `json:"tenantId"`
@@ -14,7 +14,7 @@ type OrgCreatedEvent struct {
 }
 
 // OrgDeletedEvent is published by klynx-api on klynx.org.deleted.v1
-// when an org is deleted or suspended. phibek suspends the linked workspace.
+// when an org is deleted or suspended. EVENTS-api suspends the linked workspace.
 type OrgDeletedEvent struct {
 	OrgID     string    `json:"orgId"`
 	TenantID  string    `json:"tenantId"`
@@ -22,7 +22,7 @@ type OrgDeletedEvent struct {
 	DeletedAt time.Time `json:"deletedAt"`
 }
 
-// WorkspaceProvisionedEvent is published by phibek on phibek.workspace.provisioned.v1
+// WorkspaceProvisionedEvent is published by EVENTS-api on gw.workspace.provisioned.v1
 // after a workspace is created. klynx-api consumes this to store workspaceId + eventIngestUri.
 type WorkspaceProvisionedEvent struct {
 	WorkspaceID    string    `json:"workspaceId"`

@@ -28,7 +28,7 @@ func RegisterResourceRoutes(router fiber.Router, c *appcontainer.Container) {
 		r.Use(middleware.AuthBearer())
 		r.Use(auditMiddleware)
 
-		protected := r.Group("/", middleware.ActiveOrg())
+		protected := r.Group("/", middleware.ActiveWorkspace())
 
 		// single create
 		protected.All("/", middleware.AllowMethods("GET", "POST"))
@@ -54,7 +54,7 @@ func RegisterResourceRoutes(router fiber.Router, c *appcontainer.Container) {
 		r.Use(middleware.AuthBearer())
 		r.Use(auditMiddleware)
 
-		protected := r.Group("/", middleware.ActiveOrg())
+		protected := r.Group("/", middleware.ActiveWorkspace())
 
 		// CRUD
 		protected.All("/", middleware.AllowMethods("GET", "POST"))
