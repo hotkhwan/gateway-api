@@ -4,6 +4,7 @@ package targetsvc
 import (
 	"context"
 	"errors"
+	"os"
 	"strings"
 	"time"
 
@@ -16,6 +17,19 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+// TargetRepoI is the repo subset used by TargetService.
+// *targetrepo.TargetRepo satisfies this interface.
+type TargetRepoI interface {
+	ExistsByNameInOrg(ctx context.Context, tenantId, orgId, name, excludeID string) (bool, error)
+	Insert(ctx context.Context, t *authzmod.DeliveryTarget) error
+	FindByIDAndOrg(ctx context.Context, targetId, tenantId, orgId string) (*authzmod.DeliveryTarget, error)
+	List(ctx context.Context, tenantId, orgId, search string, page, perPage int, sortField, sortOrder string) ([]authzmod.DeliveryTarget, int64, error)
+	Update(ctx context.Context, targetId, tenantId, orgId string, fields bson.M) error
+	Delete(ctx context.Context, targetId, tenantId, orgId string) error
+	CountByTypeAndOrg(ctx context.Context, tenantId, orgId, targetType string) (int64, error)
+	CountMessageChannelsByOrg(ctx context.Context, tenantId, orgId string) (int64, error)
+}
+
 // ============================================================
 // Input types
 // ============================================================
@@ -26,6 +40,7 @@ type CreateTargetInput struct {
 	UserId   string
 	Name     string
 	Type     string // webhook|line|telegram|discord
+	Mode     string // "klynx" = system routing marker; absent for regular targets
 	Enabled  bool
 	Config   authzmod.TargetConfig
 }
@@ -55,12 +70,12 @@ type ListTargetInput struct {
 // ============================================================
 
 type TargetService struct {
-	repo        *targetrepo.TargetRepo
+	repo        TargetRepoI
 	authzClient authzgw.Client
 	subSvc      *subscriptionsvc.SubscriptionService
 }
 
-func NewTargetService(repo *targetrepo.TargetRepo, authzClient authzgw.Client, subSvc *subscriptionsvc.SubscriptionService) *TargetService {
+func NewTargetService(repo TargetRepoI, authzClient authzgw.Client, subSvc *subscriptionsvc.SubscriptionService) *TargetService {
 	if repo == nil || authzClient == nil {
 		panic("TargetService: repo and authzClient required")
 	}
@@ -102,6 +117,19 @@ func (s *TargetService) Create(ctx context.Context, input CreateTargetInput) (*a
 		return nil, ErrBadRequest
 	}
 
+	// mode=klynx validation: system routing marker — no url/hmac, appliance-only
+	if input.Mode == "klynx" {
+		if input.Config.URL != "" {
+			return nil, ErrKlynxModeWithURL
+		}
+		if input.Config.SigningSecret != "" || input.Config.SigningEnabled {
+			return nil, ErrKlynxModeWithHMAC
+		}
+		if os.Getenv("DEPLOYMENT_PROFILE") == "saasPublic" {
+			return nil, ErrKlynxModeInSaasPublic
+		}
+	}
+
 	if err := s.checkAdmin(ctx, input.TenantId, input.OrgId, input.UserId); err != nil {
 		return nil, err
 	}
@@ -129,6 +157,7 @@ func (s *TargetService) Create(ctx context.Context, input CreateTargetInput) (*a
 		OrgId:     input.OrgId,
 		Name:      input.Name,
 		Type:      input.Type,
+		Mode:      input.Mode,
 		Enabled:   input.Enabled,
 		Config:    input.Config,
 		CreatedBy: input.UserId,

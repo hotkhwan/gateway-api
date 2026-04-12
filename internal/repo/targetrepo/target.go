@@ -159,3 +159,25 @@ func (r *TargetRepo) CountMessageChannelsByOrg(ctx context.Context, tenantId, or
 		"type":     bson.M{"$in": []string{"line", "discord", "telegram"}},
 	})
 }
+
+// HasKlynxTarget returns true when the workspace has at least one enabled mode=klynx target.
+// Used by normalizedcons to decide whether to route events via EventBridge.
+func (r *TargetRepo) HasKlynxTarget(ctx context.Context, orgId string) (bool, error) {
+	count, err := stomongo.Count(ctx, r.collection, bson.M{
+		"orgId":   orgId,
+		"mode":    "klynx",
+		"enabled": true,
+	})
+	return count > 0, err
+}
+
+// FindEnabledKlynxTargets returns all enabled mode=klynx targets for an org.
+func (r *TargetRepo) FindEnabledKlynxTargets(ctx context.Context, orgId string) ([]authzmod.DeliveryTarget, error) {
+	var results []authzmod.DeliveryTarget
+	err := stomongo.Find(ctx, r.collection, bson.M{
+		"orgId":   orgId,
+		"mode":    "klynx",
+		"enabled": true,
+	}, nil, &results)
+	return results, err
+}

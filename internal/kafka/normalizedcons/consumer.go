@@ -6,15 +6,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/eventschema"
+	"github.com/hotkhwan/gateway-api/internal/gateways/webhookgw"
 	"github.com/hotkhwan/gateway-api/internal/mqtt/alertmsg"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"github.com/segmentio/kafka-go"
 )
+
+// PublishCanonicalNotify implements CanonicalNotifier using alertmsg.
+func (a *alertmsgNotifier) PublishCanonicalNotify(workspaceID, sourceFamily, eventID string) error {
+	return alertmsg.PublishCanonicalNotify(workspaceID, sourceFamily, eventID)
+}
 
 // StartNormalizerConsumer starts consuming raw.events, normalizes each event,
 // writes to event_details (MongoDB) and publishes to normalized.events.
@@ -160,9 +167,12 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 
 	// 7b) Path A reconciliation — MQTT canonical notify (non-blocking, non-fatal)
 	// Allows UI to reconcile the provisional fast alert (Path A) with the canonical event.
-	go func() {
-		_ = alertmsg.PublishCanonicalNotify(orgId, canonical.SourceFamily, canonical.EventId)
-	}()
+	if deps.CanonicalNotifier != nil {
+		notifier := deps.CanonicalNotifier
+		go func() {
+			_ = notifier.PublishCanonicalNotify(orgId, canonical.SourceFamily, canonical.EventId)
+		}()
+	}
 
 	// 7c) If this was a DLQ retry that succeeded, mark DLQ message resolved.
 	if hdrs["dlqRetry"] == "true" && deps.DLQRepo != nil {
@@ -170,6 +180,12 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 		if uerr := deps.DLQRepo.UpdateStatus(ctx, tenantId, msgId, "resolved", 0); uerr != nil {
 			log.Warn().Str("messageId", msgId).Err(uerr).Msg("[normalizer] dlq resolve update failed")
 		}
+	}
+
+	// 7d) Normalize-stage binding dispatch — non-blocking, non-fatal.
+	// Lookup bindings where dispatchStage=normalize, evaluate matchFields, and POST to webhook targets.
+	if deps.BindingQuerier != nil && deps.TargetLookup != nil {
+		go dispatchNormalizeBindings(ctx, orgId, tenantId, event, deps)
 	}
 
 	// 8) Publish to normalized.events for downstream delivery
@@ -190,30 +206,45 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 
 	// 9) Profile-based klynx handoff
 	// appliance: EventBridge → Kafka internal (low latency, no HTTP)
+	//            only for workspaces that have a klynx-mode target (HasKlynxTarget check)
 	// saasPublic: publish to events.delivery.v1; klynxdeliverycons POSTs to klynx webhook
 	profile := os.Getenv("DEPLOYMENT_PROFILE")
 	if deps.EventBridgePub != nil && profile == "appliance" {
-		var rawRef string
-		if len(event.BinaryRefs) > 0 {
-			rawRef = event.BinaryRefs[0].ObjectId
+		// Gate EventBridge publish to workspaces with a klynx target configured.
+		shouldPublishBridge := true
+		if deps.KlynxTargetChecker != nil {
+			hasKlynx, checkErr := deps.KlynxTargetChecker.HasKlynxTarget(ctx, orgId)
+			if checkErr != nil {
+				log.Warn().Str("orgId", orgId).Err(checkErr).
+					Msg("[normalizer] klynx target check failed — skipping eventbridge")
+				shouldPublishBridge = false
+			} else {
+				shouldPublishBridge = hasKlynx
+			}
 		}
-		bridgeEvt := eventschema.NormalizedEvent{
-			EventID:       event.EventId,
-			SchemaVersion: "1.0",
-			WorkspaceID:   orgId,
-			OrgID:         orgId,
-			SourceType:    canonical.Source.DeviceType,
-			SourceFamily:  canonical.SourceFamily,
-			OccurredAt:    canonical.OccurredAt,
-			ReceivedAt:    event.Meta.NormalizedAt,
-			DeviceID:      canonical.Source.DeviceId,
-			MappedFields:  event.Payload,
-			RawPayloadRef: rawRef,
-			TraceID:       traceId,
-		}
-		if err := deps.EventBridgePub.Publish(ctx, bridgeEvt); err != nil {
-			log.Warn().Str("eventId", canonical.EventId).Err(err).
-				Msg("[normalizer] eventbridge publish failed (non-blocking)")
+		if shouldPublishBridge {
+			var rawRef string
+			if len(event.BinaryRefs) > 0 {
+				rawRef = event.BinaryRefs[0].ObjectId
+			}
+			bridgeEvt := eventschema.NormalizedEvent{
+				EventID:       event.EventId,
+				SchemaVersion: "1.0",
+				WorkspaceID:   orgId,
+				OrgID:         orgId,
+				SourceType:    canonical.Source.DeviceType,
+				SourceFamily:  canonical.SourceFamily,
+				OccurredAt:    canonical.OccurredAt,
+				ReceivedAt:    event.Meta.NormalizedAt,
+				DeviceID:      canonical.Source.DeviceId,
+				MappedFields:  event.Payload,
+				RawPayloadRef: rawRef,
+				TraceID:       traceId,
+			}
+			if err := deps.EventBridgePub.Publish(ctx, bridgeEvt); err != nil {
+				log.Warn().Str("eventId", canonical.EventId).Err(err).
+					Msg("[normalizer] eventbridge publish failed (non-blocking)")
+			}
 		}
 	} else if profile == "saasPublic" {
 		// Publish to events.delivery.v1; klynxdeliverycons handles HTTP delivery
@@ -323,4 +354,80 @@ func insertDLQ(
 			Msg("[normalizer] event sent to DLQ")
 	}
 
+}
+
+// dispatchNormalizeBindings fetches all normalize-stage bindings for the workspace,
+// evaluates matchFields against the event payload, and POSTs to each matching target.
+// Non-fatal: all failures are logged only.
+func dispatchNormalizeBindings(ctx context.Context, orgId, tenantId string, event *ingestmod.NormalizedEvent, deps ConsumerDeps) {
+	log := deps.Logger.With().
+		Str("eventId", event.EventId).
+		Str("orgId", orgId).
+		Logger()
+
+	bindings, err := deps.BindingQuerier.GetNormalizeBindings(ctx, orgId)
+	if err != nil {
+		log.Warn().Err(err).Msg("[normalizer] normalize bindings lookup failed (non-fatal)")
+		return
+	}
+	if len(bindings) == 0 {
+		return
+	}
+
+	payload, _ := json.Marshal(event)
+
+	for _, b := range bindings {
+		if !bindingMatchesFields(event.Payload, b.MatchFields) {
+			continue
+		}
+
+		target, err := deps.TargetLookup.FindByIDAndOrg(ctx, b.TargetID, tenantId, orgId)
+		if err != nil {
+			log.Warn().Err(err).Str("targetId", b.TargetID).
+				Msg("[normalizer] target lookup failed — skipping binding")
+			continue
+		}
+		if !target.Enabled {
+			continue
+		}
+
+		client := webhookgw.NewClient(target.Config)
+		if err := client.Send(ctx, event, payload); err != nil {
+			log.Warn().Err(err).
+				Str("targetId", b.TargetID).
+				Str("bindingId", b.ID).
+				Msg("[normalizer] normalize binding dispatch failed (non-fatal)")
+		} else {
+			log.Info().
+				Str("targetId", b.TargetID).
+				Str("bindingId", b.ID).
+				Msg("[normalizer] normalize binding dispatch OK")
+		}
+	}
+}
+
+// bindingMatchesFields returns true when all matchFields key=value conditions are satisfied.
+// An empty matchFields map passes all payloads (wildcard match).
+func bindingMatchesFields(eventPayload map[string]any, matchFields map[string]any) bool {
+	for k, v := range matchFields {
+		actual, ok := eventPayload[k]
+		if !ok {
+			return false
+		}
+		if bindingFieldString(actual) != bindingFieldString(v) {
+			return false
+		}
+	}
+	return true
+}
+
+func bindingFieldString(v any) string {
+	if v == nil {
+		return ""
+	}
+	if s, ok := v.(string); ok {
+		return s
+	}
+	b, _ := json.Marshal(v)
+	return strings.Trim(string(b), `"`)
 }

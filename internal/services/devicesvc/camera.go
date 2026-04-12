@@ -3,6 +3,7 @@ package devicesvc
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -91,6 +92,7 @@ func (s *CameraService) Create(ctx context.Context, input devmod.CreateCameraInp
 		return nil, err
 	}
 	dto := devicerepo.ToDTO(cam)
+	publishAssetsChanged(ctx, input.OrgID, camId, "create")
 	return &dto, nil
 }
 
@@ -209,6 +211,7 @@ func (s *CameraService) Update(ctx context.Context, tenantId, orgId, callerID, c
 		return err
 	}
 	log.Info().Str("camId", camId).Msg("✅ Camera updated")
+	publishAssetsChanged(ctx, orgId, camId, "update")
 	return nil
 }
 
@@ -230,5 +233,21 @@ func (s *CameraService) Delete(ctx context.Context, tenantId, orgId, callerID, c
 		return err
 	}
 	log.Info().Str("camId", camId).Msg("✅ Camera hard deleted")
+	publishAssetsChanged(ctx, orgId, camId, "delete")
 	return nil
+}
+
+// publishAssetsChanged fires a non-blocking Kafka publish to gw.assets.changed.v1.
+// Non-fatal: errors are logged only.
+func publishAssetsChanged(ctx context.Context, orgId, assetId, action string) {
+	topic := config.TopicEnv("KAFKA_TOPIC_GW_ASSETS", "gw.assets.changed.v1")
+	payload, _ := json.Marshal(map[string]any{
+		"orgId":   orgId,
+		"assetId": assetId,
+		"action":  action,
+	})
+	headers := map[string]string{"orgId": orgId, "action": action}
+	go func() {
+		_ = config.SendToKafkaWithCtx(context.Background(), topic, orgId, payload, headers)
+	}()
 }

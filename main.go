@@ -311,6 +311,9 @@ func main() {
 	// ---------- Delivery Targets domain ----------
 	router.RegisterTargetsRoutes(api, container)
 
+	// ---------- Workspace-scoped resources (targets, bindings, ingest/msg templates) ----------
+	router.RegisterWorkspaceResourceRoutes(api, container)
+
 	iwownapi := app.Group(iwownPath)
 	router.RegisterHookIwownAPI(iwownapi)
 

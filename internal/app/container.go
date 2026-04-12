@@ -7,19 +7,29 @@ import (
 
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/controllers/authzapi"
+	"github.com/hotkhwan/gateway-api/controllers/bindingapi"
 	"github.com/hotkhwan/gateway-api/controllers/deviceapi"
 	"github.com/hotkhwan/gateway-api/controllers/ingestapi"
+	"github.com/hotkhwan/gateway-api/controllers/ingesttmplapi"
+	"github.com/hotkhwan/gateway-api/controllers/msgtmplapi"
 	"github.com/hotkhwan/gateway-api/controllers/subapi"
 	"github.com/hotkhwan/gateway-api/controllers/targetapi"
 	"github.com/hotkhwan/gateway-api/controllers/workspaceapi"
+	"github.com/hotkhwan/gateway-api/controllers/wstargetapi"
 	"github.com/hotkhwan/gateway-api/internal/adapters/alertdispatcher"
 	"github.com/hotkhwan/gateway-api/internal/eventbridge"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
 	"github.com/hotkhwan/gateway-api/internal/mqtt/alertmsg"
+	"github.com/hotkhwan/gateway-api/internal/repo/bindingrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingesttmplrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/msgtmplrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/workspacerepo"
 	"github.com/hotkhwan/gateway-api/internal/services/alertdetectorsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/bindingsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/entitlementsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/ingesttmplsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/msgtmplsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/workspacesvc"
 	"github.com/hotkhwan/gateway-api/internal/kafka/deliverycons"
 	"github.com/hotkhwan/gateway-api/internal/kafka/normalizedcons"
@@ -148,9 +158,24 @@ type Container struct {
 	SubscriptionService    *subscriptionsvc.SubscriptionService
 	SubscriptionController *subapi.SubscriptionController
 
-	// ===== Delivery Targets domain =====
+	// ===== Delivery Targets domain (org-scoped legacy) =====
 	TargetService    *targetsvc.TargetService
 	TargetController *targetapi.TargetController
+
+	// ===== Workspace-scoped Delivery Targets =====
+	WsTargetController *wstargetapi.WsTargetController
+
+	// ===== Delivery Bindings domain =====
+	BindingService    *bindingsvc.BindingService
+	BindingController *bindingapi.BindingController
+
+	// ===== Ingest Templates domain =====
+	IngestTemplateService    *ingesttmplsvc.IngestTemplateService
+	IngestTemplateController *ingesttmplapi.IngestTemplateController
+
+	// ===== Message Templates domain =====
+	MsgTemplateService    *msgtmplsvc.MsgTemplateService
+	MsgTemplateController *msgtmplapi.MsgTemplateController
 }
 
 // NewContainer — เรียกครั้งเดียวใน main.go
@@ -171,6 +196,7 @@ func NewContainer() *Container {
 	c.buildAlertDispatcher()
 	c.buildEvents()
 	c.buildTargets()
+	c.buildWorkspaceResources()
 	c.buildTemplate()
 	c.buildBulk()
 	c.buildNormalizer()
@@ -361,6 +387,36 @@ func (c *Container) buildTargets() {
 }
 
 // ============================================================
+// buildWorkspaceResources — workspace-scoped resource domains
+// ============================================================
+
+func (c *Container) buildWorkspaceResources() {
+	// Workspace-scoped delivery targets — reuse TargetService
+	c.WsTargetController = wstargetapi.NewWsTargetController(c.TargetService)
+
+	// Delivery Bindings
+	bindRepo := bindingrepo.NewBindingRepo()
+	c.BindingService = bindingsvc.NewBindingService(bindRepo, config.Redis)
+	c.BindingController = bindingapi.NewBindingController(c.BindingService)
+
+	// Wire realtime binding cache into IngestController
+	c.IngestController.SetBindingService(c.BindingService)
+
+	// Warm realtime binding cache at startup (non-fatal)
+	c.BindingService.WarmRealtimeCacheOnStartup(context.Background())
+
+	// Ingest Templates
+	ingestTmplRepo := ingesttmplrepo.NewIngestTemplateRepo()
+	c.IngestTemplateService = ingesttmplsvc.NewIngestTemplateService(ingestTmplRepo)
+	c.IngestTemplateController = ingesttmplapi.NewIngestTemplateController(c.IngestTemplateService)
+
+	// Message Templates
+	msgTmplRepo := msgtmplrepo.NewMsgTemplateRepo()
+	c.MsgTemplateService = msgtmplsvc.NewMsgTemplateService(msgTmplRepo)
+	c.MsgTemplateController = msgtmplapi.NewMsgTemplateController(c.MsgTemplateService)
+}
+
+// ============================================================
 // buildEvents — Event Management domain
 // ============================================================
 
@@ -436,16 +492,22 @@ func (c *Container) buildNormalizer() {
 		ebPub = eventbridge.NewKafkaEventBridgePublisher()
 	}
 
+	tgtRepo := targetrepo.NewTargetRepo()
+
 	c.NormalizerDeps = normalizedcons.ConsumerDeps{
-		EventDetailsRepo: ingestdetailsrepo.NewEventDetailsRepo(),
-		TemplateRepo:     ingestrepo.NewMappingTemplateRepo(),
-		DLQRepo:          dlqrepo.NewDLQRepo(),
-		GeoCfg:           normalizedcons.DefaultGeoConfig(),
-		S3BucketKey:      os.Getenv("S3_EVENTS_BUCKET_KEY"),
-		Logger:           logger.WithMeta("normalizer", "consumer"),
-		EntitlementSvc:   c.EntitlementService,
-		IngestAuthzGw:    c.IngestAuthzGw,
-		EventBridgePub:   ebPub,
+		EventDetailsRepo:   ingestdetailsrepo.NewEventDetailsRepo(),
+		TemplateRepo:       ingestrepo.NewMappingTemplateRepo(),
+		DLQRepo:            dlqrepo.NewDLQRepo(),
+		GeoCfg:             normalizedcons.DefaultGeoConfig(),
+		S3BucketKey:        os.Getenv("S3_EVENTS_BUCKET_KEY"),
+		Logger:             logger.WithMeta("normalizer", "consumer"),
+		EntitlementSvc:     c.EntitlementService,
+		IngestAuthzGw:      c.IngestAuthzGw,
+		EventBridgePub:     ebPub,
+		CanonicalNotifier:  normalizedcons.NewAlertmsgNotifier(),
+		BindingQuerier:     c.BindingService,
+		KlynxTargetChecker: tgtRepo,
+		TargetLookup:       tgtRepo,
 	}
 }
 
