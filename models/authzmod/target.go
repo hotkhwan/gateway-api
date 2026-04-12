@@ -107,8 +107,9 @@ type DeliveryTarget struct {
 	OrgId    string `bson:"orgId"    json:"orgId"`
 
 	Name    string `bson:"name"    json:"name"`
-	Type    string `bson:"type"    json:"type"`    // webhook|line|telegram|discord
-	Enabled bool   `bson:"enabled" json:"enabled"` // default true
+	Type    string `bson:"type"    json:"type"`              // webhook|line|telegram|discord
+	Mode    string `bson:"mode,omitempty" json:"mode,omitempty"` // "klynx" = system routing marker (EventBridge); absent for regular targets
+	Enabled bool   `bson:"enabled" json:"enabled"`           // default true
 
 	Config TargetConfig `bson:"config" json:"config"`
 

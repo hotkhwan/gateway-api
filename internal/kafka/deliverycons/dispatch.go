@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/gateways/discordgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/linegw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/telegw"
@@ -109,6 +110,7 @@ func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, de
 				Str("targetId", tdt.TargetId).
 				Str("type", target.Type).
 				Msg("[delivery] dispatched successfully")
+			publishDeliveryStatus(ctx, event, tdt.TargetId, target.Type, "success", "")
 			continue
 		}
 
@@ -118,6 +120,7 @@ func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, de
 			Err(dispErr).
 			Msg("[delivery] dispatch failed — inserting DLQ")
 
+		publishDeliveryStatus(ctx, event, tdt.TargetId, target.Type, "failed", dispErr.Error())
 		insertDeliveryDLQ(ctx, deps, event, tmpl, tdt.TargetId, payload, dispErr.Error())
 	}
 }
@@ -289,4 +292,28 @@ func isMongoDupKey(err error) bool {
 		}
 	}
 	return false
+}
+
+// publishDeliveryStatus fires a non-blocking Kafka publish to gw.delivery.status.v1.
+// Non-fatal: errors are silently discarded.
+func publishDeliveryStatus(ctx context.Context, event *ingestmod.NormalizedEvent, targetId, targetType, status, errMsg string) {
+	topic := config.TopicEnv("KAFKA_TOPIC_GW_DELIVERY_STATUS", "gw.delivery.status.v1")
+	payload, _ := json.Marshal(map[string]any{
+		"eventId":    event.EventId,
+		"orgId":      event.Source.OrgId,
+		"tenantId":   event.TenantId,
+		"targetId":   targetId,
+		"targetType": targetType,
+		"status":     status,
+		"error":      errMsg,
+	})
+	headers := map[string]string{
+		"eventId":  event.EventId,
+		"orgId":    event.Source.OrgId,
+		"status":   status,
+		"targetId": targetId,
+	}
+	go func() {
+		_ = config.SendToKafkaWithCtx(context.Background(), topic, event.Source.OrgId, payload, headers)
+	}()
 }

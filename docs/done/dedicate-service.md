@@ -217,22 +217,25 @@ type NormalizedEvent struct {
 | Topic | Producer | Consumer | หน้าที่ |
 |-------|----------|----------|---------|
 | `phibek.raw.events.v1` | phibek ingest controllers | phibek normalizedcons | raw event buffer |
-| `phibek.delivery.events.v1` | phibek normalizedcons | phibek deliverycons | delivery queue |
+| `gw.delivery.events.v1` | phibek normalizedcons | phibek deliverycons | delivery queue |
 
 **phibek → klynx (cross-service):**
 
 | Topic | Producer | Consumer | หน้าที่ |
 |-------|----------|----------|---------|
-| `phibek.events.normalized.v1` | **phibek** | klynx-api | normalized event handoff |
-| `phibek.assets.changed.v1` | **phibek** | klynx-api | asset state change |
-| `phibek.sources.changed.v1` | **phibek** | klynx-api | source state change |
-| `phibek.delivery.status.v1` | **phibek** | klynx-api | delivery outcome |
+| `gw.events.normalized.v1` | **phibek** | klynx-api | normalized event handoff |
+| `gw.assets.changed.v1` | **phibek** | klynx-api | asset state change |
+| `gw.sources.changed.v1` | **phibek** | klynx-api | source state change |
+| `gw.delivery.status.v1` | **phibek** | klynx-api | delivery outcome |
+| `gw.workspace.provisioned.v1` | **phibek** | klynx-api | workspaceId + eventIngestUri ack กลับหา klynx |
 
 **klynx → phibek (control/config):**
 
 | Topic | Producer | Consumer | หน้าที่ |
 |-------|----------|----------|---------|
 | `klynx.entitlement.snapshot.v1` | **klynx-api** | phibek | runtime entitlement cache |
+| `klynx.org.created.v1` | **klynx-api** | phibek | trigger workspace provisioning |
+| `klynx.org.deleted.v1` | **klynx-api** | phibek | trigger workspace teardown |
 
 > **หมายเหตุ migration:** ระหว่าง transition อาจยังมี `raw.events` จาก klynx-api เดิม — ให้ phibek consume ต่อ แต่ target state คือ phibek เป็น producer ของ raw events เอง (webhook controllers ย้ายมา phibek)
 
@@ -415,7 +418,7 @@ External Sources
     ↓ entitlement gate (Redis TTL cache)
     ↓ authz gate (Permify: canIngest)
     ↓ publish via EventBridgePublisher
-[topic: phibek.events.normalized.v1]   ← Appliance Profile only
+[topic: gw.events.normalized.v1]   ← Appliance Profile only
     ↓
 [klynx-api consumer]                    ← receives only from phibek
 ```
@@ -433,7 +436,7 @@ type EventBridgePublisher interface {
 }
 
 func NewKafkaEventBridgePublisher(writer *kafka.Writer) EventBridgePublisher {
-    return &KafkaPublisher{writer: writer, topic: "phibek.events.normalized.v1"}
+    return &KafkaPublisher{writer: writer, topic: "gw.events.normalized.v1"}
 }
 ```
 
@@ -449,7 +452,7 @@ case "saasPublic":
     // klynx เป็น delivery target ธรรมดา — ไม่ special-case
     // deliveryOrchestrator จะ route ตาม workspace deliveryTarget config
     // (klynx webhook target ถูก config ระดับ workspace/platform)
-    kafkaPublisher.Publish(ctx, "phibek.delivery.events.v1", normalizedEvent)
+    kafkaPublisher.Publish(ctx, "gw.delivery.events.v1", normalizedEvent)
 }
 ```
 
@@ -465,37 +468,37 @@ case "saasPublic":
 
 | Topic | Consumer Group | Handler | หน้าที่ |
 |-------|---------------|---------|---------|
-| `phibek.events.normalized.v1` | `klynx-phibek-events-grp` | `phibekconsumer` → `ingestFacade` | รับ normalized event จาก phibek → process ผ่าน ingestsvc |
-| `phibek.assets.changed.v1` | `klynx-phibek-assets-grp` | `phibekassetcons` → `assetsvc` | sync asset state change (camera online/offline, metadata update) |
-| `phibek.sources.changed.v1` | `klynx-phibek-sources-grp` | `phibeksourcecons` → อัปเดต org config | sync source state change ให้ UI รู้ว่า source ของ workspace เปลี่ยน |
-| `phibek.delivery.status.v1` | `klynx-phibek-delivery-grp` | `phibekdeliverycons` → audit log | track delivery outcome (delivered/retrying/dlq) ให้ admin monitor |
-| `phibek.workspace.provisioned.v1` | `klynx-workspace-prov-grp` | `workspaceprovcons` → orgrepo update | รับ workspaceId + eventIngestUri กลับ → update org record |
+| `gw.events.normalized.v1` | `klynx-gw-events-grp` | `gweventscons` → `ingestFacade` | รับ normalized event จาก phibek → process ผ่าน ingestsvc |
+| `gw.assets.changed.v1` | `klynx-gw-assets-grp` | `gwassetcons` → `assetsvc` | sync asset state change (camera online/offline, metadata update) |
+| `gw.sources.changed.v1` | `klynx-gw-sources-grp` | `gwsourcecons` → `orgSvc.UpdateSourceConfig(ctx, msg)` | sync source state change ให้ UI รู้ว่า source ของ workspace เปลี่ยน |
+| `gw.delivery.status.v1` | `klynx-gw-delivery-grp` | `gwdeliverycons` → audit log | track delivery outcome (delivered/retrying/dlq) ให้ admin monitor |
+| `gw.workspace.provisioned.v1` | `klynx-gw-workspace-prov-grp` | `workspaceprovcons` → orgrepo update | รับ workspaceId + eventIngestUri กลับ → update org record |
 
 **Consumer pattern (ทุก consumer ใช้ pattern เดียวกัน):**
 
 ```go
-// klynx-api/internal/kafka/phibekconsumer/consumer.go
+// klynx-api/internal/kafka/gweventscons/consumer.go
 func StartKafkaConnectors(brokers []string, facade *IngestFacade, assetSvc AssetService, ...) {
     // Topic 1: Normalized events (หลัก)
-    go kafka.StartConsumerWithHeaders(brokers, "phibek.events.normalized.v1", "klynx-phibek-events-grp",
+    go kafka.StartConsumerWithHeaders(brokers, "gw.events.normalized.v1", "klynx-gw-events-grp",
         func(msg NormalizedEvent, headers map[string]string) error {
             parentCtx := traceutil.ExtractHeaders(context.Background(), headers)
-            ctx, end, _ := traceutil.StartLite(parentCtx, "klynx.phibekconsumer", "normalized.consume", "phibekconsumer", "events")
+            ctx, end, _ := traceutil.StartLite(parentCtx, "klynx.gweventscons", "normalized.consume", "gweventscons", "events")
             defer end()
             return facade.HandleEvent(ctx, msg)
         })
 
     // Topic 2: Asset state changes
-    go kafka.StartConsumerWithHeaders(brokers, "phibek.assets.changed.v1", "klynx-phibek-assets-grp",
+    go kafka.StartConsumerWithHeaders(brokers, "gw.assets.changed.v1", "klynx-gw-assets-grp",
         func(msg AssetChangedEvent, headers map[string]string) error {
             parentCtx := traceutil.ExtractHeaders(context.Background(), headers)
-            ctx, end, _ := traceutil.StartLite(parentCtx, "klynx.phibekassetcons", "asset.consume", "phibekassetcons", "assets")
+            ctx, end, _ := traceutil.StartLite(parentCtx, "klynx.gwassetcons", "asset.consume", "gwassetcons", "assets")
             defer end()
-            return assetSvc.SyncFromPhibek(ctx, msg)
+            return assetSvc.SyncFromGW(ctx, msg)
         })
 
     // Topic 3: Workspace provisioned ack
-    go kafka.StartConsumerWithHeaders(brokers, "phibek.workspace.provisioned.v1", "klynx-workspace-prov-grp",
+    go kafka.StartConsumerWithHeaders(brokers, "gw.workspace.provisioned.v1", "klynx-gw-workspace-prov-grp",
         func(msg WorkspaceProvisionedEvent, headers map[string]string) error {
             parentCtx := traceutil.ExtractHeaders(context.Background(), headers)
             ctx, end, _ := traceutil.StartLite(parentCtx, "klynx.workspaceprovcons", "workspace.provisioned", "workspaceprovcons", "handler")
@@ -504,10 +507,10 @@ func StartKafkaConnectors(brokers []string, facade *IngestFacade, assetSvc Asset
         })
 
     // Topic 4: Delivery status (audit only — ไม่ต้อง block)
-    go kafka.StartConsumerWithHeaders(brokers, "phibek.delivery.status.v1", "klynx-phibek-delivery-grp",
+    go kafka.StartConsumerWithHeaders(brokers, "gw.delivery.status.v1", "klynx-gw-delivery-grp",
         func(msg DeliveryStatusEvent, headers map[string]string) error {
             parentCtx := traceutil.ExtractHeaders(context.Background(), headers)
-            ctx, end, _ := traceutil.StartLite(parentCtx, "klynx.phibekdeliverycons", "delivery.status", "phibekdeliverycons", "handler")
+            ctx, end, _ := traceutil.StartLite(parentCtx, "klynx.gwdeliverycons", "delivery.status", "gwdeliverycons", "handler")
             defer end()
             return auditSvc.RecordDeliveryStatus(ctx, msg)
         })
@@ -530,38 +533,49 @@ func StartKafkaConnectors(brokers []string, facade *IngestFacade, assetSvc Asset
 
 | Endpoint | Method | Handler | หน้าที่ |
 |----------|--------|---------|---------|
-| `/phibek/events` | POST | `phibekwebhook.ReceiveEvent` | รับ normalized event จาก phibek deliveryOrchestrator |
-| `/phibek/assets/changed` | POST | `phibekwebhook.ReceiveAssetChanged` | รับ asset state change จาก phibek |
-| `/phibek/sources/changed` | POST | `phibekwebhook.ReceiveSourceChanged` | รับ source state change จาก phibek |
-| `/phibek/delivery/status` | POST | `phibekwebhook.ReceiveDeliveryStatus` | รับ delivery outcome จาก phibek (audit) |
-| `/phibek/workspace/provisioned` | POST | `phibekwebhook.ReceiveWorkspaceProvisioned` | รับ workspaceId + eventIngestUri กลับ |
+| `/gw/events` | POST | `gwwebhook.ReceiveEvent` | รับ normalized event จาก phibek deliveryOrchestrator |
+| `/gw/assets/changed` | POST | `gwwebhook.ReceiveAssetChanged` | รับ asset state change จาก phibek |
+| `/gw/sources/changed` | POST | `gwwebhook.ReceiveSourceChanged` | รับ source state change จาก phibek |
+| `/gw/delivery/status` | POST | `gwwebhook.ReceiveDeliveryStatus` | รับ delivery outcome จาก phibek (audit) |
+| `/gw/workspace/provisioned` | POST | `gwwebhook.ReceiveWorkspaceProvisioned` | รับ workspaceId + eventIngestUri กลับ |
 
 **ทุก endpoint ต้องผ่าน HMAC verification middleware ก่อน:**
 
 ```go
 // klynx-api/internal/router — saasPublic only
-phibek := r.Group("/phibek", middleware.VerifyPhibekHMAC())
-phibek.Post("/events",                 phibekwebhook.ReceiveEvent)
-phibek.Post("/assets/changed",         phibekwebhook.ReceiveAssetChanged)
-phibek.Post("/sources/changed",        phibekwebhook.ReceiveSourceChanged)
-phibek.Post("/delivery/status",        phibekwebhook.ReceiveDeliveryStatus)
-phibek.Post("/workspace/provisioned",  phibekwebhook.ReceiveWorkspaceProvisioned)
+gw := r.Group("/gw")
+gw.All("/events",                middleware.AllowMethods("POST"), middleware.VerifyGwHMAC())
+gw.All("/assets/changed",        middleware.AllowMethods("POST"), middleware.VerifyGwHMAC())
+gw.All("/sources/changed",       middleware.AllowMethods("POST"), middleware.VerifyGwHMAC())
+gw.All("/delivery/status",       middleware.AllowMethods("POST"), middleware.VerifyGwHMAC())
+gw.All("/workspace/provisioned", middleware.AllowMethods("POST"), middleware.VerifyGwHMAC())
+
+gw.Post("/events",                gwwebhook.ReceiveEvent)
+gw.Post("/assets/changed",        gwwebhook.ReceiveAssetChanged)
+gw.Post("/sources/changed",       gwwebhook.ReceiveSourceChanged)
+gw.Post("/delivery/status",       gwwebhook.ReceiveDeliveryStatus)
+gw.Post("/workspace/provisioned", gwwebhook.ReceiveWorkspaceProvisioned)
 ```
 
 **HMAC Middleware:**
 
 ```go
-// middleware/phibekhmac.go
-func VerifyPhibekHMAC() fiber.Handler {
-    secret := config.PhibekWebhookSecret // PHIBEK_WEBHOOK_SECRET env
+// middleware/gwhmac.go
+func VerifyGwHMAC() fiber.Handler {
+    secret := config.GwWebhookSecret // GW_WEBHOOK_SECRET env
     return func(c *fiber.Ctx) error {
-        ts  := c.Get("X-Phibek-Timestamp")
-        sig := strings.TrimPrefix(c.Get("X-Phibek-Signature"), "sha256=")
+        ts  := c.Get("X-Gw-Timestamp")
+        sig := strings.TrimPrefix(c.Get("X-Gw-Signature"), "sha256=")
         body := c.Body()
 
+        // early reject: missing headers
+        if ts == "" || sig == "" {
+            return httputil.Unauthorized(c, "missing phibek signature headers")
+        }
+
         // anti-replay: reject > 5 min
-        tsInt, _ := strconv.ParseInt(ts, 10, 64)
-        if time.Now().Unix()-tsInt > 300 {
+        tsInt, err := strconv.ParseInt(ts, 10, 64)
+        if err != nil || time.Now().Unix()-tsInt > 300 {
             return httputil.Unauthorized(c, "webhook timestamp expired")
         }
 
@@ -578,7 +592,7 @@ func VerifyPhibekHMAC() fiber.Handler {
 **Webhook handler pattern:**
 
 ```go
-// klynx-api/controllers/phibekwebhook/receiver.go
+// klynx-api/controllers/gwwebhook/receiver.go
 // ReceiveEvent godoc
 // @Summary      Receive normalized event from phibek
 // @Tags         PhibekConnector
@@ -589,9 +603,9 @@ func VerifyPhibekHMAC() fiber.Handler {
 // @Failure      400   {object}  gmod.ErrorResponse
 // @Failure      401   {object}  gmod.ErrorResponse
 // @Failure      500   {object}  gmod.ErrorResponse
-// @Router       /phibek/events [post]
+// @Router       /gw/events [post]
 func ReceiveEvent(c *fiber.Ctx) error {
-    ctx, end, _ := traceutil.StartLite(c.UserContext(), "klynx.phibekwebhook", "phibekwebhook.ReceiveEvent", "phibekwebhook", "ReceiveEvent")
+    ctx, end, _ := traceutil.StartLite(c.UserContext(), "klynx.gwwebhook", "gwwebhook.ReceiveEvent", "gwwebhook", "ReceiveEvent")
     defer end()
 
     var event NormalizedEvent
@@ -617,7 +631,7 @@ func ReceiveEvent(c *fiber.Ctx) error {
 DEPLOYMENT_PROFILE=saasPublic         # appliance | saasPublic
 
 # saasPublic: secret ที่ phibek ใช้ sign webhook ขาเข้า
-PHIBEK_WEBHOOK_SECRET=<hmac_secret>   # ต้อง match กับ KLYNX_DELIVERY_WEBHOOK_SECRET ใน phibek
+GW_WEBHOOK_SECRET=<hmac_secret>   # ต้อง match กับ KLYNX_DELIVERY_WEBHOOK_SECRET ใน phibek
 
 # Appliance: Kafka brokers (ใช้เฉพาะ appliance profile)
 # KAFKA_BROKERS=localhost:9092        # commented out ใน saasPublic
@@ -634,24 +648,99 @@ facade := eventbridge.NewIngestFacade(container.IngestSvc)
 
 switch profile {
 case "saasPublic":
-    // Webhook endpoints registered in router (phibek calls us)
-    // Publish entitlement snapshots ผ่าน webhook callback (หรือ API) แทน Kafka
-    log.Info().Str("profile", "saasPublic").Msg("klynx running as phibek delivery target")
+    // Webhook endpoints registered in router (gw calls us via deliveryOrchestrator)
+    // saasPublic entitlement sync: klynx calls POST /klynx/entitlement/sync on phibek
+    // ดูรายละเอียด Phase 4.0d
+    log.Info().Str("profile", "saasPublic").Msg("klynx running as gw delivery target")
 
 default: // "appliance"
-    // Start all Kafka consumers
-    go phibekconsumer.StartKafkaConnectors(
-        config.KafkaBrokers,
-        facade,
-        container.AssetSvc,
-        container.OrgSvc,
-        container.AuditSvc,
-    )
-    // Start entitlement publisher (publish snapshots to phibek via Kafka)
+    // Start consumers แยกทีละ package (modular — ตาม klynx-api implementation)
+    go gweventscons.StartNormalizedEventsConsumer(facade)
+    go gwassetcons.StartAssetChangedConsumer(container.AssetSvc)
+    go gwsourcecons.StartSourceChangedConsumer(container.OrgSvc)
+    go gwdeliverycons.StartDeliveryStatusConsumer(container.AuditSvc)
+    go workspaceprovcons.StartWorkspaceProvisionedConsumer(container.OrgSvc)
+    // Start entitlement publisher (publish snapshots to gw via Kafka)
     go entitlementpub.StartPublisher(config.KafkaBrokers, container.EntitlementSvc)
     log.Info().Str("profile", "appliance").Msg("klynx running with Kafka EventBridge")
 }
 ```
+
+---
+
+### 4.0d saasPublic Entitlement Sync (G-1)
+
+> **ปัญหา:** ใน `saasPublic` ไม่มี shared Kafka — klynx-api ไม่สามารถ publish `klynx.entitlement.snapshot.v1` ผ่าน Kafka ได้
+
+**Design: klynx-api push entitlement snapshot → phibek via HTTPS webhook**
+
+```
+klynx-api (commercial plan changes)
+    └─ entitlementsvc.BuildSnapshot(ctx, workspaceId)
+       └─ POST https://api.phibek.io/klynx/entitlement/sync
+          X-Klynx-Timestamp: <unix>
+          X-Klynx-Signature: sha256=<hmac>
+          Body: EntitlementSnapshot JSON
+               │
+               ▼
+          phibek: POST /klynx/entitlement/sync
+               └─ entitlementsvc.HandleSnapshot(ctx, snapshot)
+                  └─ Redis TTL cache (same as appliance Kafka path)
+```
+
+**phibek endpoint (saasPublic เท่านั้น):**
+
+| Method | Path | Handler | หน้าที่ |
+|--------|------|---------|--------|
+| POST | `/klynx/entitlement/sync` | `klynxwebhook.ReceiveEntitlementSync` | รับ entitlement snapshot จาก klynx → cache Redis |
+
+```go
+// router — saasPublic only
+klynxRoutes := r.Group("/klynx")
+klynxRoutes.All("/entitlement/sync", middleware.AllowMethods("POST"), middleware.VerifyKlynxHMAC())
+klynxRoutes.Post("/entitlement/sync", klynxwebhook.ReceiveEntitlementSync)
+```
+
+```go
+// controllers/klynxwebhook/receiveEntitlementSync.go
+func ReceiveEntitlementSync(c *fiber.Ctx) error {
+    ctx, end, _ := traceutil.StartLite(c.UserContext(), "phibek.klynxwebhook",
+        "klynxwebhook.ReceiveEntitlementSync", "klynxwebhook", "ReceiveEntitlementSync")
+    defer end()
+
+    var snapshot EntitlementSnapshot
+    if err := c.BodyParser(&snapshot); err != nil {
+        return httputil.BadRequest(c, "invalid entitlement payload")
+    }
+    if err := entitlementSvc.HandleSnapshot(ctx, snapshot); err != nil {
+        return httputil.InternalServerError(c, "failed to cache entitlement")
+    }
+    return httputil.Ok(c, fiber.Map{"workspaceId": snapshot.WorkspaceID})
+}
+```
+
+**HMAC pattern (mirror of phibek→klynx):**
+- klynx-api signs with `PHIBEK_ENTITLEMENT_WEBHOOK_SECRET` (shared secret)
+- phibek verifies with `middleware.VerifyKlynxHMAC()` — same anti-replay pattern as `VerifyGwHMAC()`
+- Headers: `X-Klynx-Timestamp`, `X-Klynx-Signature: sha256=<hmac>`
+
+**Trigger (klynx-api side):**
+- เมื่อ commercial plan เปลี่ยน → klynx calls phibek API (แทน Kafka publish)
+- Profile guard: `if profile == "saasPublic" { pushToPhibe() } else { kafkaPub.Publish() }`
+
+**env vars เพิ่มเติม:**
+```env
+# phibek .env (saasPublic)
+KLYNX_ENTITLEMENT_WEBHOOK_SECRET=<hmac_secret>  # ต้อง match PHIBEK_ENTITLEMENT_WEBHOOK_SECRET ใน klynx
+
+# klynx .env (saasPublic)
+PHIBEK_ENTITLEMENT_WEBHOOK_URL=https://api.phibek.io/klynx/entitlement/sync
+PHIBEK_ENTITLEMENT_WEBHOOK_SECRET=<hmac_secret>
+```
+
+**Checklist additions (saasPublic profile):**
+- [ ] **P-E1** สร้าง `controllers/klynxwebhook/receiveEntitlementSync.go` — handler + HMAC verify
+- [ ] **K-E1** klynx-api: push entitlement snapshot → phibek API แทน Kafka ใน saasPublic profile
 
 ---
 
@@ -687,12 +776,12 @@ func (f *IngestFacade) HandleEvent(ctx context.Context, event NormalizedEvent) e
 **Connector 1 — Kafka:**
 
 ```go
-// klynx-api/internal/kafka/phibekconsumer/consumer.go
-func StartKafkaConnector(brokers []string, facade *IngestFacade) {
-    kafka.StartConsumerWithHeaders(brokers, "phibek.events.normalized.v1", "klynx-phibek-grp",
+// klynx-api/internal/kafka/gweventscons/consumer.go
+func StartNormalizedEventsConsumer(facade *IngestFacade) {
+    go kafka.StartConsumerWithHeaders(broker, "gw.events.normalized.v1", "klynx-gw-events-grp",
         func(msg NormalizedEvent, headers map[string]string) error {
             parentCtx := traceutil.ExtractHeaders(context.Background(), headers)
-            ctx, end, _ := traceutil.StartLite(parentCtx, "klynx.phibekconsumer", "phibek.consume", "phibekconsumer", "handler")
+            ctx, end, _ := traceutil.StartLite(parentCtx, "klynx.gweventscons", "normalized.consume", "gweventscons", "events")
             defer end()
             return facade.HandleEvent(ctx, msg)
         })
@@ -702,10 +791,10 @@ func StartKafkaConnector(brokers []string, facade *IngestFacade) {
 **Connector 2 — Webhook receiver:**
 
 ```go
-// klynx-api/controllers/phibekwebhook/receiver.go
+// klynx-api/controllers/gwwebhook/receiver.go
 // รับ event จาก phibek SaaS ผ่าน HTTPS webhook + HMAC verification
-func ReceivePhibekEvent(c *fiber.Ctx) error {
-    ctx, end, _ := traceutil.StartLite(c.UserContext(), "klynx.phibekwebhook", "phibekwebhook.Receive", "phibekwebhook", "Receive")
+func ReceiveEvent(c *fiber.Ctx) error {
+    ctx, end, _ := traceutil.StartLite(c.UserContext(), "klynx.gwwebhook", "gwwebhook.ReceiveEvent", "gwwebhook", "ReceiveEvent")
     defer end()
     // verify HMAC signature
     // parse NormalizedEvent
@@ -721,19 +810,21 @@ func ReceivePhibekEvent(c *fiber.Ctx) error {
 
 ```go
 // main.go หรือ container.go
-// appliance: klynx-api consume จาก phibek Kafka EventBridge
-// saasPublic: klynx-api รับผ่าน webhook receiver (phibek เป็น caller ผ่าน deliveryOrchestrator)
+// appliance: klynx-api consume จาก gw Kafka EventBridge
+// saasPublic: klynx-api รับผ่าน webhook receiver (gw เป็น caller ผ่าน deliveryOrchestrator)
 profile := os.Getenv("DEPLOYMENT_PROFILE") // "appliance" | "saasPublic"
 facade := eventbridge.NewIngestFacade(container.IngestSvc)
 switch profile {
 case "saasPublic":
-    // webhook receiver registered in router — phibek calls us via deliveryOrchestrator
+    // webhook receiver registered in router — gw calls us via deliveryOrchestrator
     // no extra goroutine needed here
-    log.Info().Msg("klynx running as phibek delivery target (saasPublic)")
+    log.Info().Msg("klynx running as gw delivery target (saasPublic)")
 default: // "appliance"
-    go phibekconsumer.StartKafkaConnector(config.KafkaBrokers, facade)
+    // ดู §4.0c สำหรับ full startup wire — ครบทุก consumer
 }
 ```
+
+> **หมายเหตุ:** §4.3 นี้แสดงเฉพาะ profile switch pattern — ดู **§4.0c** สำหรับ consumer list ครบทุกตัว (`gweventscons`, `gwassetcons`, `gwsourcecons`, `gwdeliverycons`, `workspaceprovcons`, `entitlementpub`)
 
 ---
 
@@ -747,7 +838,7 @@ ENV: DEPLOYMENT_PROFILE=appliance
 ```
 
 ```
-phibek  --(publish)--> [Kafka: phibek.events.normalized.v1] --(consume)--> klynx-api
+phibek  --(publish)--> [Kafka: gw.events.normalized.v1] --(consume)--> klynx-api
 ```
 
 - ไม่ต้อง expose port เพิ่ม
@@ -758,15 +849,15 @@ phibek  --(publish)--> [Kafka: phibek.events.normalized.v1] --(consume)--> klynx
 
 ```
 ENV: DEPLOYMENT_PROFILE=saasPublic
-     KLYNX_DELIVERY_WEBHOOK_URL=https://api.klynx.io/phibek/events
+     KLYNX_DELIVERY_WEBHOOK_URL=https://api.klynx.io/gw/events
      KLYNX_DELIVERY_WEBHOOK_SECRET=<hmac_secret>
 ```
 
 ```
 phibek deliveryOrchestrator
-    └──▶ webhookAdapter → POST https://api.klynx.io/phibek/events
-                          X-Phibek-Timestamp: <unix>
-                          X-Phibek-Signature: sha256=<hmac>
+    └──▶ webhookAdapter → POST https://api.klynx.io/gw/events
+                          X-Gw-Timestamp: <unix>
+                          X-Gw-Signature: sha256=<hmac>
                                │
                                ▼
                           klynx-api webhookConnector → ingestFacade
@@ -774,7 +865,7 @@ phibek deliveryOrchestrator
 
 - klynx-api เป็น delivery target ธรรมดา — ไม่ต่างจาก webhook target อื่น
 - retry/DLQ/backoff จัดการโดย deliveryOrchestrator
-- trace propagate ผ่าน `X-Phibek-TraceId` header (ไม่ใช่ gRPC metadata)
+- trace propagate ผ่าน `traceparent` header (W3C TraceContext — inject โดย `traceutil.InjectHeaders`)
 
 ### 5.3 Trace Propagation
 
@@ -803,14 +894,18 @@ func handler(msg NormalizedEvent, kafkaHeaders map[string]string) error {
 
 **SaaS Public Profile — HTTP headers (webhook delivery):**
 ```go
-// phibek deliveryOrchestrator — inject trace into webhook HTTP headers
+// phibek deliveryOrchestrator — inject trace into standard W3C HTTP headers
 headers := map[string]string{}
 traceutil.InjectHeaders(ctx, headers)
-req.Header.Set("X-Phibek-TraceId", headers["traceparent"])
-// X-Phibek-Timestamp และ X-Phibek-Signature ใช้ HMAC anti-replay (ดู Webhook Security section)
+// traceutil.InjectHeaders sets "traceparent" (W3C TraceContext) — ไม่ต้องใช้ custom header
+// X-Gw-Timestamp และ X-Gw-Signature ใช้ HMAC anti-replay เท่านั้น (แยกจาก trace)
+for k, v := range headers {
+    req.Header.Set(k, v) // inject traceparent + tracestate ตรงๆ
+}
 
-// klynx-api webhook receiver — extract from HTTP headers
-func ReceivePhibekEvent(c *fiber.Ctx) error {
+// klynx-api webhook receiver — extract from standard W3C headers
+func ReceiveEvent(c *fiber.Ctx) error {
+    // traceutil.ExtractHeaders อ่าน "traceparent" header โดยตรง (W3C spec)
     parentCtx := traceutil.ExtractHeaders(c.UserContext(), httpHeadersToMap(c))
     ctx, end, _ := traceutil.StartLite(parentCtx, ...)
     defer end()
@@ -832,7 +927,7 @@ DEPLOYMENT_PROFILE=appliance      # appliance | saasPublic
 KAFKA_BROKERS=localhost:9092
 
 # saasPublic profile: klynx เป็น delivery target
-KLYNX_DELIVERY_WEBHOOK_URL=https://api.klynx.io/phibek/events   # saasPublic เท่านั้น
+KLYNX_DELIVERY_WEBHOOK_URL=https://api.klynx.io/gw/events   # saasPublic เท่านั้น
 KLYNX_DELIVERY_WEBHOOK_SECRET=<hmac_secret>                      # saasPublic เท่านั้น
 
 # Permify — phibek tenant (แยกจาก klynx tenant เสมอ)
@@ -857,7 +952,7 @@ DEPLOYMENT_PROFILE=appliance      # appliance | saasPublic
 KAFKA_BROKERS=localhost:9092       # appliance เท่านั้น
 
 # saasPublic: secret สำหรับ verify HMAC จาก phibek webhook
-PHIBEK_WEBHOOK_SECRET=<hmac_secret>  # saasPublic เท่านั้น — ต้อง match KLYNX_DELIVERY_WEBHOOK_SECRET ใน phibek
+GW_WEBHOOK_SECRET=<hmac_secret>  # saasPublic เท่านั้น — ต้อง match KLYNX_DELIVERY_WEBHOOK_SECRET ใน phibek
 
 # Remove raw event webhook env vars (ย้ายไป phibek แล้ว)
 # IOT_WEBHOOK_SECRET → moved to phibek
@@ -895,31 +990,31 @@ PHIBEK_WEBHOOK_SECRET=<hmac_secret>  # saasPublic เท่านั้น — �
 ### klynx-api Tasks
 
 **Core (ทั้งสอง profile)**
-- [ ] **K-1** สร้าง `internal/eventbridge/ingestFacade.go` — canonical entry point สำหรับทุก connector
-- [ ] **K-6** อัปเดต `ingestsvc` ให้รองรับ `HandleNormalized(ctx, NormalizedEvent)`
+- [x] **K-1** สร้าง `internal/eventbridge/ingestFacade.go` — canonical entry point สำหรับทุก connector
+- [x] **K-6** อัปเดต `ingestsvc` ให้รองรับ `HandleNormalized(ctx, NormalizedEvent)`
 - [ ] **K-10** ตรวจสอบ `ingestsvc` ว่า sub-package ใดยังต้องการ (stats, review, fingerprint)
-- [ ] **K-11** Wire ingestFacade + consumers/endpoints ใน main.go ตาม `DEPLOYMENT_PROFILE`
-- [ ] **K-12** เพิ่ม env vars ใน `.env.example` / deploy config
+- [x] **K-11** Wire ingestFacade + consumers/endpoints ใน main.go ตาม `DEPLOYMENT_PROFILE`
+- [x] **K-12** เพิ่ม env vars ใน `.env.example` / deploy config
 
 **Appliance Profile — Kafka Consumers (ดูรายละเอียด Phase 4.0)**
-- [ ] **K-A1** สร้าง `internal/kafka/phibekconsumer/consumer.go` — consume `phibek.events.normalized.v1` → ingestFacade
-- [ ] **K-A2** สร้าง `internal/kafka/phibekassetcons/` — consume `phibek.assets.changed.v1` → assetsvc.SyncFromPhibek
-- [ ] **K-A3** สร้าง `internal/kafka/phibeksourcecons/` — consume `phibek.sources.changed.v1` → อัปเดต org config
-- [ ] **K-A4** สร้าง `internal/kafka/phibekdeliverycons/` — consume `phibek.delivery.status.v1` → auditSvc
-- [ ] **K-A5** สร้าง `internal/kafka/workspaceprovcons/` — consume `phibek.workspace.provisioned.v1` → orgSvc.UpdateWorkspaceRef
+- [x] **K-A1** สร้าง `internal/kafka/gweventscons/consumer.go` — consume `gw.events.normalized.v1` → ingestFacade
+- [x] **K-A2** สร้าง `internal/kafka/gwassetcons/` — consume `gw.assets.changed.v1` → assetsvc.SyncFromGW
+- [x] **K-A3** สร้าง `internal/kafka/gwsourcecons/` — consume `gw.sources.changed.v1` → `orgSvc.UpdateSourceConfig(ctx, msg)`
+- [x] **K-A4** สร้าง `internal/kafka/gwdeliverycons/` — consume `gw.delivery.status.v1` → auditSvc
+- [x] **K-A5** สร้าง `internal/kafka/workspaceprovcons/` — consume `gw.workspace.provisioned.v1` → orgSvc.UpdateWorkspaceRef
 - [ ] **K-A6** สร้าง `internal/kafka/entitlementpub/` — publish `klynx.entitlement.snapshot.v1` → phibek (เมื่อ plan เปลี่ยน)
-- [ ] **K-A7** สร้าง `internal/kafka/orgpub/` — publish `klynx.org.created.v1` + `klynx.org.deleted.v1` → phibek
+- [x] **K-A7** สร้าง `internal/kafka/orgpub/` — publish `klynx.org.created.v1` + `klynx.org.deleted.v1` → phibek
 
 **saasPublic Profile — Webhook Endpoints (ดูรายละเอียด Phase 4.0b)**
-- [ ] **K-W1** สร้าง `controllers/phibekwebhook/receiver.go` — handlers สำหรับทุก phibek inbound webhook
-  - `POST /phibek/events` → ingestFacade.HandleEvent
-  - `POST /phibek/assets/changed` → assetsvc.SyncFromPhibek
-  - `POST /phibek/sources/changed` → org config update
-  - `POST /phibek/delivery/status` → auditSvc.RecordDeliveryStatus
-  - `POST /phibek/workspace/provisioned` → orgSvc.UpdateWorkspaceRef
-- [ ] **K-W2** สร้าง `middleware/phibekhmac.go` — HMAC-SHA256 verify + anti-replay (5 min window) สำหรับทุก `/phibek/*` route
-- [ ] **K-W3** Register `/phibek/*` routes ใน router (ไม่ต้องใช้ `AuthBearer` — auth ด้วย HMAC แทน)
-- [ ] **K-W4** เพิ่ม `PHIBEK_WEBHOOK_SECRET` ใน `.env.example`
+- [x] **K-W1** สร้าง `controllers/gwwebhook/receiver.go` — handlers สำหรับทุก phibek inbound webhook
+  - `POST /gw/events` → ingestFacade.HandleEvent
+  - `POST /gw/assets/changed` → assetsvc.SyncFromGW
+  - `POST /gw/sources/changed` → org config update
+  - `POST /gw/delivery/status` → auditSvc.RecordDeliveryStatus
+  - `POST /gw/workspace/provisioned` → orgSvc.UpdateWorkspaceRef
+- [x] **K-W2** สร้าง `middleware/gwhmac.go` — HMAC-SHA256 verify + anti-replay (5 min window) สำหรับทุก `/phibek/*` route
+- [x] **K-W3** Register `/phibek/*` routes ใน router (ไม่ต้องใช้ `AuthBearer` — auth ด้วย HMAC แทน)
+- [x] **K-W4** เพิ่ม `GW_WEBHOOK_SECRET` ใน `.env.example`
 
 **Remove (ย้ายไป phibek แล้ว)**
 - [ ] **K-8** Remove `controllers/webhooks/iot/`, `webhooks/analytic/`, `webhooks/streamzkt/`
@@ -930,6 +1025,9 @@ PHIBEK_WEBHOOK_SECRET=<hmac_secret>  # saasPublic เท่านั้น — �
 
 - [x] **S-1** NormalizedEvent schema (layered: envelope + normalized fields + payload ref) — `internal/eventschema/`
 - [ ] **S-2** เลือก shared contract strategy: Go module กลาง หรือ proto repo กลาง (ห้าม copy file)
+  > ⚠️ **ต้องตัดสินใจก่อนแก้ field ใดใน `NormalizedEvent`** — ปัจจุบันมีสำเนาอยู่ทั้งสอง repo, schema drift จะเกิดขึ้นทันทีที่มีการแก้ฝั่งใดฝั่งหนึ่ง  
+  > Options: (a) `github.com/hotkhwan/event-contracts` — shared Go module (b) proto-first + codegen ทั้งสอง repo  
+  > จนกว่าจะตัดสินใจ: ห้าม add/rename/remove field ใน `NormalizedEvent` โดยไม่ sync ทั้งสองฝั่งพร้อมกัน
 - [x] **S-3** Kafka topics สร้างอัตโนมัติตอน init: `events.normalized.v1`, `events.delivery.v1`, `klynx.entitlement.snapshot.v1`
 - [ ] **S-4** ทดสอบ Appliance Profile บน local docker-compose (Kafka EventBridge)
 - [ ] **S-5** ทดสอบ SaaS Public Profile บน local ด้วย 2 process แยก (deliveryOrchestrator webhook)
@@ -958,7 +1056,7 @@ External Sources (IoT / Webhooks / Third-party)
 │         │ gate: IngestAuthzGw      │  ← canIngest check
 │         │ gate: EntitlementSvc     │  ← quota check (from cache)
 │         │ publish                  │
-│  [phibek.events.normalized.v1]     │
+│  [gw.events.normalized.v1]     │
 │         │                          │
 │  [deliverycons]─→[deliveryTarget]  │  ← webhook outbound (gRPC/kafkaPrivate: future)
 └────────────────────────────────────┘
@@ -1180,7 +1278,7 @@ klynx-api                              phibek
     │                                      │── assign workspaceId (UUID)
     │                                      │── register ingest URI
     │                                      │── write Permify tuple (owner)
-    │                                      │── publish phibek.workspace.provisioned.v1
+    │                                      │── publish gw.workspace.provisioned.v1
     │◀──────────────────────────────────── │
     │── update org: workspaceId, eventIngestUri
     │── done ─────────────────────────────
@@ -1192,7 +1290,7 @@ klynx-api                              phibek
 |-------|----------|----------|---------|
 | `klynx.org.created.v1` | klynx-api | phibek | trigger workspace creation |
 | `klynx.org.deleted.v1` | klynx-api | phibek | suspend/archive workspace |
-| `phibek.workspace.provisioned.v1` | phibek | klynx-api | ส่ง workspaceId + eventIngestUri กลับ |
+| `gw.workspace.provisioned.v1` | phibek | klynx-api | ส่ง workspaceId + eventIngestUri กลับ |
 
 ### klynx Org Model (เพิ่ม field)
 
@@ -1391,7 +1489,7 @@ phibek webhook controller
     │── entitlement gate (quota tracking)
     │── authz gate (asset ownership)
     │
-    ├──▶ Kafka publish: phibek.events.normalized.v1
+    ├──▶ Kafka publish: gw.events.normalized.v1
     │         └──▶ klynx-api consumer (kafkaConnector → ingestFacade)
     │
     ├──▶ MQTT publish: phibek/ws/{workspaceId}/events/{sourceFamily}
@@ -1487,7 +1585,7 @@ provisioning flow เป็น eventually consistent saga — ต้องออ
 |------|----------------|-------|
 | klynx publish `klynx.org.created.v1` | `orgId` | publish-at-least-once, consumer dedupes |
 | phibek `ProvisionFromOrg()` | `klynxOrgId` | upsert — ถ้า workspace มีแล้วให้ return existing, อย่า create ซ้ำ |
-| phibek publish `phibek.workspace.provisioned.v1` | `workspaceId` | idempotent publish |
+| phibek publish `gw.workspace.provisioned.v1` | `workspaceId` | idempotent publish |
 | klynx update org `workspaceId` | `orgId` | upsert — `$set` แทน `$insert` |
 
 **Org Provisioning Status:**
@@ -1563,7 +1661,7 @@ klynx org ต้องเก็บ `provisionStatus` เพื่อให้ ad
 mac := hmac.New(sha256.New, []byte(secret))
 mac.Write(body)
 sig := hex.EncodeToString(mac.Sum(nil))
-req.Header.Set("X-Phibek-Signature", "sha256="+sig)
+req.Header.Set("X-Gw-Signature", "sha256="+sig)
 
 // klynx verifies inbound from phibek
 expected := computeHMAC(secret, body)
@@ -1594,10 +1692,10 @@ ingestReceived
                         │
                         ├──▶ downstreamQueued
                         │         │
-                        │         ├── [appliance]  → Kafka phibek.events.normalized.v1
+                        │         ├── [appliance]  → Kafka gw.events.normalized.v1
                         │         │       └── deliveredToKlynx | retryingHandoff | handoffFailed
                         │         │
-                        │         └── [saasPublic] → phibek.delivery.events.v1
+                        │         └── [saasPublic] → gw.delivery.events.v1
                         │                 └── deliveryDispatched → delivered | retrying | dlq
                         │
                         └──▶ deliveryDispatched (SOP/webhook targets per workspace config)
@@ -1636,7 +1734,7 @@ ingestReceived
 | `→ normalizing` | `internal/kafka/normalizedcons/` |
 | `normalizing → canonicalized` | `normalizedcons` (MongoDB write + S3 write) |
 | `canonicalized → downstreamQueued` | `normalizedcons` (publish to EventBridge or delivery queue) |
-| `downstreamQueued → deliveredToKlynx` | appliance: klynx-api `phibekconsumer` |
+| `downstreamQueued → deliveredToKlynx` | appliance: klynx-api `gweventscons` |
 | `downstreamQueued → deliveryDispatched` | saasPublic: `internal/kafka/deliverycons/` |
 | `deliveryDispatched → delivered/retrying/dlq` | `deliverycons` (per target config) |
 | `alertDispatched → reconciled` | UI/frontend (match `eventId` กับ canonical) |
@@ -1746,15 +1844,15 @@ mac := hmac.New(sha256.New, []byte(secret))
 mac.Write([]byte(signed))
 sig := hex.EncodeToString(mac.Sum(nil))
 
-req.Header.Set("X-Phibek-Timestamp", timestamp)
-req.Header.Set("X-Phibek-Signature", "sha256="+sig)
+req.Header.Set("X-Gw-Timestamp", timestamp)
+req.Header.Set("X-Gw-Signature", "sha256="+sig)
 ```
 
 ```go
 // klynx verifies inbound from phibek
 func verifyWebhook(secret string, body []byte, headers http.Header) error {
-    ts    := headers.Get("X-Phibek-Timestamp")
-    sig   := strings.TrimPrefix(headers.Get("X-Phibek-Signature"), "sha256=")
+    ts    := headers.Get("X-Gw-Timestamp")
+    sig   := strings.TrimPrefix(headers.Get("X-Gw-Signature"), "sha256=")
 
     // anti-replay: reject requests older than 5 minutes
     tsInt, _ := strconv.ParseInt(ts, 10, 64)
@@ -1773,8 +1871,8 @@ func verifyWebhook(secret string, body []byte, headers http.Header) error {
 
 | Field | Rule |
 |-------|------|
-| `X-Phibek-Timestamp` | Unix epoch seconds — reject if > 5 min old |
-| `X-Phibek-Signature` | `sha256=hex(hmac(secret, ts+"."+sha256(body)))` |
+| `X-Gw-Timestamp` | Unix epoch seconds — reject if > 5 min old |
+| `X-Gw-Signature` | `sha256=hex(hmac(secret, ts+"."+sha256(body)))` |
 | Replay window | 5 minutes (300 seconds) |
 
 ---
