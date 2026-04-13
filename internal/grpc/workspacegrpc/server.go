@@ -9,11 +9,15 @@ import (
 	"os"
 
 	"github.com/hotkhwan/gateway-api/internal/eventschema"
+	"github.com/hotkhwan/gateway-api/internal/grpc/eventservice"
 	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/workspacesvc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/encoding"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 // jsonCodec encodes gRPC messages as JSON — must match klynx-api's codec name.
@@ -60,9 +64,27 @@ type workspaceServer struct {
 	targetSvc *targetsvc.TargetService
 }
 
-// Start registers the WorkspaceService handler and serves on GRPC_PORT (default 50051).
+// sharedSecretInterceptor validates x-gw-token metadata.
+// Bypassed when GRPC_SHARED_SECRET is empty (dev mode).
+func sharedSecretInterceptor(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	secret := os.Getenv("GRPC_SHARED_SECRET")
+	if secret == "" {
+		return handler(ctx, req) // dev mode — skip auth
+	}
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "missing metadata")
+	}
+	tokens := md.Get("x-gw-token")
+	if len(tokens) == 0 || tokens[0] != secret {
+		return nil, status.Error(codes.Unauthenticated, "invalid gw token")
+	}
+	return handler(ctx, req)
+}
+
+// Start registers the WorkspaceService and EventService handlers on GRPC_PORT (default 50051).
 // Blocks until ctx is cancelled or a fatal listen error.
-func Start(ctx context.Context, svc *workspacesvc.WorkspaceService, targetSvc *targetsvc.TargetService) error {
+func Start(ctx context.Context, svc *workspacesvc.WorkspaceService, targetSvc *targetsvc.TargetService, eventRepo eventservice.EventDetailsRepo) error {
 	port := os.Getenv("GRPC_PORT")
 	if port == "" {
 		port = "50051"
@@ -79,6 +101,7 @@ func Start(ctx context.Context, svc *workspacesvc.WorkspaceService, targetSvc *t
 
 	srv := grpc.NewServer(
 		grpc.ForceServerCodec(jsonCodec{}),
+		grpc.UnaryInterceptor(sharedSecretInterceptor),
 	)
 
 	// Register handler for /phibek.workspace.v1.WorkspaceService
@@ -97,6 +120,12 @@ func Start(ctx context.Context, svc *workspacesvc.WorkspaceService, targetSvc *t
 		},
 		Streams: []grpc.StreamDesc{},
 	}, struct{}{})
+
+	// Register handler for /phibek.event.v1.EventService
+	if eventRepo != nil {
+		esSrv := eventservice.NewEventServiceServer(eventRepo)
+		srv.RegisterService(esSrv.ServiceDesc(), struct{}{})
+	}
 
 	log.Info().Str("port", port).Msg("✅ phibek gRPC workspace server started")
 
