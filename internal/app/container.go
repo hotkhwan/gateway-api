@@ -487,12 +487,24 @@ func (c *Container) buildDLQ() {
 // ============================================================
 
 func (c *Container) buildNormalizer() {
+	profile := os.Getenv("DEPLOYMENT_PROFILE")
+	isUnlimited := profile == "appliance" || profile == "enterprise"
+
 	var ebPub normalizedcons.EventBridgePublisher
-	if os.Getenv("DEPLOYMENT_PROFILE") == "appliance" {
+	if profile == "appliance" {
 		ebPub = eventbridge.NewKafkaEventBridgePublisher()
 	}
 
 	tgtRepo := targetrepo.NewTargetRepo()
+
+	// In appliance/enterprise: entitlement and authz gates are bypassed (unlimited ingest).
+	// In saasPublic: gates enforce quota and source authorization.
+	var entitlementSvc normalizedcons.EntitlementChecker
+	var ingestAuthzGw normalizedcons.IngestAuthzChecker
+	if !isUnlimited {
+		entitlementSvc = c.EntitlementService
+		ingestAuthzGw = c.IngestAuthzGw
+	}
 
 	c.NormalizerDeps = normalizedcons.ConsumerDeps{
 		EventDetailsRepo:   ingestdetailsrepo.NewEventDetailsRepo(),
@@ -501,13 +513,14 @@ func (c *Container) buildNormalizer() {
 		GeoCfg:             normalizedcons.DefaultGeoConfig(),
 		S3BucketKey:        os.Getenv("S3_EVENTS_BUCKET_KEY"),
 		Logger:             logger.WithMeta("normalizer", "consumer"),
-		EntitlementSvc:     c.EntitlementService,
-		IngestAuthzGw:      c.IngestAuthzGw,
+		EntitlementSvc:     entitlementSvc,
+		IngestAuthzGw:      ingestAuthzGw,
 		EventBridgePub:     ebPub,
 		CanonicalNotifier:  normalizedcons.NewAlertmsgNotifier(),
 		BindingQuerier:     c.BindingService,
 		KlynxTargetChecker: tgtRepo,
 		TargetLookup:       tgtRepo,
+		KlynxOrgLookup:     workspacerepo.NewWorkspaceRepo(),
 	}
 }
 

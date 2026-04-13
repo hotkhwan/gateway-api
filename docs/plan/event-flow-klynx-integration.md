@@ -451,16 +451,27 @@ curl -X POST https://gw.host/events/{orgId}/PVS \
 3. geo enrichment ทำงาน (ถ้า device มี lat/lng)
 4. normalized event flow ครบเหมือน TC1
 
-### Test Case 4 — gRPC fetch จาก klynx
+### Test Case 4 — gRPC RegisterDeliveryTarget จาก klynx
 
 ```go
-// ทดสอบ gRPC client (ต้องเพิ่ม EventService ใน gateway-api ก่อน)
-conn, _ := grpc.Dial(os.Getenv("PHIBEK_GRPC_URI"), grpc.WithTransportCredentials(...))
-client := eventservicepb.NewEventServiceClient(conn)
-resp, err := client.GetEvent(ctx, &eventservicepb.GetEventRequest{
-    EventId:     "evt-xxx",
-    WorkspaceId: "ws-yyy",
-})
+// ทดสอบ WorkspaceService/RegisterDeliveryTarget RPC (ใช้ได้แล้ว — Phase B+)
+conn, _ := grpc.NewClient(os.Getenv("GW_GRPC_URI"),
+    grpc.WithTransportCredentials(insecure.NewCredentials()),
+    grpc.WithDefaultCallOptions(grpc.ForceCodec(jsonCodec{})),
+)
+var resp struct{ TargetID string `json:"targetId"` }
+conn.Invoke(ctx, "/phibek.workspace.v1.WorkspaceService/RegisterDeliveryTarget",
+    map[string]string{"workspaceId": "ws-yyy"}, &resp)
+// ตรวจ delivery_targets collection ใน gw MongoDB: mode=klynx, name=klynx-platform
+```
+
+### Test Case 5 — gRPC GetEvent จาก klynx (Phase C)
+
+```go
+// ทดสอบ EventService/GetEvent RPC (ต้องเพิ่ม EventService ใน gateway-api — Phase C)
+conn, _ := grpc.NewClient(os.Getenv("GW_GRPC_URI"), grpc.WithTransportCredentials(...))
+conn.Invoke(ctx, "/gw.eventservice.v1.EventService/GetEvent",
+    &GetEventRequest{EventId: "evt-xxx", WorkspaceId: "ws-yyy"}, &resp)
 ```
 
 ---
@@ -521,6 +532,7 @@ klynx MQTT broker (aliza)
 klynx-api  →  gRPC (TLS + service account token)  →  gateway-api:50051
 ```
 
+- klynx env: `GW_GRPC_URI=gw-svc:50051` (appliance) หรือ `GW_GRPC_URI=gw.host:50051` (saasKlynx/saasPhibek)
 - ต้อง expose `GW_GRPC_PORT=50051` ผ่าน LoadBalancer / Ingress TLS
 - **Auth: service account token** — ส่งกลับใน `WorkspaceProvisionedEvent.serviceToken`
   - klynx แนบ token ใน gRPC metadata per-call
@@ -540,8 +552,10 @@ klynx-api  →  gRPC (TLS + service account token)  →  gateway-api:50051
 
 ## 6. Checklist — ขั้นตอนถัดไป
 
-> **Phase dependency:** klynx Phase B ต้องรอ gw Phase B เสร็จก่อน (delivery-targets API พร้อม)  
-> klynx Phase D ต้องรอ gw Phase C (gRPC server) เสร็จก่อน
+> **Phase dependency:**  
+> klynx Phase B (CRUD): ต้องรอ gw Phase B REST API เสร็จ (สำหรับ ingest/binding/template management)  
+> klynx delivery target registration: ✅ ไม่ต้องรอ — ใช้ gRPC WorkspaceService/RegisterDeliveryTarget (Phase B+ เสร็จแล้ว)  
+> klynx Phase D ต้องรอ gw Phase C (EventService gRPC server) เสร็จก่อน
 
 ### gateway-api — Phase A (ทดสอบ Flow ปัจจุบัน)
 
@@ -557,10 +571,17 @@ klynx-api  →  gRPC (TLS + service account token)  →  gateway-api:50051
 > - `mode=klynx` คงอยู่บน `DeliveryTarget` เป็น **routing marker** เท่านั้น (Kafka EventBridge vs HTTP) — ไม่ใช่ dispatch stage  
 > - `dispatchStage` และ `matchFields` ย้ายไปอยู่บน `templateDeliveryBinding`
 
+> **Phase B+ update (delivery target registration):**  
+> klynx ลงทะเบียน mode=klynx target ผ่าน **gRPC** (ไม่ใช่ REST) แล้ว:  
+> `WorkspaceService/RegisterDeliveryTarget` — RPC ใหม่บน gRPC server เดิม (port 50051)  
+> ✅ gw: `targetsvc.RegisterKlynxTarget` + `workspacegrpc.registerDeliveryTargetHandler`  
+> ✅ klynx: `phibekgw.Client.RegisterKlynxDeliveryTarget` — ใช้ connection เดิม (GW_GRPC_URI)  
+> ✅ `gwgw.DeliveryTargetClient` (REST) ถูกลบแล้ว — ไม่ต้องใช้ `GW_API_URL` สำหรับ delivery target อีกต่อไป
+
 **DeliveryTarget model (updated):**
 ```json
 { "id": "...", "name": "...", "type": "webhook|line|telegram|discord", "enabled": true, "config": {} }
-// system target only:
+// system target only (สร้างผ่าน gRPC RegisterDeliveryTarget — ไม่ใช่ REST):
 { "type": "webhook", "mode": "klynx", "name": "klynx-platform" }
 ```
 
@@ -575,9 +596,14 @@ klynx-api  →  gRPC (TLS + service account token)  →  gateway-api:50051
 }
 ```
 
+**WorkspaceService gRPC (port 50051) — methods:**
+```
+ProvisionFromOrg(KlynxOrgID, TenantID, Name, CreatedBy) → (WorkspaceID, EventIngestURI)
+RegisterDeliveryTarget(WorkspaceID) → (TargetID)   ← NEW Phase B+
+```
+
 - [ ] `DeliveryTarget` CRUD: `POST/GET/PATCH/DELETE /workspaces/{workspaceId}/delivery-targets`
   - Request (normal): `{ "type": "webhook|line|telegram|discord", "name": string, "config": {...} }`
-  - Request (system): `{ "type": "webhook", "mode": "klynx", "name": "klynx-platform" }` — ไม่มี url/hmac
   - Response `201`: `{ "code": "SUCCESS", "details": { "id": "...", ... } }`
   - Response `409`: ถ้า `name` ซ้ำใน workspace
 - [ ] `templateDeliveryBinding` CRUD: `POST/GET/PATCH/DELETE /workspaces/{workspaceId}/delivery-bindings`
@@ -617,7 +643,7 @@ klynx-api  →  gRPC (TLS + service account token)  →  gateway-api:50051
 
 ### klynx-api (สรุปอ้างอิง — รายละเอียดใน klynx repo)
 
-- [ ] Phase B: สร้าง `event_refs` collection + indexes + `eventrefsrepo`; แก้ `ingestsvc.HandleNormalized` upsert event_refs; call `POST /workspaces/{wsId}/delivery-targets` หลัง workspace provisioned
+- [ ] Phase B: สร้าง `event_refs` collection + indexes + `eventrefsrepo`; แก้ `ingestsvc.HandleNormalized` upsert event_refs; ✅ `phibekgw.Client.RegisterKlynxDeliveryTarget` (gRPC) — เรียกหลัง workspace provisioned แทน REST
 - [ ] Phase C: รอ gw Phase C — ไม่มี action จาก klynx ในส่วนนี้
 - [ ] Phase D: สร้าง `gwgw/event.go` EventGateway + gRPC client; controllers `GET /events` + `GET /events/:eventId`
 - [ ] Phase E: รองรับ `serviceToken` ใน `workspaceprovcons`; `entitlementpub`

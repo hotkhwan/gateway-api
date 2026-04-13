@@ -62,6 +62,13 @@ type TargetLookup interface {
 	FindByIDAndOrg(ctx context.Context, targetId, tenantId, orgId string) (*authzmod.DeliveryTarget, error)
 }
 
+// KlynxOrgLookup resolves the klynx orgId from a gateway workspaceId.
+// Used to populate OrgID in EventBridge events so klynx consumers can route by orgId.
+// Nil = OrgID falls back to workspaceId.
+type KlynxOrgLookup interface {
+	GetKlynxOrgID(ctx context.Context, workspaceId string) (string, error)
+}
+
 // ConsumerDeps holds all dependencies injected into the normalizer consumer.
 type ConsumerDeps struct {
 	EventDetailsRepo eventDetailsRepoI // *ingestdetailsrepo.EventDetailsRepo satisfies this
@@ -91,6 +98,9 @@ type ConsumerDeps struct {
 	// TargetLookup fetches a delivery target by ID + org for normalize-stage binding dispatch.
 	// Nil = binding dispatch skipped even when BindingQuerier is set.
 	TargetLookup TargetLookup
+	// KlynxOrgLookup resolves klynx orgId from workspaceId for EventBridge event routing.
+	// Nil = OrgID falls back to workspaceId.
+	KlynxOrgLookup KlynxOrgLookup
 }
 
 // GeoConfig controls geo enrichment behaviour in the normalizer.

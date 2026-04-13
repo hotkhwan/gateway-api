@@ -25,18 +25,20 @@ func NewTargetRepo() *TargetRepo {
 }
 
 func (r *TargetRepo) EnsureIndexes(ctx context.Context) error {
+	// Drop legacy index (orgId → workspaceId rename migration).
+	_ = stomongo.DropIndexIfExists(ctx, r.collection, "uq_target_name_per_org")
 	return stomongo.EnsureUniqueIndex(ctx, r.collection, bson.D{
 		{Key: "tenantId", Value: 1},
-		{Key: "orgId", Value: 1},
+		{Key: "workspaceId", Value: 1},
 		{Key: "name", Value: 1},
-	}, "uq_target_name_per_org")
+	}, "uq_target_name_per_workspace")
 }
 
-func (r *TargetRepo) ExistsByNameInOrg(ctx context.Context, tenantId, orgId, name, excludeID string) (bool, error) {
+func (r *TargetRepo) ExistsByNameInOrg(ctx context.Context, tenantId, workspaceId, name, excludeID string) (bool, error) {
 	filter := bson.M{
-		"tenantId": tenantId,
-		"orgId":    orgId,
-		"name":     name,
+		"tenantId":    tenantId,
+		"workspaceId": workspaceId,
+		"name":        name,
 	}
 	if excludeID != "" {
 		filter["targetId"] = bson.M{"$ne": excludeID}
@@ -54,12 +56,12 @@ func (r *TargetRepo) Insert(ctx context.Context, t *authzmod.DeliveryTarget) err
 	return err
 }
 
-func (r *TargetRepo) FindByIDAndOrg(ctx context.Context, targetId, tenantId, orgId string) (*authzmod.DeliveryTarget, error) {
+func (r *TargetRepo) FindByIDAndOrg(ctx context.Context, targetId, tenantId, workspaceId string) (*authzmod.DeliveryTarget, error) {
 	var result authzmod.DeliveryTarget
 	err := stomongo.FindOne(ctx, r.collection, bson.M{
-		"targetId": targetId,
-		"tenantId": tenantId,
-		"orgId":    orgId,
+		"targetId":    targetId,
+		"tenantId":    tenantId,
+		"workspaceId": workspaceId,
 	}, &result)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -72,13 +74,13 @@ func (r *TargetRepo) FindByIDAndOrg(ctx context.Context, targetId, tenantId, org
 
 func (r *TargetRepo) List(
 	ctx context.Context,
-	tenantId, orgId, search string,
+	tenantId, workspaceId, search string,
 	page, perPage int,
 	sortField, sortOrder string,
 ) ([]authzmod.DeliveryTarget, int64, error) {
 	filter := bson.M{
-		"tenantId": tenantId,
-		"orgId":    orgId,
+		"tenantId":    tenantId,
+		"workspaceId": workspaceId,
 	}
 	if search != "" {
 		filter["name"] = bson.M{"$regex": search, "$options": "i"}
@@ -104,80 +106,80 @@ func (r *TargetRepo) List(
 	return results, int64(pag.TotalRecords), nil
 }
 
-func (r *TargetRepo) Update(ctx context.Context, targetId, tenantId, orgId string, fields bson.M) error {
+func (r *TargetRepo) Update(ctx context.Context, targetId, tenantId, workspaceId string, fields bson.M) error {
 	fields["updatedAt"] = time.Now().UTC()
 	_, err := stomongo.UpdateOne(ctx, r.collection, bson.M{
-		"targetId": targetId,
-		"tenantId": tenantId,
-		"orgId":    orgId,
+		"targetId":    targetId,
+		"tenantId":    tenantId,
+		"workspaceId": workspaceId,
 	}, fields)
 	return err
 }
 
-func (r *TargetRepo) Delete(ctx context.Context, targetId, tenantId, orgId string) error {
+func (r *TargetRepo) Delete(ctx context.Context, targetId, tenantId, workspaceId string) error {
 	_, err := stomongo.DeleteOne(ctx, r.collection, bson.M{
-		"targetId": targetId,
-		"tenantId": tenantId,
-		"orgId":    orgId,
+		"targetId":    targetId,
+		"tenantId":    tenantId,
+		"workspaceId": workspaceId,
 	})
 	return err
 }
 
-// FindEnabledByOrg ใช้สำหรับ distributor worker ดึง active targets ของ org
-func (r *TargetRepo) FindEnabledByOrg(ctx context.Context, tenantId, orgId string) ([]authzmod.DeliveryTarget, error) {
+// FindEnabledByOrg ใช้สำหรับ distributor worker ดึง active targets ของ workspace
+func (r *TargetRepo) FindEnabledByOrg(ctx context.Context, tenantId, workspaceId string) ([]authzmod.DeliveryTarget, error) {
 	var results []authzmod.DeliveryTarget
 	err := stomongo.Find(ctx, r.collection, bson.M{
-		"tenantId": tenantId,
-		"orgId":    orgId,
-		"enabled":  true,
+		"tenantId":    tenantId,
+		"workspaceId": workspaceId,
+		"enabled":     true,
 	}, nil, &results)
 	return results, err
 }
 
-// CountByOrg ใช้ตรวจก่อน delete org
-func (r *TargetRepo) CountByOrg(ctx context.Context, tenantId, orgId string) (int64, error) {
+// CountByOrg ใช้ตรวจก่อน delete workspace
+func (r *TargetRepo) CountByOrg(ctx context.Context, tenantId, workspaceId string) (int64, error) {
 	return stomongo.Count(ctx, r.collection, bson.M{
-		"tenantId": tenantId,
-		"orgId":    orgId,
+		"tenantId":    tenantId,
+		"workspaceId": workspaceId,
 	})
 }
 
-// CountByTypeAndOrg returns the number of targets of a specific type in an org.
-func (r *TargetRepo) CountByTypeAndOrg(ctx context.Context, tenantId, orgId, targetType string) (int64, error) {
+// CountByTypeAndOrg returns the number of targets of a specific type in a workspace.
+func (r *TargetRepo) CountByTypeAndOrg(ctx context.Context, tenantId, workspaceId, targetType string) (int64, error) {
 	return stomongo.Count(ctx, r.collection, bson.M{
-		"tenantId": tenantId,
-		"orgId":    orgId,
-		"type":     targetType,
+		"tenantId":    tenantId,
+		"workspaceId": workspaceId,
+		"type":        targetType,
 	})
 }
 
-// CountMessageChannelsByOrg returns the total number of line+discord+telegram targets in an org.
-func (r *TargetRepo) CountMessageChannelsByOrg(ctx context.Context, tenantId, orgId string) (int64, error) {
+// CountMessageChannelsByOrg returns the total number of line+discord+telegram targets in a workspace.
+func (r *TargetRepo) CountMessageChannelsByOrg(ctx context.Context, tenantId, workspaceId string) (int64, error) {
 	return stomongo.Count(ctx, r.collection, bson.M{
-		"tenantId": tenantId,
-		"orgId":    orgId,
-		"type":     bson.M{"$in": []string{"line", "discord", "telegram"}},
+		"tenantId":    tenantId,
+		"workspaceId": workspaceId,
+		"type":        bson.M{"$in": []string{"line", "discord", "telegram"}},
 	})
 }
 
 // HasKlynxTarget returns true when the workspace has at least one enabled mode=klynx target.
 // Used by normalizedcons to decide whether to route events via EventBridge.
-func (r *TargetRepo) HasKlynxTarget(ctx context.Context, orgId string) (bool, error) {
+func (r *TargetRepo) HasKlynxTarget(ctx context.Context, workspaceId string) (bool, error) {
 	count, err := stomongo.Count(ctx, r.collection, bson.M{
-		"orgId":   orgId,
-		"mode":    "klynx",
-		"enabled": true,
+		"workspaceId": workspaceId,
+		"mode":        "klynx",
+		"enabled":     true,
 	})
 	return count > 0, err
 }
 
-// FindEnabledKlynxTargets returns all enabled mode=klynx targets for an org.
-func (r *TargetRepo) FindEnabledKlynxTargets(ctx context.Context, orgId string) ([]authzmod.DeliveryTarget, error) {
+// FindEnabledKlynxTargets returns all enabled mode=klynx targets for a workspace.
+func (r *TargetRepo) FindEnabledKlynxTargets(ctx context.Context, workspaceId string) ([]authzmod.DeliveryTarget, error) {
 	var results []authzmod.DeliveryTarget
 	err := stomongo.Find(ctx, r.collection, bson.M{
-		"orgId":   orgId,
-		"mode":    "klynx",
-		"enabled": true,
+		"workspaceId": workspaceId,
+		"mode":        "klynx",
+		"enabled":     true,
 	}, nil, &results)
 	return results, err
 }

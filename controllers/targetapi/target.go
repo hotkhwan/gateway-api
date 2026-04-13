@@ -75,13 +75,13 @@ func (ctrl *TargetController) Create(c fiber.Ctx) error {
 	}
 
 	result, err := ctrl.service.Create(ctx, targetsvc.CreateTargetInput{
-		TenantId: tenantId,
-		OrgId:    orgId,
-		UserId:   userId,
-		Name:     body.Name,
-		Type:     body.Type,
-		Enabled:  enabled,
-		Config:   body.Config,
+		TenantId:    tenantId,
+		WorkspaceId: orgId,
+		UserId:      userId,
+		Name:        body.Name,
+		Type:        body.Type,
+		Enabled:     enabled,
+		Config:      body.Config,
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("create target failed")
@@ -114,13 +114,13 @@ func (ctrl *TargetController) List(c fiber.Ctx) error {
 	sortOrder := c.Query("sortOrder", "desc")
 
 	items, total, err := ctrl.service.List(ctx, targetsvc.ListTargetInput{
-		TenantId:  tenantId,
-		OrgId:     orgId,
-		Search:    search,
-		Page:      page,
-		PerPage:   perPage,
-		SortField: sortField,
-		SortOrder: sortOrder,
+		TenantId:    tenantId,
+		WorkspaceId: orgId,
+		Search:      search,
+		Page:        page,
+		PerPage:     perPage,
+		SortField:   sortField,
+		SortOrder:   sortOrder,
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("list targets failed")
@@ -199,13 +199,13 @@ func (ctrl *TargetController) Update(c fiber.Ctx) error {
 	}
 
 	result, err := ctrl.service.Update(ctx, targetsvc.UpdateTargetInput{
-		TenantId: tenantId,
-		OrgId:    orgId,
-		TargetId: targetId,
-		UserId:   userId,
-		Name:     body.Name,
-		Enabled:  body.Enabled,
-		Config:   body.Config,
+		TenantId:    tenantId,
+		WorkspaceId: orgId,
+		TargetId:    targetId,
+		UserId:      userId,
+		Name:        body.Name,
+		Enabled:     body.Enabled,
+		Config:      body.Config,
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("update target failed")

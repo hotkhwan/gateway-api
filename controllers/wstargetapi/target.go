@@ -19,9 +19,9 @@ import (
 type targetSvcI interface {
 	Create(ctx context.Context, input targetsvc.CreateTargetInput) (*authzmod.DeliveryTarget, error)
 	List(ctx context.Context, input targetsvc.ListTargetInput) ([]authzmod.DeliveryTarget, int64, error)
-	GetOne(ctx context.Context, tenantId, orgId, userId, targetId string) (*authzmod.DeliveryTarget, error)
+	GetOne(ctx context.Context, tenantId, workspaceId, userId, targetId string) (*authzmod.DeliveryTarget, error)
 	Update(ctx context.Context, input targetsvc.UpdateTargetInput) (*authzmod.DeliveryTarget, error)
-	Delete(ctx context.Context, tenantId, orgId, userId, targetId string) error
+	Delete(ctx context.Context, tenantId, workspaceId, userId, targetId string) error
 }
 
 // WsTargetController handles workspace-scoped delivery target CRUD.
@@ -106,14 +106,14 @@ func (ctrl *WsTargetController) Create(c fiber.Ctx) error {
 	}
 
 	result, err := ctrl.service.Create(ctx, targetsvc.CreateTargetInput{
-		TenantId: tenantId,
-		OrgId:    workspaceId,
-		UserId:   userId,
-		Name:     body.Name,
-		Type:     body.Type,
-		Mode:     strings.TrimSpace(body.Mode),
-		Enabled:  enabled,
-		Config:   body.Config,
+		TenantId:    tenantId,
+		WorkspaceId: workspaceId,
+		UserId:      userId,
+		Name:        body.Name,
+		Type:        body.Type,
+		Mode:        strings.TrimSpace(body.Mode),
+		Enabled:     enabled,
+		Config:      body.Config,
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("create delivery target failed")
@@ -165,13 +165,13 @@ func (ctrl *WsTargetController) List(c fiber.Ctx) error {
 	sortOrder := c.Query("sortOrder", "desc")
 
 	items, total, err := ctrl.service.List(ctx, targetsvc.ListTargetInput{
-		TenantId:  tenantId,
-		OrgId:     workspaceId,
-		Search:    search,
-		Page:      page,
-		PerPage:   perPage,
-		SortField: sortField,
-		SortOrder: sortOrder,
+		TenantId:    tenantId,
+		WorkspaceId: workspaceId,
+		Search:      search,
+		Page:        page,
+		PerPage:     perPage,
+		SortField:   sortField,
+		SortOrder:   sortOrder,
 	})
 	if err != nil {
 		return httputil.FailInternal(c, "list failed")
@@ -276,13 +276,13 @@ func (ctrl *WsTargetController) Update(c fiber.Ctx) error {
 	}
 
 	result, err := ctrl.service.Update(ctx, targetsvc.UpdateTargetInput{
-		TenantId: tenantId,
-		OrgId:    workspaceId,
-		TargetId: id,
-		UserId:   userId,
-		Name:     body.Name,
-		Enabled:  body.Enabled,
-		Config:   body.Config,
+		TenantId:    tenantId,
+		WorkspaceId: workspaceId,
+		TargetId:    id,
+		UserId:      userId,
+		Name:        body.Name,
+		Enabled:     body.Enabled,
+		Config:      body.Config,
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("update delivery target failed")

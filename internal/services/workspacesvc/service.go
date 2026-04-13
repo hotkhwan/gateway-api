@@ -83,7 +83,7 @@ func (s *WorkspaceService) ProvisionFromOrg(ctx context.Context, ev eventschema.
 		return nil, fmt.Errorf("workspacesvc: upsert workspace: %w", err)
 	}
 
-	// P-W7: write Permify workspace tuples (non-fatal if authz not configured)
+	// P-W7: write Permify workspace + org tuples (non-fatal if authz not configured)
 	if s.authz != nil {
 		permifyTenant := config.PermifyTenantID
 		tuples := []map[string]interface{}{
@@ -95,11 +95,26 @@ func (s *WorkspaceService) ProvisionFromOrg(ctx context.Context, ev eventschema.
 			},
 		}
 		if ev.CreatedBy != "" {
-			tuples = append(tuples, map[string]interface{}{
-				"entity":   map[string]interface{}{"type": "workspace", "id": workspaceID},
-				"relation": "owner",
-				"subject":  map[string]interface{}{"type": "user", "id": ev.CreatedBy},
-			})
+			tuples = append(tuples,
+				// workspace-level tuples
+				map[string]interface{}{
+					"entity":   map[string]interface{}{"type": "workspace", "id": workspaceID},
+					"relation": "owner",
+					"subject":  map[string]interface{}{"type": "user", "id": ev.CreatedBy},
+				},
+				// organization-level tuples — required for delivery target + binding management
+				// (targetsvc/checkAdmin checks organization:workspaceId#manage which derives from owner|admin)
+				map[string]interface{}{
+					"entity":   map[string]interface{}{"type": "organization", "id": workspaceID},
+					"relation": "owner",
+					"subject":  map[string]interface{}{"type": "user", "id": ev.CreatedBy},
+				},
+				map[string]interface{}{
+					"entity":   map[string]interface{}{"type": "organization", "id": workspaceID},
+					"relation": "member",
+					"subject":  map[string]interface{}{"type": "user", "id": ev.CreatedBy},
+				},
+			)
 		}
 		if err := s.authz.WriteTuples(ctx, permifyTenant, tuples); err != nil {
 			// Non-fatal: workspace record exists; Permify can be retried separately

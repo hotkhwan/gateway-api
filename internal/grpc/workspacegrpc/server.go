@@ -10,6 +10,7 @@ import (
 
 	"github.com/hotkhwan/gateway-api/internal/eventschema"
 	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/workspacesvc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
@@ -40,14 +41,28 @@ type ProvisionResponse struct {
 	EventIngestURI string `json:"eventIngestUri"`
 }
 
-// workspaceServer handles the WorkspaceService/ProvisionFromOrg RPC.
+// RegisterDeliveryTargetRequest is sent by klynx to register the mode=klynx system target.
+// WorkspaceID is the gw workspace (= gw orgId). TenantID is resolved server-side from
+// the workspace record — the field is present for forward-compatibility only.
+type RegisterDeliveryTargetRequest struct {
+	WorkspaceID string `json:"workspaceId"`
+}
+
+// RegisterDeliveryTargetResponse is returned after delivery target registration.
+// TargetID is empty when the target already existed (idempotent).
+type RegisterDeliveryTargetResponse struct {
+	TargetID string `json:"targetId"`
+}
+
+// workspaceServer handles WorkspaceService RPCs.
 type workspaceServer struct {
-	svc *workspacesvc.WorkspaceService
+	svc       *workspacesvc.WorkspaceService
+	targetSvc *targetsvc.TargetService
 }
 
 // Start registers the WorkspaceService handler and serves on GRPC_PORT (default 50051).
 // Blocks until ctx is cancelled or a fatal listen error.
-func Start(ctx context.Context, svc *workspacesvc.WorkspaceService) error {
+func Start(ctx context.Context, svc *workspacesvc.WorkspaceService, targetSvc *targetsvc.TargetService) error {
 	port := os.Getenv("GRPC_PORT")
 	if port == "" {
 		port = "50051"
@@ -60,18 +75,24 @@ func Start(ctx context.Context, svc *workspacesvc.WorkspaceService) error {
 		return fmt.Errorf("workspacegrpc: listen :%s: %w", port, err)
 	}
 
+	ws := &workspaceServer{svc: svc, targetSvc: targetSvc}
+
 	srv := grpc.NewServer(
 		grpc.ForceServerCodec(jsonCodec{}),
 	)
 
-	// Register handler for /phibek.workspace.v1.WorkspaceService/ProvisionFromOrg
+	// Register handler for /phibek.workspace.v1.WorkspaceService
 	srv.RegisterService(&grpc.ServiceDesc{
 		ServiceName: "phibek.workspace.v1.WorkspaceService",
 		HandlerType: (*interface{})(nil),
 		Methods: []grpc.MethodDesc{
 			{
 				MethodName: "ProvisionFromOrg",
-				Handler:    provisionFromOrgHandler(&workspaceServer{svc: svc}),
+				Handler:    provisionFromOrgHandler(ws),
+			},
+			{
+				MethodName: "RegisterDeliveryTarget",
+				Handler:    registerDeliveryTargetHandler(ws),
 			},
 		},
 		Streams: []grpc.StreamDesc{},
@@ -111,5 +132,38 @@ func provisionFromOrgHandler(ws *workspaceServer) func(srv any, ctx context.Cont
 			WorkspaceID:    ws2.WorkspaceID,
 			EventIngestURI: ws2.EventURI,
 		}, nil
+	}
+}
+
+// registerDeliveryTargetHandler handles WorkspaceService/RegisterDeliveryTarget.
+// Resolves tenantId from the workspace record, then delegates to TargetService.RegisterKlynxTarget.
+func registerDeliveryTargetHandler(ws *workspaceServer) func(srv any, ctx context.Context, dec func(any) error, interceptor grpc.UnaryServerInterceptor) (any, error) {
+	return func(srv any, ctx context.Context, dec func(any) error, interceptor grpc.UnaryServerInterceptor) (any, error) {
+		var req RegisterDeliveryTargetRequest
+		if err := dec(&req); err != nil {
+			return nil, err
+		}
+
+		log := logger.Boot("workspacegrpc", "RegisterDeliveryTarget")
+
+		// Resolve tenantId from the workspace record — klynx does not need to send it.
+		workspace, err := ws.svc.GetByID(ctx, req.WorkspaceID)
+		if err != nil {
+			log.Error().Err(err).Str("workspaceId", req.WorkspaceID).Msg("workspacegrpc: workspace lookup failed")
+			return nil, fmt.Errorf("workspacegrpc: workspace not found: %w", err)
+		}
+
+		targetId, err := ws.targetSvc.RegisterKlynxTarget(ctx, req.WorkspaceID, workspace.TenantID)
+		if err != nil {
+			log.Error().Err(err).Str("workspaceId", req.WorkspaceID).Msg("workspacegrpc: RegisterDeliveryTarget failed")
+			return nil, err
+		}
+
+		log.Info().
+			Str("workspaceId", req.WorkspaceID).
+			Str("targetId", targetId).
+			Msg("workspacegrpc: klynx delivery target registered")
+
+		return &RegisterDeliveryTargetResponse{TargetID: targetId}, nil
 	}
 }
