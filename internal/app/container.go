@@ -38,6 +38,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/repo/devicemgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicerepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/dlqrepo"
+	"github.com/hotkhwan/gateway-api/internal/grpc/eventservice"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestrepo"
@@ -113,6 +114,9 @@ type Container struct {
 	ApprovalService           *ingestsvc.ApprovalService
 	EventManagementController *ingestapi.EventManagementController
 	EventDetailsController    *ingestapi.EventDetailsController
+
+	// ===== gRPC EventService (Phase C) =====
+	GrpcEventRepo eventservice.EventDetailsRepo
 
 	// ===== Ingest Dashboard domain =====
 	DashboardStatsService     *ingeststatsvc.DashboardStatsService
@@ -423,6 +427,7 @@ func (c *Container) buildWorkspaceResources() {
 func (c *Container) buildEvents() {
 	eventMgmtRepo := ingestmgmtrepo.NewEventManagementRepo()
 	eventDetailsRepo := ingestdetailsrepo.NewEventDetailsRepo()
+	c.GrpcEventRepo = eventDetailsRepo
 
 	c.ApprovalService = ingestsvc.NewApprovalService(
 		eventMgmtRepo,

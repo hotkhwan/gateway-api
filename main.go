@@ -260,10 +260,10 @@ func main() {
 	// Start org lifecycle consumers — provision/suspend EVENTS workspace on klynx org events
 	orglifecyclecons.StartOrgLifecycleConsumers(container.WorkspaceService)
 
-	// Start gRPC workspace provisioning server (appliance mode: klynx calls EVENTS-api directly)
+	// Start gRPC server — WorkspaceService (provisioning) + EventService (Phase C event query)
 	go func() {
-		if err := workspacegrpc.Start(ctx, container.WorkspaceService, container.TargetService); err != nil {
-			log.Error().Err(err).Msg("❌ gRPC workspace server exited")
+		if err := workspacegrpc.Start(ctx, container.WorkspaceService, container.TargetService, container.GrpcEventRepo); err != nil {
+			log.Error().Err(err).Msg("❌ gRPC server exited")
 		}
 	}()
 

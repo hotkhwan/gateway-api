@@ -124,6 +124,37 @@ func (r *EventDetailsRepo) ListApproved(
 	return result, &pagination, nil
 }
 
+// FindNormalizedByEventID finds a NormalizedEvent by eventId scoped to workspaceId (source.orgId).
+// Used by the gRPC EventService to serve klynx GetEvent requests.
+func (r *EventDetailsRepo) FindNormalizedByEventID(ctx context.Context, workspaceId, eventId string) (*ingestmod.NormalizedEvent, error) {
+	var result ingestmod.NormalizedEvent
+	err := stomongo.FindOne(ctx, "event_details", bson.M{
+		"source.orgId": workspaceId,
+		"eventId":      eventId,
+	}, &result)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return &result, nil
+}
+
+// FindNormalizedByEventIDs finds multiple NormalizedEvents by eventIds scoped to workspaceId.
+// Missing IDs are silently omitted — caller checks NotFound list.
+func (r *EventDetailsRepo) FindNormalizedByEventIDs(ctx context.Context, workspaceId string, eventIds []string) ([]*ingestmod.NormalizedEvent, error) {
+	var results []*ingestmod.NormalizedEvent
+	err := stomongo.Find(ctx, "event_details", bson.M{
+		"source.orgId": workspaceId,
+		"eventId":      bson.M{"$in": eventIds},
+	}, nil, &results)
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
 // EnsureIndexes creates indexes for performance
 func (r *EventDetailsRepo) EnsureIndexes(ctx context.Context) error {
 	indexes := []mongo.IndexModel{
