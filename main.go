@@ -262,7 +262,7 @@ func main() {
 
 	// Start gRPC workspace provisioning server (appliance mode: klynx calls EVENTS-api directly)
 	go func() {
-		if err := workspacegrpc.Start(ctx, container.WorkspaceService); err != nil {
+		if err := workspacegrpc.Start(ctx, container.WorkspaceService, container.TargetService); err != nil {
 			log.Error().Err(err).Msg("❌ gRPC workspace server exited")
 		}
 	}()

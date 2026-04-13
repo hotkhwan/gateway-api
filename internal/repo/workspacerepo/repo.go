@@ -78,6 +78,17 @@ func (r *WorkspaceRepo) FindByKlynxOrgID(ctx context.Context, klynxOrgID string)
 	return &ws, nil
 }
 
+// GetKlynxOrgID returns the klynx orgId for a given workspaceId.
+// Returns "" (no error) when the workspace exists but has no klynxOrgId.
+// Returns ErrWorkspaceNotFound when the workspace does not exist.
+func (r *WorkspaceRepo) GetKlynxOrgID(ctx context.Context, workspaceId string) (string, error) {
+	ws, err := r.FindByWorkspaceID(ctx, workspaceId)
+	if err != nil {
+		return "", err
+	}
+	return ws.KlynxOrgID, nil
+}
+
 // UpdateStatus sets the workspace status (active | suspended | archived).
 func (r *WorkspaceRepo) UpdateStatus(ctx context.Context, workspaceID, status string) error {
 	col := config.DB.Collection(collection)

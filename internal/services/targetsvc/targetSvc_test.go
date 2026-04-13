@@ -99,14 +99,14 @@ func newSvc(repo TargetRepoI, authz authzgw.Client) *TargetService {
 
 func baseInput() CreateTargetInput {
 	return CreateTargetInput{
-		TenantId: "t1",
-		OrgId:    "o1",
-		UserId:   "u1",
-		Name:     "My Target",
-		Type:     authzmod.TargetTypeWebhook,
-		Mode:     "klynx",
-		Enabled:  true,
-		Config:   authzmod.TargetConfig{},
+		TenantId:    "t1",
+		WorkspaceId: "o1",
+		UserId:      "u1",
+		Name:        "My Target",
+		Type:        authzmod.TargetTypeWebhook,
+		Mode:        "klynx",
+		Enabled:     true,
+		Config:      authzmod.TargetConfig{},
 	}
 }
 
@@ -232,10 +232,10 @@ func TestCreate_MissingRequiredFields_ReturnsBadRequest(t *testing.T) {
 		name  string
 		input CreateTargetInput
 	}{
-		{"empty name", CreateTargetInput{TenantId: "t1", OrgId: "o1", UserId: "u1", Type: "webhook"}},
-		{"empty orgId", CreateTargetInput{TenantId: "t1", Name: "x", UserId: "u1", Type: "webhook"}},
-		{"empty tenantId", CreateTargetInput{OrgId: "o1", Name: "x", UserId: "u1", Type: "webhook"}},
-		{"invalid type", CreateTargetInput{TenantId: "t1", OrgId: "o1", UserId: "u1", Name: "x", Type: "fax"}},
+		{"empty name", CreateTargetInput{TenantId: "t1", WorkspaceId: "o1", UserId: "u1", Type: "webhook"}},
+		{"empty workspaceId", CreateTargetInput{TenantId: "t1", Name: "x", UserId: "u1", Type: "webhook"}},
+		{"empty tenantId", CreateTargetInput{WorkspaceId: "o1", Name: "x", UserId: "u1", Type: "webhook"}},
+		{"invalid type", CreateTargetInput{TenantId: "t1", WorkspaceId: "o1", UserId: "u1", Name: "x", Type: "fax"}},
 	}
 
 	for _, tc := range cases {

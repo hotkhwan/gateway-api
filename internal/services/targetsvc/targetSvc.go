@@ -20,14 +20,14 @@ import (
 // TargetRepoI is the repo subset used by TargetService.
 // *targetrepo.TargetRepo satisfies this interface.
 type TargetRepoI interface {
-	ExistsByNameInOrg(ctx context.Context, tenantId, orgId, name, excludeID string) (bool, error)
+	ExistsByNameInOrg(ctx context.Context, tenantId, workspaceId, name, excludeID string) (bool, error)
 	Insert(ctx context.Context, t *authzmod.DeliveryTarget) error
-	FindByIDAndOrg(ctx context.Context, targetId, tenantId, orgId string) (*authzmod.DeliveryTarget, error)
-	List(ctx context.Context, tenantId, orgId, search string, page, perPage int, sortField, sortOrder string) ([]authzmod.DeliveryTarget, int64, error)
-	Update(ctx context.Context, targetId, tenantId, orgId string, fields bson.M) error
-	Delete(ctx context.Context, targetId, tenantId, orgId string) error
-	CountByTypeAndOrg(ctx context.Context, tenantId, orgId, targetType string) (int64, error)
-	CountMessageChannelsByOrg(ctx context.Context, tenantId, orgId string) (int64, error)
+	FindByIDAndOrg(ctx context.Context, targetId, tenantId, workspaceId string) (*authzmod.DeliveryTarget, error)
+	List(ctx context.Context, tenantId, workspaceId, search string, page, perPage int, sortField, sortOrder string) ([]authzmod.DeliveryTarget, int64, error)
+	Update(ctx context.Context, targetId, tenantId, workspaceId string, fields bson.M) error
+	Delete(ctx context.Context, targetId, tenantId, workspaceId string) error
+	CountByTypeAndOrg(ctx context.Context, tenantId, workspaceId, targetType string) (int64, error)
+	CountMessageChannelsByOrg(ctx context.Context, tenantId, workspaceId string) (int64, error)
 }
 
 // ============================================================
@@ -35,34 +35,34 @@ type TargetRepoI interface {
 // ============================================================
 
 type CreateTargetInput struct {
-	TenantId string
-	OrgId    string
-	UserId   string
-	Name     string
-	Type     string // webhook|line|telegram|discord
-	Mode     string // "klynx" = system routing marker; absent for regular targets
-	Enabled  bool
-	Config   authzmod.TargetConfig
+	TenantId    string
+	WorkspaceId string
+	UserId      string
+	Name        string
+	Type        string // webhook|line|telegram|discord
+	Mode        string // "klynx" = system routing marker; absent for regular targets
+	Enabled     bool
+	Config      authzmod.TargetConfig
 }
 
 type UpdateTargetInput struct {
-	TenantId string
-	OrgId    string
-	TargetId string
-	UserId   string
-	Name     *string
-	Enabled  *bool
-	Config   *authzmod.TargetConfig
+	TenantId    string
+	WorkspaceId string
+	TargetId    string
+	UserId      string
+	Name        *string
+	Enabled     *bool
+	Config      *authzmod.TargetConfig
 }
 
 type ListTargetInput struct {
-	TenantId  string
-	OrgId     string
-	Search    string
-	Page      int
-	PerPage   int
-	SortField string
-	SortOrder string
+	TenantId    string
+	WorkspaceId string
+	Search      string
+	Page        int
+	PerPage     int
+	SortField   string
+	SortOrder   string
 }
 
 // ============================================================
@@ -90,11 +90,11 @@ var validTargetTypes = map[string]bool{
 	authzmod.TargetTypeDiscord:  true,
 }
 
-// checkAdmin ตรวจว่า userId เป็น admin ของ orgId ใน Permify
-func (s *TargetService) checkAdmin(ctx context.Context, tenantId, orgId, userId string) error {
+// checkAdmin ตรวจว่า userId เป็น admin ของ workspace ใน Permify
+func (s *TargetService) checkAdmin(ctx context.Context, tenantId, workspaceId, userId string) error {
 	allowed, err := s.authzClient.CheckPermissionWithSchemaVersion(
 		ctx, tenantId, config.CurrentSchemaVersion,
-		"organization", orgId, "manage", "user", userId,
+		"organization", workspaceId, "manage", "user", userId,
 	)
 	if err != nil || !allowed {
 		return ErrForbidden
@@ -110,7 +110,7 @@ func (s *TargetService) Create(ctx context.Context, input CreateTargetInput) (*a
 	log := logger.FromCtx(ctx, "targetsvc", "Target.Create")
 
 	input.Name = strings.TrimSpace(input.Name)
-	if input.Name == "" || input.OrgId == "" || input.TenantId == "" || input.UserId == "" {
+	if input.Name == "" || input.WorkspaceId == "" || input.TenantId == "" || input.UserId == "" {
 		return nil, ErrBadRequest
 	}
 	if !validTargetTypes[input.Type] {
@@ -130,13 +130,13 @@ func (s *TargetService) Create(ctx context.Context, input CreateTargetInput) (*a
 		}
 	}
 
-	if err := s.checkAdmin(ctx, input.TenantId, input.OrgId, input.UserId); err != nil {
+	if err := s.checkAdmin(ctx, input.TenantId, input.WorkspaceId, input.UserId); err != nil {
 		return nil, err
 	}
 
 	// Quota check — enforce plan limits before creating
 	if s.subSvc != nil {
-		if err := s.subSvc.ValidateDeliveryTargetQuota(ctx, input.TenantId, input.OrgId, input.Type, s.repo); err != nil {
+		if err := s.subSvc.ValidateDeliveryTargetQuota(ctx, input.TenantId, input.WorkspaceId, input.Type, s.repo); err != nil {
 			if errors.Is(err, subscriptionsvc.ErrDeliveryQuotaExceeded) {
 				return nil, ErrPlanLimitExceeded
 			}
@@ -144,7 +144,7 @@ func (s *TargetService) Create(ctx context.Context, input CreateTargetInput) (*a
 		}
 	}
 
-	exists, err := s.repo.ExistsByNameInOrg(ctx, input.TenantId, input.OrgId, input.Name, "")
+	exists, err := s.repo.ExistsByNameInOrg(ctx, input.TenantId, input.WorkspaceId, input.Name, "")
 	if err != nil {
 		return nil, err
 	}
@@ -153,26 +153,26 @@ func (s *TargetService) Create(ctx context.Context, input CreateTargetInput) (*a
 	}
 
 	target := &authzmod.DeliveryTarget{
-		TenantId:  input.TenantId,
-		OrgId:     input.OrgId,
-		Name:      input.Name,
-		Type:      input.Type,
-		Mode:      input.Mode,
-		Enabled:   input.Enabled,
-		Config:    input.Config,
-		CreatedBy: input.UserId,
+		TenantId:    input.TenantId,
+		WorkspaceId: input.WorkspaceId,
+		Name:        input.Name,
+		Type:        input.Type,
+		Mode:        input.Mode,
+		Enabled:     input.Enabled,
+		Config:      input.Config,
+		CreatedBy:   input.UserId,
 	}
 
 	if err := s.repo.Insert(ctx, target); err != nil {
 		return nil, err
 	}
 
-	// Permify: target#parentOrg@organization:orgId
+	// Permify: target#parentOrg@organization:workspaceId
 	tuples := []map[string]interface{}{
 		{
 			"entity":   map[string]string{"type": "target", "id": target.TargetId},
 			"relation": "parentOrg",
-			"subject":  map[string]string{"type": "organization", "id": input.OrgId},
+			"subject":  map[string]string{"type": "organization", "id": input.WorkspaceId},
 		},
 	}
 	if err := s.authzClient.WriteTuples(ctx, input.TenantId, tuples); err != nil {
@@ -188,7 +188,7 @@ func (s *TargetService) Create(ctx context.Context, input CreateTargetInput) (*a
 // ============================================================
 
 func (s *TargetService) List(ctx context.Context, input ListTargetInput) ([]authzmod.DeliveryTarget, int64, error) {
-	if input.TenantId == "" || input.OrgId == "" {
+	if input.TenantId == "" || input.WorkspaceId == "" {
 		return nil, 0, ErrBadRequest
 	}
 
@@ -201,23 +201,23 @@ func (s *TargetService) List(ctx context.Context, input ListTargetInput) ([]auth
 		perPage = 20
 	}
 
-	return s.repo.List(ctx, input.TenantId, input.OrgId, input.Search, page, perPage, input.SortField, input.SortOrder)
+	return s.repo.List(ctx, input.TenantId, input.WorkspaceId, input.Search, page, perPage, input.SortField, input.SortOrder)
 }
 
 // ============================================================
 // GetOne
 // ============================================================
 
-func (s *TargetService) GetOne(ctx context.Context, tenantId, orgId, userId, targetId string) (*authzmod.DeliveryTarget, error) {
-	if tenantId == "" || orgId == "" || targetId == "" {
+func (s *TargetService) GetOne(ctx context.Context, tenantId, workspaceId, userId, targetId string) (*authzmod.DeliveryTarget, error) {
+	if tenantId == "" || workspaceId == "" || targetId == "" {
 		return nil, ErrBadRequest
 	}
 
-	if err := s.checkAdmin(ctx, tenantId, orgId, userId); err != nil {
+	if err := s.checkAdmin(ctx, tenantId, workspaceId, userId); err != nil {
 		return nil, err
 	}
 
-	target, err := s.repo.FindByIDAndOrg(ctx, targetId, tenantId, orgId)
+	target, err := s.repo.FindByIDAndOrg(ctx, targetId, tenantId, workspaceId)
 	if err != nil {
 		if errors.Is(err, targetrepo.ErrTargetNotFound) {
 			return nil, ErrNotFound
@@ -234,15 +234,15 @@ func (s *TargetService) GetOne(ctx context.Context, tenantId, orgId, userId, tar
 func (s *TargetService) Update(ctx context.Context, input UpdateTargetInput) (*authzmod.DeliveryTarget, error) {
 	log := logger.FromCtx(ctx, "targetsvc", "Target.Update")
 
-	if input.TenantId == "" || input.OrgId == "" || input.TargetId == "" {
+	if input.TenantId == "" || input.WorkspaceId == "" || input.TargetId == "" {
 		return nil, ErrBadRequest
 	}
 
-	if err := s.checkAdmin(ctx, input.TenantId, input.OrgId, input.UserId); err != nil {
+	if err := s.checkAdmin(ctx, input.TenantId, input.WorkspaceId, input.UserId); err != nil {
 		return nil, err
 	}
 
-	if _, err := s.repo.FindByIDAndOrg(ctx, input.TargetId, input.TenantId, input.OrgId); err != nil {
+	if _, err := s.repo.FindByIDAndOrg(ctx, input.TargetId, input.TenantId, input.WorkspaceId); err != nil {
 		if errors.Is(err, targetrepo.ErrTargetNotFound) {
 			return nil, ErrNotFound
 		}
@@ -256,7 +256,7 @@ func (s *TargetService) Update(ctx context.Context, input UpdateTargetInput) (*a
 		if name == "" {
 			return nil, ErrBadRequest
 		}
-		exists, err := s.repo.ExistsByNameInOrg(ctx, input.TenantId, input.OrgId, name, input.TargetId)
+		exists, err := s.repo.ExistsByNameInOrg(ctx, input.TenantId, input.WorkspaceId, name, input.TargetId)
 		if err != nil {
 			return nil, err
 		}
@@ -278,30 +278,30 @@ func (s *TargetService) Update(ctx context.Context, input UpdateTargetInput) (*a
 		return nil, ErrBadRequest
 	}
 
-	if err := s.repo.Update(ctx, input.TargetId, input.TenantId, input.OrgId, fields); err != nil {
+	if err := s.repo.Update(ctx, input.TargetId, input.TenantId, input.WorkspaceId, fields); err != nil {
 		return nil, err
 	}
 
 	log.Info().Str("targetId", input.TargetId).Msg("delivery target updated")
-	return s.repo.FindByIDAndOrg(ctx, input.TargetId, input.TenantId, input.OrgId)
+	return s.repo.FindByIDAndOrg(ctx, input.TargetId, input.TenantId, input.WorkspaceId)
 }
 
 // ============================================================
 // Delete
 // ============================================================
 
-func (s *TargetService) Delete(ctx context.Context, tenantId, orgId, userId, targetId string) error {
+func (s *TargetService) Delete(ctx context.Context, tenantId, workspaceId, userId, targetId string) error {
 	log := logger.FromCtx(ctx, "targetsvc", "Target.Delete")
 
-	if tenantId == "" || orgId == "" || targetId == "" {
+	if tenantId == "" || workspaceId == "" || targetId == "" {
 		return ErrBadRequest
 	}
 
-	if err := s.checkAdmin(ctx, tenantId, orgId, userId); err != nil {
+	if err := s.checkAdmin(ctx, tenantId, workspaceId, userId); err != nil {
 		return err
 	}
 
-	if _, err := s.repo.FindByIDAndOrg(ctx, targetId, tenantId, orgId); err != nil {
+	if _, err := s.repo.FindByIDAndOrg(ctx, targetId, tenantId, workspaceId); err != nil {
 		if errors.Is(err, targetrepo.ErrTargetNotFound) {
 			return ErrNotFound
 		}
@@ -310,11 +310,11 @@ func (s *TargetService) Delete(ctx context.Context, tenantId, orgId, userId, tar
 
 	_ = s.authzClient.DeleteEntityRelationships(ctx, tenantId, "target", targetId)
 
-	if err := s.repo.Delete(ctx, targetId, tenantId, orgId); err != nil {
+	if err := s.repo.Delete(ctx, targetId, tenantId, workspaceId); err != nil {
 		return err
 	}
 
-	log.Info().Str("targetId", targetId).Str("orgId", orgId).Msg("delivery target deleted")
+	log.Info().Str("targetId", targetId).Str("workspaceId", workspaceId).Msg("delivery target deleted")
 	return nil
 }
 
@@ -322,9 +322,9 @@ func (s *TargetService) Delete(ctx context.Context, tenantId, orgId, userId, tar
 // ToggleEnabled
 // ============================================================
 
-func (s *TargetService) ToggleEnabled(ctx context.Context, tenantId, orgId, userId, targetId string, enabled bool) error {
-	if err := s.checkAdmin(ctx, tenantId, orgId, userId); err != nil {
+func (s *TargetService) ToggleEnabled(ctx context.Context, tenantId, workspaceId, userId, targetId string, enabled bool) error {
+	if err := s.checkAdmin(ctx, tenantId, workspaceId, userId); err != nil {
 		return err
 	}
-	return s.repo.Update(ctx, targetId, tenantId, orgId, bson.M{"enabled": enabled, "updatedAt": time.Now().UTC()})
+	return s.repo.Update(ctx, targetId, tenantId, workspaceId, bson.M{"enabled": enabled, "updatedAt": time.Now().UTC()})
 }

@@ -4,6 +4,9 @@ package authzgw
 import (
 	"context"
 	"os"
+	"strings"
+
+	"github.com/hotkhwan/gateway-api/config"
 )
 
 // IngestAuthzGateway is the lightweight ingest-scoped authorization interface for phibek.
@@ -19,20 +22,31 @@ type IngestAuthzGateway interface {
 }
 
 type permifyIngestAuthzGateway struct {
-	client        Client
-	tenantId      string
-	schemaVersion string
+	client   Client
+	tenantId string
 }
 
 // NewIngestAuthzGateway creates an IngestAuthzGateway backed by the existing Permify client.
-// tenantId should be "phibek" (from PERMIFY_TENANT_ID env var).
-// schemaVersion is read from PERMIFY_SCHEMA_VERSION env var.
+// tenantId is read from PERMIFY_TENANT_ID env var (fallback: "klynx").
+// schemaVersion is resolved dynamically from config.CurrentSchemaVersion at call time.
 func NewIngestAuthzGateway(client Client) IngestAuthzGateway {
-	return &permifyIngestAuthzGateway{
-		client:        client,
-		tenantId:      os.Getenv("PERMIFY_TENANT_ID"),
-		schemaVersion: os.Getenv("PERMIFY_SCHEMA_VERSION"),
+	tenantId := os.Getenv("PERMIFY_TENANT_ID")
+	if tenantId == "" {
+		tenantId = "klynx"
 	}
+	return &permifyIngestAuthzGateway{
+		client:   client,
+		tenantId: tenantId,
+	}
+}
+
+// schemaVersion returns the current schema version at call time.
+// Falls back to "latest" when config.CurrentSchemaVersion is not yet initialized.
+func (g *permifyIngestAuthzGateway) schemaVersion() string {
+	if v := strings.TrimSpace(config.CurrentSchemaVersion); v != "" {
+		return v
+	}
+	return "latest"
 }
 
 // CanIngest checks whether a source (sourceId) is permitted to ingest events
@@ -41,7 +55,7 @@ func (g *permifyIngestAuthzGateway) CanIngest(ctx context.Context, workspaceId, 
 	return g.client.CheckPermissionWithSchemaVersion(
 		ctx,
 		g.tenantId,
-		g.schemaVersion,
+		g.schemaVersion(),
 		"workspace",
 		workspaceId,
 		"ingest",
@@ -55,7 +69,7 @@ func (g *permifyIngestAuthzGateway) IsAssetOwned(ctx context.Context, workspaceI
 	return g.client.CheckPermissionWithSchemaVersion(
 		ctx,
 		g.tenantId,
-		g.schemaVersion,
+		g.schemaVersion(),
 		"workspace",
 		workspaceId,
 		"view",
