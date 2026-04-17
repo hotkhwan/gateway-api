@@ -9,18 +9,10 @@ import (
 )
 
 func RegisterImageProxy(r fiber.Router) {
-	// /api/v3/image/* → ไม่ต้อง auth (By pass)
-	// g := r.Group("/image")
-	// g.Get("/*", fileapi.ProxyFiles)
+	// /image/* → no auth, public buckets only
+	r.Get("/image/*", fileapi.ProxyEventImage)
 
-	// /api/v3/image/* → ต้อง auth ด้วย Bearer
-	// r.Route("/image", func(rr fiber.Router) {
-	// 	rr.Use(middleware.AuthBearer())
-	// 	rr.Get("/*", fileapi.ProxyFiles)
-	// })
-	// /api/v3/files/* → ต้อง auth Cookie
-	r.Route("/files", func(rr fiber.Router) {
-		rr.Use(middleware.AuthBearerOrCookie()) // ใช้เฉพาะภาพ
-		rr.Get("/*", fileapi.ProxyFiles)
-	})
+	// /files/* → auth required, all buckets
+	r.Use("/files", middleware.AuthBearerOrCookie())
+	r.Get("/files/*", fileapi.ProxyFiles)
 }

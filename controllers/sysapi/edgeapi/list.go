@@ -51,7 +51,7 @@ func ListEdges(c fiber.Ctx) error {
 		"details": items,
 		"pagination": gmod.Pagination{
 			Page:         page,
-			PerPages:     perPage,
+			PerPage:     perPage,
 			TotalRecords: int(total),
 			TotalPages:   totalPages,
 			SortField:    "updatedAt",

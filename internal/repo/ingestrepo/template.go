@@ -35,7 +35,7 @@ func (r *MappingTemplateRepo) Insert(ctx context.Context, t *ingestmod.MappingTe
 func (r *MappingTemplateRepo) FindById(ctx context.Context, orgId, templateId string) (*ingestmod.MappingTemplate, error) {
 	var result ingestmod.MappingTemplate
 	err := stomongo.FindOne(ctx, colTemplate, bson.M{
-		"orgId":      orgId,
+		"workspaceId":      orgId,
 		"templateId": templateId,
 	}, &result)
 	if err != nil {
@@ -54,7 +54,7 @@ func (r *MappingTemplateRepo) List(
 	page, perPage int,
 	sortField, sortOrder string,
 ) ([]*ingestmod.MappingTemplate, *gmod.Pagination, error) {
-	filter := bson.M{"orgId": orgId}
+	filter := bson.M{"workspaceId": orgId}
 	if search != "" {
 		filter["name"] = bson.M{"$regex": regexp.QuoteMeta(search), "$options": "i"}
 	}
@@ -84,7 +84,7 @@ func (r *MappingTemplateRepo) List(
 // setFields must be a bson.M of fields to update (updatedAt is added automatically).
 func (r *MappingTemplateRepo) Update(ctx context.Context, orgId, templateId string, setFields bson.M) error {
 	res, err := stomongo.UpdateOne(ctx, colTemplate, bson.M{
-		"orgId":      orgId,
+		"workspaceId":      orgId,
 		"templateId": templateId,
 	}, setFields)
 	if err != nil {
@@ -99,7 +99,7 @@ func (r *MappingTemplateRepo) Update(ctx context.Context, orgId, templateId stri
 // Delete removes a template by orgId + templateId.
 func (r *MappingTemplateRepo) Delete(ctx context.Context, orgId, templateId string) error {
 	res, err := stomongo.DeleteOne(ctx, colTemplate, bson.M{
-		"orgId":      orgId,
+		"workspaceId":      orgId,
 		"templateId": templateId,
 	})
 	if err != nil {
@@ -152,7 +152,7 @@ func (r *MappingTemplateRepo) FindByMatch(ctx context.Context, orgId, eventType,
 		}})
 	}
 
-	filter := bson.M{"orgId": orgId, "$and": and}
+	filter := bson.M{"workspaceId": orgId, "$and": and}
 
 	var result ingestmod.MappingTemplate
 	err := stomongo.FindOne(ctx, colTemplate, filter, &result)
@@ -169,7 +169,7 @@ func (r *MappingTemplateRepo) FindByMatch(ctx context.Context, orgId, eventType,
 // Used by V2 template matcher to evaluate matchAll/matchAny in Go.
 func (r *MappingTemplateRepo) FindBySourceFamily(ctx context.Context, orgId, sourceFamily string) ([]*ingestmod.MappingTemplate, error) {
 	filter := bson.M{
-		"orgId":        orgId,
+		"workspaceId":        orgId,
 		"sourceFamily": sourceFamily,
 	}
 	opts := options.Find().SetSort(bson.D{{Key: "priority", Value: -1}, {Key: "createdAt", Value: -1}})
@@ -184,18 +184,36 @@ func (r *MappingTemplateRepo) FindBySourceFamily(ctx context.Context, orgId, sou
 
 // EnsureIndexes creates indexes on mapping_templates collection.
 func (r *MappingTemplateRepo) EnsureIndexes(ctx context.Context) error {
+	// Migrate legacy orgId field → workspaceId for documents written before the rename.
+	// Safe to run repeatedly: filter limits to docs that still have orgId.
+	_, _ = stomongo.UpdateManyPipeline(ctx, colTemplate,
+		bson.M{"orgId": bson.M{"$exists": true}},
+		mongo.Pipeline{
+			bson.D{{Key: "$set", Value: bson.M{"workspaceId": "$orgId"}}},
+			bson.D{{Key: "$unset", Value: "orgId"}},
+		},
+	)
+
+	// Drop legacy orgId-based indexes before recreating with workspaceId.
+	_ = stomongo.DropIndexIfExists(ctx, colTemplate, "orgId_1_templateId_1")
+	_ = stomongo.DropIndexIfExists(ctx, colTemplate, "orgId_1_name_1")
+	_ = stomongo.DropIndexIfExists(ctx, colTemplate, "workspaceId_1_templateId_1")
+
 	return stomongo.CreateIndexes(ctx, colTemplate, []mongo.IndexModel{
 		{
-			Keys:    bson.D{{Key: "orgId", Value: 1}, {Key: "templateId", Value: 1}},
-			Options: options.Index().SetUnique(true),
+			// Partial unique index: only enforce uniqueness for workspace-owned templates.
+			// System/auto templates (workspaceId missing or empty) are excluded.
+			Keys: bson.D{{Key: "workspaceId", Value: 1}, {Key: "templateId", Value: 1}},
+			Options: options.Index().SetUnique(true).SetName("idx_workspace_template_unique").
+				SetPartialFilterExpression(bson.M{"workspaceId": bson.M{"$exists": true, "$gt": ""}}),
 		},
 		{
-			Keys: bson.D{{Key: "orgId", Value: 1}, {Key: "name", Value: 1}},
+			Keys: bson.D{{Key: "workspaceId", Value: 1}, {Key: "name", Value: 1}},
 		},
 		// Fingerprint match index (V1): hot path lookup on every ingest
 		{
 			Keys: bson.D{
-				{Key: "orgId", Value: 1},
+				{Key: "workspaceId", Value: 1},
 				{Key: "match.eventType", Value: 1},
 				{Key: "match.rawBodyKeyHash", Value: 1},
 			},
@@ -203,7 +221,7 @@ func (r *MappingTemplateRepo) EnsureIndexes(ctx context.Context) error {
 		// Source family index (V2): template lookup by sourceFamily
 		{
 			Keys: bson.D{
-				{Key: "orgId", Value: 1},
+				{Key: "workspaceId", Value: 1},
 				{Key: "sourceFamily", Value: 1},
 				{Key: "priority", Value: -1},
 			},

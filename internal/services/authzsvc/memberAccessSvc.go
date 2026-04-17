@@ -275,7 +275,7 @@ func (s *MemberAccessService) GetMemberCameraAccess(
 		log.Debug().Str("resourceType", params.ResourceType).Msg("filtering resource groups by type")
 		groups, _, err := s.rgRepo.FindByGroupIDs(ctx, tenantId, orgId, allRgIDs, devicerepo.ListOptions{
 			ResourceType: params.ResourceType,
-			PerPages:     len(allRgIDs) + 1,
+			PerPage:      len(allRgIDs) + 1,
 		})
 		if err != nil {
 			return nil, err

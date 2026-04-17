@@ -70,7 +70,7 @@ func buildDeviceBulkMessage(inserted, removed, duplicates, errors int) string {
 // @Param        resource  path   string  true   "resource type (camera)"
 // @Param        search    query  string  false  "search by name"
 // @Param        page      query  int     false  "page"      default(1)
-// @Param        perPages  query  int     false  "per page"  default(10)
+// @Param        perPage   query  int     false  "per page"  default(10)
 // @Param        sortField query  string  false  "sort field"
 // @Param        sortOrder query  string  false  "asc|desc"
 // @Success      200  {object}  map[string]interface{}
@@ -81,7 +81,7 @@ func (ctrl *ResourceGroupController) ListCameras(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "ResourceGroupController.ListCameras", "deviceapi", "ListCameras")
 	defer end()
 
-	tenantId, orgId, _ := ctrl.mustLocals(c)
+	tenantId, workspaceId, _ := ctrl.mustLocals(c)
 	groupId := c.Params("groupId")
 	resource := c.Params("resource")
 
@@ -91,11 +91,11 @@ func (ctrl *ResourceGroupController) ListCameras(c fiber.Ctx) error {
 
 	result, err := ctrl.service.ListCamerasInGroup(
 		c,
-		tenantId, orgId, groupId,
+		tenantId, workspaceId, groupId,
 		devicesvc.ListInGroupParams{
 			Search:    c.Query("search"),
 			Page:      fiber.Query[int](c, "page", 1),
-			PerPage:   fiber.Query[int](c, "perPages", 10),
+			PerPage:   fiber.Query[int](c, "perPage", 10),
 			SortField: c.Query("sortField", "createAt"),
 			SortOrder: c.Query("sortOrder", "desc"),
 		},
@@ -113,7 +113,7 @@ func (ctrl *ResourceGroupController) ListCameras(c fiber.Ctx) error {
 		"details": result.Items,
 		"pagination": fiber.Map{
 			"page":         result.Page,
-			"perPages":     result.PerPage,
+			"perPage":      result.PerPage,
 			"totalRecords": result.TotalRecords,
 			"totalPages":   result.TotalPages,
 		},
@@ -140,7 +140,7 @@ func (ctrl *ResourceGroupController) AddDevices(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "ResourceGroupController.AddDevices", "deviceapi", "AddDevices")
 	defer end()
 
-	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
+	tenantId, workspaceId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("groupId")
 	resource := c.Params("resource")
 
@@ -159,7 +159,7 @@ func (ctrl *ResourceGroupController) AddDevices(c fiber.Ctx) error {
 
 	log.Info().
 		Str("tenantId", tenantId).
-		Str("orgId", orgId).
+		Str("workspaceId", workspaceId).
 		Str("groupId", groupId).
 		Str("resource", resource).
 		Int("count", len(devices)).
@@ -168,7 +168,7 @@ func (ctrl *ResourceGroupController) AddDevices(c fiber.Ctx) error {
 	results, inserted, duplicates, err := ctrl.service.AddDevicesToGroup(
 		c,
 		tenantId,
-		orgId,
+		workspaceId,
 		groupId,
 		callerUserId,
 		devices,
@@ -221,7 +221,7 @@ func (ctrl *ResourceGroupController) RemoveDevices(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "ResourceGroupController.RemoveDevices", "deviceapi", "RemoveDevices")
 	defer end()
 
-	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
+	tenantId, workspaceId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("groupId")
 	resource := c.Params("resource")
 
@@ -240,7 +240,7 @@ func (ctrl *ResourceGroupController) RemoveDevices(c fiber.Ctx) error {
 
 	log.Info().
 		Str("tenantId", tenantId).
-		Str("orgId", orgId).
+		Str("workspaceId", workspaceId).
 		Str("groupId", groupId).
 		Str("resource", resource).
 		Int("count", len(devices)).
@@ -249,7 +249,7 @@ func (ctrl *ResourceGroupController) RemoveDevices(c fiber.Ctx) error {
 	results, removed, err := ctrl.service.RemoveDevicesFromGroup(
 		c,
 		tenantId,
-		orgId,
+		workspaceId,
 		groupId,
 		callerUserId,
 		devices,

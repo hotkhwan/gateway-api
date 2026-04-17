@@ -19,7 +19,7 @@ import (
 // @Accept       json
 // @Produce      json
 // @Param        page        query     int     false  "Page number"
-// @Param        perPages    query     int     false  "Items per page"
+// @Param        perPage     query     int     false  "Items per page"
 // @Param        sortOrder   query     string  false  "asc or desc"
 // @Param        sortField   query     string  false  "Field to sort by"
 // @Param        select      query     string  false  "subgroups (list children)"
@@ -34,7 +34,7 @@ func ListGroups(c fiber.Ctx) error {
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPages, _ := strconv.Atoi(c.Query("perPage", "10"))
 	sortOrder := strings.ToLower(c.Query("sortOrder", "desc"))
 	if sortOrder != "asc" && sortOrder != "desc" {
 		sortOrder = "desc"
@@ -53,7 +53,7 @@ func ListGroups(c fiber.Ctx) error {
 
 	log.Info().
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPages).
 		Str("sortField", sortField).
 		Str("sortOrder", sortOrder).
 		Interface("filters", filters).

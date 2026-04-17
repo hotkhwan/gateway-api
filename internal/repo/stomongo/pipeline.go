@@ -17,3 +17,9 @@ func UpdateOnePipeline(ctx context.Context, collection string, filter interface{
 func UpsertOnePipeline(ctx context.Context, collection string, filter interface{}, pipeline mongo.Pipeline) (*mongo.UpdateResult, error) {
 	return coll(collection).UpdateOne(ctx, filter, pipeline, options.Update().SetUpsert(true))
 }
+
+// UpdateManyPipeline executes an aggregation pipeline update across all matching documents.
+// Supports field renames and computed updates (MongoDB 4.2+).
+func UpdateManyPipeline(ctx context.Context, collection string, filter interface{}, pipeline mongo.Pipeline) (*mongo.UpdateResult, error) {
+	return coll(collection).UpdateMany(ctx, filter, pipeline)
+}

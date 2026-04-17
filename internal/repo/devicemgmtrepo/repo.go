@@ -28,11 +28,11 @@ func (r *DeviceManagementRepo) Insert(ctx context.Context, d *ingestmod.DeviceMa
 	return err
 }
 
-func (r *DeviceManagementRepo) FindById(ctx context.Context, tenantId, orgId, deviceMgmtId string) (*ingestmod.DeviceManagement, error) {
+func (r *DeviceManagementRepo) FindById(ctx context.Context, tenantId, workspaceId, deviceMgmtId string) (*ingestmod.DeviceManagement, error) {
 	var result ingestmod.DeviceManagement
 	err := stomongo.FindOne(ctx, colDeviceMgmt, bson.M{
 		"tenantId":     tenantId,
-		"orgId":        orgId,
+		"workspaceId":  workspaceId,
 		"deviceMgmtId": deviceMgmtId,
 	}, &result)
 	if err != nil {
@@ -44,11 +44,11 @@ func (r *DeviceManagementRepo) FindById(ctx context.Context, tenantId, orgId, de
 	return &result, nil
 }
 
-func (r *DeviceManagementRepo) FindByEntity(ctx context.Context, tenantId, orgId, sourceFamily, entityType, entityId string) (*ingestmod.DeviceManagement, error) {
+func (r *DeviceManagementRepo) FindByEntity(ctx context.Context, tenantId, workspaceId, sourceFamily, entityType, entityId string) (*ingestmod.DeviceManagement, error) {
 	var result ingestmod.DeviceManagement
 	err := stomongo.FindOne(ctx, colDeviceMgmt, bson.M{
 		"tenantId":     tenantId,
-		"orgId":        orgId,
+		"workspaceId":  workspaceId,
 		"sourceFamily": sourceFamily,
 		"entityType":   entityType,
 		"entityId":     entityId,
@@ -62,15 +62,15 @@ func (r *DeviceManagementRepo) FindByEntity(ctx context.Context, tenantId, orgId
 	return &result, nil
 }
 
-func (r *DeviceManagementRepo) List(ctx context.Context, tenantId, orgId string, page, perPage int) ([]*ingestmod.DeviceManagement, error) {
+func (r *DeviceManagementRepo) List(ctx context.Context, tenantId, workspaceId string, page, perPage int) ([]*ingestmod.DeviceManagement, error) {
 	var result []*ingestmod.DeviceManagement
 	opts := options.Find().
 		SetSort(bson.D{{Key: "createdAt", Value: -1}}).
 		SetSkip(int64((page - 1) * perPage)).
 		SetLimit(int64(perPage))
 	err := stomongo.Find(ctx, colDeviceMgmt, bson.M{
-		"tenantId": tenantId,
-		"orgId":    orgId,
+		"tenantId":    tenantId,
+		"workspaceId": workspaceId,
 	}, opts, &result)
 	if err != nil {
 		return nil, err
@@ -78,10 +78,10 @@ func (r *DeviceManagementRepo) List(ctx context.Context, tenantId, orgId string,
 	return result, nil
 }
 
-func (r *DeviceManagementRepo) Update(ctx context.Context, tenantId, orgId, deviceMgmtId string, setFields bson.M) error {
+func (r *DeviceManagementRepo) Update(ctx context.Context, tenantId, workspaceId, deviceMgmtId string, setFields bson.M) error {
 	res, err := stomongo.UpdateOne(ctx, colDeviceMgmt, bson.M{
 		"tenantId":     tenantId,
-		"orgId":        orgId,
+		"workspaceId":  workspaceId,
 		"deviceMgmtId": deviceMgmtId,
 	}, setFields)
 	if err != nil {
@@ -93,12 +93,12 @@ func (r *DeviceManagementRepo) Update(ctx context.Context, tenantId, orgId, devi
 	return nil
 }
 
-// UpsertByBusinessKey performs an idempotent upsert keyed on (tenantId, orgId, sourceFamily, entityType, entityId).
+// UpsertByBusinessKey performs an idempotent upsert keyed on (tenantId, workspaceId, sourceFamily, entityType, entityId).
 // Returns "inserted", "updated", or "skipped" depending on the outcome.
 func (r *DeviceManagementRepo) UpsertByBusinessKey(ctx context.Context, d *ingestmod.DeviceManagement) (string, error) {
 	filter := bson.M{
 		"tenantId":     d.TenantId,
-		"orgId":        d.OrgId,
+		"workspaceId":  d.WorkspaceId,
 		"sourceFamily": d.SourceFamily,
 		"entityType":   d.EntityType,
 		"entityId":     d.EntityId,
@@ -131,9 +131,9 @@ func (r *DeviceManagementRepo) UpsertByBusinessKey(ctx context.Context, d *inges
 	return "skipped", nil
 }
 
-// ListForExport returns all records for a given tenant/org scope with optional filters.
-func (r *DeviceManagementRepo) ListForExport(ctx context.Context, tenantId, orgId, sourceFamily, entityType string) ([]ingestmod.DeviceManagement, error) {
-	filter := bson.M{"tenantId": tenantId, "orgId": orgId}
+// ListForExport returns all records for a given tenant/workspace scope with optional filters.
+func (r *DeviceManagementRepo) ListForExport(ctx context.Context, tenantId, workspaceId, sourceFamily, entityType string) ([]ingestmod.DeviceManagement, error) {
+	filter := bson.M{"tenantId": tenantId, "workspaceId": workspaceId}
 	if sourceFamily != "" {
 		filter["sourceFamily"] = sourceFamily
 	}
@@ -151,18 +151,18 @@ func (r *DeviceManagementRepo) ListForExport(ctx context.Context, tenantId, orgI
 }
 
 // CountByFilter returns the count of records matching the given scope.
-func (r *DeviceManagementRepo) CountByFilter(ctx context.Context, tenantId, orgId string) (int64, error) {
-	return stomongo.Count(ctx, colDeviceMgmt, bson.M{"tenantId": tenantId, "orgId": orgId})
+func (r *DeviceManagementRepo) CountByFilter(ctx context.Context, tenantId, workspaceId string) (int64, error) {
+	return stomongo.Count(ctx, colDeviceMgmt, bson.M{"tenantId": tenantId, "workspaceId": workspaceId})
 }
 
 func (r *DeviceManagementRepo) EnsureIndexes(ctx context.Context) error {
 	return stomongo.CreateIndexes(ctx, colDeviceMgmt, []mongo.IndexModel{
 		{
-			Keys:    bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "deviceMgmtId", Value: 1}},
+			Keys:    bson.D{{Key: "tenantId", Value: 1}, {Key: "workspaceId", Value: 1}, {Key: "deviceMgmtId", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
 		{
-			Keys:    bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "sourceFamily", Value: 1}, {Key: "entityType", Value: 1}, {Key: "entityId", Value: 1}},
+			Keys:    bson.D{{Key: "tenantId", Value: 1}, {Key: "workspaceId", Value: 1}, {Key: "sourceFamily", Value: 1}, {Key: "entityType", Value: 1}, {Key: "entityId", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
 	})

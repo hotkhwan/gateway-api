@@ -26,7 +26,7 @@ import (
 func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, deps ConsumerDeps) {
 	log := deps.Logger.With().
 		Str("eventId", event.EventId).
-		Str("orgId", event.Source.OrgId).
+		Str("orgId", event.Source.WorkspaceId).
 		Logger()
 
 	templateId := event.Meta.TemplateId
@@ -35,7 +35,7 @@ func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, de
 		return
 	}
 
-	tmpl, err := deps.TemplateRepo.FindById(ctx, event.Source.OrgId, templateId)
+	tmpl, err := deps.TemplateRepo.FindById(ctx, event.Source.WorkspaceId, templateId)
 	if err != nil {
 		log.Warn().Err(err).Str("templateId", templateId).Msg("[delivery] template not found — skipping dispatch")
 		return
@@ -84,7 +84,7 @@ func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, de
 		}
 
 		// Load target config
-		target, err := deps.TargetRepo.FindByIDAndOrg(ctx, tdt.TargetId, event.TenantId, event.Source.OrgId)
+		target, err := deps.TargetRepo.FindByIDAndOrg(ctx, tdt.TargetId, event.TenantId, event.Source.WorkspaceId)
 		if err != nil {
 			log.Warn().
 				Str("targetId", tdt.TargetId).
@@ -255,7 +255,7 @@ func insertDeliveryDLQ(
 		MessageId:           messageId,
 		EventId:             event.EventId,
 		TenantId:            event.TenantId,
-		OrgId:               event.Source.OrgId,
+		WorkspaceId:         event.Source.WorkspaceId,
 		TemplateId:          event.Meta.TemplateId,
 		Topic:               "normalized.events",
 		Stage:               "deliver",
@@ -300,7 +300,7 @@ func publishDeliveryStatus(ctx context.Context, event *ingestmod.NormalizedEvent
 	topic := config.TopicEnv("KAFKA_TOPIC_GW_DELIVERY_STATUS", "gw.delivery.status.v1")
 	payload, _ := json.Marshal(map[string]any{
 		"eventId":    event.EventId,
-		"orgId":      event.Source.OrgId,
+		"orgId":      event.Source.WorkspaceId,
 		"tenantId":   event.TenantId,
 		"targetId":   targetId,
 		"targetType": targetType,
@@ -309,11 +309,11 @@ func publishDeliveryStatus(ctx context.Context, event *ingestmod.NormalizedEvent
 	})
 	headers := map[string]string{
 		"eventId":  event.EventId,
-		"orgId":    event.Source.OrgId,
+		"orgId":    event.Source.WorkspaceId,
 		"status":   status,
 		"targetId": targetId,
 	}
 	go func() {
-		_ = config.SendToKafkaWithCtx(context.Background(), topic, event.Source.OrgId, payload, headers)
+		_ = config.SendToKafkaWithCtx(context.Background(), topic, event.Source.WorkspaceId, payload, headers)
 	}()
 }

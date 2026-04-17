@@ -31,7 +31,7 @@ func (ctrl *OrganizationController) ListMembers(c fiber.Ctx) error {
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 
-	sizeStr := c.Query("perPages", "")
+	sizeStr := c.Query("perPage", "")
 	if sizeStr == "" {
 		sizeStr = c.Query("size", "10")
 	}
@@ -67,7 +67,7 @@ func (ctrl *OrganizationController) ListMembers(c fiber.Ctx) error {
 		Details: members,
 		Pagination: gmod.Pagination{
 			Page:         page,
-			PerPages:     size,
+			PerPage:      size,
 			TotalRecords: totalRecords,
 			TotalPages:   totalPages,
 			SortField:    sortField,

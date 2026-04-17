@@ -51,7 +51,7 @@ type ouResourceBulkResponse struct {
 // @Param        unitId    path   string  true   "orgUnit id"
 // @Param        search    query  string  false  "search by name"
 // @Param        page      query  int     false  "page"      default(1)
-// @Param        perPages  query  int     false  "per page"  default(10)
+// @Param        perPage   query  int     false  "per page"  default(10)
 // @Param        sortField query  string  false  "sort field"
 // @Param        sortOrder query  string  false  "asc|desc"
 // @Success      200  {object}  map[string]interface{}
@@ -67,7 +67,7 @@ func (ctrl *OrgUnitResourcesController) ListResourceGroups(c fiber.Ctx) error {
 	unitId := c.Params("unitId")
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPage, _ := strconv.Atoi(c.Query("perPage", "10"))
 
 	result, err := ctrl.groupSvc.ListResourceGroupsInOU(
 		c,
@@ -75,7 +75,7 @@ func (ctrl *OrgUnitResourcesController) ListResourceGroups(c fiber.Ctx) error {
 		devicesvc.ListInGroupParams{
 			Search:    c.Query("search"),
 			Page:      page,
-			PerPage:   perPages,
+			PerPage:   perPage,
 			SortField: c.Query("sortField", "createdAt"),
 			SortOrder: c.Query("sortOrder", "desc"),
 		},
@@ -91,7 +91,7 @@ func (ctrl *OrgUnitResourcesController) ListResourceGroups(c fiber.Ctx) error {
 		"details": result.Items,
 		"pagination": fiber.Map{
 			"page":         result.Page,
-			"perPages":     result.PerPage,
+			"perPage":      result.PerPage,
 			"totalRecords": result.TotalRecords,
 			"totalPages":   result.TotalPages,
 		},

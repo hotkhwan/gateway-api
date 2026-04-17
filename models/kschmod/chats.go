@@ -102,7 +102,7 @@ type LLMRequest struct {
 	NameID    string `json:"nameId" form:"nameId"`
 
 	Page      *int   `json:"page,omitempty" form:"page"`         // optional
-	PerPage   *int   `json:"perPages,omitempty" form:"perPages"` // optional
+	PerPage   *int   `json:"perPage,omitempty" form:"perPage"` // optional
 	SortOrder string `json:"sortOrder,omitempty" form:"sortOrder"`
 	SortField string `json:"sortField,omitempty" form:"sortField"`
 }

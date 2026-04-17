@@ -34,14 +34,18 @@ type BatchGetEventsResponse struct {
 
 // EventResponse mirrors klynx eventsvc.EventDetailDTO — field names must match exactly.
 type EventResponse struct {
-	EventID    string             `json:"eventId"`
-	EventType  string             `json:"eventType"`
-	OrgID      string             `json:"orgId,omitempty"`
-	OccurredAt time.Time          `json:"occurredAt"`
-	Source     EventSourceInfo    `json:"source"`
-	Location   *EventLocationInfo `json:"location,omitempty"`
-	Meta       EventMeta          `json:"meta"`
-	Payload    map[string]any     `json:"payload,omitempty"`
+	EventID     string             `json:"eventId"`
+	EventType   string             `json:"eventType"`
+	OrgID       string             `json:"orgId,omitempty"`
+	OccurredAt  time.Time          `json:"occurredAt"`
+	Source      EventSourceInfo    `json:"source"`
+	Location    *EventLocationInfo `json:"location,omitempty"`
+	Geo         *EventGeoInfo      `json:"geo,omitempty"`
+	GeoCell     *EventGeoCellInfo  `json:"geoCell,omitempty"`
+	ByAdminArea map[string]any     `json:"byAdminArea,omitempty"`
+	Payload     map[string]any     `json:"payload,omitempty"`
+	BinaryRefs  []EventBinaryRef   `json:"binaryRefs,omitempty"`
+	Meta        EventMeta          `json:"meta"`
 }
 
 type EventSourceInfo struct {
@@ -57,6 +61,30 @@ type EventLocationInfo struct {
 	Lng  float64 `json:"lng"`
 	Site string  `json:"site,omitempty"`
 	Zone string  `json:"zone,omitempty"`
+}
+
+type EventGeoInfo struct {
+	CountryCode string `json:"countryCode,omitempty"`
+	AdminLevel  int    `json:"adminLevel,omitempty"`
+	AdminName   string `json:"adminName,omitempty"`
+	AdminCode   string `json:"adminCode,omitempty"`
+	IdScheme    string `json:"idScheme,omitempty"`
+}
+
+type EventGeoCellInfo struct {
+	Scheme    string `json:"scheme,omitempty"`
+	Precision int    `json:"precision,omitempty"`
+	Cell      string `json:"cell,omitempty"`
+}
+
+type EventBinaryRef struct {
+	ObjectId    string `json:"objectId"`
+	Bucket      string `json:"bucket,omitempty"`
+	ContentType string `json:"contentType,omitempty"`
+	FieldName   string `json:"fieldName,omitempty"`
+	Kind        string `json:"kind,omitempty"`
+	Role        string `json:"role,omitempty"`
+	SourceIndex int    `json:"sourceIndex"`
 }
 
 type EventMeta struct {
@@ -173,21 +201,22 @@ func toEventResponse(ev *ingestmod.NormalizedEvent) *EventResponse {
 	resp := &EventResponse{
 		EventID:    ev.EventId,
 		EventType:  ev.EventType,
-		OrgID:      ev.Source.OrgId,
+		OrgID:      ev.Source.WorkspaceId,
 		OccurredAt: ev.OccurredAt,
 		Source: EventSourceInfo{
 			DeviceID:   ev.Source.DeviceId,
 			DeviceName: ev.Source.DeviceName,
 			DeviceType: ev.Source.DeviceType,
 			Vendor:     ev.Source.Vendor,
-			OrgID:      ev.Source.OrgId,
+			OrgID:      ev.Source.WorkspaceId,
 		},
 		Meta: EventMeta{
 			SchemaVersion: ev.Meta.SchemaVersion,
 			NormalizedAt:  ev.Meta.NormalizedAt,
 			TemplateID:    ev.Meta.TemplateId,
 		},
-		Payload: ev.Payload,
+		Payload:     ev.Payload,
+		ByAdminArea: map[string]any(ev.ByAdminArea),
 	}
 
 	if ev.Location.Lat != 0 || ev.Location.Lng != 0 {
@@ -197,6 +226,40 @@ func toEventResponse(ev *ingestmod.NormalizedEvent) *EventResponse {
 			Site: ev.Location.Site,
 			Zone: ev.Location.Zone,
 		}
+	}
+
+	if ev.Geo.CountryCode != "" || ev.Geo.AdminName != "" {
+		resp.Geo = &EventGeoInfo{
+			CountryCode: ev.Geo.CountryCode,
+			AdminLevel:  ev.Geo.AdminLevel,
+			AdminName:   ev.Geo.AdminName,
+			AdminCode:   ev.Geo.AdminCode,
+			IdScheme:    ev.Geo.IdScheme,
+		}
+	}
+
+	if ev.GeoCell.Cell != "" {
+		resp.GeoCell = &EventGeoCellInfo{
+			Scheme:    ev.GeoCell.Scheme,
+			Precision: ev.GeoCell.Precision,
+			Cell:      ev.GeoCell.Cell,
+		}
+	}
+
+	if len(ev.BinaryRefs) > 0 {
+		refs := make([]EventBinaryRef, len(ev.BinaryRefs))
+		for i, r := range ev.BinaryRefs {
+			refs[i] = EventBinaryRef{
+				ObjectId:    r.ObjectId,
+				Bucket:      r.Bucket,
+				ContentType: r.ContentType,
+				FieldName:   r.FieldName,
+				Kind:        r.Kind,
+				Role:        r.Role,
+				SourceIndex: r.SourceIndex,
+			}
+		}
+		resp.BinaryRefs = refs
 	}
 
 	return resp

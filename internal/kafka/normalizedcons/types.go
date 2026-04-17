@@ -69,6 +69,12 @@ type KlynxOrgLookup interface {
 	GetKlynxOrgID(ctx context.Context, workspaceId string) (string, error)
 }
 
+// DeviceMgmtResolver resolves device_management enrichment (e.g. deviceMgmtId UUID) for an ingest event.
+// Nil = skip enrichment (deviceMgmtId omitted from normalized event).
+type DeviceMgmtResolver interface {
+	Resolve(ctx context.Context, tenantId, orgId, sourceFamily, entityType, entityId string) *ingestmod.DeviceManagement
+}
+
 // ConsumerDeps holds all dependencies injected into the normalizer consumer.
 type ConsumerDeps struct {
 	EventDetailsRepo eventDetailsRepoI // *ingestdetailsrepo.EventDetailsRepo satisfies this
@@ -101,6 +107,9 @@ type ConsumerDeps struct {
 	// KlynxOrgLookup resolves klynx orgId from workspaceId for EventBridge event routing.
 	// Nil = OrgID falls back to workspaceId.
 	KlynxOrgLookup KlynxOrgLookup
+	// DeviceMgmtResolver enriches normalized events with deviceMgmtId UUID.
+	// Nil = deviceMgmtId omitted from event payload.
+	DeviceMgmtResolver DeviceMgmtResolver
 }
 
 // GeoConfig controls geo enrichment behaviour in the normalizer.

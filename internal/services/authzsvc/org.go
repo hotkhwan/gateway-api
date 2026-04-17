@@ -75,7 +75,7 @@ type OrganizationService struct {
 }
 
 type OrgSummary struct {
-	OrgId       string `json:"orgId"`
+	WorkspaceId string `json:"workspaceId"`
 	TenantId    string `json:"tenantId"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -143,11 +143,11 @@ func (s *OrganizationService) List(
 	result := make([]OrgSummary, 0, len(orgs))
 	for _, o := range orgs {
 		result = append(result, OrgSummary{
-			OrgId:       o.OrgId,
+			WorkspaceId: o.WorkspaceId,
 			TenantId:    o.TenantId,
 			Name:        o.Name,
 			Description: o.Description,
-			IsActive:    o.OrgId == activeOrgId,
+			IsActive:    o.WorkspaceId == activeOrgId,
 			CreatedAt:   o.CreatedAt.UTC().Format(time.RFC3339Nano),
 			UpdatedAt:   o.UpdatedAt.UTC().Format(time.RFC3339Nano),
 		})
@@ -193,7 +193,7 @@ func (s *OrganizationService) Create(
 	}
 
 	org := &authzmod.Organization{
-		OrgId:       orgId,
+		WorkspaceId: orgId,
 		TenantId:    tenantId,
 		Name:        name,
 		Description: desc,
@@ -448,5 +448,5 @@ func (s *OrganizationService) GetOrganizationByOrgId(
 	if orgId == "" {
 		return nil, ErrNotFound
 	}
-	return s.orgRepo.GetByOrgId(ctx, orgId)
+	return s.orgRepo.GetByWorkspaceId(ctx, orgId)
 }

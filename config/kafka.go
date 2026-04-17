@@ -60,6 +60,7 @@ func ensureKafkaWriter() error {
 			{"KAFKA_TOPIC_WORKSPACE_PROVISIONED", "gw.workspace.provisioned.v1"},
 			{"KAFKA_TOPIC_GW_ASSETS", "gw.assets.changed.v1"},
 			{"KAFKA_TOPIC_GW_SOURCES", "gw.sources.changed.v1"},
+			{"KAFKA_TOPIC_GW_DEVICES", "gw.devices.changed.v1"},
 			{"KAFKA_TOPIC_GW_DELIVERY_STATUS", "gw.delivery.status.v1"},
 			{"KAFKA_TOPIC_ORG_CREATED", "klynx.org.created.v1"},
 			{"KAFKA_TOPIC_ORG_DELETED", "klynx.org.deleted.v1"},

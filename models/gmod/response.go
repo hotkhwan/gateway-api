@@ -198,7 +198,7 @@ type MembersResponse struct {
 
 type Pagination struct {
 	Page         int    `json:"page"`
-	PerPages     int    `json:"perPages"`
+	PerPage      int    `json:"perPage"`
 	TotalRecords int    `json:"totalRecords"`
 	TotalPages   int    `json:"totalPages"`
 	SortField    string `json:"sortField"`
@@ -341,7 +341,7 @@ type InviteUserResponse struct {
 	Status  bool   `json:"status"`
 	Message string `json:"message"`
 	Details struct {
-		Id      string `json:"orgId"`
+		Id      string `json:"workspaceId"`
 		UserId  string `json:"userId"`
 		Role    string `json:"role"`
 		Invited bool   `json:"invited"`
@@ -359,10 +359,10 @@ type PromoteToOwnerResponse struct {
 	Message string `json:"message"`
 	Status  bool   `json:"status"`
 	Details struct {
-		OrgId      string `json:"orgId"`
-		UserId     string `json:"userId"`
-		Role       string `json:"role"` // "owner"
-		PromotedAt int64  `json:"promotedAt"`
+		WorkspaceId string `json:"workspaceId"`
+		UserId      string `json:"userId"`
+		Role        string `json:"role"` // "owner"
+		PromotedAt  int64  `json:"promotedAt"`
 	} `json:"details"`
 }
 
@@ -377,7 +377,7 @@ type DemoteFromOwnerResponse struct {
 	Message string `json:"message"`
 	Status  bool   `json:"status"`
 	Details struct {
-		OrgId        string `json:"orgId"`
+		WorkspaceId  string `json:"workspaceId"`
 		UserId       string `json:"userId"`
 		PreviousRole string `json:"previousRole"` // "owner"
 		NewRole      string `json:"newRole"`      // "member" or "admin"
@@ -396,7 +396,7 @@ type TransferBillingOwnershipResponse struct {
 	Message string `json:"message"`
 	Status  bool   `json:"status"`
 	Details struct {
-		OrgId           string `json:"orgId"`
+		WorkspaceId     string `json:"workspaceId"`
 		PreviousOwnerId string `json:"previousOwnerId"`
 		NewOwnerId      string `json:"newOwnerId"`
 		TransferredAt   int64  `json:"transferredAt"`

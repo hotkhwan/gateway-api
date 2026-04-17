@@ -7,7 +7,7 @@ type PaginationSuccessUsers struct {
 	Details    []KeycloakUser `json:"details"`
 	Pagination struct {
 		Page         int    `json:"currentPage"`
-		PerPages     int    `json:"perPages"`
+		PerPage      int    `json:"perPage"`
 		TotalRecords int    `json:"totalRecords"`
 		TotalPages   int    `json:"totalPages"`
 		SortField    string `json:"sortField"`
@@ -24,7 +24,7 @@ type KeycloakUserRaw struct {
 	LastName         string              `json:"lastName"`
 	Email            string              `json:"email"`
 	Enabled          bool                `json:"enabled"`
-	PerPages         int                 `json:"perPages"`
+	PerPage          int                 `json:"perPage"`
 	Attributes       map[string][]string `json:"attributes"`
 	CreatedTimestamp int64               `json:"createdTimestamp"` // ms since epoch
 }
@@ -41,7 +41,7 @@ type KeycloakUser struct {
 	Locale      string       `json:"locale,omitempty"`
 	Role        string       `json:"role,omitempty"`
 	Plant       string       `json:"plant,omitempty"`
-	PerPages    int          `json:"perPages,omitempty"`
+	PerPage     int          `json:"perPage,omitempty"`
 	RefId       string       `json:"refId,omitempty"`
 	Department  string       `json:"department,omitempty"`
 	RealmRoles  []string     `json:"realmRoles,omitempty"`

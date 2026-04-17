@@ -57,7 +57,7 @@ func (ctrl *OrgUnitController) ListMembers(c fiber.Ctx) error {
 
 	// ✅ query params
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	sizeStr := c.Query("perPages", "")
+	sizeStr := c.Query("perPage", "")
 	if sizeStr == "" {
 		sizeStr = c.Query("size", "10")
 	}
@@ -84,7 +84,7 @@ func (ctrl *OrgUnitController) ListMembers(c fiber.Ctx) error {
 		"details": res.Members,
 		"pagination": fiber.Map{
 			"page":         res.Page,
-			"perPages":     res.Size,
+			"perPage":      res.Size,
 			"totalRecords": res.TotalRecords,
 			"totalPages":   res.TotalPages,
 			"sortField":    res.SortField,

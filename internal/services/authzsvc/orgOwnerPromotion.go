@@ -43,7 +43,7 @@ func (s *OrganizationService) PromoteUserToOwner(
 	}
 
 	// 2) Get org for race protection (MembershipVersion)
-	org, err := s.orgRepo.GetByOrgId(ctx, orgId)
+	org, err := s.orgRepo.GetByWorkspaceId(ctx, orgId)
 	if err != nil {
 		log.Error().Err(err).Str("orgId", orgId).Msg("failed to get organization")
 		return fmt.Errorf("get organization failed: %w", err)
@@ -103,7 +103,7 @@ func (s *OrganizationService) PromoteUserToOwner(
 	// 5) Increment MembershipVersion (optimistic locking)
 	oldVersion := org.MembershipVersion
 	newVersion := oldVersion + 1
-	updated, err := s.orgRepo.UpdateMembershipVersion(ctx, org.OrgId, oldVersion, newVersion)
+	updated, err := s.orgRepo.UpdateMembershipVersion(ctx, org.WorkspaceId, oldVersion, newVersion)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to increment membership version")
 		return fmt.Errorf("failed to increment membership version: %w", err)
@@ -167,7 +167,7 @@ func (s *OrganizationService) DemoteUserFromOwner(
 	}
 
 	// 2) Get org for race protection (MembershipVersion)
-	org, err := s.orgRepo.GetByOrgId(ctx, orgId)
+	org, err := s.orgRepo.GetByWorkspaceId(ctx, orgId)
 	if err != nil {
 		log.Error().Err(err).Str("orgId", orgId).Msg("failed to get organization")
 		return fmt.Errorf("get organization failed: %w", err)
@@ -261,7 +261,7 @@ func (s *OrganizationService) DemoteUserFromOwner(
 	// 7) Increment MembershipVersion
 	oldVersion := org.MembershipVersion
 	newVersion := oldVersion + 1
-	updated, err := s.orgRepo.UpdateMembershipVersion(ctx, org.OrgId, oldVersion, newVersion)
+	updated, err := s.orgRepo.UpdateMembershipVersion(ctx, org.WorkspaceId, oldVersion, newVersion)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to increment membership version")
 		return fmt.Errorf("failed to increment membership version: %w", err)

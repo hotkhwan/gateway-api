@@ -15,6 +15,6 @@ type CreateUserRequest struct {
 	Permission  []string    `json:"permission,omitempty"`
 	MapLocation MapLocation `json:"mapLocation,omitempty"`
 	ZoomLevel   int         `json:"zoomLevel,omitempty"`
-	PerPages    int         `json:"perPages,omitempty"`
+	PerPage     int         `json:"perPage,omitempty"`
 	Enabled     bool        `json:"enabled"`
 }

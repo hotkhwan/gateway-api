@@ -115,7 +115,7 @@ func (ctrl *OrganizationController) List(c fiber.Ctx) error {
 		Details: paged,
 		Pagination: gmod.Pagination{
 			Page:         page,
-			PerPages:     perPage,
+			PerPage:      perPage,
 			TotalRecords: total,
 			TotalPages:   totalPages,
 		},
@@ -369,7 +369,7 @@ func (ctrl *OrganizationController) PromoteToOwner(c fiber.Ctx) error {
 	result.Code = gmod.CodeSuccess
 	result.Status = true
 	result.Message = "user promoted to owner"
-	result.Details.OrgId = orgId
+	result.Details.WorkspaceId = orgId
 	result.Details.UserId = userId
 	result.Details.Role = "owner"
 	result.Details.PromotedAt = time.Now().Unix()
@@ -416,7 +416,7 @@ func (ctrl *OrganizationController) DemoteFromOwner(c fiber.Ctx) error {
 	result.Code = gmod.CodeSuccess
 	result.Status = true
 	result.Message = "user demoted from owner"
-	result.Details.OrgId = orgId
+	result.Details.WorkspaceId = orgId
 	result.Details.UserId = userId
 	result.Details.PreviousRole = "owner"
 	result.Details.NewRole = newRole
@@ -485,7 +485,7 @@ func (ctrl *OrganizationController) TransferBillingOwnership(c fiber.Ctx) error 
 	result.Code = gmod.CodeSuccess
 	result.Status = true
 	result.Message = "billing ownership transferred"
-	result.Details.OrgId = orgId
+	result.Details.WorkspaceId = orgId
 	result.Details.PreviousOwnerId = oldBillingOwnerId
 	result.Details.NewOwnerId = newBillingOwnerId
 	result.Details.TransferredAt = time.Now().Unix()

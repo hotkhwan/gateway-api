@@ -20,7 +20,7 @@ import (
 // @Description List resources with pagination, search and filters.
 // @Produce json
 // @Param page query int false "Page number" default(1)
-// @Param perPages query int false "Items per page" default(10)
+// @Param perPage query int false "Items per page" default(10)
 // @Param provider query string false "Filter by provider (e.g. klynx, watchman)"
 // @Param type query string false "Filter by resource type (e.g. menu, camera, warrant)"
 // @Param search query string false "Free text search in displayName"
@@ -35,7 +35,7 @@ func ResourceList(c fiber.Ctx) error {
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPages, _ := strconv.Atoi(c.Query("perPage", "10"))
 	sortField := strings.TrimSpace(c.Query("sortField", "updatedAt"))
 	sortOrder := strings.ToLower(strings.TrimSpace(c.Query("sortOrder", "desc")))
 
@@ -54,7 +54,7 @@ func ResourceList(c fiber.Ctx) error {
 	// 🔁 Convert gmod.Pagination -> rscmod.Pagination
 	rpag := rscmod.Pagination{
 		Page:         pag.Page,
-		PerPages:     pag.PerPages,
+		PerPage:     pag.PerPage,
 		TotalRecords: pag.TotalRecords,
 		TotalPages:   pag.TotalPages,
 		SortField:    pag.SortField,

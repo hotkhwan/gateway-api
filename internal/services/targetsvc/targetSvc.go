@@ -35,24 +35,26 @@ type TargetRepoI interface {
 // ============================================================
 
 type CreateTargetInput struct {
-	TenantId    string
-	WorkspaceId string
-	UserId      string
-	Name        string
-	Type        string // webhook|line|telegram|discord
-	Mode        string // "klynx" = system routing marker; absent for regular targets
-	Enabled     bool
-	Config      authzmod.TargetConfig
+	TenantId        string
+	WorkspaceId     string
+	UserId          string
+	Name            string
+	Type            string // webhook|line|telegram|discord
+	Mode            string // "klynx" = system routing marker; absent for regular targets
+	Enabled         bool
+	Config          authzmod.TargetConfig
+	IsPlatformAdmin bool
 }
 
 type UpdateTargetInput struct {
-	TenantId    string
-	WorkspaceId string
-	TargetId    string
-	UserId      string
-	Name        *string
-	Enabled     *bool
-	Config      *authzmod.TargetConfig
+	TenantId        string
+	WorkspaceId     string
+	TargetId        string
+	UserId          string
+	Name            *string
+	Enabled         *bool
+	Config          *authzmod.TargetConfig
+	IsPlatformAdmin bool
 }
 
 type ListTargetInput struct {
@@ -91,7 +93,11 @@ var validTargetTypes = map[string]bool{
 }
 
 // checkAdmin ตรวจว่า userId เป็น admin ของ workspace ใน Permify
-func (s *TargetService) checkAdmin(ctx context.Context, tenantId, workspaceId, userId string) error {
+// bypass=true สำหรับ platform admin (JWT role=administrator) ที่ผ่าน middleware แล้ว
+func (s *TargetService) checkAdmin(ctx context.Context, tenantId, workspaceId, userId string, bypass bool) error {
+	if bypass {
+		return nil
+	}
 	allowed, err := s.authzClient.CheckPermissionWithSchemaVersion(
 		ctx, tenantId, config.CurrentSchemaVersion,
 		"organization", workspaceId, "manage", "user", userId,
@@ -130,7 +136,7 @@ func (s *TargetService) Create(ctx context.Context, input CreateTargetInput) (*a
 		}
 	}
 
-	if err := s.checkAdmin(ctx, input.TenantId, input.WorkspaceId, input.UserId); err != nil {
+	if err := s.checkAdmin(ctx, input.TenantId, input.WorkspaceId, input.UserId, input.IsPlatformAdmin); err != nil {
 		return nil, err
 	}
 
@@ -208,12 +214,12 @@ func (s *TargetService) List(ctx context.Context, input ListTargetInput) ([]auth
 // GetOne
 // ============================================================
 
-func (s *TargetService) GetOne(ctx context.Context, tenantId, workspaceId, userId, targetId string) (*authzmod.DeliveryTarget, error) {
+func (s *TargetService) GetOne(ctx context.Context, tenantId, workspaceId, userId, targetId string, isAdmin bool) (*authzmod.DeliveryTarget, error) {
 	if tenantId == "" || workspaceId == "" || targetId == "" {
 		return nil, ErrBadRequest
 	}
 
-	if err := s.checkAdmin(ctx, tenantId, workspaceId, userId); err != nil {
+	if err := s.checkAdmin(ctx, tenantId, workspaceId, userId, isAdmin); err != nil {
 		return nil, err
 	}
 
@@ -238,7 +244,7 @@ func (s *TargetService) Update(ctx context.Context, input UpdateTargetInput) (*a
 		return nil, ErrBadRequest
 	}
 
-	if err := s.checkAdmin(ctx, input.TenantId, input.WorkspaceId, input.UserId); err != nil {
+	if err := s.checkAdmin(ctx, input.TenantId, input.WorkspaceId, input.UserId, input.IsPlatformAdmin); err != nil {
 		return nil, err
 	}
 
@@ -290,14 +296,14 @@ func (s *TargetService) Update(ctx context.Context, input UpdateTargetInput) (*a
 // Delete
 // ============================================================
 
-func (s *TargetService) Delete(ctx context.Context, tenantId, workspaceId, userId, targetId string) error {
+func (s *TargetService) Delete(ctx context.Context, tenantId, workspaceId, userId, targetId string, isAdmin bool) error {
 	log := logger.FromCtx(ctx, "targetsvc", "Target.Delete")
 
 	if tenantId == "" || workspaceId == "" || targetId == "" {
 		return ErrBadRequest
 	}
 
-	if err := s.checkAdmin(ctx, tenantId, workspaceId, userId); err != nil {
+	if err := s.checkAdmin(ctx, tenantId, workspaceId, userId, isAdmin); err != nil {
 		return err
 	}
 
@@ -322,8 +328,8 @@ func (s *TargetService) Delete(ctx context.Context, tenantId, workspaceId, userI
 // ToggleEnabled
 // ============================================================
 
-func (s *TargetService) ToggleEnabled(ctx context.Context, tenantId, workspaceId, userId, targetId string, enabled bool) error {
-	if err := s.checkAdmin(ctx, tenantId, workspaceId, userId); err != nil {
+func (s *TargetService) ToggleEnabled(ctx context.Context, tenantId, workspaceId, userId, targetId string, enabled bool, isAdmin bool) error {
+	if err := s.checkAdmin(ctx, tenantId, workspaceId, userId, isAdmin); err != nil {
 		return err
 	}
 	return s.repo.Update(ctx, targetId, tenantId, workspaceId, bson.M{"enabled": enabled, "updatedAt": time.Now().UTC()})

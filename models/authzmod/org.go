@@ -17,7 +17,7 @@ type OrgIngestConfig struct {
 
 type Organization struct {
 	ID    primitive.ObjectID `bson:"_id,omitempty"` // internal
-	OrgId string             `bson:"orgId"`         // external stable id
+	WorkspaceId string        `bson:"workspaceId"`   // external stable id
 
 	TenantId    string `bson:"tenantId"`
 	Name        string `bson:"name"`

@@ -23,11 +23,11 @@ func NewCameraService(repo *devicerepo.CameraRepo, authzClient authzgw.Client) *
 	return &CameraService{repo: repo, authzClient: authzClient}
 }
 
-func tupleCameraParentOrg(camId, orgId string) map[string]any {
+func tupleCameraParentOrg(camId, workspaceId string) map[string]any {
 	return map[string]any{
 		"entity":   map[string]any{"type": "resource", "id": camId},
 		"relation": "parentOrg",
-		"subject":  map[string]any{"type": "organization", "id": orgId},
+		"subject":  map[string]any{"type": "organization", "id": workspaceId},
 	}
 }
 
@@ -39,10 +39,10 @@ func tupleCameraCreator(camId, userId string) map[string]any {
 	}
 }
 
-func (s *CameraService) guardManageOrg(ctx context.Context, tenantId, orgId, callerUserId string) error {
+func (s *CameraService) guardManageOrg(ctx context.Context, tenantId, workspaceId, callerUserId string) error {
 	allowed, err := s.authzClient.CheckPermissionWithSchemaVersion(
 		ctx, tenantId, config.CurrentSchemaVersion,
-		"organization", orgId, "manage", "user", callerUserId,
+		"organization", workspaceId, "manage", "user", callerUserId,
 	)
 	if err != nil {
 		return fmt.Errorf("permission check error: %w", err)
@@ -56,19 +56,19 @@ func (s *CameraService) guardManageOrg(ctx context.Context, tenantId, orgId, cal
 func (s *CameraService) Create(ctx context.Context, input devmod.CreateCameraInput) (*devmod.CameraDTO, error) {
 	log := logger.FromCtx(ctx, "devicesvc", "CameraService.Create")
 	input.TenantID = strings.TrimSpace(input.TenantID)
-	input.OrgID = strings.TrimSpace(input.OrgID)
+	input.WorkspaceID = strings.TrimSpace(input.WorkspaceID)
 	input.Name = strings.TrimSpace(input.Name)
 	input.CallerID = strings.TrimSpace(input.CallerID)
-	if input.TenantID == "" || input.OrgID == "" || input.Name == "" || input.CallerID == "" {
+	if input.TenantID == "" || input.WorkspaceID == "" || input.Name == "" || input.CallerID == "" {
 		return nil, ErrInvalidArgs
 	}
 	if input.MapVisibility == "" {
 		input.MapVisibility = "inherit"
 	}
-	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
+	if err := s.guardManageOrg(ctx, input.TenantID, input.WorkspaceID, input.CallerID); err != nil {
 		return nil, err
 	}
-	exists, err := s.repo.ExistsByNameInOrg(ctx, input.OrgID, input.Name, "")
+	exists, err := s.repo.ExistsByNameInOrg(ctx, input.WorkspaceID, input.Name, "")
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (s *CameraService) Create(ctx context.Context, input devmod.CreateCameraInp
 		log.Error().Err(err).Msg("❌ Insert camera failed")
 		return nil, err
 	}
-	tuples := []map[string]any{tupleCameraParentOrg(camId, input.OrgID), tupleCameraCreator(camId, input.CallerID)}
+	tuples := []map[string]any{tupleCameraParentOrg(camId, input.WorkspaceID), tupleCameraCreator(camId, input.CallerID)}
 	if err := s.authzClient.WriteTuples(ctx, input.TenantID, tuples); err != nil {
 		_ = s.repo.HardDelete(ctx, camId)
 		log.Error().Err(err).Str("camId", camId).Msg("❌ Permify write failed — rolled back")
@@ -92,7 +92,7 @@ func (s *CameraService) Create(ctx context.Context, input devmod.CreateCameraInp
 		return nil, err
 	}
 	dto := devicerepo.ToDTO(cam)
-	publishAssetsChanged(ctx, input.OrgID, camId, "create")
+	publishAssetsChanged(ctx, input.WorkspaceID, camId, "create")
 	return &dto, nil
 }
 
@@ -103,21 +103,21 @@ type BulkCreateResult struct {
 	PermifySyncFailed []string
 }
 
-func (s *CameraService) BulkCreate(ctx context.Context, tenantId, orgId, callerID string, items []devmod.BulkImportItem) (*BulkCreateResult, error) {
+func (s *CameraService) BulkCreate(ctx context.Context, tenantId, workspaceId, callerID string, items []devmod.BulkImportItem) (*BulkCreateResult, error) {
 	log := logger.FromCtx(ctx, "devicesvc", "CameraService.BulkCreate")
-	if err := s.guardManageOrg(ctx, tenantId, orgId, callerID); err != nil {
+	if err := s.guardManageOrg(ctx, tenantId, workspaceId, callerID); err != nil {
 		return nil, err
 	}
 	if len(items) == 0 {
 		return &BulkCreateResult{}, nil
 	}
-	ids, err := s.repo.BulkInsert(ctx, tenantId, orgId, callerID, items)
+	ids, err := s.repo.BulkInsert(ctx, tenantId, workspaceId, callerID, items)
 	if err != nil {
 		return nil, err
 	}
 	tuples := make([]map[string]any, 0, len(ids)*2)
 	for _, id := range ids {
-		tuples = append(tuples, tupleCameraParentOrg(id, orgId), tupleCameraCreator(id, callerID))
+		tuples = append(tuples, tupleCameraParentOrg(id, workspaceId), tupleCameraCreator(id, callerID))
 	}
 	result := &BulkCreateResult{Results: make([]devmod.BulkImportResult, 0, len(ids))}
 	if permifyErr := s.authzClient.WriteTuples(ctx, tenantId, tuples); permifyErr != nil {
@@ -136,8 +136,8 @@ func (s *CameraService) BulkCreate(ctx context.Context, tenantId, orgId, callerI
 	return result, nil
 }
 
-func (s *CameraService) GetByID(ctx context.Context, tenantId, orgId, camId string) (*devmod.CameraDTO, error) {
-	cam, err := s.repo.FindByCamIDAndOrg(ctx, camId, orgId)
+func (s *CameraService) GetByID(ctx context.Context, tenantId, workspaceId, camId string) (*devmod.CameraDTO, error) {
+	cam, err := s.repo.FindByCamIDAndOrg(ctx, camId, workspaceId)
 	if err != nil {
 		return nil, err
 	}
@@ -149,12 +149,12 @@ func (s *CameraService) GetByID(ctx context.Context, tenantId, orgId, camId stri
 }
 
 type ListCameraInput struct {
-	TenantID  string
-	OrgID     string
+	TenantID    string
+	WorkspaceID string
 	Search    string
 	GroupID   string
 	Page      int
-	PerPages  int
+	PerPage   int
 	SortField string
 	SortOrder string
 }
@@ -167,9 +167,9 @@ type ListCameraResult struct {
 }
 
 func (s *CameraService) List(ctx context.Context, input ListCameraInput) (*ListCameraResult, error) {
-	cameras, total, err := s.repo.List(ctx, input.TenantID, input.OrgID, devicerepo.CameraListOptions{
+	cameras, total, err := s.repo.List(ctx, input.TenantID, input.WorkspaceID, devicerepo.CameraListOptions{
 		Search: input.Search, GroupID: input.GroupID,
-		Page: input.Page, PerPage: input.PerPages,
+		Page: input.Page, PerPage: input.PerPage,
 		SortField: input.SortField, SortOrder: input.SortOrder,
 	})
 	if err != nil {
@@ -188,17 +188,17 @@ func (s *CameraService) List(ctx context.Context, input ListCameraInput) (*ListC
 	return &ListCameraResult{Items: items, Total: total, Online: online, Offline: offline}, nil
 }
 
-func (s *CameraService) Update(ctx context.Context, tenantId, orgId, callerID, camId string, input devmod.UpdateCameraInput) error {
+func (s *CameraService) Update(ctx context.Context, tenantId, workspaceId, callerID, camId string, input devmod.UpdateCameraInput) error {
 	log := logger.FromCtx(ctx, "devicesvc", "CameraService.Update")
-	if err := s.guardManageOrg(ctx, tenantId, orgId, callerID); err != nil {
+	if err := s.guardManageOrg(ctx, tenantId, workspaceId, callerID); err != nil {
 		return err
 	}
-	if _, err := s.repo.FindByCamIDAndOrg(ctx, camId, orgId); err != nil {
+	if _, err := s.repo.FindByCamIDAndOrg(ctx, camId, workspaceId); err != nil {
 		return err
 	}
 	if input.Name != "" {
 		input.Name = strings.TrimSpace(input.Name)
-		exists, err := s.repo.ExistsByNameInOrg(ctx, orgId, input.Name, camId)
+		exists, err := s.repo.ExistsByNameInOrg(ctx, workspaceId, input.Name, camId)
 		if err != nil {
 			return err
 		}
@@ -211,16 +211,16 @@ func (s *CameraService) Update(ctx context.Context, tenantId, orgId, callerID, c
 		return err
 	}
 	log.Info().Str("camId", camId).Msg("✅ Camera updated")
-	publishAssetsChanged(ctx, orgId, camId, "update")
+	publishAssetsChanged(ctx, workspaceId, camId, "update")
 	return nil
 }
 
-func (s *CameraService) Delete(ctx context.Context, tenantId, orgId, callerID, camId string) error {
+func (s *CameraService) Delete(ctx context.Context, tenantId, workspaceId, callerID, camId string) error {
 	log := logger.FromCtx(ctx, "devicesvc", "CameraService.Delete")
-	if err := s.guardManageOrg(ctx, tenantId, orgId, callerID); err != nil {
+	if err := s.guardManageOrg(ctx, tenantId, workspaceId, callerID); err != nil {
 		return err
 	}
-	if _, err := s.repo.FindByCamIDAndOrg(ctx, camId, orgId); err != nil {
+	if _, err := s.repo.FindByCamIDAndOrg(ctx, camId, workspaceId); err != nil {
 		return err
 	}
 	// 1. Permify ก่อน
@@ -233,21 +233,21 @@ func (s *CameraService) Delete(ctx context.Context, tenantId, orgId, callerID, c
 		return err
 	}
 	log.Info().Str("camId", camId).Msg("✅ Camera hard deleted")
-	publishAssetsChanged(ctx, orgId, camId, "delete")
+	publishAssetsChanged(ctx, workspaceId, camId, "delete")
 	return nil
 }
 
 // publishAssetsChanged fires a non-blocking Kafka publish to gw.assets.changed.v1.
 // Non-fatal: errors are logged only.
-func publishAssetsChanged(ctx context.Context, orgId, assetId, action string) {
+func publishAssetsChanged(ctx context.Context, workspaceId, assetId, action string) {
 	topic := config.TopicEnv("KAFKA_TOPIC_GW_ASSETS", "gw.assets.changed.v1")
 	payload, _ := json.Marshal(map[string]any{
-		"orgId":   orgId,
-		"assetId": assetId,
-		"action":  action,
+		"workspaceId": workspaceId,
+		"assetId":     assetId,
+		"action":      action,
 	})
-	headers := map[string]string{"orgId": orgId, "action": action}
+	headers := map[string]string{"workspaceId": workspaceId, "action": action}
 	go func() {
-		_ = config.SendToKafkaWithCtx(context.Background(), topic, orgId, payload, headers)
+		_ = config.SendToKafkaWithCtx(context.Background(), topic, workspaceId, payload, headers)
 	}()
 }

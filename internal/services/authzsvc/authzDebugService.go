@@ -86,7 +86,7 @@ func (s *AuthzDebugService) FactoryOrgBootstrap(
 	}
 
 	return &FactoryBootstrapResult{
-		OrgId:         orgId,
+		WorkspaceId:   orgId,
 		TupleCount:    len(tuples),
 		SchemaVersion: config.CurrentSchemaVersion,
 	}, nil

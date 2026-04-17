@@ -101,7 +101,7 @@ func ChatList(c fiber.Ctx) error {
 		Details: utils.EmptyIfNil(chats),
 		Pagination: gmod.Pagination{
 			Page:         1,
-			PerPages:     len(chats),
+			PerPage:     len(chats),
 			TotalRecords: len(chats),
 			TotalPages:   1,
 			SortField:    "createdAt",

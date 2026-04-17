@@ -34,7 +34,7 @@ func ListMAPPosition(ctx context.Context, page int, perPages int, filters map[st
 
 	log.Info().
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPages).
 		Str("sortOrder", sortOrder).
 		Str("bucket", bucket).
 		Msg("📥 Listing KML map files from S3")
@@ -123,7 +123,7 @@ func ListMAPPosition(ctx context.Context, page int, perPages int, filters map[st
 
 	pagination := gmod.Pagination{
 		Page:         page,
-		PerPages:     perPages,
+		PerPage:      perPages,
 		TotalRecords: total,
 		TotalPages:   (total + perPages - 1) / perPages,
 		SortOrder:    sortOrder,

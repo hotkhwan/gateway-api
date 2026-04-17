@@ -8,11 +8,12 @@ import "time"
 type DeviceManagement struct {
 	DeviceMgmtId string    `json:"deviceMgmtId" bson:"deviceMgmtId"`
 	TenantId     string    `json:"tenantId"      bson:"tenantId"`
-	OrgId        string    `json:"orgId"         bson:"orgId"`
+	WorkspaceId  string    `json:"workspaceId"   bson:"workspaceId"`
 	SourceFamily string    `json:"sourceFamily"  bson:"sourceFamily"`
 	EntityType   string    `json:"entityType"    bson:"entityType"` // "channel", "device", "sourceSerial"
 	EntityId     string    `json:"entityId"      bson:"entityId"`   // e.g. "31", "EDGEAI-8ch"
 	DeviceId     string    `json:"deviceId,omitempty"    bson:"deviceId,omitempty"`
+	SerialNo     string    `json:"serialNo,omitempty"    bson:"serialNo,omitempty"`   // vendor serial / edge unique ID (e.g. AIBOX "sn")
 	Name         string    `json:"name,omitempty"        bson:"name,omitempty"`
 	Description  string    `json:"description,omitempty" bson:"description,omitempty"`
 	Lat          float64   `json:"lat,omitempty"         bson:"lat,omitempty"`
@@ -27,6 +28,7 @@ type DeviceManagement struct {
 // for auto-creating/merging device_management records.
 type AutoUpsertHints struct {
 	DeviceId    string
+	SerialNo    string // vendor serial / edge unique ID (e.g. AIBOX "sn" field)
 	Name        string
 	Description string
 	Lat         float64

@@ -21,7 +21,7 @@ func renderContext(event *ingestmod.NormalizedEvent) map[string]any {
 		"occurredAt":    event.OccurredAt.UTC().Format("2006-01-02T15:04:05Z"),
 		"payload":       event.Payload,
 		"source": map[string]any{
-			"orgId":      event.Source.OrgId,
+			"orgId":      event.Source.WorkspaceId,
 			"deviceId":   event.Source.DeviceId,
 			"deviceType": event.Source.DeviceType,
 			"vendor":     event.Source.Vendor,

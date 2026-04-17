@@ -170,7 +170,7 @@ func (ctrl *ResourcePermissionsProfileController) Delete(c fiber.Ctx) error {
 // @Security     BearerAuth
 // @Produce      json
 // @Param        page      query int    false "page (default 1)"
-// @Param        perPages  query int    false "items per page (default 10)"
+// @Param        perPage   query int    false "items per page (default 10)"
 // @Param        search    query string false "search keyword"
 // @Param        sortField query string false "sort field (default createdAt)"
 // @Param        sortOrder query string false "sort order: asc|desc (default desc)"
@@ -186,7 +186,7 @@ func (ctrl *ResourcePermissionsProfileController) List(c fiber.Ctx) error {
 	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPages, _ := strconv.Atoi(c.Query("perPage", "10"))
 
 	profiles, total, err := ctrl.svc.List(c, authzsvc.ListPermProfileInput{
 		TenantID:  tenantId,
@@ -213,7 +213,7 @@ func (ctrl *ResourcePermissionsProfileController) List(c fiber.Ctx) error {
 		Details: profiles,
 		Pagination: gmod.Pagination{
 			Page:         page,
-			PerPages:     perPages,
+			PerPage:      perPages,
 			TotalRecords: int(total),
 			TotalPages:   totalPages,
 		},

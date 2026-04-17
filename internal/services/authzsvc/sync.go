@@ -21,7 +21,7 @@ func InitialSyncRelationships(ctx context.Context, tenantId string) error {
 
 	for _, org := range orgs {
 		// ✅ org-only bootstrap tuples
-		tuples := TupleFactoryOrgBootstrap(org.OrgId, org.CreatedBy)
+		tuples := TupleFactoryOrgBootstrap(org.WorkspaceId, org.CreatedBy)
 		_ = client.WriteTuples(ctx, tenantId, tuples)
 	}
 

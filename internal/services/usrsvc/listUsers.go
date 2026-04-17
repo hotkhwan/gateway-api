@@ -129,7 +129,7 @@ func ListUsers(ctx context.Context, authHeader string, page, perPages int, searc
 			FirstName: u.FirstName,
 			LastName:  u.LastName,
 			Email:     u.Email,
-			PerPages:  u.PerPages,
+			PerPage:   u.PerPage,
 			Enabled:   u.Enabled,
 		}
 
@@ -168,7 +168,7 @@ func ListUsers(ctx context.Context, authHeader string, page, perPages int, searc
 
 			if perArr, ok := u.Attributes["perPages"]; ok && len(perArr) > 0 {
 				if n, err := strconv.Atoi(perArr[0]); err == nil {
-					user.PerPages = n
+					user.PerPage = n
 				}
 			}
 
@@ -290,7 +290,7 @@ func ListUsers(ctx context.Context, authHeader string, page, perPages int, searc
 		Details: out,
 		Pagination: gmod.Pagination{
 			Page:         page,
-			PerPages:     perPages,
+			PerPage:      perPages,
 			TotalRecords: totalRecords,
 			TotalPages:   totalPages,
 			SortField:    sortField,
@@ -372,7 +372,7 @@ func GetUsersByIds(ctx context.Context, authHeader string, userIds []string) (Li
 					FirstName: raw.FirstName,
 					LastName:  raw.LastName,
 					Email:     raw.Email,
-					PerPages:  raw.PerPages,
+					PerPage:   raw.PerPage,
 					Enabled:   raw.Enabled,
 				}
 
@@ -451,7 +451,7 @@ func GetUsersByIds(ctx context.Context, authHeader string, userIds []string) (Li
 		Details: final,
 		Pagination: gmod.Pagination{
 			Page:         1,
-			PerPages:     len(final),
+			PerPage:      len(final),
 			TotalRecords: len(final),
 			TotalPages:   1,
 			SortField:    "userIds",

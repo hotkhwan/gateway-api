@@ -12,7 +12,7 @@ type ResourceGroup struct {
 	InternalID    primitive.ObjectID `bson:"_id,omitempty"   json:"-"`
 	GroupID       string             `bson:"groupId"         json:"id"`
 	TenantID      string             `bson:"tenantId"        json:"tenantId"`
-	OrgID         string             `bson:"orgId"           json:"orgId"`
+	WorkspaceID   string             `bson:"workspaceId"     json:"workspaceId"`
 	Name          string             `bson:"name"            json:"name"`
 	Description   string             `bson:"description"     json:"description,omitempty"`
 	ResourceType  string             `bson:"resourceType"    json:"resourceType,omitempty"`  // "camera" | "sensor" | "" = all

@@ -42,7 +42,7 @@ func (h *DeviceManagementController) List(c fiber.Ctx) error {
 	tenantId := h.tenantId(c)
 	orgId := h.orgId(c)
 	page := fiber.Query[int](c, "page", 1)
-	perPage := fiber.Query[int](c, "perPages", 20)
+	perPage := fiber.Query[int](c, "perPage", 20)
 
 	items, err := h.svc.List(ctx, tenantId, orgId, page, perPage)
 	if err != nil {
@@ -87,7 +87,7 @@ func (h *DeviceManagementController) Create(c fiber.Ctx) error {
 	}
 
 	in.TenantId = tenantId
-	in.OrgId = orgId
+	in.WorkspaceId = orgId
 
 	if err := h.svc.Create(ctx, &in); err != nil {
 		log.Error().Err(err).Msg("[CreateDeviceMgmt] failed")

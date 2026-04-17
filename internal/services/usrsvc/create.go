@@ -27,7 +27,7 @@ func CreateUser(ctx context.Context, req usrmod.CreateUserRequest) error {
 		"role":       req.Role,
 		"avatar":     req.Avatar,
 		"department": req.Department,
-		"perPages":   fmt.Sprintf("%d", req.PerPages),
+		"perPages":   fmt.Sprintf("%d", req.PerPage),
 		"refId":      req.RefId,
 		"map_lat":    req.MapLocation.Lat,
 		"map_lng":    req.MapLocation.Lng,

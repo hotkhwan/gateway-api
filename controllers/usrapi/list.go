@@ -2,7 +2,6 @@
 package usrapi
 
 import (
-	"strconv"
 	"strings"
 
 	"github.com/hotkhwan/gateway-api/internal/services/usrsvc"
@@ -63,8 +62,7 @@ func parseUserIds(c fiber.Ctx) []string {
 // @Param userIds query string false "Comma-separated user IDs (e.g. userIds=id1,id2,id3)"
 // @Param userId query string false "Repeatable user ID (e.g. userId=id1&userId=id2)"
 // @Param page query int false "Page number"
-// @Param perPages query int false "Items per page"
-// @Param perPage query int false "Items per page (alias of perPages)"
+// @Param perPage query int false "Items per page"
 // @Param search query string false "Search term"
 // @Param sortField query string false "Sort field: username|email|firstName|lastName|createdAt" default(username)
 // @Param sortOrder query string false "Sort order: asc|desc" default(desc)
@@ -104,7 +102,7 @@ func ListUsers(c fiber.Ctx) error {
 		// รักษา contract เดิม: ส่งแบบ pagination
 		return gmod.SendPagination(c, result.Details, gmod.Pagination{
 			Page:         1,
-			PerPages:     len(result.Details),
+			PerPage:     len(result.Details),
 			TotalRecords: len(result.Details),
 			TotalPages:   1,
 			SortField:    "userIds",
@@ -115,14 +113,7 @@ func ListUsers(c fiber.Ctx) error {
 	// --- เดิมทั้งหมด (pagination/search/sort) ---
 	page := fiber.Query[int](c, "page", 1)
 
-	perPages := fiber.Query[int](c, "perPages", 0)
-	if perPages <= 0 {
-		if v := c.Query("perPage"); v != "" {
-			if n, err := strconv.Atoi(v); err == nil && n > 0 {
-				perPages = n
-			}
-		}
-	}
+	perPages := fiber.Query[int](c, "perPage", 0)
 	if perPages <= 0 {
 		perPages = 10
 	}

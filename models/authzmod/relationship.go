@@ -10,7 +10,7 @@ type RelationshipQuery struct {
 	EntityType  string `query:"entityType"` // ปกติใช้ "resource"
 	EntityIds   string `query:"entityId"`   // comma-separated
 	Page        int    `query:"page"`
-	PerPages    int    `query:"perPages"`
+	PerPage     int    `query:"perPage"`
 	SortField   string `query:"sortField"`
 	SortOrder   string `query:"sortOrder"` // "asc" | "desc"
 }

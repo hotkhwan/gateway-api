@@ -364,7 +364,7 @@ func (s *OrgUnitService) CreateOrgUnit(
 		ID:           primitive.NewObjectID(),
 		UnitId:       unitId,
 		TenantId:     tenantId,
-		OrgId:        orgId,
+		WorkspaceId:  orgId,
 		ParentUnitId: parentId,
 		Name:         name,
 		Description:  description,

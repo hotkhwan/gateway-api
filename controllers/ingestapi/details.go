@@ -52,7 +52,7 @@ func (ctrl *EventDetailsController) ListApprovedEvents(c fiber.Ctx) error {
 
 	input := ingestmod.ListEventsInput{
 		TenantId:  tenantId,
-		OrgId:     orgId,
+		WorkspaceId:     orgId,
 		EventType: c.Query("eventType", ""),
 		Page:      fiber.Query[int](c, "page", 1),
 		PerPage:   fiber.Query[int](c, "perPage", 10),
@@ -75,7 +75,7 @@ func (ctrl *EventDetailsController) ListApprovedEvents(c fiber.Ctx) error {
 
 	pagination := gmod.Pagination{
 		Page:         input.Page,
-		PerPages:     input.PerPage,
+		PerPage:     input.PerPage,
 		TotalRecords: int(result.Total),
 		TotalPages:   result.TotalPages,
 		SortField:    input.SortField,

@@ -21,7 +21,7 @@ import (
 type NormalizedEvent struct {
 	EventId        string                 `json:"eventId"`
 	TenantId       string                 `json:"tenantId"`
-	OrgId          string                 `json:"orgId"`
+	WorkspaceId    string                 `json:"workspaceId"`
 	Name           string                 `json:"name"`
 	Lat            float64                `json:"lat"`
 	Lng            float64                `json:"lng"`
@@ -77,16 +77,16 @@ func (s *Service) DeliverToAllTargets(ctx context.Context, event NormalizedEvent
 	log.Info().
 		Str("eventId", event.EventId).
 		Str("tenantId", event.TenantId).
-		Str("orgId", event.OrgId).
+		Str("orgId", event.WorkspaceId).
 		Str("eventType", event.EventType).
 		Msg("Starting delivery to targets")
 
 	// Find all enabled targets for the org
-	targets, err := s.targetRepo.FindEnabledByOrg(ctx, event.TenantId, event.OrgId)
+	targets, err := s.targetRepo.FindEnabledByOrg(ctx, event.TenantId, event.WorkspaceId)
 	if err != nil {
 		log.Error().
 			Str("tenantId", event.TenantId).
-			Str("orgId", event.OrgId).
+			Str("orgId", event.WorkspaceId).
 			Err(err).
 			Msg("failed to find targets for org")
 		return fmt.Errorf("failed to find targets: %w", err)
@@ -95,13 +95,13 @@ func (s *Service) DeliverToAllTargets(ctx context.Context, event NormalizedEvent
 	if len(targets) == 0 {
 		log.Debug().
 			Str("tenantId", event.TenantId).
-			Str("orgId", event.OrgId).
+			Str("orgId", event.WorkspaceId).
 			Msg("no enabled targets found for org")
 		return nil
 	}
 
 	log.Info().
-		Str("orgId", event.OrgId).
+		Str("orgId", event.WorkspaceId).
 		Int("targetCount", len(targets)).
 		Msg("found enabled targets")
 
