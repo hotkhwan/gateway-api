@@ -34,9 +34,11 @@ type BatchGetEventsResponse struct {
 
 // EventResponse mirrors klynx eventsvc.EventDetailDTO — field names must match exactly.
 type EventResponse struct {
-	EventID     string             `json:"eventId"`
-	EventType   string             `json:"eventType"`
-	OrgID       string             `json:"orgId,omitempty"`
+	EventID       string             `json:"eventId"`
+	EventType     string             `json:"eventType"`
+	EventCategory string             `json:"eventCategory,omitempty"`
+	EventAction   string             `json:"eventAction,omitempty"`
+	OrgID         string             `json:"orgId,omitempty"`
 	OccurredAt  time.Time          `json:"occurredAt"`
 	Source      EventSourceInfo    `json:"source"`
 	Location    *EventLocationInfo `json:"location,omitempty"`
@@ -199,9 +201,11 @@ func (s *EventServiceServer) batchGetEventsHandler() func(srv any, ctx context.C
 // toEventResponse maps NormalizedEvent → EventResponse (klynx-facing DTO).
 func toEventResponse(ev *ingestmod.NormalizedEvent) *EventResponse {
 	resp := &EventResponse{
-		EventID:    ev.EventId,
-		EventType:  ev.EventType,
-		OrgID:      ev.Source.WorkspaceId,
+		EventID:       ev.EventId,
+		EventType:     ev.EventType,
+		EventCategory: ev.EventCategory,
+		EventAction:   ev.EventAction,
+		OrgID:         ev.Source.WorkspaceId,
 		OccurredAt: ev.OccurredAt,
 		Source: EventSourceInfo{
 			DeviceID:   ev.Source.DeviceId,
