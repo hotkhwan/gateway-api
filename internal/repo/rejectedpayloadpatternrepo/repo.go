@@ -42,7 +42,7 @@ func (r *RejectedPayloadPatternRepo) Create(
 	patternId := uuid.NewString()
 	doc := &ingestmod.RejectedPayloadPattern{
 		PatternId:    patternId,
-		OrgId:        orgId,
+		WorkspaceId:        orgId,
 		SourceFamily: sourceFamily,
 		Fingerprint:  fingerprint,
 		Reason:       reason,
@@ -58,7 +58,7 @@ func (r *RejectedPayloadPatternRepo) Create(
 // Exists checks if a pattern with given orgId+sourceFamily+fingerprint already exists.
 func (r *RejectedPayloadPatternRepo) Exists(ctx context.Context, orgId, sourceFamily, fingerprint string) (bool, error) {
 	filter := bson.M{
-		"orgId":        orgId,
+		"workspaceId":  orgId,
 		"sourceFamily": sourceFamily,
 		"fingerprint":  fingerprint,
 	}
@@ -75,7 +75,7 @@ func (r *RejectedPayloadPatternRepo) Exists(ctx context.Context, orgId, sourceFa
 
 // FindById finds a pattern by orgId+patternId.
 func (r *RejectedPayloadPatternRepo) FindById(ctx context.Context, orgId, patternId string) (*ingestmod.RejectedPayloadPattern, error) {
-	filter := bson.M{"orgId": orgId, "patternId": patternId}
+	filter := bson.M{"workspaceId": orgId, "patternId": patternId}
 	var doc ingestmod.RejectedPayloadPattern
 	if err := stomongo.FindOne(ctx, col, filter, &doc); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -88,7 +88,7 @@ func (r *RejectedPayloadPatternRepo) FindById(ctx context.Context, orgId, patter
 
 // List returns paginated patterns for an org, sorted by createdAt desc.
 func (r *RejectedPayloadPatternRepo) List(ctx context.Context, orgId string, page, perPage int) ([]*ingestmod.RejectedPayloadPattern, *gmod.Pagination, error) {
-	filter := bson.M{"orgId": orgId}
+	filter := bson.M{"workspaceId": orgId}
 	sort := bson.D{{Key: "createdAt", Value: -1}}
 	var items []*ingestmod.RejectedPayloadPattern
 	pag, err := stomongo.FindWithPagination(ctx, col, filter, sort, page, perPage, &items)
@@ -100,7 +100,7 @@ func (r *RejectedPayloadPatternRepo) List(ctx context.Context, orgId string, pag
 
 // Delete hard-deletes a pattern by orgId+patternId.
 func (r *RejectedPayloadPatternRepo) Delete(ctx context.Context, orgId, patternId string) error {
-	filter := bson.M{"orgId": orgId, "patternId": patternId}
+	filter := bson.M{"workspaceId": orgId, "patternId": patternId}
 	result, err := stomongo.DeleteOne(ctx, col, filter)
 	if err != nil {
 		return err

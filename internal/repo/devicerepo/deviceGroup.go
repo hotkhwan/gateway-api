@@ -42,10 +42,10 @@ func (r *ResourceGroupRepo) EnsureIndexes(ctx context.Context) error {
 		r.collection,
 		bson.D{
 			{Key: "tenantId", Value: 1},
-			{Key: "orgId", Value: 1},
+			{Key: "workspaceId", Value: 1},
 			{Key: "name", Value: 1},
 		},
-		"uq_tenant_org_groupName",
+		"uq_tenant_workspace_groupName",
 	); err != nil {
 		return err
 	}
@@ -56,8 +56,8 @@ func (r *ResourceGroupRepo) EnsureIndexes(ctx context.Context) error {
 			Keys:    bson.D{{Key: "groupId", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
-		{Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}}},
-		{Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "resourceType", Value: 1}}},
+		{Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "workspaceId", Value: 1}}},
+		{Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "workspaceId", Value: 1}, {Key: "resourceType", Value: 1}}},
 	})
 }
 
@@ -97,12 +97,12 @@ func (r *ResourceGroupRepo) FindByID(ctx context.Context, groupId string) (*devm
 // FindByIDAndOrg — cross-org protection
 // ============================================================
 
-func (r *ResourceGroupRepo) FindByIDAndOrg(ctx context.Context, groupId, tenantId, orgId string) (*devmod.ResourceGroup, error) {
+func (r *ResourceGroupRepo) FindByIDAndOrg(ctx context.Context, groupId, tenantId, workspaceId string) (*devmod.ResourceGroup, error) {
 	group, err := r.FindByID(ctx, groupId)
 	if err != nil {
 		return nil, err
 	}
-	if group.TenantID != tenantId || group.OrgID != orgId {
+	if group.TenantID != tenantId || group.WorkspaceID != workspaceId {
 		return nil, ErrCrossOrgAccess
 	}
 	return group, nil
@@ -116,7 +116,7 @@ type ListOptions struct {
 	Search       string
 	ResourceType string // filter by resourceType ("" = all)
 	Page         int
-	PerPages     int
+	PerPage      int
 	SortField    string
 	SortOrder    string // "asc" | "desc"
 }
@@ -125,12 +125,12 @@ type ListOptions struct {
 // List
 // ============================================================
 
-func (r *ResourceGroupRepo) List(ctx context.Context, tenantId, orgId string, opts ListOptions) ([]devmod.ResourceGroup, int64, error) {
+func (r *ResourceGroupRepo) List(ctx context.Context, tenantId, workspaceId string, opts ListOptions) ([]devmod.ResourceGroup, int64, error) {
 	if opts.Page < 1 {
 		opts.Page = 1
 	}
-	if opts.PerPages <= 0 {
-		opts.PerPages = 10
+	if opts.PerPage <= 0 {
+		opts.PerPage = 10
 	}
 	if opts.SortField == "" {
 		opts.SortField = "createdAt"
@@ -141,8 +141,8 @@ func (r *ResourceGroupRepo) List(ctx context.Context, tenantId, orgId string, op
 	}
 
 	filter := bson.M{
-		"tenantId": tenantId,
-		"orgId":    orgId,
+		"tenantId":    tenantId,
+		"workspaceId": workspaceId,
 	}
 	if opts.Search != "" {
 		filter["name"] = bson.M{"$regex": opts.Search, "$options": "i"}
@@ -154,7 +154,7 @@ func (r *ResourceGroupRepo) List(ctx context.Context, tenantId, orgId string, op
 	var results []devmod.ResourceGroup
 	if err := stomongo.FindPaginated(ctx, r.collection, filter, stomongo.PaginateOptions{
 		Page:    opts.Page,
-		PerPage: opts.PerPages,
+		PerPage: opts.PerPage,
 		Sort:    bson.D{{Key: opts.SortField, Value: sortVal}},
 	}, &results); err != nil {
 		return nil, 0, err
@@ -172,15 +172,15 @@ func (r *ResourceGroupRepo) List(ctx context.Context, tenantId, orgId string, op
 // FindByGroupIDs — fetch multiple groups by groupId list + pagination
 // ============================================================
 
-func (r *ResourceGroupRepo) FindByGroupIDs(ctx context.Context, tenantId, orgId string, groupIds []string, opts ListOptions) ([]devmod.ResourceGroup, int64, error) {
+func (r *ResourceGroupRepo) FindByGroupIDs(ctx context.Context, tenantId, workspaceId string, groupIds []string, opts ListOptions) ([]devmod.ResourceGroup, int64, error) {
 	if len(groupIds) == 0 {
 		return nil, 0, nil
 	}
 	if opts.Page < 1 {
 		opts.Page = 1
 	}
-	if opts.PerPages <= 0 {
-		opts.PerPages = 10
+	if opts.PerPage <= 0 {
+		opts.PerPage = 10
 	}
 	if opts.SortField == "" {
 		opts.SortField = "createdAt"
@@ -191,9 +191,9 @@ func (r *ResourceGroupRepo) FindByGroupIDs(ctx context.Context, tenantId, orgId 
 	}
 
 	filter := bson.M{
-		"tenantId": tenantId,
-		"orgId":    orgId,
-		"groupId":  bson.M{"$in": groupIds},
+		"tenantId":    tenantId,
+		"workspaceId": workspaceId,
+		"groupId":     bson.M{"$in": groupIds},
 	}
 	if opts.Search != "" {
 		filter["name"] = bson.M{"$regex": opts.Search, "$options": "i"}
@@ -202,7 +202,7 @@ func (r *ResourceGroupRepo) FindByGroupIDs(ctx context.Context, tenantId, orgId 
 	var results []devmod.ResourceGroup
 	if err := stomongo.FindPaginated(ctx, r.collection, filter, stomongo.PaginateOptions{
 		Page:    opts.Page,
-		PerPage: opts.PerPages,
+		PerPage: opts.PerPage,
 		Sort:    bson.D{{Key: opts.SortField, Value: sortVal}},
 	}, &results); err != nil {
 		return nil, 0, err
@@ -219,8 +219,8 @@ func (r *ResourceGroupRepo) FindByGroupIDs(ctx context.Context, tenantId, orgId 
 // excludeGroupId ใช้ตอน Update เพื่อ exclude ตัวเอง
 // ============================================================
 
-func (r *ResourceGroupRepo) ExistsByNameInOrg(ctx context.Context, orgId, name, excludeGroupId string) (bool, error) {
-	filter := bson.M{"orgId": orgId, "name": name}
+func (r *ResourceGroupRepo) ExistsByNameInOrg(ctx context.Context, workspaceId, name, excludeGroupId string) (bool, error) {
+	filter := bson.M{"workspaceId": workspaceId, "name": name}
 	if excludeGroupId != "" {
 		filter["groupId"] = bson.M{"$ne": excludeGroupId}
 	}

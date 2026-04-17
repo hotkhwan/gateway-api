@@ -19,9 +19,9 @@ import (
 type targetSvcI interface {
 	Create(ctx context.Context, input targetsvc.CreateTargetInput) (*authzmod.DeliveryTarget, error)
 	List(ctx context.Context, input targetsvc.ListTargetInput) ([]authzmod.DeliveryTarget, int64, error)
-	GetOne(ctx context.Context, tenantId, workspaceId, userId, targetId string) (*authzmod.DeliveryTarget, error)
+	GetOne(ctx context.Context, tenantId, workspaceId, userId, targetId string, isAdmin bool) (*authzmod.DeliveryTarget, error)
 	Update(ctx context.Context, input targetsvc.UpdateTargetInput) (*authzmod.DeliveryTarget, error)
-	Delete(ctx context.Context, tenantId, workspaceId, userId, targetId string) error
+	Delete(ctx context.Context, tenantId, workspaceId, userId, targetId string, isAdmin bool) error
 }
 
 // WsTargetController handles workspace-scoped delivery target CRUD.
@@ -189,7 +189,7 @@ func (ctrl *WsTargetController) List(c fiber.Ctx) error {
 		"details": fiber.Map{"items": items},
 		"pagination": gmod.Pagination{
 			Page:         page,
-			PerPages:     perPage,
+			PerPage:     perPage,
 			TotalRecords: int(total),
 			TotalPages:   totalPages,
 			SortField:    sortField,
@@ -228,7 +228,7 @@ func (ctrl *WsTargetController) GetOne(c fiber.Ctx) error {
 		return httputil.FailBadRequest(c, "invalid params")
 	}
 
-	item, err := ctrl.service.GetOne(ctx, tenantId, workspaceId, userId, id)
+	item, err := ctrl.service.GetOne(ctx, tenantId, workspaceId, userId, id, false)
 	if err != nil {
 		status, code := targetsvc.MapSvcError(err)
 		return c.Status(status).JSON(gmod.ApiErrorResponse{Code: code, Message: err.Error(), Status: false})
@@ -323,7 +323,7 @@ func (ctrl *WsTargetController) Delete(c fiber.Ctx) error {
 		return httputil.FailBadRequest(c, "invalid params")
 	}
 
-	if err := ctrl.service.Delete(ctx, tenantId, workspaceId, userId, id); err != nil {
+	if err := ctrl.service.Delete(ctx, tenantId, workspaceId, userId, id, false); err != nil {
 		log.Error().Err(err).Msg("delete delivery target failed")
 		status, code := targetsvc.MapSvcError(err)
 		return c.Status(status).JSON(gmod.ApiErrorResponse{Code: code, Message: err.Error(), Status: false})

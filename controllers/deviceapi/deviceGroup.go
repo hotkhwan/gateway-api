@@ -26,9 +26,9 @@ func NewResourceGroupController(
 	return &ResourceGroupController{service: service, camRepo: camRepo}
 }
 
-func (ctrl *ResourceGroupController) mustLocals(c fiber.Ctx) (tenantId, orgId, callerUserId string) {
+func (ctrl *ResourceGroupController) mustLocals(c fiber.Ctx) (tenantId, workspaceId, callerUserId string) {
 	tenantId, _ = c.Locals("tenantId").(string)
-	orgId, _ = c.Locals("activeWorkspace").(string)
+	workspaceId, _ = c.Locals("activeWorkspace").(string)
 	callerUserId, _ = c.Locals("userId").(string)
 	return
 }
@@ -59,7 +59,7 @@ func (ctrl *ResourceGroupController) Create(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "ResourceGroupController.Create", "deviceapi", "Create")
 	defer end()
 
-	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
+	tenantId, workspaceId, callerUserId := ctrl.mustLocals(c)
 
 	var body CreateResourceGroupRequest
 	if err := c.Bind().Body(&body); err != nil {
@@ -71,15 +71,15 @@ func (ctrl *ResourceGroupController) Create(c fiber.Ctx) error {
 	}
 
 	log.Info().
-		Str("orgId", orgId).
+		Str("workspaceId", workspaceId).
 		Str("name", body.Name).
 		Str("resourceType", body.ResourceType).
 		Str("mapVisibility", body.MapVisibility).
 		Msg("CreateResourceGroup")
 
 	group, err := ctrl.service.CreateGroup(c, devicesvc.CreateGroupInput{
-		TenantID:      tenantId,
-		OrgID:         orgId,
+		TenantID:    tenantId,
+		WorkspaceID: workspaceId,
 		Name:          body.Name,
 		Description:   body.Description,
 		ResourceType:  body.ResourceType,
@@ -104,7 +104,7 @@ func (ctrl *ResourceGroupController) Create(c fiber.Ctx) error {
 // @Param        search        query  string  false  "search by name"
 // @Param        resourceType  query  string  false  "filter by resource type (camera|sensor)"
 // @Param        page          query  int     false  "page"      default(1)
-// @Param        perPages      query  int     false  "per page"  default(10)
+// @Param        perPage       query  int     false  "per page"  default(10)
 // @Param        sortField     query  string  false  "sort field"
 // @Param        sortOrder     query  string  false  "asc|desc"
 // @Success      200  {object}  gmod.PaginatedResponse
@@ -115,15 +115,15 @@ func (ctrl *ResourceGroupController) List(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "ResourceGroupController.List", "deviceapi", "List")
 	defer end()
 
-	tenantId, orgId, _ := ctrl.mustLocals(c)
+	tenantId, workspaceId, _ := ctrl.mustLocals(c)
 
 	groups, total, err := ctrl.service.ListGroups(c, devicesvc.ListGroupsInput{
-		TenantID:     tenantId,
-		OrgID:        orgId,
+		TenantID:    tenantId,
+		WorkspaceID: workspaceId,
 		Search:       c.Query("search"),
 		ResourceType: c.Query("resourceType"),
 		Page:         fiber.Query[int](c, "page", 1),
-		PerPages:     fiber.Query[int](c, "perPages", 10),
+		PerPage:     fiber.Query[int](c, "perPage", 10),
 		SortField:    c.Query("sortField", "createdAt"),
 		SortOrder:    c.Query("sortOrder", "desc"),
 	})
@@ -132,8 +132,8 @@ func (ctrl *ResourceGroupController) List(c fiber.Ctx) error {
 		return handleErr(c, err)
 	}
 
-	perPages := fiber.Query[int](c, "perPages", 10)
-	totalPages := (int(total) + perPages - 1) / perPages
+	perPage := fiber.Query[int](c, "perPage", 10)
+	totalPages := (int(total) + perPage - 1) / perPage
 
 	return c.JSON(fiber.Map{
 		"code":    gmod.CodeSuccess,
@@ -142,7 +142,7 @@ func (ctrl *ResourceGroupController) List(c fiber.Ctx) error {
 		"details": groups,
 		"pagination": fiber.Map{
 			"page":         fiber.Query[int](c, "page", 1),
-			"perPages":     perPages,
+			"perPage":      perPage,
 			"totalRecords": int(total),
 			"totalPages":   totalPages,
 		},
@@ -169,7 +169,7 @@ func (ctrl *ResourceGroupController) Update(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "ResourceGroupController.Update", "deviceapi", "Update")
 	defer end()
 
-	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
+	tenantId, workspaceId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("id")
 
 	var body UpdateGroupRequest
@@ -184,8 +184,8 @@ func (ctrl *ResourceGroupController) Update(c fiber.Ctx) error {
 	}
 
 	if err := ctrl.service.Update(c, devicesvc.UpdateGroupInput{
-		TenantID:      tenantId,
-		OrgID:         orgId,
+		TenantID:    tenantId,
+		WorkspaceID: workspaceId,
 		CallerID:      callerUserId,
 		GroupID:       groupId,
 		Name:          body.Name,
@@ -216,12 +216,12 @@ func (ctrl *ResourceGroupController) Delete(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "ResourceGroupController.Delete", "deviceapi", "Delete")
 	defer end()
 
-	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
+	tenantId, workspaceId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("id")
 
 	if err := ctrl.service.DeleteGroup(c, devicesvc.DeleteGroupInput{
-		TenantID: tenantId,
-		OrgID:    orgId,
+		TenantID:    tenantId,
+		WorkspaceID: workspaceId,
 		GroupID:  groupId,
 		CallerID: callerUserId,
 	}); err != nil {
@@ -245,7 +245,7 @@ func (ctrl *ResourceGroupController) AddDevice(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "ResourceGroupController.AddDevice", "deviceapi", "AddDevice")
 	defer end()
 
-	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
+	tenantId, workspaceId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("groupId")
 
 	var body AddDeviceToGroupRequest
@@ -257,8 +257,8 @@ func (ctrl *ResourceGroupController) AddDevice(c fiber.Ctx) error {
 	}
 
 	if err := ctrl.service.AddDeviceToGroup(c, devicesvc.AddDeviceToGroupInput{
-		TenantID: tenantId,
-		OrgID:    orgId,
+		TenantID:    tenantId,
+		WorkspaceID: workspaceId,
 		GroupID:  groupId,
 		DeviceID: body.DeviceID,
 		CallerID: callerUserId,
@@ -278,13 +278,13 @@ func (ctrl *ResourceGroupController) RemoveDevice(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "ResourceGroupController.RemoveDevice", "deviceapi", "RemoveDevice")
 	defer end()
 
-	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
+	tenantId, workspaceId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("groupId")
 	deviceId := c.Params("deviceId")
 
 	if err := ctrl.service.RemoveDeviceFromGroup(c, devicesvc.AddDeviceToGroupInput{
-		TenantID: tenantId,
-		OrgID:    orgId,
+		TenantID:    tenantId,
+		WorkspaceID: workspaceId,
 		GroupID:  groupId,
 		DeviceID: deviceId,
 		CallerID: callerUserId,
@@ -309,7 +309,7 @@ func (ctrl *ResourceGroupController) AssignOU(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "ResourceGroupController.AssignOU", "deviceapi", "AssignOU")
 	defer end()
 
-	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
+	tenantId, workspaceId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("groupId")
 
 	var body AssignGroupOURequest
@@ -321,8 +321,8 @@ func (ctrl *ResourceGroupController) AssignOU(c fiber.Ctx) error {
 	}
 
 	if err := ctrl.service.AssignGroupToOU(c, devicesvc.AssignGroupToOUInput{
-		TenantID: tenantId,
-		OrgID:    orgId,
+		TenantID:    tenantId,
+		WorkspaceID: workspaceId,
 		GroupID:  groupId,
 		OUID:     body.OUID,
 		Relation: body.Relation,
@@ -343,7 +343,7 @@ func (ctrl *ResourceGroupController) RemoveOU(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "ResourceGroupController.RemoveOU", "deviceapi", "RemoveOU")
 	defer end()
 
-	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
+	tenantId, workspaceId, callerUserId := ctrl.mustLocals(c)
 	groupId := c.Params("groupId")
 
 	var body AssignGroupOURequest
@@ -352,8 +352,8 @@ func (ctrl *ResourceGroupController) RemoveOU(c fiber.Ctx) error {
 	}
 
 	if err := ctrl.service.RemoveGroupFromOU(c, devicesvc.AssignGroupToOUInput{
-		TenantID: tenantId,
-		OrgID:    orgId,
+		TenantID:    tenantId,
+		WorkspaceID: workspaceId,
 		GroupID:  groupId,
 		OUID:     body.OUID,
 		Relation: body.Relation,
@@ -374,7 +374,7 @@ func (ctrl *ResourceGroupController) CreateDevice(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "ResourceGroupController.CreateDevice", "deviceapi", "CreateDevice")
 	defer end()
 
-	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
+	tenantId, workspaceId, callerUserId := ctrl.mustLocals(c)
 
 	var body devmod.Device
 	if err := c.Bind().Body(&body); err != nil {
@@ -382,8 +382,8 @@ func (ctrl *ResourceGroupController) CreateDevice(c fiber.Ctx) error {
 	}
 
 	deviceId, err := ctrl.service.CreateDevice(c, devicesvc.CreateDeviceInput{
-		TenantID: tenantId,
-		OrgID:    orgId,
+		TenantID:    tenantId,
+		WorkspaceID: workspaceId,
 		CallerID: callerUserId,
 		Device:   body,
 	}, ctrl.camRepo)

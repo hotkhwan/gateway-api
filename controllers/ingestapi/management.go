@@ -53,7 +53,7 @@ func (ctrl *EventManagementController) ListPendingEvents(c fiber.Ctx) error {
 
 	input := ingestmod.ListEventsInput{
 		TenantId:   tenantId,
-		OrgId:      orgId,
+		WorkspaceId:      orgId,
 		StatusName: c.Query("status", "all"),
 		EventType:  c.Query("eventType", ""),
 		Page:       fiber.Query[int](c, "page", 1),
@@ -78,7 +78,7 @@ func (ctrl *EventManagementController) ListPendingEvents(c fiber.Ctx) error {
 
 	pagination := gmod.Pagination{
 		Page:         input.Page,
-		PerPages:     input.PerPage,
+		PerPage:     input.PerPage,
 		TotalRecords: int(result.Total),
 		TotalPages:   result.TotalPages,
 		SortField:    input.SortField,

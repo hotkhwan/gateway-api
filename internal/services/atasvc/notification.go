@@ -27,11 +27,11 @@ func NotificationAllSummary(ctx context.Context, req aimodel.NotificationAllReq)
 	if req.Page <= 0 {
 		req.Page = 1
 	}
-	if req.PerPages <= 0 {
-		req.PerPages = 20
+	if req.PerPage <= 0 {
+		req.PerPage = 20
 	}
-	if req.PerPages > 200 {
-		req.PerPages = 200
+	if req.PerPage > 200 {
+		req.PerPage = 200
 	}
 
 	sortVal := int32(-1)
@@ -72,8 +72,8 @@ func NotificationAllSummary(ctx context.Context, req aimodel.NotificationAllReq)
 		}
 	}
 
-	skip := int64((req.Page - 1) * req.PerPages)
-	limit := int64(req.PerPages)
+	skip := int64((req.Page - 1) * req.PerPage)
+	limit := int64(req.PerPage)
 
 	// ✅ lookup camera เหมือนเดิม (เอา lat/lng/name มาประกบ)
 	cameraLookup := bson.D{{Key: "$lookup", Value: bson.M{
@@ -185,7 +185,7 @@ func NotificationAllSummary(ctx context.Context, req aimodel.NotificationAllReq)
 		Details: []aimodel.BlacklistItem{},
 		Pagination: aimodel.Pagination{
 			Page:      req.Page,
-			PerPages:  req.PerPages,
+			PerPage:  req.PerPage,
 			SortField: "dateTimeCreate",
 			SortOrder: strings.ToLower(req.SortOrder),
 		},
@@ -209,7 +209,7 @@ func NotificationAllSummary(ctx context.Context, req aimodel.NotificationAllReq)
 	}
 	resp.Pagination.TotalRecords = totalRecords
 	if totalRecords > 0 {
-		resp.Pagination.TotalPages = (totalRecords + int64(req.PerPages) - 1) / int64(req.PerPages)
+		resp.Pagination.TotalPages = (totalRecords + int64(req.PerPage) - 1) / int64(req.PerPage)
 	}
 
 	// summary by type

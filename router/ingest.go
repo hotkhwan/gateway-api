@@ -125,6 +125,9 @@ func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
 			details.Get("/", c.EventDetailsController.ListApprovedEvents)
 			details.Get("/:eventId", c.EventDetailsController.GetApprovedEvent)
 		})
+
+		// ---------- AI Mapping Suggest + Config Draft ----------
+		RegisterAIMappingRoutes(r, c)
 	})
 }
 

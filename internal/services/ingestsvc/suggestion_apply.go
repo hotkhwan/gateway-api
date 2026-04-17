@@ -87,6 +87,7 @@ func convertSuggestionToTemplate(sg *ingestmod.MappingSuggestion, orgId string) 
 		mappings = append(mappings, ingestmod.FieldMapping{
 			SourcePath: fm.SourceField,
 			TargetPath: fm.TargetField,
+			ValueCodes: fm.ValueCodes,
 		})
 	}
 
@@ -96,7 +97,7 @@ func convertSuggestionToTemplate(sg *ingestmod.MappingSuggestion, orgId string) 
 	now := time.Now().UTC()
 	return &ingestmod.MappingTemplate{
 		TemplateId:   "auto:" + sg.ID,
-		OrgId:        orgId,
+		WorkspaceId:  orgId,
 		SourceFamily: sg.SourceFamily,
 		Name:         sg.DisplayName + " (auto)",
 		Mappings:     mappings,

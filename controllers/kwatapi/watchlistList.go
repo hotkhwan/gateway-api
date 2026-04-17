@@ -19,7 +19,7 @@ import (
 // @Tags Kwatch/Watchlist
 // @Produce json
 // @Param page query int false "Page number" default(1)
-// @Param perPages query int false "Items per page" default(10)
+// @Param perPage query int false "Items per page" default(10)
 // @Param search query string false "Free-text search in personKey/firstname/lastname/nickname"
 // @Param type query int false "Filter by person type (number)"
 // @Param id query string false "Filter by _id (hex ObjectID)"
@@ -39,7 +39,7 @@ func WatchlistList(c fiber.Ctx) error {
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPages, _ := strconv.Atoi(c.Query("perPage", "10"))
 
 	// ค่าเริ่มต้นปลอดภัย: updatedAt desc
 	sortField := strings.TrimSpace(c.Query("sortField", "updatedAt"))

@@ -34,7 +34,7 @@ func (h *TemplateController) orgId(c fiber.Ctx) string {
 // @Security     BearerAuth
 // @Param        X-Active-Org  header    string  true   "Active Org ID"
 // @Param        page          query     int     false  "Page number"    default(1)
-// @Param        perPages      query     int     false  "Items per page" default(10)
+// @Param        perPage       query     int     false  "Items per page" default(10)
 // @Param        search        query     string  false  "Search by name"
 // @Param        sortField     query     string  false  "Sort field"     default(createdAt)
 // @Param        sortOrder     query     string  false  "Sort order"     default(desc)
@@ -49,7 +49,7 @@ func (h *TemplateController) List(c fiber.Ctx) error {
 		OrgId:     h.orgId(c),
 		Search:    c.Query("search"),
 		Page:      fiber.Query[int](c, "page", 1),
-		PerPage:   fiber.Query[int](c, "perPages", 10),
+		PerPage:   fiber.Query[int](c, "perPage", 10),
 		SortField: c.Query("sortField", "createdAt"),
 		SortOrder: c.Query("sortOrder", "desc"),
 	}

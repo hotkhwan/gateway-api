@@ -21,7 +21,7 @@ import (
 // @Accept  json
 // @Produce  json
 // @Param page query int false "Page number"
-// @Param perPages query int false "Items per page"
+// @Param perPage query int false "Items per page"
 // @Param sortField query string false "Sort field name"
 // @Param sortOrder query string false "asc or desc"
 // @Param id query string false "Filter by ID"
@@ -55,7 +55,7 @@ func DevicesList(c fiber.Ctx) error {
 	}
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPages, _ := strconv.Atoi(c.Query("perPage", "10"))
 	if perPages <= 0 {
 		perPages = 10
 	}
@@ -96,7 +96,7 @@ func DevicesList(c fiber.Ctx) error {
 
 	log.Debug().
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPages).
 		Str("sortField", sortField).
 		Str("sortOrder", sortOrder).
 		Interface("filters", filters).
@@ -117,7 +117,7 @@ func DevicesList(c fiber.Ctx) error {
 	// แปลง gmod.Pagination -> devmod.Pagination
 	devPagination := devmod.Pagination{
 		Page:         pag.Page,
-		PerPages:     pag.PerPages,
+		PerPage:     pag.PerPage,
 		TotalRecords: pag.TotalRecords,
 		TotalPages:   pag.TotalPages,
 		SortField:    pag.SortField,
@@ -165,7 +165,7 @@ func DevicesListWithPermission(c fiber.Ctx) error {
 	}
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPages, _ := strconv.Atoi(c.Query("perPage", "10"))
 	if perPages <= 0 {
 		perPages = 10
 	}
@@ -206,7 +206,7 @@ func DevicesListWithPermission(c fiber.Ctx) error {
 
 	log.Debug().
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPages).
 		Str("sortField", sortField).
 		Str("sortOrder", sortOrder).
 		Interface("filters", filters).
@@ -231,7 +231,7 @@ func DevicesListWithPermission(c fiber.Ctx) error {
 	// แปลง gmod.Pagination -> devmod.Pagination
 	devPagination := devmod.Pagination{
 		Page:         pag.Page,
-		PerPages:     pag.PerPages,
+		PerPage:     pag.PerPage,
 		TotalRecords: pag.TotalRecords,
 		TotalPages:   pag.TotalPages,
 		SortField:    pag.SortField,

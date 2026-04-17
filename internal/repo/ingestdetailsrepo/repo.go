@@ -61,9 +61,9 @@ func (r *EventDetailsRepo) FindByEventId(
 ) (*ingestmod.EventDetail, error) {
 	var result ingestmod.EventDetail
 	err := stomongo.FindOne(ctx, "event_details", bson.M{
-		"tenantId":     tenantId,
-		"source.orgId": orgId,
-		"eventId":      eventId,
+		"tenantId":          tenantId,
+		"source.workspaceId": orgId,
+		"eventId":           eventId,
 	}, &result)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -83,7 +83,7 @@ func (r *EventDetailsRepo) ListApproved(
 	page, perPage int,
 	sortField, sortOrder string,
 ) ([]*ingestmod.EventDetail, *gmod.Pagination, error) {
-	filter := bson.M{"tenantId": tenantId, "source.orgId": orgId}
+	filter := bson.M{"tenantId": tenantId, "source.workspaceId": orgId}
 	if eventType != "" {
 		filter["eventType"] = eventType
 	}
@@ -129,8 +129,8 @@ func (r *EventDetailsRepo) ListApproved(
 func (r *EventDetailsRepo) FindNormalizedByEventID(ctx context.Context, workspaceId, eventId string) (*ingestmod.NormalizedEvent, error) {
 	var result ingestmod.NormalizedEvent
 	err := stomongo.FindOne(ctx, "event_details", bson.M{
-		"source.orgId": workspaceId,
-		"eventId":      eventId,
+		"source.workspaceId": workspaceId,
+		"eventId":            eventId,
 	}, &result)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -146,8 +146,8 @@ func (r *EventDetailsRepo) FindNormalizedByEventID(ctx context.Context, workspac
 func (r *EventDetailsRepo) FindNormalizedByEventIDs(ctx context.Context, workspaceId string, eventIds []string) ([]*ingestmod.NormalizedEvent, error) {
 	var results []*ingestmod.NormalizedEvent
 	err := stomongo.Find(ctx, "event_details", bson.M{
-		"source.orgId": workspaceId,
-		"eventId":      bson.M{"$in": eventIds},
+		"source.workspaceId": workspaceId,
+		"eventId":            bson.M{"$in": eventIds},
 	}, nil, &results)
 	if err != nil {
 		return nil, err
@@ -157,19 +157,28 @@ func (r *EventDetailsRepo) FindNormalizedByEventIDs(ctx context.Context, workspa
 
 // EnsureIndexes creates indexes for performance
 func (r *EventDetailsRepo) EnsureIndexes(ctx context.Context) error {
+	// Migrate legacy source.orgId → source.workspaceId for documents written before the rename.
+	_, _ = stomongo.UpdateManyPipeline(ctx, "event_details",
+		bson.M{"source.orgId": bson.M{"$exists": true}},
+		mongo.Pipeline{
+			bson.D{{Key: "$set", Value: bson.M{"source.workspaceId": "$source.orgId"}}},
+			bson.D{{Key: "$unset", Value: "source.orgId"}},
+		},
+	)
+
 	indexes := []mongo.IndexModel{
 		// Unique lookup by eventId
 		{
 			Keys:    bson.D{{Key: "eventId", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
-		// Standard list by tenant/org
+		// Standard list by tenant/workspace
 		{
-			Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "occurredAt", Value: -1}},
+			Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "source.workspaceId", Value: 1}, {Key: "occurredAt", Value: -1}},
 		},
 		// Event type filter
 		{
-			Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "eventType", Value: 1}, {Key: "occurredAt", Value: -1}},
+			Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "source.workspaceId", Value: 1}, {Key: "eventType", Value: 1}, {Key: "occurredAt", Value: -1}},
 		},
 		// Geo cell lookup (heat maps)
 		{

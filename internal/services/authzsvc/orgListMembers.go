@@ -113,7 +113,7 @@ func (s *OrganizationService) ListMembers(
 	}
 
 	// NEW: Get org to check billing owner
-	org, _ := s.orgRepo.GetByOrgId(ctx, orgId)
+	org, _ := s.orgRepo.GetByWorkspaceId(ctx, orgId)
 
 	result := make([]OrgMember, 0, len(userIds))
 

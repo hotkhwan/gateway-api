@@ -141,10 +141,10 @@ func (s *DLQService) republish(ctx context.Context, msg *ingestmod.DLQMessage) e
 	headers := map[string]string{
 		"messageId":  msg.MessageId,
 		"eventId":    msg.EventId,
-		"orgId":      msg.OrgId,
+		"orgId":      msg.WorkspaceId,
 		"tenantId":   msg.TenantId,
 		"templateId": msg.TemplateId,
 		"dlqRetry":   "true",
 	}
-	return config.SendToKafkaWithCtx(ctx, msg.Topic, msg.OrgId, payload, headers)
+	return config.SendToKafkaWithCtx(ctx, msg.Topic, msg.WorkspaceId, payload, headers)
 }

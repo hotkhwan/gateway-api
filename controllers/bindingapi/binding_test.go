@@ -339,7 +339,7 @@ func TestList_Returns200WithDetailsItems(t *testing.T) {
 	items := []ingestmod.TemplateDeliveryBinding{*sampleBinding()}
 	svc := &mockSvc{
 		listResult: items,
-		listPag:    &gmod.Pagination{Page: 1, PerPages: 20, TotalRecords: 1, TotalPages: 1},
+		listPag:    &gmod.Pagination{Page: 1, PerPage: 20, TotalRecords: 1, TotalPages: 1},
 	}
 	app := newApp(svc, true)
 

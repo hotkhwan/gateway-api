@@ -35,9 +35,9 @@ func NewResourceGroupService(
 // Permission guards
 // ============================================================
 
-func (s *ResourceGroupService) guardManageOrg(ctx context.Context, tenantId, orgId, callerUserId string) error {
+func (s *ResourceGroupService) guardManageOrg(ctx context.Context, tenantId, workspaceId, callerUserId string) error {
 	allowed, err := s.authzClient.CheckPermissionWithSchemaVersion(
-		ctx, tenantId, "", "organization", orgId, "manage", "user", callerUserId,
+		ctx, tenantId, "", "organization", workspaceId, "manage", "user", callerUserId,
 	)
 	if err != nil {
 		return fmt.Errorf("permission check error: %w", err)
@@ -65,19 +65,19 @@ func (s *ResourceGroupService) guardManageOU(ctx context.Context, tenantId, ouId
 // Tuple builders
 // ============================================================
 
-func tupleResourceGroupParentOrg(groupId, orgId string) map[string]any {
+func tupleResourceGroupParentOrg(groupId, workspaceId string) map[string]any {
 	return map[string]any{
 		"entity":   map[string]any{"type": "resourceGroup", "id": groupId},
 		"relation": "parentOrg",
-		"subject":  map[string]any{"type": "organization", "id": orgId},
+		"subject":  map[string]any{"type": "organization", "id": workspaceId},
 	}
 }
 
-func tupleDeviceParentOrg(deviceId, orgId string) map[string]any {
+func tupleDeviceParentOrg(deviceId, workspaceId string) map[string]any {
 	return map[string]any{
 		"entity":   map[string]any{"type": "resource", "id": deviceId},
 		"relation": "parentOrg",
-		"subject":  map[string]any{"type": "organization", "id": orgId},
+		"subject":  map[string]any{"type": "organization", "id": workspaceId},
 	}
 }
 
@@ -102,8 +102,8 @@ func tupleGroupOU(groupId, ouId, relation string) map[string]any {
 // ============================================================
 
 type CreateGroupInput struct {
-	TenantID      string
-	OrgID         string
+	TenantID    string
+	WorkspaceID string
 	Name          string
 	Description   string
 	ResourceType  string // "camera" | "sensor" | "" = all
@@ -112,34 +112,34 @@ type CreateGroupInput struct {
 }
 
 type ListGroupsInput struct {
-	TenantID     string
-	OrgID        string
+	TenantID    string
+	WorkspaceID string
 	Search       string
 	ResourceType string
 	Page         int
-	PerPages     int
+	PerPage      int
 	SortField    string
 	SortOrder    string
 }
 
 type DeleteGroupInput struct {
-	TenantID string
-	OrgID    string
+	TenantID    string
+	WorkspaceID string
 	GroupID  string
 	CallerID string
 }
 
 type AddDeviceToGroupInput struct {
-	TenantID string
-	OrgID    string
+	TenantID    string
+	WorkspaceID string
 	GroupID  string
 	DeviceID string
 	CallerID string
 }
 
 type AssignGroupToOUInput struct {
-	TenantID string
-	OrgID    string
+	TenantID    string
+	WorkspaceID string
 	GroupID  string
 	OUID     string
 	Relation string // viewer | editor | deleter
@@ -157,8 +157,8 @@ type OUGroupBulkResult struct {
 }
 
 type CreateDeviceInput struct {
-	TenantID string
-	OrgID    string
+	TenantID    string
+	WorkspaceID string
 	CallerID string
 	Device   devmod.Device
 }
@@ -169,19 +169,19 @@ type CreateDeviceInput struct {
 
 func (s *ResourceGroupService) CreateGroup(ctx context.Context, input CreateGroupInput) (*devmod.ResourceGroup, error) {
 	input.TenantID = strings.TrimSpace(input.TenantID)
-	input.OrgID = strings.TrimSpace(input.OrgID)
+	input.WorkspaceID = strings.TrimSpace(input.WorkspaceID)
 	input.Name = strings.TrimSpace(input.Name)
 	input.CallerID = strings.TrimSpace(input.CallerID)
 
-	if input.TenantID == "" || input.OrgID == "" || input.Name == "" || input.CallerID == "" {
+	if input.TenantID == "" || input.WorkspaceID == "" || input.Name == "" || input.CallerID == "" {
 		return nil, ErrInvalidArgs
 	}
 
-	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
+	if err := s.guardManageOrg(ctx, input.TenantID, input.WorkspaceID, input.CallerID); err != nil {
 		return nil, err
 	}
 
-	exists, err := s.groupRepo.ExistsByNameInOrg(ctx, input.OrgID, input.Name, "")
+	exists, err := s.groupRepo.ExistsByNameInOrg(ctx, input.WorkspaceID, input.Name, "")
 	if err != nil {
 		return nil, err
 	}
@@ -190,8 +190,8 @@ func (s *ResourceGroupService) CreateGroup(ctx context.Context, input CreateGrou
 	}
 
 	group := &devmod.ResourceGroup{
-		TenantID:      input.TenantID,
-		OrgID:         input.OrgID,
+		TenantID:    input.TenantID,
+		WorkspaceID: input.WorkspaceID,
 		Name:          input.Name,
 		Description:   input.Description,
 		ResourceType:  input.ResourceType,
@@ -208,7 +208,7 @@ func (s *ResourceGroupService) CreateGroup(ctx context.Context, input CreateGrou
 	groupId := group.GroupID // UUID ที่ repo generate ให้
 
 	if err := s.authzClient.WriteTuples(ctx, input.TenantID, []map[string]any{
-		tupleResourceGroupParentOrg(groupId, input.OrgID),
+		tupleResourceGroupParentOrg(groupId, input.WorkspaceID),
 	}); err != nil {
 		_ = s.groupRepo.SetSyncStatus(ctx, groupId, "failed")
 		return nil, fmt.Errorf("%w: %v", ErrPermifySyncFailed, err)
@@ -224,11 +224,11 @@ func (s *ResourceGroupService) CreateGroup(ctx context.Context, input CreateGrou
 // ============================================================
 
 func (s *ResourceGroupService) ListGroups(ctx context.Context, input ListGroupsInput) ([]devmod.ResourceGroup, int64, error) {
-	return s.groupRepo.List(ctx, input.TenantID, input.OrgID, devicerepo.ListOptions{
+	return s.groupRepo.List(ctx, input.TenantID, input.WorkspaceID, devicerepo.ListOptions{
 		Search:       input.Search,
 		ResourceType: input.ResourceType,
 		Page:         input.Page,
-		PerPages:     input.PerPages,
+		PerPage:      input.PerPage,
 		SortField:    input.SortField,
 		SortOrder:    input.SortOrder,
 	})
@@ -239,16 +239,16 @@ func (s *ResourceGroupService) ListGroups(ctx context.Context, input ListGroupsI
 // ============================================================
 
 func (s *ResourceGroupService) DeleteGroup(ctx context.Context, input DeleteGroupInput) error {
-	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
+	if err := s.guardManageOrg(ctx, input.TenantID, input.WorkspaceID, input.CallerID); err != nil {
 		return err
 	}
-	if _, err := s.groupRepo.FindByIDAndOrg(ctx, input.GroupID, input.TenantID, input.OrgID); err != nil {
+	if _, err := s.groupRepo.FindByIDAndOrg(ctx, input.GroupID, input.TenantID, input.WorkspaceID); err != nil {
 		return err
 	}
 	if err := s.authzClient.DeleteSpecificTupleWithRelation(
 		ctx, input.TenantID,
 		"resourceGroup", input.GroupID, "parentOrg",
-		"organization", input.OrgID,
+		"organization", input.WorkspaceID,
 	); err != nil {
 		return fmt.Errorf("permify delete failed: %w", err)
 	}

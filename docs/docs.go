@@ -173,7 +173,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Items per page (max 200)",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -258,7 +258,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Items per page (max 200)",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -348,7 +348,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Items per page (max 200)",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -797,7 +797,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Items per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -1254,7 +1254,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Items per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -1381,7 +1381,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Items per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -1453,7 +1453,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Items per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -1525,7 +1525,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Items per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -1646,7 +1646,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Items per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -1867,6 +1867,458 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/gmod.InternalErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingest": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns ingest endpoint, masked secret, and rate limit config. Auto-provisions ingest key on first call.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ingest"
+                ],
+                "summary": "Get ingest config for the active workspace",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingest/ai-config": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns workspace AI config. HasApiKey indicates whether a key is stored — the actual key is never returned.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MappingTemplates"
+                ],
+                "summary": "Get workspace AI config",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MappingTemplates"
+                ],
+                "summary": "Create or update workspace AI config",
+                "parameters": [
+                    {
+                        "description": "AI config input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/aimappingsvc.UpsertConfigRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingest/ai-config/key": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MappingTemplates"
+                ],
+                "summary": "Clear workspace AI API key",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingest/ai-config/validate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MappingTemplates"
+                ],
+                "summary": "Validate workspace AI provider connection",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingest/config-drafts/from-prompt": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Parses a natural-language prompt and creates a new AI config draft.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ConfigDrafts"
+                ],
+                "summary": "Create config draft from prompt",
+                "parameters": [
+                    {
+                        "description": "Prompt input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/aiconfigdraftapi.fromPromptRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingest/config-drafts/{draftId}/dry-run": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Simulates the draft against a sample payload and returns match/target counts.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ConfigDrafts"
+                ],
+                "summary": "Dry-run a config draft",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Draft ID",
+                        "name": "draftId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Sample payload to simulate against",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/aiconfigdraftapi.dryRunRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingest/config-drafts/{draftId}/refine": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Applies user answers to missing field hints and updates the draft status.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ConfigDrafts"
+                ],
+                "summary": "Refine a config draft",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Draft ID",
+                        "name": "draftId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Answers to missing fields",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/aiconfigdraftsvc.RefineRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingest/config-drafts/{draftId}/save": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Marks the draft status as ready and persists the change.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ConfigDrafts"
+                ],
+                "summary": "Save a config draft",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Draft ID",
+                        "name": "draftId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
                         }
                     }
                 }
@@ -3309,7 +3761,7 @@ const docTemplate = `{
                         "type": "integer",
                         "default": 10,
                         "description": "Items per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -3393,6 +3845,62 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingest/mappingTemplates/ai-suggest": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MappingTemplates"
+                ],
+                "summary": "AI-suggest field mappings",
+                "parameters": [
+                    {
+                        "description": "AI suggest input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/aimappingapi.AISuggestRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
                         }
                     }
                 }
@@ -3574,7 +4082,7 @@ const docTemplate = `{
                         "type": "integer",
                         "default": 10,
                         "description": "Per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     }
                 ],
@@ -3637,6 +4145,60 @@ const docTemplate = `{
                 }
             }
         },
+        "/ingest/rotateSecret": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generates a new HMAC signing key and returns the masked version\nGenerates a new HMAC signing key and returns the masked version",
+                "produces": [
+                    "application/json",
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization",
+                    "Ingest"
+                ],
+                "summary": "Rotate ingest secret for the active workspace",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/ingest/unknownPayloadReviews": {
             "get": {
                 "security": [
@@ -3667,7 +4229,7 @@ const docTemplate = `{
                         "type": "integer",
                         "default": 10,
                         "description": "Per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     }
                 ],
@@ -3801,7 +4363,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Items per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -3934,7 +4496,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Items per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -4323,7 +4885,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Items per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -5399,7 +5961,7 @@ const docTemplate = `{
                         "type": "integer",
                         "default": 10,
                         "description": "Items per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -5738,7 +6300,7 @@ const docTemplate = `{
                         "type": "integer",
                         "default": 10,
                         "description": "Items per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -6238,7 +6800,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Items per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -7068,7 +7630,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "items per page (default 10)",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -7376,7 +7938,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Items per page (default 10)",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -7438,7 +8000,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "items per page (default 10)",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -8156,73 +8718,26 @@ const docTemplate = `{
                 "responses": {}
             }
         },
-        "/orgs/{id}/ingest": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns ingest endpoint, masked secret, and rate limit config",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authorization"
-                ],
-                "summary": "Get ingest config for an organization (admin only)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Organization ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.SuccessDataResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ApiErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ApiErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/gmod.ApiErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/orgs/{id}/ingest/rotateSecret": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Generates a new HMAC signing key and returns the masked version",
+                "description": "Generates a new HMAC signing key and returns the masked version\nGenerates a new HMAC signing key and returns the masked version",
                 "produces": [
+                    "application/json",
                     "application/json"
                 ],
                 "tags": [
-                    "Authorization"
+                    "Authorization",
+                    "Ingest"
                 ],
-                "summary": "Rotate ingest secret for an organization (admin only)",
+                "summary": "Rotate ingest secret for the active workspace",
                 "parameters": [
                     {
                         "type": "string",
@@ -8242,7 +8757,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                            "$ref": "#/definitions/gmod.ErrorResponse"
                         }
                     },
                     "403": {
@@ -8254,7 +8769,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
                         }
                     }
                 }
@@ -8554,7 +9075,7 @@ const docTemplate = `{
                         "type": "integer",
                         "default": 10,
                         "description": "Items per page",
-                        "name": "perPages",
+                        "name": "perPage",
                         "in": "query"
                     },
                     {
@@ -9635,12 +10156,6 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Items per page",
-                        "name": "perPages",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Items per page (alias of perPages)",
                         "name": "perPage",
                         "in": "query"
                     },
@@ -10410,9 +10925,1895 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/workspaces": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all workspaces the authenticated user has access to.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workspaces"
+                ],
+                "summary": "List workspaces for current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new workspace not linked to a klynx org. Caller becomes owner.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workspaces"
+                ],
+                "summary": "Create a standalone workspace",
+                "parameters": [
+                    {
+                        "description": "Workspace input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/workspaceapi.createWorkspaceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/entitlement": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the cached RuntimeEntitlement snapshot for the active workspace. Read-only.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workspaces"
+                ],
+                "summary": "Get workspace runtime entitlement",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Workspace ID",
+                        "name": "X-Active-Workspace",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/members": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workspaces"
+                ],
+                "summary": "List workspace members",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Workspace ID",
+                        "name": "X-Active-Workspace",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/members/invite": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workspaces"
+                ],
+                "summary": "Invite a user to workspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Workspace ID",
+                        "name": "X-Active-Workspace",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Invite input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/workspaceapi.inviteMemberRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/members/remove": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workspaces"
+                ],
+                "summary": "Remove members from workspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Workspace ID",
+                        "name": "X-Active-Workspace",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Remove input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/workspaceapi.removeMemberRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/members/{userId}/role": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workspaces"
+                ],
+                "summary": "Change a member's role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Active Workspace ID",
+                        "name": "X-Active-Workspace",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Role input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/workspaceapi.changeRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workspaces"
+                ],
+                "summary": "Get workspace by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes a standalone workspace (not klynx-provisioned). Klynx workspaces must be suspended via org deletion.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workspaces"
+                ],
+                "summary": "Delete standalone workspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workspaces"
+                ],
+                "summary": "Update workspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/workspaceapi.updateWorkspaceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{workspaceId}/delivery-bindings": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns paginated delivery bindings for the workspace.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Delivery Bindings"
+                ],
+                "summary": "List delivery bindings",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default 20)",
+                        "name": "perPage",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.PaginationResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a TemplateDeliveryBinding linking an ingest template to a delivery target.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Delivery Bindings"
+                ],
+                "summary": "Create a delivery binding",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Binding input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/bindingapi.createBindingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{workspaceId}/delivery-bindings/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a single delivery binding by ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Delivery Bindings"
+                ],
+                "summary": "Get a delivery binding",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Binding ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes a delivery binding by ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Delivery Bindings"
+                ],
+                "summary": "Delete a delivery binding",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Binding ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Patches a delivery binding by ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Delivery Bindings"
+                ],
+                "summary": "Update a delivery binding",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Binding ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/bindingapi.updateBindingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{workspaceId}/delivery-targets": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns paginated delivery targets for the workspace.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Delivery Targets"
+                ],
+                "summary": "List delivery targets",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default 20)",
+                        "name": "perPage",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name search",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.PaginationResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a delivery target for the workspace. Use mode=klynx for EventBridge routing (appliance only).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Delivery Targets"
+                ],
+                "summary": "Create a delivery target",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Target input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/wstargetapi.createTargetRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{workspaceId}/delivery-targets/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a single delivery target by ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Delivery Targets"
+                ],
+                "summary": "Get a delivery target",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Target ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes a delivery target by ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Delivery Targets"
+                ],
+                "summary": "Delete a delivery target",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Target ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Patches a delivery target by ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Delivery Targets"
+                ],
+                "summary": "Update a delivery target",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Target ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/wstargetapi.updateTargetRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{workspaceId}/ingest-templates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns paginated ingest templates for the workspace.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ingest Templates"
+                ],
+                "summary": "List ingest templates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default 20)",
+                        "name": "perPage",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.PaginationResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates an IngestTemplate that classifies raw events for the workspace.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ingest Templates"
+                ],
+                "summary": "Create an ingest template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Template input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ingesttmplapi.createIngestTemplateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{workspaceId}/ingest-templates/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a single ingest template by ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ingest Templates"
+                ],
+                "summary": "Get an ingest template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes an ingest template by ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ingest Templates"
+                ],
+                "summary": "Delete an ingest template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Patches an ingest template by ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ingest Templates"
+                ],
+                "summary": "Update an ingest template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ingesttmplapi.updateIngestTemplateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{workspaceId}/message-templates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns paginated message templates for the workspace.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Message Templates"
+                ],
+                "summary": "List message templates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default 20)",
+                        "name": "perPage",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.PaginationResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a WorkspaceMessageTemplate for channel-based delivery notifications.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Message Templates"
+                ],
+                "summary": "Create a message template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Template input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/msgtmplapi.createMsgTemplateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{workspaceId}/message-templates/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a single message template by ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Message Templates"
+                ],
+                "summary": "Get a message template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes a message template by ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Message Templates"
+                ],
+                "summary": "Delete a message template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Patches a message template by ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Message Templates"
+                ],
+                "summary": "Update a message template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/msgtmplapi.updateMsgTemplateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "aiconfigdraftapi.dryRunRequest": {
+            "type": "object",
+            "properties": {
+                "samplePayload": {
+                    "type": "object",
+                    "additionalProperties": {}
+                }
+            }
+        },
+        "aiconfigdraftapi.fromPromptRequest": {
+            "type": "object",
+            "properties": {
+                "prompt": {
+                    "type": "string"
+                }
+            }
+        },
+        "aiconfigdraftsvc.RefineRequest": {
+            "type": "object",
+            "properties": {
+                "answers": {
+                    "description": "field name → value",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "aimappingapi.AISuggestRequest": {
+            "type": "object",
+            "properties": {
+                "existingMappings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.FieldMapping"
+                    }
+                },
+                "samplePayload": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "sourceFamily": {
+                    "type": "string"
+                }
+            }
+        },
+        "aimappingsvc.UpsertConfigRequest": {
+            "type": "object",
+            "properties": {
+                "apiKey": {
+                    "description": "plaintext — encrypted before storage",
+                    "type": "string"
+                },
+                "defaultTimeoutMs": {
+                    "type": "integer"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "maxInputBytes": {
+                    "type": "integer"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                }
+            }
+        },
         "aimodel.BlacklistItem": {
             "type": "object",
             "properties": {
@@ -10527,7 +12928,7 @@ const docTemplate = `{
                 "page": {
                     "type": "integer"
                 },
-                "perPages": {
+                "perPage": {
                     "type": "integer"
                 },
                 "sortField": {
@@ -10986,6 +13387,50 @@ const docTemplate = `{
                 }
             }
         },
+        "authzmod.TargetConfig": {
+            "type": "object",
+            "properties": {
+                "botToken": {
+                    "description": "telegram",
+                    "type": "string"
+                },
+                "channelAccessToken": {
+                    "description": "line",
+                    "type": "string"
+                },
+                "channelAccessTokenRef": {
+                    "type": "string"
+                },
+                "chatId": {
+                    "type": "string"
+                },
+                "headers": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "signingEnabled": {
+                    "type": "boolean"
+                },
+                "signingSecret": {
+                    "type": "string"
+                },
+                "timeoutMs": {
+                    "type": "integer"
+                },
+                "to": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "url": {
+                    "description": "webhook + discord: shared",
+                    "type": "string"
+                }
+            }
+        },
         "authzsvc.OUAssignUser": {
             "type": "object",
             "properties": {
@@ -11019,6 +13464,49 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "bindingapi.createBindingRequest": {
+            "type": "object",
+            "properties": {
+                "dispatchStage": {
+                    "description": "\"normalize\" | \"realtime\"",
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "matchFields": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "messageTemplateId": {
+                    "type": "string"
+                },
+                "targetId": {
+                    "type": "string"
+                },
+                "templateId": {
+                    "type": "string"
+                }
+            }
+        },
+        "bindingapi.updateBindingRequest": {
+            "type": "object",
+            "properties": {
+                "dispatchStage": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "matchFields": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "messageTemplateId": {
                     "type": "string"
                 }
             }
@@ -11229,7 +13717,7 @@ const docTemplate = `{
                 "page": {
                     "type": "integer"
                 },
-                "perPages": {
+                "perPage": {
                     "type": "integer"
                 },
                 "sortField": {
@@ -11435,14 +13923,14 @@ const docTemplate = `{
                             "description": "\"member\" or \"admin\"",
                             "type": "string"
                         },
-                        "orgId": {
-                            "type": "string"
-                        },
                         "previousRole": {
                             "description": "\"owner\"",
                             "type": "string"
                         },
                         "userId": {
+                            "type": "string"
+                        },
+                        "workspaceId": {
                             "type": "string"
                         }
                     }
@@ -11603,13 +14091,13 @@ const docTemplate = `{
                         "invited": {
                             "type": "boolean"
                         },
-                        "orgId": {
-                            "type": "string"
-                        },
                         "role": {
                             "type": "string"
                         },
                         "userId": {
+                            "type": "string"
+                        },
+                        "workspaceId": {
                             "type": "string"
                         }
                     }
@@ -11747,7 +14235,7 @@ const docTemplate = `{
                 "page": {
                     "type": "integer"
                 },
-                "perPages": {
+                "perPage": {
                     "type": "integer"
                 },
                 "sortField": {
@@ -11791,9 +14279,6 @@ const docTemplate = `{
                 "details": {
                     "type": "object",
                     "properties": {
-                        "orgId": {
-                            "type": "string"
-                        },
                         "promotedAt": {
                             "type": "integer"
                         },
@@ -11802,6 +14287,9 @@ const docTemplate = `{
                             "type": "string"
                         },
                         "userId": {
+                            "type": "string"
+                        },
+                        "workspaceId": {
                             "type": "string"
                         }
                     }
@@ -12008,14 +14496,14 @@ const docTemplate = `{
                         "newOwnerId": {
                             "type": "string"
                         },
-                        "orgId": {
-                            "type": "string"
-                        },
                         "previousOwnerId": {
                             "type": "string"
                         },
                         "transferredAt": {
                             "type": "integer"
+                        },
+                        "workspaceId": {
+                            "type": "string"
                         }
                     }
                 },
@@ -12445,6 +14933,54 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "ingesttmplapi.createIngestTemplateRequest": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "fieldMapping": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "matchRules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.MatchRule"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "sourceFamily": {
+                    "type": "string"
+                }
+            }
+        },
+        "ingesttmplapi.updateIngestTemplateRequest": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "fieldMapping": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "matchRules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.MatchRule"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "sourceFamily": {
+                    "type": "string"
                 }
             }
         },
@@ -13036,7 +15572,7 @@ const docTemplate = `{
                     "description": "optional",
                     "type": "integer"
                 },
-                "perPages": {
+                "perPage": {
                     "description": "optional",
                     "type": "integer"
                 },
@@ -13273,7 +15809,7 @@ const docTemplate = `{
                 "page": {
                     "type": "integer"
                 },
-                "perPages": {
+                "perPage": {
                     "type": "integer"
                 },
                 "sortField": {
@@ -13543,6 +16079,41 @@ const docTemplate = `{
                 }
             }
         },
+        "msgtmplapi.createMsgTemplateRequest": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "channel": {
+                    "description": "line|webhook|telegram|discord",
+                    "type": "string"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "msgtmplapi.updateMsgTemplateRequest": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "channel": {
+                    "type": "string"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "optmod.StationRaw": {
             "type": "object",
             "properties": {
@@ -13586,7 +16157,7 @@ const docTemplate = `{
                 "page": {
                     "type": "integer"
                 },
-                "perPages": {
+                "perPage": {
                     "type": "integer"
                 },
                 "sortField": {
@@ -14075,7 +16646,7 @@ const docTemplate = `{
                 "password": {
                     "type": "string"
                 },
-                "perPages": {
+                "perPage": {
                     "type": "integer"
                 },
                 "permission": {
@@ -14131,7 +16702,7 @@ const docTemplate = `{
                 "mapLocation": {
                     "$ref": "#/definitions/usrmod.MapLocation"
                 },
-                "perPages": {
+                "perPage": {
                     "type": "integer"
                 },
                 "plant": {
@@ -14194,7 +16765,7 @@ const docTemplate = `{
                         "currentPage": {
                             "type": "integer"
                         },
-                        "perPages": {
+                        "perPage": {
                             "type": "integer"
                         },
                         "sortField": {
@@ -14215,6 +16786,103 @@ const docTemplate = `{
                     "type": "boolean"
                 }
             }
+        },
+        "workspaceapi.changeRoleRequest": {
+            "type": "object",
+            "properties": {
+                "role": {
+                    "$ref": "#/definitions/workspacemod.WorkspaceMemberRole"
+                }
+            }
+        },
+        "workspaceapi.createWorkspaceRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaceapi.inviteMemberRequest": {
+            "type": "object",
+            "properties": {
+                "role": {
+                    "$ref": "#/definitions/workspacemod.WorkspaceMemberRole"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaceapi.removeMemberRequest": {
+            "type": "object",
+            "properties": {
+                "userIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "workspaceapi.updateWorkspaceRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacemod.WorkspaceMemberRole": {
+            "type": "string",
+            "enum": [
+                "owner",
+                "admin",
+                "operator",
+                "viewer"
+            ],
+            "x-enum-varnames": [
+                "RoleOwner",
+                "RoleAdmin",
+                "RoleOperator",
+                "RoleViewer"
+            ]
+        },
+        "wstargetapi.createTargetRequest": {
+            "type": "object",
+            "properties": {
+                "config": {
+                    "$ref": "#/definitions/authzmod.TargetConfig"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "mode": {
+                    "description": "\"klynx\" for system routing marker only",
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "webhook|line|telegram|discord",
+                    "type": "string"
+                }
+            }
+        },
+        "wstargetapi.updateTargetRequest": {
+            "type": "object",
+            "properties": {
+                "config": {
+                    "$ref": "#/definitions/authzmod.TargetConfig"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
         }
     },
     "securityDefinitions": {
@@ -14232,8 +16900,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
-	Title:            "Gateway API",
-	Description:      "REST API for Gateway system",
+	Title:            "phibek API",
+	Description:      "Event ingestion, normalization, and delivery gateway",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

@@ -291,7 +291,7 @@ func WatchlistList(ctx context.Context, page, perPages int, filters map[string]s
 
 	log.Info().
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPages).
 		Int("totalFaceImages", totalFaceImg).
 		Int("totalPersons", totalPersons).
 		Int("totalWarrants", totalWarrants).
@@ -303,7 +303,7 @@ func WatchlistList(ctx context.Context, page, perPages int, filters map[string]s
 
 	return rows, kwatmod.WatchlistPagination{
 		Page:            page,
-		PerPages:        perPages,
+		PerPage:         perPages,
 		TotalRecords:    totalPersons, // คงพฤติกรรมเดิม
 		TotalPages:      (totalPersons + perPages - 1) / perPages,
 		SortField:       sf,

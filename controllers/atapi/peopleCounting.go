@@ -74,7 +74,7 @@ func defaultDateTimeRangeBangkokToNowUTC() string {
 // @Param search query string false "Regex search by camera name (address) / zone"
 // @Param directionCode query int false "Filter by directionCode 1=in 2=out (overrides direction)"
 // @Param page query int false "Page number"
-// @Param perPages query int false "Items per page (max 200)"
+// @Param perPage query int false "Items per page (max 200)"
 // @Param sortOrder query string false "asc or desc"
 // @Success 200 {object} aimodel.PeopleCountingSummaryResponse
 // @Failure 400 {object} gmod.BadRequestResponse
@@ -126,12 +126,12 @@ func PeopleCountingSummary(c fiber.Ctx) error {
 	}
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
-	if perPages <= 0 {
-		perPages = 10
+	perPage, _ := strconv.Atoi(c.Query("perPage", "10"))
+	if perPage <= 0 {
+		perPage = 10
 	}
-	if perPages > 200 {
-		perPages = 200
+	if perPage > 200 {
+		perPage = 200
 	}
 
 	sortOrder := strings.ToLower(c.Query("sortOrder", "desc"))
@@ -181,7 +181,7 @@ func PeopleCountingSummary(c fiber.Ctx) error {
 		Directions: directions,
 
 		Page:      page,
-		PerPages:  perPages,
+		PerPage:   perPage,
 		SortOrder: sortOrder,
 	})
 	if err != nil {

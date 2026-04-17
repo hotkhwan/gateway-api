@@ -38,7 +38,7 @@ func (r *UnknownPayloadReviewRepo) Upsert(
 	}
 	now := time.Now().UTC()
 	filter := bson.M{
-		"orgId":        orgId,
+		"workspaceId":  orgId,
 		"sourceFamily": sourceFamily,
 		"fingerprint":  fingerprint,
 	}
@@ -51,7 +51,7 @@ func (r *UnknownPayloadReviewRepo) Upsert(
 		"$inc": bson.M{"seenCount": 1},
 		"$setOnInsert": bson.M{
 			"reviewId":               reviewId,
-			"orgId":                  orgId,
+			"workspaceId":            orgId,
 			"sourceFamily":           sourceFamily,
 			"fingerprint":            fingerprint,
 			"status":                 "pending",
@@ -76,7 +76,7 @@ func (r *UnknownPayloadReviewRepo) Upsert(
 
 func (r *UnknownPayloadReviewRepo) FindById(ctx context.Context, orgId, reviewId string) (*ingestmod.UnknownPayloadReview, error) {
 	var result ingestmod.UnknownPayloadReview
-	err := stomongo.FindOne(ctx, col, bson.M{"orgId": orgId, "reviewId": reviewId}, &result)
+	err := stomongo.FindOne(ctx, col, bson.M{"workspaceId": orgId, "reviewId": reviewId}, &result)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrNotFound
@@ -91,7 +91,7 @@ func (r *UnknownPayloadReviewRepo) List(
 	orgId string,
 	page, perPage int,
 ) ([]*ingestmod.UnknownPayloadReview, *gmod.Pagination, error) {
-	filter := bson.M{"orgId": orgId, "status": "pending"}
+	filter := bson.M{"workspaceId": orgId, "status": "pending"}
 	sort := bson.D{{Key: "createdAt", Value: -1}}
 
 	var result []*ingestmod.UnknownPayloadReview
@@ -104,7 +104,7 @@ func (r *UnknownPayloadReviewRepo) List(
 
 // MarkRejected sets status to "rejected".
 func (r *UnknownPayloadReviewRepo) MarkRejected(ctx context.Context, orgId, reviewId string) error {
-	res, err := stomongo.UpdateOne(ctx, col, bson.M{"orgId": orgId, "reviewId": reviewId}, bson.M{"status": "rejected"})
+	res, err := stomongo.UpdateOne(ctx, col, bson.M{"workspaceId": orgId, "reviewId": reviewId}, bson.M{"status": "rejected"})
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func (r *UnknownPayloadReviewRepo) MarkRejected(ctx context.Context, orgId, revi
 
 // Delete hard-deletes a review (called when template is created successfully).
 func (r *UnknownPayloadReviewRepo) Delete(ctx context.Context, orgId, reviewId string) error {
-	res, err := stomongo.DeleteOne(ctx, col, bson.M{"orgId": orgId, "reviewId": reviewId})
+	res, err := stomongo.DeleteOne(ctx, col, bson.M{"workspaceId": orgId, "reviewId": reviewId})
 	if err != nil {
 		return err
 	}
@@ -127,20 +127,29 @@ func (r *UnknownPayloadReviewRepo) Delete(ctx context.Context, orgId, reviewId s
 }
 
 func (r *UnknownPayloadReviewRepo) EnsureIndexes(ctx context.Context) error {
+	// Migrate legacy orgId field → workspaceId for documents written before the rename.
+	_, _ = stomongo.UpdateManyPipeline(ctx, col,
+		bson.M{"orgId": bson.M{"$exists": true}},
+		mongo.Pipeline{
+			bson.D{{Key: "$set", Value: bson.M{"workspaceId": "$orgId"}}},
+			bson.D{{Key: "$unset", Value: "orgId"}},
+		},
+	)
+
 	return stomongo.CreateIndexes(ctx, col, []mongo.IndexModel{
 		{
 			// Unique per org+sourceFamily+fingerprint — prevents duplicate reviews
-			Keys:    bson.D{{Key: "orgId", Value: 1}, {Key: "sourceFamily", Value: 1}, {Key: "fingerprint", Value: 1}},
+			Keys:    bson.D{{Key: "workspaceId", Value: 1}, {Key: "sourceFamily", Value: 1}, {Key: "fingerprint", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
 		{
 			// Lookup by reviewId
-			Keys:    bson.D{{Key: "orgId", Value: 1}, {Key: "reviewId", Value: 1}},
+			Keys:    bson.D{{Key: "workspaceId", Value: 1}, {Key: "reviewId", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
 		{
 			// List pending reviews sorted by createdAt
-			Keys: bson.D{{Key: "orgId", Value: 1}, {Key: "status", Value: 1}, {Key: "createdAt", Value: -1}},
+			Keys: bson.D{{Key: "workspaceId", Value: 1}, {Key: "status", Value: 1}, {Key: "createdAt", Value: -1}},
 		},
 	})
 }

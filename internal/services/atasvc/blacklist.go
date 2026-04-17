@@ -28,11 +28,11 @@ func BlacklistSummary(ctx context.Context, req aimodel.BlacklistSummaryReq) (*ai
 	if req.Page <= 0 {
 		req.Page = 1
 	}
-	if req.PerPages <= 0 {
-		req.PerPages = 20
+	if req.PerPage <= 0 {
+		req.PerPage = 20
 	}
-	if req.PerPages > 200 {
-		req.PerPages = 200
+	if req.PerPage > 200 {
+		req.PerPage = 200
 	}
 
 	sortVal := int32(-1)
@@ -79,8 +79,8 @@ func BlacklistSummary(ctx context.Context, req aimodel.BlacklistSummaryReq) (*ai
 		}
 	}
 
-	skip := int64((req.Page - 1) * req.PerPages)
-	limit := int64(req.PerPages)
+	skip := int64((req.Page - 1) * req.PerPage)
+	limit := int64(req.PerPage)
 
 	// ✅ lookup camera: channelId first, fallback by name(address)
 	cameraLookup := bson.D{{Key: "$lookup", Value: bson.M{
@@ -186,7 +186,7 @@ func BlacklistSummary(ctx context.Context, req aimodel.BlacklistSummaryReq) (*ai
 	resp := &aimodel.BlacklistSummaryResponse{
 		Details: []aimodel.BlacklistItem{},
 		Pagination: aimodel.Pagination{
-			Page: req.Page, PerPages: req.PerPages,
+			Page: req.Page, PerPage: req.PerPage,
 			SortField: "dateTimeCreate", SortOrder: strings.ToLower(req.SortOrder),
 		},
 		Summary: aimodel.BlacklistSummary{},
@@ -206,7 +206,7 @@ func BlacklistSummary(ctx context.Context, req aimodel.BlacklistSummaryReq) (*ai
 	}
 	resp.Pagination.TotalRecords = totalRecords
 	if totalRecords > 0 {
-		resp.Pagination.TotalPages = (totalRecords + int64(req.PerPages) - 1) / int64(req.PerPages)
+		resp.Pagination.TotalPages = (totalRecords + int64(req.PerPage) - 1) / int64(req.PerPage)
 	}
 
 	// summary

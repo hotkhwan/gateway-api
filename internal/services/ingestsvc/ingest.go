@@ -30,7 +30,7 @@ const (
 
 // RawEvent คือ message ที่ส่งเข้า Kafka raw.events
 type RawEvent struct {
-	OrgId        string          `json:"orgId"`
+	WorkspaceId  string          `json:"workspaceId"`
 	EventId      string          `json:"eventId"`
 	SourceFamily string          `json:"sourceFamily"`
 	ReceivedAt   time.Time       `json:"receivedAt"`
@@ -457,7 +457,7 @@ func (s *IngestService) Ingest(
 
 		// Auto-create/merge device_management record (conservative, non-blocking)
 		if deviceRef != nil && s.deviceMgmtSvc != nil {
-			s.deviceMgmtSvc.AutoUpsertFromEvent(ctx, policy.TenantId, orgId, sourceFamily, deviceRef, ingestmod.AutoUpsertHints{})
+			s.deviceMgmtSvc.AutoUpsertFromEvent(ctx, policy.TenantId, orgId, sourceFamily, deviceRef, buildAutoUpsertHints(sourceFamily, rawBody))
 		}
 
 		s.logger.Debug().
@@ -494,7 +494,7 @@ func (s *IngestService) Ingest(
 
 			// Auto-create/merge device_management record (conservative, non-blocking)
 			if deviceRef != nil && s.deviceMgmtSvc != nil {
-				s.deviceMgmtSvc.AutoUpsertFromEvent(ctx, policy.TenantId, orgId, sourceFamily, deviceRef, ingestmod.AutoUpsertHints{})
+				s.deviceMgmtSvc.AutoUpsertFromEvent(ctx, policy.TenantId, orgId, sourceFamily, deviceRef, buildAutoUpsertHints(sourceFamily, rawBody))
 			}
 
 			s.logger.Info().
@@ -632,7 +632,7 @@ func (s *IngestService) processTemplateMappedEvent(
 			DeviceType:        deviceType,
 			DeviceName:        deviceName,
 			DeviceDescription: deviceDescription,
-			OrgId:             orgId,
+			WorkspaceId:       orgId,
 		},
 		Location:   location,
 		Payload:    rawBody, // raw payload — normalizer applies template again
@@ -647,7 +647,7 @@ func (s *IngestService) processTemplateMappedEvent(
 		"eventId":      eventId,
 		"eventType":    eventType,
 		"sourceFamily": sourceFamily,
-		"orgId":        orgId,
+		"workspaceId":  orgId,
 		"tenantId":     tenantId,
 		"templateId":   tmpl.TemplateId,
 	}
@@ -782,4 +782,18 @@ func (s *IngestService) resolveDeviceEnrichment(
 
 	// No enrichment found — use first candidate as deviceRef
 	return nil, &candidates[0]
+}
+
+// buildAutoUpsertHints extracts source-family-specific hints from a raw event body.
+// Currently extracts "sn" (serial number) for AIBOX events.
+func buildAutoUpsertHints(sourceFamily string, rawBody map[string]any) ingestmod.AutoUpsertHints {
+	hints := ingestmod.AutoUpsertHints{}
+	if sourceFamily == "AIBOX" {
+		if v, ok := rawBody["sn"]; ok {
+			if s, ok := v.(string); ok {
+				hints.SerialNo = s
+			}
+		}
+	}
+	return hints
 }

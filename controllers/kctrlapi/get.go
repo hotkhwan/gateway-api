@@ -21,7 +21,7 @@ import (
 // @Accept       json
 // @Produce      json
 // @Param        page       query     int     false  "Page number"
-// @Param        perPages   query     int     false  "Items per page"
+// @Param        perPage    query     int     false  "Items per page"
 // @Param        sortOrder  query     string  false  "asc or desc"
 // @Param        id         query     string  false  "Device ID"
 // @Param        hwid       query     string  false  "Device HWID"
@@ -37,7 +37,7 @@ func ListDevices(c fiber.Ctx) error {
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPages, _ := strconv.Atoi(c.Query("perPage", "10"))
 	sortOrder := strings.ToLower(c.Query("sortOrder", "desc"))
 	if sortOrder != "asc" && sortOrder != "desc" {
 		sortOrder = "desc"
@@ -60,7 +60,7 @@ func ListDevices(c fiber.Ctx) error {
 
 	log.Debug().
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPages).
 		Str("sortField", sortField).
 		Str("sortOrder", sortOrder).
 		Interface("filters", filters).
@@ -121,7 +121,7 @@ func DeviceGetByID(c fiber.Ctx) error {
 // @Accept       json
 // @Produce      json
 // @Param        page       query     int     false  "Page number"
-// @Param        perPages   query     int     false  "Items per page"
+// @Param        perPage    query     int     false  "Items per page"
 // @Param        sortOrder  query     string  false  "asc or desc"
 // @Param        search     query     string  false  "Search by message or name"
 // @Param        hwid       query     string  false  "Filter by hardware id"
@@ -136,7 +136,7 @@ func ListAlarms(c fiber.Ctx) error {
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPages, _ := strconv.Atoi(c.Query("perPage", "10"))
 	sortOrder := strings.ToLower(c.Query("sortOrder", "desc"))
 	if sortOrder != "asc" && sortOrder != "desc" {
 		sortOrder = "desc"
@@ -163,7 +163,7 @@ func ListAlarms(c fiber.Ctx) error {
 
 	log.Debug().
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPages).
 		Str("sortOrder", sortOrder).
 		Str("sortField", sortField).
 		Interface("filters", filters).
@@ -226,7 +226,7 @@ func ListAlarmById(c fiber.Ctx) error {
 // @Accept       json
 // @Produce      json
 // @Param        page       query     int     false  "Page number"
-// @Param        perPages   query     int     false  "Items per page"
+// @Param        perPage    query     int     false  "Items per page"
 // @Param        sortOrder  query     string  false  "asc or desc"
 // @Param        kind       query     string  false  "sensor|alarms (optional)"
 // @Param        hwid       query     string  false  "Filter by hardware id"
@@ -240,7 +240,7 @@ func ListEvents(c fiber.Ctx) error {
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPages, _ := strconv.Atoi(c.Query("perPage", "10"))
 	sortOrder := strings.ToLower(c.Query("sortOrder", "desc"))
 	if sortOrder != "asc" && sortOrder != "desc" {
 		sortOrder = "desc"

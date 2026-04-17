@@ -47,7 +47,7 @@ func StartDeliveryConsumer(broker, topic string) {
 			log.Debug().
 				Str("eventId", msg.EventId).
 				Str("tenantId", msg.TenantId).
-				Str("orgId", msg.OrgId).
+				Str("orgId", msg.WorkspaceId).
 				Str("eventType", msg.EventType).
 				Msg("normalized event received for delivery")
 			return deliverysvc.HandleNormalizedEvent(ctx, msg)

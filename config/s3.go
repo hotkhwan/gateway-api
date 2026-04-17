@@ -49,7 +49,7 @@ func InitS3() {
 			S3PublicBuckets[b] = b
 		}
 	}
-	privateList := strings.Split(getEnvOrDefault("S3_PRIBUCKET", "analytic,kwatch,document"), ",")
+	privateList := strings.Split(getEnvOrDefault("S3_PRIBUCKET", "analytic,kwatch,document,canonical"), ",")
 	for _, b := range privateList {
 		b = strings.TrimSpace(b)
 		if b != "" {

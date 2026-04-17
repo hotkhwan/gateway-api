@@ -17,7 +17,7 @@ type CameraMongo struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty"`
 	CamId       string             `bson:"camId"`
 	TenantID    string             `bson:"tenantId"`
-	OrgID       string             `bson:"orgId"`
+	WorkspaceID string             `bson:"workspaceId"`
 	Name        string             `bson:"name"`
 	User        string             `bson:"user,omitempty"`
 	Password    string             `bson:"password,omitempty"`
@@ -55,7 +55,7 @@ type CameraMongo struct {
 type CameraDTO struct {
 	ID          string        `json:"id"` // _id.Hex()
 	TenantID    string        `json:"tenantId"`
-	OrgID       string        `json:"orgId"`
+	WorkspaceID string        `json:"workspaceId"`
 	Name        string        `json:"name"`
 	User        string        `json:"user,omitempty"`
 	URL         string        `json:"url,omitempty"`
@@ -83,7 +83,7 @@ type CameraDTO struct {
 type CreateCameraInput struct {
 	CamID         string
 	TenantID      string
-	OrgID         string
+	WorkspaceID   string
 	CallerID      string
 	Name          string
 	User          string

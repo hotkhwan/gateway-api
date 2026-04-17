@@ -31,12 +31,12 @@ type ImportResult struct {
 
 func (s *CameraService) ImportFromCSV(
 	ctx context.Context,
-	tenantId, orgId, callerID string,
+	tenantId, workspaceId, callerID string,
 	file io.Reader,
 ) (*ImportResult, error) {
 	log := logger.FromCtx(ctx, "devicesvc", "CameraService.ImportFromCSV")
 
-	if err := s.guardManageOrg(ctx, tenantId, orgId, callerID); err != nil {
+	if err := s.guardManageOrg(ctx, tenantId, workspaceId, callerID); err != nil {
 		return nil, err
 	}
 
@@ -46,7 +46,7 @@ func (s *CameraService) ImportFromCSV(
 		return nil, fmt.Errorf("csv parse error: %w", err)
 	}
 
-	return s.doImport(ctx, tenantId, orgId, callerID, parsed, dupIPInFile, invalidRows)
+	return s.doImport(ctx, tenantId, workspaceId, callerID, parsed, dupIPInFile, invalidRows)
 }
 
 // ============================================================
@@ -55,12 +55,12 @@ func (s *CameraService) ImportFromCSV(
 
 func (s *CameraService) ImportFromXLSX(
 	ctx context.Context,
-	tenantId, orgId, callerID string,
+	tenantId, workspaceId, callerID string,
 	file io.Reader,
 ) (*ImportResult, error) {
 	log := logger.FromCtx(ctx, "devicesvc", "CameraService.ImportFromXLSX")
 
-	if err := s.guardManageOrg(ctx, tenantId, orgId, callerID); err != nil {
+	if err := s.guardManageOrg(ctx, tenantId, workspaceId, callerID); err != nil {
 		return nil, err
 	}
 
@@ -70,7 +70,7 @@ func (s *CameraService) ImportFromXLSX(
 		return nil, fmt.Errorf("xlsx parse error: %w", err)
 	}
 
-	return s.doImport(ctx, tenantId, orgId, callerID, parsed, dupIPInFile, invalidRows)
+	return s.doImport(ctx, tenantId, workspaceId, callerID, parsed, dupIPInFile, invalidRows)
 }
 
 // ============================================================
@@ -79,7 +79,7 @@ func (s *CameraService) ImportFromXLSX(
 
 func (s *CameraService) doImport(
 	ctx context.Context,
-	tenantId, orgId, callerID string,
+	tenantId, workspaceId, callerID string,
 	parsed []devmod.BulkImportItem,
 	dupIPInFile []string,
 	invalidRows []string,
@@ -99,7 +99,7 @@ func (s *CameraService) doImport(
 			ips = append(ips, item.IP)
 		}
 	}
-	dupIPInDB, err := s.repo.FindDuplicateIPs(ctx, orgId, ips)
+	dupIPInDB, err := s.repo.FindDuplicateIPs(ctx, workspaceId, ips)
 	if err != nil {
 		log.Warn().Err(err).Msg("⚠️ DuplicateIP check failed, continuing")
 	}
@@ -130,7 +130,7 @@ func (s *CameraService) doImport(
 	}
 
 	// BulkCreate (Mongo + Permify)
-	bulk, err := s.BulkCreate(ctx, tenantId, orgId, callerID, toInsert)
+	bulk, err := s.BulkCreate(ctx, tenantId, workspaceId, callerID, toInsert)
 	if err != nil {
 		return nil, err
 	}

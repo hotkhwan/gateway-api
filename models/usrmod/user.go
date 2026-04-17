@@ -16,7 +16,7 @@ type User struct {
 	Avatar      string       `json:"avatar" bson:"avatar"`
 	Locale      string       `json:"locale" bson:"locale"`
 	Plant       string       `json:"plant" bson:"plant"`
-	PerPages    int          `json:"perPages" bson:"perPages"`
+	PerPage     int          `json:"perPage" bson:"perPage"`
 	RefId       string       `json:"refId" bson:"refId"`
 	Department  string       `json:"department" bson:"department"`
 	Enabled     bool         `json:"enabled" bson:"enabled"`

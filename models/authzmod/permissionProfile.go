@@ -6,7 +6,7 @@ import "time"
 type PermissionProfile struct {
 	ProfileID        string    `bson:"profileId"        json:"id"`
 	TenantID         string    `bson:"tenantId"         json:"-"`
-	OrgID            string    `bson:"orgId"            json:"orgId"`
+	WorkspaceID      string    `bson:"workspaceId"      json:"workspaceId"`
 	Name             string    `bson:"name"             json:"name"`
 	Description      string    `bson:"description"      json:"description,omitempty"`
 	Status           bool      `bson:"status"           json:"status"`

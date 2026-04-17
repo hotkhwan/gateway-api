@@ -3,9 +3,11 @@ package devicemgmtsvc
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/repo/cachedevicemgmt"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicemgmtrepo"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
@@ -32,7 +34,11 @@ func (s *DeviceManagementService) Create(ctx context.Context, d *ingestmod.Devic
 	d.DeviceMgmtId = uuid.NewString()
 	d.CreatedAt = now
 	d.UpdatedAt = now
-	return s.repo.Insert(ctx, d)
+	if err := s.repo.Insert(ctx, d); err != nil {
+		return err
+	}
+	publishDevicesChanged(ctx, d, "create")
+	return nil
 }
 
 func (s *DeviceManagementService) Get(ctx context.Context, tenantId, orgId, deviceMgmtId string) (*ingestmod.DeviceManagement, error) {
@@ -61,6 +67,7 @@ func (s *DeviceManagementService) Update(ctx context.Context, tenantId, orgId, d
 	d, err := s.repo.FindById(ctx, tenantId, orgId, deviceMgmtId)
 	if err == nil && d != nil {
 		cachedevicemgmt.Invalidate(ctx, tenantId, orgId, d.SourceFamily, d.EntityType, d.EntityId)
+		publishDevicesChanged(ctx, d, "update")
 	}
 	return nil
 }
@@ -76,4 +83,23 @@ func (s *DeviceManagementService) Resolve(ctx context.Context, tenantId, orgId, 
 	}
 	cachedevicemgmt.Set(ctx, d)
 	return d
+}
+
+// publishDevicesChanged fires a non-blocking Kafka publish to gw.devices.changed.v1.
+// Non-fatal: errors are logged only.
+func publishDevicesChanged(_ context.Context, d *ingestmod.DeviceManagement, action string) {
+	topic := config.TopicEnv("KAFKA_TOPIC_GW_DEVICES", "gw.devices.changed.v1")
+	payload, _ := json.Marshal(map[string]any{
+		"deviceMgmtId": d.DeviceMgmtId,
+		"workspaceId":  d.WorkspaceId,
+		"tenantId":     d.TenantId,
+		"sourceFamily": d.SourceFamily,
+		"entityType":   d.EntityType,
+		"entityId":     d.EntityId,
+		"action":       action,
+	})
+	headers := map[string]string{"workspaceId": d.WorkspaceId, "action": action}
+	go func() {
+		_ = config.SendToKafkaWithCtx(context.Background(), topic, d.WorkspaceId, payload, headers)
+	}()
 }

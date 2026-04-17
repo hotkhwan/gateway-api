@@ -35,7 +35,7 @@ func (s *TemplateService) Create(ctx context.Context, orgId string, in *CreateTe
 	now := time.Now().UTC()
 	t := &ingestmod.MappingTemplate{
 		TemplateId:          uuid.NewString(),
-		OrgId:               orgId,
+		WorkspaceId:               orgId,
 		Name:                in.Name,
 		Match:               in.Match,
 		Mappings:            in.Mappings,

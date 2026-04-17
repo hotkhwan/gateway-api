@@ -33,7 +33,7 @@ func (h *RejectedPayloadPatternController) orgId(c fiber.Ctx) string {
 // @Security     BearerAuth
 // @Param        X-Active-Org  header  string  true  "Active Org ID"
 // @Param        page          query   int     false "Page" default(1)
-// @Param        perPages      query   int     false "Per page" default(10)
+// @Param        perPage       query   int     false "Per page" default(10)
 // @Success      200  {object}  gmod.PaginationResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Router       /ingest/rejectedPayloadPatterns [get]
@@ -43,7 +43,7 @@ func (h *RejectedPayloadPatternController) List(c fiber.Ctx) error {
 
 	orgId := h.orgId(c)
 	page := fiber.Query[int](c, "page", 1)
-	perPage := fiber.Query[int](c, "perPages", 10)
+	perPage := fiber.Query[int](c, "perPage", 10)
 
 	items, pag, err := h.svc.List(ctx, orgId, page, perPage)
 	if err != nil {

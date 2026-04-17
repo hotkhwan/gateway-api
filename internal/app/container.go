@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/controllers/aiconfigdraftapi"
+	"github.com/hotkhwan/gateway-api/controllers/aimappingapi"
 	"github.com/hotkhwan/gateway-api/controllers/authzapi"
 	"github.com/hotkhwan/gateway-api/controllers/bindingapi"
 	"github.com/hotkhwan/gateway-api/controllers/deviceapi"
@@ -17,11 +19,15 @@ import (
 	"github.com/hotkhwan/gateway-api/controllers/workspaceapi"
 	"github.com/hotkhwan/gateway-api/controllers/wstargetapi"
 	"github.com/hotkhwan/gateway-api/internal/adapters/alertdispatcher"
+	"github.com/hotkhwan/gateway-api/internal/crypto/secretbox"
 	"github.com/hotkhwan/gateway-api/internal/eventbridge"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
 	"github.com/hotkhwan/gateway-api/internal/mqtt/alertmsg"
+	"github.com/hotkhwan/gateway-api/internal/repo/aiconfigrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/aisuggestauditrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/bindingrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/configdraftrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingesttmplrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/msgtmplrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/workspacerepo"
@@ -47,6 +53,8 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/targetrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/unknownpayloadreviewrepo"
+	"github.com/hotkhwan/gateway-api/internal/services/aiconfigdraftsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/aimappingsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicemgmtsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
@@ -180,6 +188,14 @@ type Container struct {
 	// ===== Message Templates domain =====
 	MsgTemplateService    *msgtmplsvc.MsgTemplateService
 	MsgTemplateController *msgtmplapi.MsgTemplateController
+
+	// ===== AI Mapping domain =====
+	AIMappingService    *aimappingsvc.AIMappingService
+	AIMappingController *aimappingapi.AIMappingController
+
+	// ===== AI Config Draft domain (Feature B) =====
+	ConfigDraftService    *aiconfigdraftsvc.ConfigDraftService
+	ConfigDraftController *aiconfigdraftapi.ConfigDraftController
 }
 
 // NewContainer — เรียกครั้งเดียวใน main.go
@@ -196,6 +212,7 @@ func NewContainer() *Container {
 	c.buildRejectedPayloadPattern()
 	c.buildTemplateReview()
 	c.buildMappingSuggestion()
+	c.buildAIMapping()
 	c.buildIngest()
 	c.buildAlertDispatcher()
 	c.buildEvents()
@@ -516,7 +533,7 @@ func (c *Container) buildNormalizer() {
 		TemplateRepo:       ingestrepo.NewMappingTemplateRepo(),
 		DLQRepo:            dlqrepo.NewDLQRepo(),
 		GeoCfg:             normalizedcons.DefaultGeoConfig(),
-		S3BucketKey:        os.Getenv("S3_EVENTS_BUCKET_KEY"),
+		S3BucketKey:        func() string { if v := os.Getenv("S3_BUCKET_EVENTS"); v != "" { return v }; return "canonical" }(),
 		Logger:             logger.WithMeta("normalizer", "consumer"),
 		EntitlementSvc:     entitlementSvc,
 		IngestAuthzGw:      ingestAuthzGw,
@@ -526,6 +543,7 @@ func (c *Container) buildNormalizer() {
 		KlynxTargetChecker: tgtRepo,
 		TargetLookup:       tgtRepo,
 		KlynxOrgLookup:     workspacerepo.NewWorkspaceRepo(),
+		DeviceMgmtResolver: c.DeviceMgmtService,
 	}
 }
 
@@ -585,4 +603,35 @@ func (c *Container) buildDeliveryConsumer() {
 		DLQRepo:      dlqrepo.NewDLQRepo(),
 		Logger:       logger.WithMeta("delivery", "consumer"),
 	}
+}
+
+// ============================================================
+// buildAIMapping — AI Mapping Suggest + Config Draft domains
+// ============================================================
+
+func (c *Container) buildAIMapping() {
+	// Load keyring from env — fatal if missing (startup contract)
+	kr, err := secretbox.LoadKeyringFromEnv()
+	if err != nil {
+		panic("MASTER_KEYRING_JSON required for AI mapping service: " + err.Error())
+	}
+
+	// Repos
+	aiCfgRepo := aiconfigrepo.NewAIConfigRepo()
+	auditRepo := aisuggestauditrepo.NewAISuggestAuditRepo()
+	draftRepo := configdraftrepo.NewConfigDraftRepo()
+
+	// AI Mapping service (Feature A)
+	c.AIMappingService = aimappingsvc.NewAIMappingService(
+		aiCfgRepo,
+		auditRepo,
+		c.MappingSuggestionService,
+		config.Redis,
+		kr,
+	)
+	c.AIMappingController = aimappingapi.NewAIMappingController(c.AIMappingService)
+
+	// Config Draft service (Feature B)
+	c.ConfigDraftService = aiconfigdraftsvc.NewConfigDraftService(draftRepo, c.MappingSuggestionService)
+	c.ConfigDraftController = aiconfigdraftapi.NewConfigDraftController(c.ConfigDraftService)
 }
