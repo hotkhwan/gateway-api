@@ -136,7 +136,7 @@ func VideoList(ctx context.Context, page, perPages int, filters map[string]strin
 
 	log.Info().
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPages).
 		Int("total", int(total)).
 		Str("sortField", sortField).
 		Str("sortOrder", sortOrder).
@@ -144,7 +144,7 @@ func VideoList(ctx context.Context, page, perPages int, filters map[string]strin
 
 	return rows, gmod.Pagination{
 		Page:         page,
-		PerPages:     perPages,
+		PerPage:      perPages,
 		TotalRecords: int(total),
 		TotalPages:   (int(total) + perPages - 1) / perPages,
 		SortField:    sortField,

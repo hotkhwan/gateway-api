@@ -38,7 +38,7 @@ func DevicesList(ctx context.Context, page, perPages int, filters map[string]str
 
 	log.Debug().
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPages).
 		Str("sortField", sortField).
 		Str("sortOrder", sortOrder).
 		Interface("filters", filters).
@@ -135,7 +135,7 @@ func DevicesList(ctx context.Context, page, perPages int, filters map[string]str
 
 	pagination := gmod.Pagination{
 		Page:         page,
-		PerPages:     perPages,
+		PerPage:      perPages,
 		TotalRecords: int(total),
 		TotalPages:   (int(total) + perPages - 1) / perPages,
 		SortField:    sortField,
@@ -275,7 +275,7 @@ func DevicesListCheckPermission(ctx context.Context, token string, page, perPage
 
 	log.Debug().
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPages).
 		Str("sortField", sortField).
 		Str("sortOrder", sortOrder).
 		Interface("filters", filters).
@@ -420,7 +420,7 @@ func DevicesListCheckPermission(ctx context.Context, token string, page, perPage
 	//Check GroupMembership
 	pagination := gmod.Pagination{
 		Page:         page,
-		PerPages:     perPages,
+		PerPage:      perPages,
 		TotalRecords: int(total),
 		TotalPages:   (int(total) + perPages - 1) / perPages,
 		SortField:    sortField,

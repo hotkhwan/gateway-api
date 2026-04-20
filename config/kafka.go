@@ -55,6 +55,16 @@ func ensureKafkaWriter() error {
 			{"KAFKA_TOPIC_ATA", "ata.events"},
 			{"KAFKA_TOPIC_RAW_EVENTS", "raw.events"},
 			{"KAFKA_TOPIC_NORMALIZED_EVENTS", "normalized.events"},
+			{"KAFKA_TOPIC_EVENTS_NORMALIZED", "gw.events.normalized.v1"},
+			{"KAFKA_TOPIC_EVENTS_DELIVERY", "events.delivery.v1"},
+			{"KAFKA_TOPIC_WORKSPACE_PROVISIONED", "gw.workspace.provisioned.v1"},
+			{"KAFKA_TOPIC_GW_ASSETS", "gw.assets.changed.v1"},
+			{"KAFKA_TOPIC_GW_SOURCES", "gw.sources.changed.v1"},
+			{"KAFKA_TOPIC_GW_DEVICES", "gw.devices.changed.v1"},
+			{"KAFKA_TOPIC_GW_DELIVERY_STATUS", "gw.delivery.status.v1"},
+			{"KAFKA_TOPIC_ORG_CREATED", "klynx.org.created.v1"},
+			{"KAFKA_TOPIC_ORG_DELETED", "klynx.org.deleted.v1"},
+			{"KAFKA_TOPIC_ENTITLEMENT_SNAPSHOT", "klynx.entitlement.snapshot.v1"},
 		})...)
 
 		// (ถ้าต้องการ topic เพิ่มเติมเฉพาะกิจ ก็ append ต่อได้)

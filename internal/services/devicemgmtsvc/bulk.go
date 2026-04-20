@@ -20,7 +20,7 @@ import (
 
 // XLSX column order — stable contract
 var xlsxColumns = []string{
-	"tenantId", "orgId",
+	"tenantId", "workspaceId",
 	"sourceFamily", "entityType", "entityId",
 	"deviceId", "name", "description",
 	"lat", "lng", "site", "zone",
@@ -33,7 +33,7 @@ const (
 )
 
 // DownloadTemplate generates an empty XLSX template with example row prefilled from auth context.
-func (s *DeviceManagementService) DownloadTemplate(ctx context.Context, tenantId, orgId string) (*bytes.Buffer, error) {
+func (s *DeviceManagementService) DownloadTemplate(ctx context.Context, tenantId, workspaceId string) (*bytes.Buffer, error) {
 	ctx, end, _ := traceutil.StartLite(ctx, "gateway.devicemgmtsvc", "DownloadTemplate", "devicemgmtsvc", "DownloadTemplate")
 	defer end()
 
@@ -54,7 +54,7 @@ func (s *DeviceManagementService) DownloadTemplate(ctx context.Context, tenantId
 
 	// Write example row
 	example := []interface{}{
-		tenantId, orgId,
+		tenantId, workspaceId,
 		"AIBOX", "channel", "30",
 		"CAM-LOBBY-01", "Lobby Camera 01", "Camera near front lobby",
 		13.7563, 100.5018, "Head Office", "Lobby",
@@ -70,13 +70,13 @@ func (s *DeviceManagementService) DownloadTemplate(ctx context.Context, tenantId
 		"Device Management Import Template",
 		"",
 		fmt.Sprintf("Tenant ID: %s", tenantId),
-		fmt.Sprintf("Org ID: %s", orgId),
+		fmt.Sprintf("Workspace ID: %s", workspaceId),
 		"",
 		"Rules:",
 		"- sourceFamily, entityType, entityId are REQUIRED",
-		"- tenantId and orgId columns are informational; server uses auth context as source of truth",
-		"- If tenantId/orgId in file does not match auth context, the row will be REJECTED",
-		"- Business key for upsert: (tenantId, orgId, sourceFamily, entityType, entityId)",
+		"- tenantId and workspaceId columns are informational; server uses auth context as source of truth",
+		"- If tenantId/workspaceId in file does not match auth context, the row will be REJECTED",
+		"- Business key for upsert: (tenantId, workspaceId, sourceFamily, entityType, entityId)",
 		"- Duplicate business keys within the file will cause an error",
 		"- lat/lng must be valid float numbers if provided",
 		"- entityId is always treated as string (e.g. '30' not 30)",
@@ -99,11 +99,11 @@ func (s *DeviceManagementService) DownloadTemplate(ctx context.Context, tenantId
 }
 
 // ExportXlsx exports current device management records as an XLSX file.
-func (s *DeviceManagementService) ExportXlsx(ctx context.Context, tenantId, orgId, sourceFamily, entityType string) (*bytes.Buffer, error) {
+func (s *DeviceManagementService) ExportXlsx(ctx context.Context, tenantId, workspaceId, sourceFamily, entityType string) (*bytes.Buffer, error) {
 	ctx, end, _ := traceutil.StartLite(ctx, "gateway.devicemgmtsvc", "ExportXlsx", "devicemgmtsvc", "ExportXlsx")
 	defer end()
 
-	records, err := s.repo.ListForExport(ctx, tenantId, orgId, sourceFamily, entityType)
+	records, err := s.repo.ListForExport(ctx, tenantId, workspaceId, sourceFamily, entityType)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (s *DeviceManagementService) ExportXlsx(ctx context.Context, tenantId, orgI
 	for rowIdx, rec := range records {
 		row := rowIdx + 2
 		vals := []interface{}{
-			rec.TenantId, rec.OrgId,
+			rec.TenantId, rec.WorkspaceId,
 			rec.SourceFamily, rec.EntityType, rec.EntityId,
 			rec.DeviceId, rec.Name, rec.Description,
 			rec.Lat, rec.Lng, rec.Site, rec.Zone,
@@ -154,7 +154,7 @@ type ImportResult struct {
 }
 
 // ImportFromXlsx parses an XLSX file and upserts device management records.
-func (s *DeviceManagementService) ImportFromXlsx(ctx context.Context, tenantId, orgId string, file io.Reader, dryRun bool) (*ImportResult, error) {
+func (s *DeviceManagementService) ImportFromXlsx(ctx context.Context, tenantId, workspaceId string, file io.Reader, dryRun bool) (*ImportResult, error) {
 	ctx, end, _ := traceutil.StartLite(ctx, "gateway.devicemgmtsvc", "ImportFromXlsx", "devicemgmtsvc", "ImportFromXlsx")
 	defer end()
 
@@ -196,7 +196,7 @@ func (s *DeviceManagementService) ImportFromXlsx(ctx context.Context, tenantId, 
 	for i, row := range dataRows {
 		rowNum := i + 2 // 1-indexed, row 1 is header
 
-		rec, rowErr := parseImportRow(headerIdx, row, rowNum, tenantId, orgId)
+		rec, rowErr := parseImportRow(headerIdx, row, rowNum, tenantId, workspaceId)
 		if rowErr != nil {
 			result.Errors = append(result.Errors, *rowErr)
 			continue
@@ -219,7 +219,7 @@ func (s *DeviceManagementService) ImportFromXlsx(ctx context.Context, tenantId, 
 
 		if dryRun {
 			// Simulate: check existing record
-			existing, _ := s.repo.FindByEntity(ctx, tenantId, orgId, rec.SourceFamily, rec.EntityType, rec.EntityId)
+			existing, _ := s.repo.FindByEntity(ctx, tenantId, workspaceId, rec.SourceFamily, rec.EntityType, rec.EntityId)
 			if existing == nil {
 				result.Inserted++
 			} else if recordChanged(existing, rec) {
@@ -243,10 +243,12 @@ func (s *DeviceManagementService) ImportFromXlsx(ctx context.Context, tenantId, 
 		case "inserted":
 			result.Inserted++
 			result.IDs = append(result.IDs, rec.DeviceMgmtId)
+			publishDevicesChanged(ctx, rec, "create")
 		case "updated":
 			result.Updated++
 			// Invalidate cache for updated records
-			cachedevicemgmt.Invalidate(ctx, tenantId, orgId, rec.SourceFamily, rec.EntityType, rec.EntityId)
+			cachedevicemgmt.Invalidate(ctx, tenantId, workspaceId, rec.SourceFamily, rec.EntityType, rec.EntityId)
+			publishDevicesChanged(ctx, rec, "update")
 		default:
 			result.Skipped++
 		}
@@ -259,18 +261,18 @@ func (s *DeviceManagementService) ImportFromXlsx(ctx context.Context, tenantId, 
 // Only fills empty fields in existing records; never overwrites non-empty values.
 func (s *DeviceManagementService) AutoUpsertFromEvent(
 	ctx context.Context,
-	tenantId, orgId, sourceFamily string,
+	tenantId, workspaceId, sourceFamily string,
 	ref *ingestmod.DeviceIdentity,
 	hints ingestmod.AutoUpsertHints,
 ) {
 	if ref == nil || ref.Type == "" || ref.ID == "" {
 		return
 	}
-	if sourceFamily == "" || tenantId == "" || orgId == "" {
+	if sourceFamily == "" || tenantId == "" || workspaceId == "" {
 		return
 	}
 
-	existing, _ := s.repo.FindByEntity(ctx, tenantId, orgId, sourceFamily, ref.Type, ref.ID)
+	existing, _ := s.repo.FindByEntity(ctx, tenantId, workspaceId, sourceFamily, ref.Type, ref.ID)
 	now := time.Now().UTC()
 
 	if existing == nil {
@@ -278,11 +280,12 @@ func (s *DeviceManagementService) AutoUpsertFromEvent(
 		rec := &ingestmod.DeviceManagement{
 			DeviceMgmtId: uuid.NewString(),
 			TenantId:     tenantId,
-			OrgId:        orgId,
+			WorkspaceId:  workspaceId,
 			SourceFamily: sourceFamily,
 			EntityType:   ref.Type,
 			EntityId:     ref.ID,
 			DeviceId:     hints.DeviceId,
+			SerialNo:     hints.SerialNo,
 			Name:         hints.Name,
 			Description:  hints.Description,
 			Lat:          hints.Lat,
@@ -293,6 +296,7 @@ func (s *DeviceManagementService) AutoUpsertFromEvent(
 			UpdatedAt:    now,
 		}
 		_ = s.repo.Insert(ctx, rec)
+		publishDevicesChanged(ctx, rec, "create")
 		return
 	}
 
@@ -300,6 +304,10 @@ func (s *DeviceManagementService) AutoUpsertFromEvent(
 	changed := false
 	if existing.DeviceId == "" && hints.DeviceId != "" {
 		existing.DeviceId = hints.DeviceId
+		changed = true
+	}
+	if existing.SerialNo == "" && hints.SerialNo != "" {
+		existing.SerialNo = hints.SerialNo
 		changed = true
 	}
 	if existing.Name == "" && hints.Name != "" {
@@ -333,13 +341,14 @@ func (s *DeviceManagementService) AutoUpsertFromEvent(
 
 	existing.UpdatedAt = now
 	_, _ = s.repo.UpsertByBusinessKey(ctx, existing)
-	cachedevicemgmt.Invalidate(ctx, tenantId, orgId, sourceFamily, ref.Type, ref.ID)
+	cachedevicemgmt.Invalidate(ctx, tenantId, workspaceId, sourceFamily, ref.Type, ref.ID)
+	publishDevicesChanged(ctx, existing, "update")
 }
 
 // parseHeader maps column names to their index positions.
 func parseHeader(row []string) map[string]int {
 	idx := map[string]int{
-		"tenantId": -1, "orgId": -1,
+		"tenantId": -1, "workspaceId": -1,
 		"sourceFamily": -1, "entityType": -1, "entityId": -1,
 		"deviceId": -1, "name": -1, "description": -1,
 		"lat": -1, "lng": -1, "site": -1, "zone": -1,
@@ -358,8 +367,8 @@ func parseHeader(row []string) map[string]int {
 			key = "deviceId"
 		case "tenantid":
 			key = "tenantId"
-		case "orgid":
-			key = "orgId"
+		case "workspaceid":
+			key = "workspaceId"
 		default:
 			// Already lowercase — match directly
 		}
@@ -379,7 +388,7 @@ func cellVal(row []string, idx int) string {
 }
 
 // parseImportRow validates and converts a single XLSX row into a DeviceManagement record.
-func parseImportRow(headerIdx map[string]int, row []string, rowNum int, tenantId, orgId string) (*ingestmod.DeviceManagement, *gmod.BulkImportError) {
+func parseImportRow(headerIdx map[string]int, row []string, rowNum int, tenantId, workspaceId string) (*ingestmod.DeviceManagement, *gmod.BulkImportError) {
 	sourceFamily := cellVal(row, headerIdx["sourceFamily"])
 	entityType := cellVal(row, headerIdx["entityType"])
 	entityId := cellVal(row, headerIdx["entityId"])
@@ -407,9 +416,9 @@ func parseImportRow(headerIdx map[string]int, row []string, rowNum int, tenantId
 	if fileTenant != "" && fileTenant != tenantId {
 		return nil, &gmod.BulkImportError{Row: rowNum, RecordKey: bk, Field: "tenantId", Message: "tenantId does not match authenticated tenant context"}
 	}
-	fileOrg := cellVal(row, headerIdx["orgId"])
-	if fileOrg != "" && fileOrg != orgId {
-		return nil, &gmod.BulkImportError{Row: rowNum, RecordKey: bk, Field: "orgId", Message: "orgId does not match active org context"}
+	fileWorkspace := cellVal(row, headerIdx["workspaceId"])
+	if fileWorkspace != "" && fileWorkspace != workspaceId {
+		return nil, &gmod.BulkImportError{Row: rowNum, RecordKey: bk, Field: "workspaceId", Message: "workspaceId does not match active workspace context"}
 	}
 
 	// Parse optional fields
@@ -436,7 +445,7 @@ func parseImportRow(headerIdx map[string]int, row []string, rowNum int, tenantId
 	return &ingestmod.DeviceManagement{
 		DeviceMgmtId: uuid.NewString(),
 		TenantId:     tenantId,
-		OrgId:        orgId,
+		WorkspaceId:  workspaceId,
 		SourceFamily: sourceFamily,
 		EntityType:   entityType,
 		EntityId:     entityId,

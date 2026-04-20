@@ -34,8 +34,8 @@ func (r *CameraRepo) EnsureIndexes(ctx context.Context) error {
 			Keys:    bson.D{{Key: "camId", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
-		{Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}}},
-		{Keys: bson.D{{Key: "orgId", Value: 1}}},
+		{Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "workspaceId", Value: 1}}},
+		{Keys: bson.D{{Key: "workspaceId", Value: 1}}},
 		{Keys: bson.D{{Key: "ip", Value: 1}}},
 	})
 }
@@ -54,7 +54,7 @@ func (r *CameraRepo) Insert(ctx context.Context, input devmod.CreateCameraInput)
 	doc := bson.M{
 		"camId":         camId, // ← index unique
 		"tenantId":      input.TenantID,
-		"orgId":         input.OrgID,
+		"workspaceId":   input.WorkspaceID,
 		"name":          input.Name,
 		"user":          input.User,
 		"password":      input.Password,
@@ -85,7 +85,7 @@ func (r *CameraRepo) Insert(ctx context.Context, input devmod.CreateCameraInput)
 // BulkInsert
 // ============================================================
 
-func (r *CameraRepo) BulkInsert(ctx context.Context, tenantId, orgId, callerID string, items []devmod.BulkImportItem) ([]string, error) {
+func (r *CameraRepo) BulkInsert(ctx context.Context, tenantId, workspaceId, callerID string, items []devmod.BulkImportItem) ([]string, error) {
 	docs := make([]interface{}, 0, len(items))
 	camIds := make([]string, 0, len(items))
 
@@ -95,7 +95,7 @@ func (r *CameraRepo) BulkInsert(ctx context.Context, tenantId, orgId, callerID s
 		docs = append(docs, bson.M{
 			"camId":         camId,
 			"tenantId":      tenantId,
-			"orgId":         orgId,
+			"workspaceId":   workspaceId,
 			"name":          item.Name,
 			"url":           item.URL,
 			"ip":            item.IP,
@@ -136,23 +136,23 @@ func (r *CameraRepo) FindByCamID(ctx context.Context, camId string) (*devmod.Cam
 	return &result, nil
 }
 
-func (r *CameraRepo) FindByCamIDAndOrg(ctx context.Context, camId, orgId string) (*devmod.CameraMongo, error) {
+func (r *CameraRepo) FindByCamIDAndOrg(ctx context.Context, camId, workspaceId string) (*devmod.CameraMongo, error) {
 	cam, err := r.FindByCamID(ctx, camId)
 	if err != nil {
 		return nil, err
 	}
-	if cam.OrgID != orgId {
+	if cam.WorkspaceID != workspaceId {
 		return nil, ErrCrossOrgAccess
 	}
 	return cam, nil
 }
 
-func (r *CameraRepo) GetOrgID(ctx context.Context, camId string) (string, error) {
+func (r *CameraRepo) GetWorkspaceID(ctx context.Context, camId string) (string, error) {
 	cam, err := r.FindByCamID(ctx, camId)
 	if err != nil {
 		return "", err
 	}
-	return cam.OrgID, nil
+	return cam.WorkspaceID, nil
 }
 
 // ============================================================
@@ -216,7 +216,7 @@ type CameraListOptions struct {
 	SortOrder string
 }
 
-func (r *CameraRepo) List(ctx context.Context, tenantId, orgId string, opts CameraListOptions) ([]devmod.CameraMongo, int64, error) {
+func (r *CameraRepo) List(ctx context.Context, tenantId, workspaceId string, opts CameraListOptions) ([]devmod.CameraMongo, int64, error) {
 	if opts.Page < 1 {
 		opts.Page = 1
 	}
@@ -231,7 +231,7 @@ func (r *CameraRepo) List(ctx context.Context, tenantId, orgId string, opts Came
 		sortVal = 1
 	}
 
-	filter := bson.M{"tenantId": tenantId, "orgId": orgId}
+	filter := bson.M{"tenantId": tenantId, "workspaceId": workspaceId}
 	if opts.Search != "" {
 		filter["name"] = bson.M{"$regex": opts.Search, "$options": "i"}
 	}
@@ -256,8 +256,8 @@ func (r *CameraRepo) List(ctx context.Context, tenantId, orgId string, opts Came
 // excludeCamId ใช้ตอน Update เพื่อ exclude ตัวเอง
 // ============================================================
 
-func (r *CameraRepo) ExistsByNameInOrg(ctx context.Context, orgId, name, excludeCamId string) (bool, error) {
-	filter := bson.M{"orgId": orgId, "name": name}
+func (r *CameraRepo) ExistsByNameInOrg(ctx context.Context, workspaceId, name, excludeCamId string) (bool, error) {
+	filter := bson.M{"workspaceId": workspaceId, "name": name}
 	if excludeCamId != "" {
 		filter["camId"] = bson.M{"$ne": excludeCamId}
 	}
@@ -314,14 +314,14 @@ func (r *CameraRepo) FindByCamIDs(ctx context.Context, camIds []string, search, 
 // FindDuplicateIPs
 // ============================================================
 
-func (r *CameraRepo) FindDuplicateIPs(ctx context.Context, orgId string, ips []string) ([]string, error) {
+func (r *CameraRepo) FindDuplicateIPs(ctx context.Context, workspaceId string, ips []string) ([]string, error) {
 	if len(ips) == 0 {
 		return nil, nil
 	}
 	var docs []devmod.CameraMongo
 	err := stomongo.Find(ctx, r.collection, bson.M{
-		"orgId": orgId,
-		"ip":    bson.M{"$in": ips},
+		"workspaceId": workspaceId,
+		"ip":          bson.M{"$in": ips},
 	}, options.Find().SetProjection(bson.M{"ip": 1}), &docs)
 	if err != nil {
 		return nil, err
@@ -341,7 +341,7 @@ func ToDTO(d *devmod.CameraMongo) devmod.CameraDTO {
 	return devmod.CameraDTO{
 		ID:            d.CamId, // ← UUID ไม่ใช่ _id.Hex()
 		TenantID:      d.TenantID,
-		OrgID:         d.OrgID,
+		WorkspaceID:   d.WorkspaceID,
 		Name:          d.Name,
 		User:          d.User,
 		URL:           d.URL,

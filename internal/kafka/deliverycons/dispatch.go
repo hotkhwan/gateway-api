@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/gateways/discordgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/linegw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/telegw"
@@ -25,7 +26,7 @@ import (
 func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, deps ConsumerDeps) {
 	log := deps.Logger.With().
 		Str("eventId", event.EventId).
-		Str("orgId", event.Source.OrgId).
+		Str("orgId", event.Source.WorkspaceId).
 		Logger()
 
 	templateId := event.Meta.TemplateId
@@ -34,7 +35,19 @@ func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, de
 		return
 	}
 
-	tmpl, err := deps.TemplateRepo.FindById(ctx, event.Source.OrgId, templateId)
+	// Hydrate BinaryRefs from event_details when missing. The klynx-api
+	// republish path strips binaryRefs from the minimal klynxEvent payload, so
+	// the hero image of a Flex card would be empty without this fallback.
+	if len(event.BinaryRefs) == 0 && deps.EventDetailsRepo != nil {
+		if refs, rerr := deps.EventDetailsRepo.FindBinaryRefsByEventId(ctx, event.EventId); rerr == nil && len(refs) > 0 {
+			event.BinaryRefs = refs
+			log.Debug().
+				Int("binaryRefs", len(refs)).
+				Msg("[delivery] hydrated binaryRefs from event_details")
+		}
+	}
+
+	tmpl, err := deps.TemplateRepo.FindById(ctx, event.Source.WorkspaceId, templateId)
 	if err != nil {
 		log.Warn().Err(err).Str("templateId", templateId).Msg("[delivery] template not found — skipping dispatch")
 		return
@@ -83,7 +96,10 @@ func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, de
 		}
 
 		// Load target config
-		target, err := deps.TargetRepo.FindByIDAndOrg(ctx, tdt.TargetId, event.TenantId, event.Source.OrgId)
+		// Scope by workspace only — event.TenantId may be klynxOrgId from upstream
+		// republish while the target was stored with the original tenant string.
+		// Workspace is 1-to-1 with tenant, so targetId + workspaceId is sufficient.
+		target, err := deps.TargetRepo.FindByIDAndWorkspace(ctx, tdt.TargetId, event.Source.WorkspaceId)
 		if err != nil {
 			log.Warn().
 				Str("targetId", tdt.TargetId).
@@ -109,6 +125,7 @@ func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, de
 				Str("targetId", tdt.TargetId).
 				Str("type", target.Type).
 				Msg("[delivery] dispatched successfully")
+			publishDeliveryStatus(ctx, event, tdt.TargetId, target.Type, "success", "")
 			continue
 		}
 
@@ -118,6 +135,7 @@ func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, de
 			Err(dispErr).
 			Msg("[delivery] dispatch failed — inserting DLQ")
 
+		publishDeliveryStatus(ctx, event, tdt.TargetId, target.Type, "failed", dispErr.Error())
 		insertDeliveryDLQ(ctx, deps, event, tmpl, tdt.TargetId, payload, dispErr.Error())
 	}
 }
@@ -139,7 +157,7 @@ func sendToTarget(
 
 	case authzmod.TargetTypeLine:
 		client := linegw.NewClient(target.Config)
-		msgPayload, err := buildMessagePayload(event, tmpl, target.Type, target.Config, messageTemplateKey)
+		msgPayload, err := buildMessagePayload(ctx, event, tmpl, target.Type, target.Config, messageTemplateKey)
 		if err != nil {
 			return err
 		}
@@ -147,7 +165,7 @@ func sendToTarget(
 
 	case authzmod.TargetTypeDiscord:
 		client := discordgw.NewClient(target.Config)
-		msgPayload, err := buildMessagePayload(event, tmpl, target.Type, target.Config, messageTemplateKey)
+		msgPayload, err := buildMessagePayload(ctx, event, tmpl, target.Type, target.Config, messageTemplateKey)
 		if err != nil {
 			return err
 		}
@@ -155,7 +173,7 @@ func sendToTarget(
 
 	case authzmod.TargetTypeTelegram:
 		client := telegw.NewClient(target.Config)
-		msgPayload, err := buildMessagePayload(event, tmpl, target.Type, target.Config, messageTemplateKey)
+		msgPayload, err := buildMessagePayload(ctx, event, tmpl, target.Type, target.Config, messageTemplateKey)
 		if err != nil {
 			return err
 		}
@@ -170,7 +188,13 @@ func sendToTarget(
 // a JSON payload shaped for that channel's gateway.
 // If messageTemplateKey is set, it selects the template by key first; otherwise falls back
 // to the existing channelType+locale selection.
+//
+// For LINE targets, the envelope additionally carries a "flex" object — a
+// LINE Flex Bubble built from the template extras (tag, action buttons, etc.)
+// and the first image binaryRef (presigned via S3). linegw.Client prefers
+// "flex" over "text" when present.
 func buildMessagePayload(
+	ctx context.Context,
 	event *ingestmod.NormalizedEvent,
 	tmpl *ingestmod.MappingTemplate,
 	channelType string,
@@ -216,6 +240,11 @@ func buildMessagePayload(
 	if mt.Extras != nil {
 		msg["extras"] = mt.Extras
 	}
+	if channelType == authzmod.TargetTypeLine {
+		if flex := buildFlexCard(ctx, event, tmpl, mt, title, body); flex != nil {
+			msg["flex"] = flex
+		}
+	}
 	return json.Marshal(msg)
 }
 
@@ -252,7 +281,7 @@ func insertDeliveryDLQ(
 		MessageId:           messageId,
 		EventId:             event.EventId,
 		TenantId:            event.TenantId,
-		OrgId:               event.Source.OrgId,
+		WorkspaceId:         event.Source.WorkspaceId,
 		TemplateId:          event.Meta.TemplateId,
 		Topic:               "normalized.events",
 		Stage:               "deliver",
@@ -289,4 +318,28 @@ func isMongoDupKey(err error) bool {
 		}
 	}
 	return false
+}
+
+// publishDeliveryStatus fires a non-blocking Kafka publish to gw.delivery.status.v1.
+// Non-fatal: errors are silently discarded.
+func publishDeliveryStatus(ctx context.Context, event *ingestmod.NormalizedEvent, targetId, targetType, status, errMsg string) {
+	topic := config.TopicEnv("KAFKA_TOPIC_GW_DELIVERY_STATUS", "gw.delivery.status.v1")
+	payload, _ := json.Marshal(map[string]any{
+		"eventId":    event.EventId,
+		"orgId":      event.Source.WorkspaceId,
+		"tenantId":   event.TenantId,
+		"targetId":   targetId,
+		"targetType": targetType,
+		"status":     status,
+		"error":      errMsg,
+	})
+	headers := map[string]string{
+		"eventId":  event.EventId,
+		"orgId":    event.Source.WorkspaceId,
+		"status":   status,
+		"targetId": targetId,
+	}
+	go func() {
+		_ = config.SendToKafkaWithCtx(context.Background(), topic, event.Source.WorkspaceId, payload, headers)
+	}()
 }

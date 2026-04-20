@@ -214,8 +214,8 @@ func ProveUserOrgsAgainstMongo(ctx context.Context, tenantId string, userId stri
 	mongoIds := make([]string, 0, len(orgDocs))
 	mSeen := map[string]struct{}{}
 	for _, o := range orgDocs {
-		mongoIds = append(mongoIds, o.OrgId)
-		mSeen[o.OrgId] = struct{}{}
+		mongoIds = append(mongoIds, o.WorkspaceId)
+		mSeen[o.WorkspaceId] = struct{}{}
 	}
 
 	missing := make([]string, 0)
@@ -528,7 +528,7 @@ func ResetTenant(ctx context.Context, tenantId string) (*ResetTenantResult, erro
 }
 
 type FactoryBootstrapResult struct {
-	OrgId         string `json:"orgId"`
+	WorkspaceId   string `json:"workspaceId"`
 	TupleCount    int    `json:"tupleCount"`
 	SchemaVersion string `json:"schemaVersion"`
 }

@@ -82,6 +82,8 @@ func AuthBearer() fiber.Handler {
 			Str("ip", c.IP()).
 			Msg("token_validated")
 
+		role := getStr(claims["role"])
+
 		// ✅ ของเดิม
 		c.Locals("user", claims)
 
@@ -89,6 +91,7 @@ func AuthBearer() fiber.Handler {
 		c.Locals("userId", userId)
 		c.Locals("tenantId", tenantId)
 		c.Locals("userActiveOrgId", activeOrgId)
+		c.Locals("role", role)
 
 		return c.Next()
 	}

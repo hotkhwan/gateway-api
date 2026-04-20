@@ -19,7 +19,6 @@ import (
 // @Failure 400 {object} gmod.BadRequestResponse
 // @Failure 401 {object} gmod.UnauthorizedResponse
 // @Router /auth/refreshToken [post]
-// @Security BearerAuth
 func RefreshToken(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.authapi", "RefreshToken.RefreshToken", "authapi", "RefreshToken")
 	defer end()

@@ -24,6 +24,7 @@ import (
 // @Success      200   {object}  gmod.SuccessMessageResponse
 // @Failure      400   {object}  gmod.BadRequestResponse
 // @Failure      500   {object}  gmod.InternalErrorResponse
+// @Security     BearerAuth
 // @Router       /kcontrol/{id} [patch]
 func UpdateDevice(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "devices.UpdateDevice", "kctrlapi", "UpdateDevice")
@@ -78,6 +79,7 @@ func UpdateDevice(c fiber.Ctx) error {
 // @Success      200   {object}  gmod.SuccessMessageResponse
 // @Failure      400   {object}  gmod.BadRequestResponse
 // @Failure      500   {object}  gmod.InternalErrorResponse
+// @Security     BearerAuth
 // @Router       /kcontrol/{id}/ack [patch]
 func AckDeviceAlarm(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "alarms.AckDeviceAlarm", "kctrlapi", "AckDeviceAlarm")
@@ -126,6 +128,7 @@ func AckDeviceAlarm(c fiber.Ctx) error {
 // @Success      200   {object}  gmod.SuccessMessageResponse
 // @Failure      400   {object}  gmod.BadRequestResponse
 // @Failure      500   {object}  gmod.InternalErrorResponse
+// @Security     BearerAuth
 // @Router       /kcontrol/{id}/ack [patch]
 func AckAlarm(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "alarms.AckAlarm", "kctrlapi", "AckAlarm")
@@ -172,6 +175,7 @@ func AckAlarm(c fiber.Ctx) error {
 // @Success      200   {object}  gmod.SuccessMessageResponse
 // @Failure      400   {object}  gmod.BadRequestResponse
 // @Failure      500   {object}  gmod.InternalErrorResponse
+// @Security     BearerAuth
 // @Router       /kcontrol/{id}/reset-stats [patch]
 func ResetStats(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.kctrlapi", "alarms.ResetStats", "kctrlapi", "ResetStats")

@@ -31,7 +31,7 @@ func (s *OrganizationService) TransferBillingOwnership(
 	}
 
 	// 1) Get org for validation
-	org, err := s.orgRepo.GetByOrgId(ctx, orgId)
+	org, err := s.orgRepo.GetByWorkspaceId(ctx, orgId)
 	if err != nil {
 		log.Error().Err(err).Str("orgId", orgId).Msg("failed to get organization")
 		return fmt.Errorf("get organization failed: %w", err)

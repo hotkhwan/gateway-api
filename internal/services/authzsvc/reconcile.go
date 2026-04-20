@@ -28,11 +28,11 @@ func StartReconcileWorker() {
 
 			for _, org := range orgs {
 				// ✅ org-only bootstrap tuples
-				tuples := TupleFactoryOrgBootstrap(org.OrgId, org.CreatedBy)
+				tuples := TupleFactoryOrgBootstrap(org.WorkspaceId, org.CreatedBy)
 
 				err = client.WriteTuples(ctx, org.TenantId, tuples)
 				if err == nil {
-					_ = orgRepo.MarkSyncOK(ctx, org.OrgId)
+					_ = orgRepo.MarkSyncOK(ctx, org.WorkspaceId)
 				}
 			}
 		}

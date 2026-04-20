@@ -30,7 +30,7 @@ func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
 			middleware.TraceHeader(),
 			logger.FiberLogger(),
 			middleware.AuthBearer(),
-			middleware.ActiveOrg(),
+			middleware.ActiveWorkspace(),
 			middleware.Audit(auditCfg),
 		)
 
@@ -125,6 +125,9 @@ func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
 			details.Get("/", c.EventDetailsController.ListApprovedEvents)
 			details.Get("/:eventId", c.EventDetailsController.GetApprovedEvent)
 		})
+
+		// ---------- AI Mapping Suggest + Config Draft ----------
+		RegisterAIMappingRoutes(r, c)
 	})
 }
 

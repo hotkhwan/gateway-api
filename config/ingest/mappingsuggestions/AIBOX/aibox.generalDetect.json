@@ -13,34 +13,308 @@
     ]
   },
   "fieldMappings": [
-    { "sourceField": "address",                             "targetField": "address" },
-    { "sourceField": "channelGb28181Id",                    "targetField": "channelGb28181Id" },
-    { "sourceField": "channelId",                           "targetField": "channelId" },
-    { "sourceField": "device",                              "targetField": "deviceName" },
-    { "sourceField": "deviceGb28181Id",                     "targetField": "deviceGb28181Id" },
-    { "sourceField": "deviceId",                            "targetField": "deviceId" },
-    { "sourceField": "eventAttribute.age",                  "targetField": "eventAttribute.age" },
-    { "sourceField": "eventAttribute.gender",               "targetField": "eventAttribute.gender" },
-    { "sourceField": "eventAttribute.upper",                "targetField": "eventAttribute.upper" },
-    { "sourceField": "eventAttribute.upperColor",           "targetField": "eventAttribute.upperColor" },
-    { "sourceField": "eventAttribute.lower",                "targetField": "eventAttribute.lower" },
-    { "sourceField": "eventAttribute.lowerColor",           "targetField": "eventAttribute.lowerColor" },
-    { "sourceField": "eventAttribute.skirt",                "targetField": "eventAttribute.skirt" },
-    { "sourceField": "eventAttribute.hat",                  "targetField": "eventAttribute.hat" },
-    { "sourceField": "eventAttribute.mask",                 "targetField": "eventAttribute.mask" },
-    { "sourceField": "eventAttribute.backPack",             "targetField": "eventAttribute.backPack" },
-    { "sourceField": "eventAttribute.riding",               "targetField": "eventAttribute.riding" },
-    { "sourceField": "eventAttribute.direction",            "targetField": "eventAttribute.direction" },
-    { "sourceField": "eventAttribute.hair",                 "targetField": "eventAttribute.hair" },
-    { "sourceField": "eventAttribute.upperTexture",         "targetField": "eventAttribute.upperTexture" },
-    { "sourceField": "eventAttribute.shoe",                 "targetField": "eventAttribute.shoe" },
-    { "sourceField": "eventAttribute.shoeColor",            "targetField": "eventAttribute.shoeColor" },
-    { "sourceField": "eventAttribute.vestName",             "targetField": "eventAttribute.vestName" },
-    { "sourceField": "eventAttribute.vestListType",         "targetField": "eventAttribute.vestListType" },
-    { "sourceField": "eventAttribute.vestSimilarity",       "targetField": "eventAttribute.vestSimilarity" },
-    { "sourceField": "eventAttribute.vestUnit",             "targetField": "eventAttribute.vestUnit" },
-    { "sourceField": "eventAttribute.vestFeatureImageId",   "targetField": "eventAttribute.vestFeatureImageId" },
-    { "sourceField": "eventAttribute.vestFeatureImageUrl",  "targetField": "eventAttribute.vestFeatureImageUrl" }
+    { "sourceField": "address",          "targetField": "address" },
+    { "sourceField": "channelGb28181Id", "targetField": "channelGb28181Id" },
+    { "sourceField": "channelId",        "targetField": "channelId" },
+    { "sourceField": "device",           "targetField": "deviceName" },
+    { "sourceField": "deviceGb28181Id",  "targetField": "deviceGb28181Id" },
+    { "sourceField": "deviceId",         "targetField": "deviceId" },
+    { "sourceField": "sn",               "targetField": "sn" },
+    { "sourceField": "zone",             "targetField": "zone" },
+    { "sourceField": "typeValue",        "targetField": "typeValue" },
+    {
+      "sourceField": "alarmType",
+      "targetField": "alarmType",
+      "valueCodes": {
+        "0":  "Unknown",
+        "1":  "Facial Capture",
+        "2":  "Pedestrian Detection",
+        "3":  "Non-motor Vehicle Detection",
+        "4":  "Vehicle Detection",
+        "7":  "Electric Vehicle Entry into Elevator",
+        "9":  "Non-Motor Vehicle Illegal Parking",
+        "11": "Trash Pile Detection",
+        "12": "Trash Bin Overflow",
+        "13": "Lingering Detection",
+        "14": "Non-motor Vehicle Intrusion",
+        "15": "Crowd Gathering",
+        "16": "Fall Detection",
+        "17": "Smoke Detection",
+        "18": "Open Fire Detection",
+        "19": "No Helmet Detection",
+        "20": "High-Visibility Clothing Non-Wearing",
+        "21": "Intrusion Detection",
+        "22": "No Mask Detection",
+        "24": "Mobile Phone Detection",
+        "25": "Smoking Detection",
+        "26": "Absenteeism Detection",
+        "27": "Non-Motor Vehicle Illegal Parking",
+        "28": "Traffic Congestion",
+        "29": "Shared Bicycle Illegal Parking",
+        "30": "Heavy Vehicle Detection",
+        "31": "Prohibited Banner Detection",
+        "32": "Electric Vehicle Helmet Non-Wearing",
+        "35": "Motor Vehicle Intrusion",
+        "36": "Door and Window Status",
+        "39": "Electric Vehicle Passenger Detection",
+        "40": "Food Delivery Rider Detection",
+        "41": "Pedestrian Traffic Statistic",
+        "42": "Personnel Stay Duration",
+        "44": "Flammable Material Storage",
+        "45": "Fire Lane Obstruction",
+        "46": "Sleep on Duty Detection",
+        "47": "Fire Extinguisher Location",
+        "48": "Motor Vehicle Reverse Driving",
+        "49": "Vehicle Traffic Statistic",
+        "50": "Non-vehicle Wrong-Way Driving",
+        "51": "Water Gauge Level Measurement",
+        "52": "Large Construction Vehicle Inspection",
+        "53": "Floating Object Detection",
+        "54": "Hazardous Materials Vehicle Night Restriction",
+        "56": "Work Uniform Recognition",
+        "57": "Unenclosed Vehicle Cargo Compartment",
+        "58": "Face Recognition",
+        "59": "License Plate Recognition",
+        "60": "Failure To Yield",
+        "61": "Solid Line U-Turn",
+        "62": "Emergency Vehicle Capture",
+        "63": "Electric Vehicle Red Light Violation",
+        "64": "Large Bus Nighttime Driving Ban",
+        "65": "Fighting Detection",
+        "67": "Person Climbing Detection",
+        "68": "Unlicensed Street Vendors",
+        "69": "Large Model",
+        "70": "Third-Party Algorithm"
+      }
+    },
+    {
+      "sourceField": "eventAttribute.age",
+      "targetField": "eventAttribute.age",
+      "valueCodes": {
+        "0": "Unknown",
+        "1": "Child",
+        "2": "Young Adult",
+        "3": "Middle-Aged Adult",
+        "4": "Elderly Adult"
+      }
+    },
+    {
+      "sourceField": "eventAttribute.gender",
+      "targetField": "eventAttribute.gender",
+      "valueCodes": { "0": "Unknown", "1": "Male", "2": "Female" }
+    },
+    {
+      "sourceField": "eventAttribute.upper",
+      "targetField": "eventAttribute.upper",
+      "valueCodes": { "0": "Unknown", "1": "Short Sleeves", "2": "Long Sleeves" }
+    },
+    {
+      "sourceField": "eventAttribute.upperColor",
+      "targetField": "eventAttribute.upperColor",
+      "valueCodes": {
+        "0": "Unknown", "1": "Black", "2": "Brown", "3": "Blue", "4": "Green",
+        "5": "Gray", "6": "Orange", "7": "Pink", "8": "Purple", "9": "Red",
+        "10": "White", "11": "Yellow"
+      }
+    },
+    {
+      "sourceField": "eventAttribute.upperTexture",
+      "targetField": "eventAttribute.upperTexture",
+      "valueCodes": {
+        "0": "Unknown", "1": "Plaid", "2": "Floral Print", "3": "Solid Color", "4": "Stripes"
+      }
+    },
+    {
+      "sourceField": "eventAttribute.lower",
+      "targetField": "eventAttribute.lower",
+      "valueCodes": { "0": "Unknown", "1": "Shorts", "2": "Long Pants" }
+    },
+    {
+      "sourceField": "eventAttribute.lowerColor",
+      "targetField": "eventAttribute.lowerColor",
+      "valueCodes": {
+        "0": "Unknown", "1": "Black", "2": "Brown", "3": "Blue", "4": "Green",
+        "5": "Gray", "6": "Orange", "7": "Pink", "8": "Purple", "9": "Red",
+        "10": "White", "11": "Yellow"
+      }
+    },
+    {
+      "sourceField": "eventAttribute.skirt",
+      "targetField": "eventAttribute.skirt",
+      "valueCodes": { "0": "Unknown", "1": "Wearing Skirt", "2": "Not Wearing Skirt" }
+    },
+    {
+      "sourceField": "eventAttribute.hat",
+      "targetField": "eventAttribute.hat",
+      "valueCodes": { "0": "Unknown", "1": "Wearing Hat", "2": "Not Wearing Hat" }
+    },
+    {
+      "sourceField": "eventAttribute.mask",
+      "targetField": "eventAttribute.mask",
+      "valueCodes": { "0": "Unknown", "1": "Wearing Mask", "2": "Not Wearing Mask" }
+    },
+    {
+      "sourceField": "eventAttribute.glasses",
+      "targetField": "eventAttribute.glasses",
+      "valueCodes": { "0": "Unknown", "1": "Wearing Glasses", "2": "Not Wearing Glasses" }
+    },
+    {
+      "sourceField": "eventAttribute.backPack",
+      "targetField": "eventAttribute.backPack",
+      "valueCodes": {
+        "0": "Unknown", "1": "Backpack", "2": "Shoulder Bag", "3": "Handbag", "4": "No Bag"
+      }
+    },
+    {
+      "sourceField": "eventAttribute.riding",
+      "targetField": "eventAttribute.riding",
+      "valueCodes": { "0": "Unknown", "1": "Riding", "2": "Not Riding" }
+    },
+    {
+      "sourceField": "eventAttribute.direction",
+      "targetField": "eventAttribute.direction",
+      "valueCodes": { "0": "Unknown", "1": "Front", "2": "Side", "3": "Back" }
+    },
+    {
+      "sourceField": "eventAttribute.hair",
+      "targetField": "eventAttribute.hair",
+      "valueCodes": {
+        "0": "Unknown", "1": "Short Hair", "2": "Long Hair",
+        "3": "Updo", "4": "Bald", "5": "Medium-Length Hair"
+      }
+    },
+    {
+      "sourceField": "eventAttribute.shoe",
+      "targetField": "eventAttribute.shoe",
+      "valueCodes": {
+        "0": "Unknown", "1": "Leather Shoes", "2": "Sandals",
+        "3": "Casual Shoes", "4": "Knee-High Boots"
+      }
+    },
+    {
+      "sourceField": "eventAttribute.shoeColor",
+      "targetField": "eventAttribute.shoeColor",
+      "valueCodes": {
+        "0": "Unknown", "1": "Black", "2": "Brown", "3": "Blue", "4": "Green",
+        "5": "Gray", "6": "Orange", "7": "Pink", "8": "Purple", "9": "Red",
+        "10": "White", "11": "Yellow"
+      }
+    },
+    { "sourceField": "eventAttribute.name",             "targetField": "eventAttribute.name" },
+    {
+      "sourceField": "eventAttribute.listType",
+      "targetField": "eventAttribute.listType",
+      "valueCodes": {
+        "0": "Stranger", "1": "Whitelist", "2": "Red List", "3": "Blacklist"
+      }
+    },
+    { "sourceField": "eventAttribute.similarity",       "targetField": "eventAttribute.similarity" },
+    { "sourceField": "eventAttribute.unit",             "targetField": "eventAttribute.unit" },
+    { "sourceField": "eventAttribute.idCard",           "targetField": "eventAttribute.idCard" },
+    { "sourceField": "eventAttribute.featureImageId",   "targetField": "eventAttribute.featureImageId" },
+    { "sourceField": "eventAttribute.featureImageUrl",  "targetField": "eventAttribute.featureImageUrl" },
+    { "sourceField": "eventAttribute.vestName",         "targetField": "eventAttribute.vestName" },
+    {
+      "sourceField": "eventAttribute.vestListType",
+      "targetField": "eventAttribute.vestListType",
+      "valueCodes": {
+        "0": "Stranger", "1": "Whitelist", "2": "Red List", "3": "Blacklist"
+      }
+    },
+    { "sourceField": "eventAttribute.vestSimilarity",      "targetField": "eventAttribute.vestSimilarity" },
+    { "sourceField": "eventAttribute.vestUnit",            "targetField": "eventAttribute.vestUnit" },
+    { "sourceField": "eventAttribute.vestFeatureImageId",  "targetField": "eventAttribute.vestFeatureImageId" },
+    { "sourceField": "eventAttribute.vestFeatureImageUrl", "targetField": "eventAttribute.vestFeatureImageUrl" },
+    {
+      "sourceField": "eventAttribute.helmet",
+      "targetField": "eventAttribute.helmet",
+      "valueCodes": { "0": "Unknown", "1": "Wearing Helmet", "2": "Not Wearing Helmet" }
+    },
+    {
+      "sourceField": "eventAttribute.number",
+      "targetField": "eventAttribute.number",
+      "valueCodes": {
+        "0": "Unknown", "1": "1 Person", "2": "2 Persons", "3": "3 or More Persons"
+      }
+    },
+    {
+      "sourceField": "eventAttribute.nonVehicleType",
+      "targetField": "eventAttribute.nonVehicleType",
+      "valueCodes": {
+        "0": "Unknown", "1": "Motorcycle", "2": "Bicycle", "3": "Tricycle"
+      }
+    },
+    { "sourceField": "eventAttribute.nonVehiclePlate",  "targetField": "eventAttribute.nonVehiclePlate" },
+    {
+      "sourceField": "eventAttribute.nonvehicleColor",
+      "targetField": "eventAttribute.nonvehicleColor",
+      "valueCodes": {
+        "0": "Unknown", "1": "Black", "2": "Brown", "3": "Blue", "4": "Green",
+        "5": "Gray", "6": "Orange", "7": "Pink", "8": "Purple", "9": "Red",
+        "10": "White", "11": "Yellow"
+      }
+    },
+    { "sourceField": "eventAttribute.plateLicense", "targetField": "eventAttribute.plateLicense" },
+    {
+      "sourceField": "eventAttribute.plateColor",
+      "targetField": "eventAttribute.plateColor",
+      "valueCodes": {
+        "0": "Unknown", "1": "Black", "3": "Blue", "4": "Green", "10": "White", "11": "Yellow"
+      }
+    },
+    {
+      "sourceField": "eventAttribute.carType",
+      "targetField": "eventAttribute.carType",
+      "valueCodes": {
+        "0":  "Unknown",
+        "1":  "Bus",
+        "2":  "Sedan",
+        "3":  "Heavy Truck",
+        "4":  "Pickup Truck",
+        "5":  "Engineering Vehicle",
+        "6":  "Box Truck",
+        "7":  "SUV",
+        "8":  "Passenger Car",
+        "9":  "Coach",
+        "10": "Truck",
+        "11": "Light Truck",
+        "12": "MPV",
+        "13": "Van",
+        "14": "Off-Road Vehicle",
+        "15": "Muck Truck",
+        "16": "Concrete Mixer Truck",
+        "17": "Crane Truck",
+        "18": "Pump Truck",
+        "19": "Sanitation Transport Vehicle",
+        "20": "Silt Transport Vehicle",
+        "21": "Ambulance",
+        "22": "Emergency Command Vehicle",
+        "23": "Fire Truck",
+        "24": "Police Car"
+      }
+    },
+    {
+      "sourceField": "eventAttribute.carColor",
+      "targetField": "eventAttribute.carColor",
+      "valueCodes": {
+        "0": "Unknown", "1": "Black", "2": "Brown", "3": "Blue", "4": "Green",
+        "5": "Gray", "6": "Orange", "7": "Pink", "8": "Purple", "9": "Red",
+        "10": "White", "11": "Yellow"
+      }
+    },
+    { "sourceField": "eventAttribute.carBrand",      "targetField": "eventAttribute.carBrand" },
+    { "sourceField": "eventAttribute.speed",         "targetField": "eventAttribute.speed" },
+    {
+      "sourceField": "eventAttribute.arrowDirection",
+      "targetField": "eventAttribute.arrowDirection",
+      "valueCodes": { "0": "Unknown", "1": "Forward", "2": "Reverse" }
+    },
+    { "sourceField": "eventAttribute.trackTime",     "targetField": "eventAttribute.trackTime" },
+    { "sourceField": "eventAttribute.stayTime",      "targetField": "eventAttribute.stayTime" },
+    { "sourceField": "eventAttribute.arrowStartName","targetField": "eventAttribute.arrowStartName" },
+    { "sourceField": "eventAttribute.arrowEndName",  "targetField": "eventAttribute.arrowEndName" },
+    { "sourceField": "eventAttribute.num",           "targetField": "eventAttribute.num" },
+    { "sourceField": "pictureCoordinates",           "targetField": "pictureCoordinates" }
   ],
   "samplePayload": {
     "address": "Floor3",
@@ -49,29 +323,55 @@
     "device": "EDGEAI-8ch",
     "deviceGb28181Id": "",
     "deviceId": 1,
+    "alarmType": 2,
     "eventAttribute": {
-      "age": 0,
-      "gender": 2,
+      "age": 2,
+      "gender": 1,
       "upper": 2,
-      "upperColor": 10,
+      "upperColor": 9,
+      "upperTexture": 3,
       "lower": 2,
       "lowerColor": 1,
       "skirt": 0,
       "hat": 2,
       "mask": 1,
+      "glasses": 2,
       "backPack": 4,
       "riding": 0,
-      "direction": 0,
-      "hair": 0,
-      "upperTexture": 0,
-      "shoe": 0,
-      "shoeColor": 0,
+      "direction": 1,
+      "hair": 1,
+      "shoe": 3,
+      "shoeColor": 1,
+      "name": "",
+      "listType": 0,
+      "similarity": 0,
+      "unit": "",
+      "idCard": "",
+      "featureImageId": "",
+      "featureImageUrl": "",
       "vestName": "",
       "vestListType": 0,
       "vestSimilarity": 0,
       "vestUnit": "",
       "vestFeatureImageId": "",
-      "vestFeatureImageUrl": ""
+      "vestFeatureImageUrl": "",
+      "helmet": 0,
+      "number": 0,
+      "nonVehicleType": 0,
+      "nonVehiclePlate": "",
+      "nonvehicleColor": 0,
+      "plateLicense": "",
+      "plateColor": 0,
+      "carType": 0,
+      "carColor": 0,
+      "carBrand": "",
+      "speed": 0,
+      "arrowDirection": 0,
+      "trackTime": 0,
+      "stayTime": 0,
+      "arrowStartName": "",
+      "arrowEndName": "",
+      "num": 0
     }
   }
 }

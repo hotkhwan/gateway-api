@@ -133,7 +133,7 @@ type ATAChannelDetailRequest struct {
 // pagination ใช้โครงเดียวกับ devmod ได้ แต่แยกไว้เพื่อไม่ผูก package กัน
 type Pagination struct {
 	Page         int    `json:"page"`
-	PerPages     int    `json:"perPages"`
+	PerPage      int    `json:"perPage"`
 	TotalRecords int64  `json:"totalRecords"`
 	TotalPages   int64  `json:"totalPages"`
 	SortField    string `json:"sortField"`
@@ -193,7 +193,7 @@ type PeopleCountingSummaryReq struct {
 	Directions []string `json:"directions"` // direction=in,out หรือ direction=in&direction=out
 
 	Page      int    `json:"page"`
-	PerPages  int    `json:"perPages"`
+	PerPage   int    `json:"perPage"`
 	SortOrder string `json:"sortOrder"`
 }
 
@@ -205,7 +205,7 @@ type BlacklistSummaryReq struct {
 	ListType  int    `json:"listType,omitempty"`
 	ListName  string `json:"listName,omitempty"`
 	Page      int    `json:"page,omitempty"`
-	PerPages  int    `json:"perPages,omitempty"`
+	PerPage   int    `json:"perPage,omitempty"`
 	SortOrder string `json:"sortOrder,omitempty"`
 }
 
@@ -265,9 +265,9 @@ type NotificationAllReq struct {
 	SN        string `json:"sn"`
 	ChannelID int64  `json:"channelId"`
 	Search    string `json:"search"`
-	Page      int    `json:"page"`
-	PerPages  int    `json:"perPages"`
-	SortOrder string `json:"sortOrder"`
+	Page      int    `json:”page”`
+	PerPage   int    `json:”perPage”`
+	SortOrder string `json:”sortOrder”`
 }
 
 // summary แบบ “นับตาม type” (เพราะเราไม่จำกัด type แล้ว)

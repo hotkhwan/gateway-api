@@ -7,7 +7,7 @@ import "time"
 // has explicitly rejected. Future payloads matching this pair are dropped silently.
 type RejectedPayloadPattern struct {
 	PatternId    string    `json:"patternId"    bson:"patternId"`
-	OrgId        string    `json:"orgId"        bson:"orgId"`
+	WorkspaceId        string    `json:"workspaceId"   bson:"workspaceId"`
 	SourceFamily string    `json:"sourceFamily" bson:"sourceFamily"`
 	Fingerprint  string    `json:"fingerprint"  bson:"fingerprint"`
 	Reason       string    `json:"reason"       bson:"reason"`

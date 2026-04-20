@@ -20,7 +20,7 @@ import (
 // @Accept  json
 // @Produce  json
 // @Param page query int false "Page number"
-// @Param perPages query int false "Items per page"
+// @Param perPage query int false "Items per page"
 // @Param sortOrder query string false "asc or desc"
 // @Param sortField query string false "Field to sort by"
 // @Param filter query string false "Group ID"
@@ -36,7 +36,7 @@ func ListMembers(c fiber.Ctx) error {
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPages, _ := strconv.Atoi(c.Query("perPage", "10"))
 	if perPages <= 0 {
 		perPages = 10
 	}
@@ -60,7 +60,7 @@ func ListMembers(c fiber.Ctx) error {
 
 	log.Debug().
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPages).
 		Str("sortField", sortField).
 		Str("sortOrder", sortOrder).
 		Interface("filters", filters).
@@ -74,7 +74,7 @@ func ListMembers(c fiber.Ctx) error {
 
 	memPage := memmod.Pagination{
 		Page:         pag.Page,
-		PerPages:     pag.PerPages,
+		PerPage:     pag.PerPage,
 		TotalRecords: pag.TotalRecords,
 		TotalPages:   pag.TotalPages,
 		SortField:    pag.SortField,

@@ -54,6 +54,30 @@ func (r *EventDetailsRepo) Upsert(ctx context.Context, event *ingestmod.Normaliz
 	return err
 }
 
+// FindBinaryRefsByEventId returns the binaryRefs array stored on the normalized
+// event_details document for a single eventId. Filters by eventId only because
+// the event_details collection's canonical tenantId is set at ingest time
+// (e.g. "klynx") and may not match the tenantId carried in downstream consumer
+// messages where tenantId was replaced with orgId by a bridging service.
+// eventId is a UUID so the single-field filter is safe against cross-tenant
+// collisions.
+func (r *EventDetailsRepo) FindBinaryRefsByEventId(ctx context.Context, eventId string) ([]ingestmod.BinaryRef, error) {
+	if eventId == "" {
+		return nil, nil
+	}
+	var doc struct {
+		BinaryRefs []ingestmod.BinaryRef `bson:"binaryRefs"`
+	}
+	err := stomongo.FindOne(ctx, "event_details", bson.M{"eventId": eventId}, &doc)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return doc.BinaryRefs, nil
+}
+
 // FindByEventId finds an approved event by eventId
 func (r *EventDetailsRepo) FindByEventId(
 	ctx context.Context,
@@ -61,9 +85,9 @@ func (r *EventDetailsRepo) FindByEventId(
 ) (*ingestmod.EventDetail, error) {
 	var result ingestmod.EventDetail
 	err := stomongo.FindOne(ctx, "event_details", bson.M{
-		"tenantId":     tenantId,
-		"source.orgId": orgId,
-		"eventId":      eventId,
+		"tenantId":          tenantId,
+		"source.workspaceId": orgId,
+		"eventId":           eventId,
 	}, &result)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -83,7 +107,7 @@ func (r *EventDetailsRepo) ListApproved(
 	page, perPage int,
 	sortField, sortOrder string,
 ) ([]*ingestmod.EventDetail, *gmod.Pagination, error) {
-	filter := bson.M{"tenantId": tenantId, "source.orgId": orgId}
+	filter := bson.M{"tenantId": tenantId, "source.workspaceId": orgId}
 	if eventType != "" {
 		filter["eventType"] = eventType
 	}
@@ -124,21 +148,61 @@ func (r *EventDetailsRepo) ListApproved(
 	return result, &pagination, nil
 }
 
+// FindNormalizedByEventID finds a NormalizedEvent by eventId scoped to workspaceId (source.orgId).
+// Used by the gRPC EventService to serve klynx GetEvent requests.
+func (r *EventDetailsRepo) FindNormalizedByEventID(ctx context.Context, workspaceId, eventId string) (*ingestmod.NormalizedEvent, error) {
+	var result ingestmod.NormalizedEvent
+	err := stomongo.FindOne(ctx, "event_details", bson.M{
+		"source.workspaceId": workspaceId,
+		"eventId":            eventId,
+	}, &result)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return &result, nil
+}
+
+// FindNormalizedByEventIDs finds multiple NormalizedEvents by eventIds scoped to workspaceId.
+// Missing IDs are silently omitted — caller checks NotFound list.
+func (r *EventDetailsRepo) FindNormalizedByEventIDs(ctx context.Context, workspaceId string, eventIds []string) ([]*ingestmod.NormalizedEvent, error) {
+	var results []*ingestmod.NormalizedEvent
+	err := stomongo.Find(ctx, "event_details", bson.M{
+		"source.workspaceId": workspaceId,
+		"eventId":            bson.M{"$in": eventIds},
+	}, nil, &results)
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
 // EnsureIndexes creates indexes for performance
 func (r *EventDetailsRepo) EnsureIndexes(ctx context.Context) error {
+	// Migrate legacy source.orgId → source.workspaceId for documents written before the rename.
+	_, _ = stomongo.UpdateManyPipeline(ctx, "event_details",
+		bson.M{"source.orgId": bson.M{"$exists": true}},
+		mongo.Pipeline{
+			bson.D{{Key: "$set", Value: bson.M{"source.workspaceId": "$source.orgId"}}},
+			bson.D{{Key: "$unset", Value: "source.orgId"}},
+		},
+	)
+
 	indexes := []mongo.IndexModel{
 		// Unique lookup by eventId
 		{
 			Keys:    bson.D{{Key: "eventId", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
-		// Standard list by tenant/org
+		// Standard list by tenant/workspace
 		{
-			Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "occurredAt", Value: -1}},
+			Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "source.workspaceId", Value: 1}, {Key: "occurredAt", Value: -1}},
 		},
 		// Event type filter
 		{
-			Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "eventType", Value: 1}, {Key: "occurredAt", Value: -1}},
+			Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "source.workspaceId", Value: 1}, {Key: "eventType", Value: 1}, {Key: "occurredAt", Value: -1}},
 		},
 		// Geo cell lookup (heat maps)
 		{

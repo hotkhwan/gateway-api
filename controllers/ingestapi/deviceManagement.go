@@ -31,7 +31,7 @@ func (h *DeviceManagementController) tenantId(c fiber.Ctx) string {
 }
 
 func (h *DeviceManagementController) orgId(c fiber.Ctx) string {
-	oid, _ := c.Locals("activeOrg").(string)
+	oid, _ := c.Locals("activeWorkspace").(string)
 	return oid
 }
 
@@ -42,7 +42,7 @@ func (h *DeviceManagementController) List(c fiber.Ctx) error {
 	tenantId := h.tenantId(c)
 	orgId := h.orgId(c)
 	page := fiber.Query[int](c, "page", 1)
-	perPage := fiber.Query[int](c, "perPages", 20)
+	perPage := fiber.Query[int](c, "perPage", 20)
 
 	items, err := h.svc.List(ctx, tenantId, orgId, page, perPage)
 	if err != nil {
@@ -87,7 +87,7 @@ func (h *DeviceManagementController) Create(c fiber.Ctx) error {
 	}
 
 	in.TenantId = tenantId
-	in.OrgId = orgId
+	in.WorkspaceId = orgId
 
 	if err := h.svc.Create(ctx, &in); err != nil {
 		log.Error().Err(err).Msg("[CreateDeviceMgmt] failed")
@@ -142,7 +142,7 @@ func (h *DeviceManagementController) Update(c fiber.Ctx) error {
 // @Param        X-Active-Org  header  string  true  "Active Org ID"
 // @Success      200
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/deviceManagement/template [get]
+// @Router       /ingest/deviceManagement/template [get]
 func (h *DeviceManagementController) DownloadTemplate(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DeviceMgmtController.DownloadTemplate", "ingestapi", "DownloadTemplate")
 	defer end()
@@ -172,7 +172,7 @@ func (h *DeviceManagementController) DownloadTemplate(c fiber.Ctx) error {
 // @Param        entityType     query   string  false  "Filter by entity type"
 // @Success      200
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/deviceManagement/export [get]
+// @Router       /ingest/deviceManagement/export [get]
 func (h *DeviceManagementController) ExportXlsx(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DeviceMgmtController.ExportXlsx", "ingestapi", "ExportXlsx")
 	defer end()
@@ -206,7 +206,7 @@ func (h *DeviceManagementController) ExportXlsx(c fiber.Ctx) error {
 // @Success      200  {object}  gmod.BulkImportResponse
 // @Failure      400  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/deviceManagement/import [post]
+// @Router       /ingest/deviceManagement/import [post]
 func (h *DeviceManagementController) ImportXlsx(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "DeviceMgmtController.ImportXlsx", "ingestapi", "ImportXlsx")
 	defer end()

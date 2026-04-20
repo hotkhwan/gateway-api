@@ -7,11 +7,17 @@ import (
 	"fmt"
 
 	"github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/targetrepo"
 	"github.com/hotkhwan/gateway-api/models/authzmod"
 	"github.com/hotkhwan/gateway-api/models/subscripmod"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
+
+// TargetCounter is the repo subset required for quota enforcement.
+// *targetrepo.TargetRepo satisfies this interface.
+type TargetCounter interface {
+	CountByTypeAndOrg(ctx context.Context, tenantId, orgId, targetType string) (int64, error)
+	CountMessageChannelsByOrg(ctx context.Context, tenantId, orgId string) (int64, error)
+}
 
 // ListPackages returns all active packages from DB, ordered by sortOrder.
 // publicOnly=true filters to isPublic=true only (for pricing page).
@@ -75,7 +81,7 @@ func (s *SubscriptionService) GetCurrentEffective(ctx context.Context, tenantId 
 func (s *SubscriptionService) ValidateDeliveryTargetQuota(
 	ctx context.Context,
 	tenantId, orgId, targetType string,
-	tgtRepo *targetrepo.TargetRepo,
+	tgtRepo TargetCounter,
 ) error {
 	ctx, end, _ := traceutil.StartLite(ctx, "gateway.subscriptionsvc", "ValidateDeliveryTargetQuota", "subscriptionsvc", "ValidateDeliveryTargetQuota")
 	defer end()

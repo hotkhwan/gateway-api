@@ -39,7 +39,7 @@ type ProfileVersion struct {
 /* Pagination response สำหรับ list */
 type Pagination struct {
 	Page         int    `json:"page"`
-	PerPages     int    `json:"perPages"`
+	PerPage      int    `json:"perPage"`
 	TotalRecords int64  `json:"totalRecords"`
 	TotalPages   int64  `json:"totalPages"`
 	SortField    string `json:"sortField"`

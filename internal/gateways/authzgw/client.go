@@ -28,6 +28,9 @@ type Client interface {
 
 	LookupOrganizations(ctx context.Context, tenantId string, userId string) ([]string, error)
 
+	// LookupWorkspaces returns all workspace IDs the user has "view" permission on.
+	LookupWorkspaces(ctx context.Context, tenantId string, userId string) ([]string, error)
+
 	ListEntityRelationships(
 		ctx context.Context,
 		tenantId string,
@@ -83,6 +86,20 @@ func (c *HybridClient) WriteTuples(
 
 	return ErrNoAuthzClient
 }
+func (c *HybridClient) LookupWorkspaces(
+	ctx context.Context,
+	tenantId string,
+	userId string,
+) ([]string, error) {
+	if c.grpc != nil {
+		ids, err := c.grpc.LookupWorkspaces(ctx, tenantId, userId)
+		if err == nil {
+			return ids, nil
+		}
+	}
+	return nil, ErrNoAuthzClient
+}
+
 func (c *HybridClient) LookupOrganizations(
 	ctx context.Context,
 	tenantId string,
@@ -279,6 +296,12 @@ func (c *HybridClient) ListRelationshipsBySubject(
 	subjectType string,
 	subjectId string,
 ) ([]Relationship, error) {
+	if c.grpc != nil {
+		rels, err := c.grpc.ListRelationshipsBySubject(ctx, tenantId, subjectType, subjectId)
+		if err == nil {
+			return rels, nil
+		}
+	}
 	if c.rest != nil {
 		return c.rest.ListRelationshipsBySubject(ctx, tenantId, subjectType, subjectId)
 	}

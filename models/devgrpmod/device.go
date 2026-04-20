@@ -3,6 +3,6 @@ package devgrpmod
 
 type Device struct {
 	ID      string `bson:"_id"`
-	OrgID   string `bson:"orgId"`
+	WorkspaceID string `bson:"workspaceId"`
 	GroupID string `bson:"groupId"`
 }

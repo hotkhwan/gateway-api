@@ -16,16 +16,16 @@ const (
 	cacheTTL = 30 * time.Minute
 )
 
-func key(tenantId, orgId, sourceFamily, entityType, entityId string) string {
-	return fmt.Sprintf("%s%s:%s:%s:%s:%s", prefix, tenantId, orgId, sourceFamily, entityType, entityId)
+func key(tenantId, workspaceId, sourceFamily, entityType, entityId string) string {
+	return fmt.Sprintf("%s%s:%s:%s:%s:%s", prefix, tenantId, workspaceId, sourceFamily, entityType, entityId)
 }
 
 // Get returns cached device management record or nil on miss.
-func Get(ctx context.Context, tenantId, orgId, sourceFamily, entityType, entityId string) *ingestmod.DeviceManagement {
+func Get(ctx context.Context, tenantId, workspaceId, sourceFamily, entityType, entityId string) *ingestmod.DeviceManagement {
 	if config.Redis == nil {
 		return nil
 	}
-	val, err := config.Redis.Get(ctx, key(tenantId, orgId, sourceFamily, entityType, entityId)).Bytes()
+	val, err := config.Redis.Get(ctx, key(tenantId, workspaceId, sourceFamily, entityType, entityId)).Bytes()
 	if err != nil {
 		return nil
 	}
@@ -45,13 +45,13 @@ func Set(ctx context.Context, d *ingestmod.DeviceManagement) {
 	if err != nil {
 		return
 	}
-	_ = config.Redis.Set(ctx, key(d.TenantId, d.OrgId, d.SourceFamily, d.EntityType, d.EntityId), b, cacheTTL).Err()
+	_ = config.Redis.Set(ctx, key(d.TenantId, d.WorkspaceId, d.SourceFamily, d.EntityType, d.EntityId), b, cacheTTL).Err()
 }
 
 // Invalidate removes a cached device management record.
-func Invalidate(ctx context.Context, tenantId, orgId, sourceFamily, entityType, entityId string) {
+func Invalidate(ctx context.Context, tenantId, workspaceId, sourceFamily, entityType, entityId string) {
 	if config.Redis == nil {
 		return
 	}
-	_ = config.Redis.Del(ctx, key(tenantId, orgId, sourceFamily, entityType, entityId)).Err()
+	_ = config.Redis.Del(ctx, key(tenantId, workspaceId, sourceFamily, entityType, entityId)).Err()
 }

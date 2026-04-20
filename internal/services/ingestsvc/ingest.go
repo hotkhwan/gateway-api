@@ -12,11 +12,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hotkhwan/gateway-api/config"
-	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/cacheevt"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/workspacerepo"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
+	"github.com/hotkhwan/gateway-api/models/workspacemod"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 )
@@ -29,7 +30,7 @@ const (
 
 // RawEvent คือ message ที่ส่งเข้า Kafka raw.events
 type RawEvent struct {
-	OrgId        string          `json:"orgId"`
+	WorkspaceId  string          `json:"workspaceId"`
 	EventId      string          `json:"eventId"`
 	SourceFamily string          `json:"sourceFamily"`
 	ReceivedAt   time.Time       `json:"receivedAt"`
@@ -83,7 +84,7 @@ func (l *localEmergencyLimiter) Check(key string, limit int) bool {
 // IngestService — thin hot-path service
 // V3: env-guarded sourceFamily, mode matrix, fingerprint-based review
 type IngestService struct {
-	orgRepo            *authzrepo.OrgRepo
+	workspaceRepo      *workspacerepo.WorkspaceRepo
 	eventMgmtRepo      *ingestmgmtrepo.EventManagementRepo
 	subSvc             *subscriptionsvc.SubscriptionService
 	redis              *redis.Client
@@ -126,7 +127,7 @@ type DeviceResolver interface {
 }
 
 func NewIngestService(
-	orgRepo *authzrepo.OrgRepo,
+	workspaceRepo *workspacerepo.WorkspaceRepo,
 	eventMgmtRepo *ingestmgmtrepo.EventManagementRepo,
 	subSvc *subscriptionsvc.SubscriptionService,
 	redis *redis.Client,
@@ -138,14 +139,14 @@ func NewIngestService(
 	deviceMgmtSvc DeviceResolver,
 	logger zerolog.Logger,
 ) *IngestService {
-	if orgRepo == nil || subSvc == nil || redis == nil {
-		panic("IngestService: orgRepo, subSvc, redis are required")
+	if workspaceRepo == nil || subSvc == nil || redis == nil {
+		panic("IngestService: workspaceRepo, subSvc, redis are required")
 	}
 	if tmplMatcher == nil {
 		panic("IngestService: tmplMatcher is required")
 	}
 	return &IngestService{
-		orgRepo:            orgRepo,
+		workspaceRepo:      workspaceRepo,
 		eventMgmtRepo:      eventMgmtRepo,
 		subSvc:             subSvc,
 		redis:              redis,
@@ -198,18 +199,18 @@ func (s *IngestService) getSourceFamilyMode(ctx context.Context, sourceFamily st
 	return profile.Mode
 }
 
-// resolveOrgPolicy returns effective ingest policy for an org
-// This includes subscription limits + org overrides
-func (s *IngestService) resolveOrgPolicy(ctx context.Context, orgId string) (*cachedOrgPolicy, error) {
+// resolveOrgPolicy returns effective ingest policy for a workspace
+// This includes subscription limits from tenantId
+func (s *IngestService) resolveOrgPolicy(ctx context.Context, workspaceId string) (*cachedOrgPolicy, error) {
 	// Cache key includes version for future schema changes
-	key := fmt.Sprintf("orgcache:ingest:v1:%s", orgId)
+	key := fmt.Sprintf("orgcache:ingest:v1:%s", workspaceId)
 
 	// Try cache first
 	if val, err := s.redis.Get(ctx, key).Bytes(); err == nil {
 		var policy cachedOrgPolicy
 		if json.Unmarshal(val, &policy) == nil {
 			s.logger.Debug().
-				Str("orgId", orgId).
+				Str("orgId", workspaceId).
 				Str("tenantId", policy.TenantId).
 				Str("planId", "cached").
 				Bool("cacheHit", true).
@@ -219,12 +220,12 @@ func (s *IngestService) resolveOrgPolicy(ctx context.Context, orgId string) (*ca
 	}
 
 	s.logger.Debug().
-		Str("orgId", orgId).
+		Str("orgId", workspaceId).
 		Bool("cacheHit", false).
 		Msg("org policy cache miss")
 
 	// Cache miss → fetch from Mongo
-	org, err := s.orgRepo.FindById(ctx, orgId)
+	ws, err := s.workspaceRepo.FindByWorkspaceID(ctx, workspaceId)
 	if err != nil {
 		// Negative cache 10s to prevent hammering Mongo
 		empty, _ := json.Marshal(&cachedOrgPolicy{Exists: false})
@@ -232,42 +233,38 @@ func (s *IngestService) resolveOrgPolicy(ctx context.Context, orgId string) (*ca
 		return &cachedOrgPolicy{Exists: false}, nil
 	}
 
+	// Reject suspended/archived workspaces
+	if ws.Status != workspacemod.WorkspaceActive {
+		empty, _ := json.Marshal(&cachedOrgPolicy{Exists: false})
+		_ = s.redis.Set(ctx, key, empty, negativeCacheTTL).Err()
+		return &cachedOrgPolicy{Exists: false}, nil
+	}
+
 	// Get tenant subscription limits
-	limits, subErr := s.subSvc.GetTenantLimitsCached(ctx, org.TenantId)
+	limits, subErr := s.subSvc.GetTenantLimitsCached(ctx, ws.TenantID)
 	if subErr != nil {
 		// If subscription unavailable, return error (fail-closed)
 		s.logger.Error().
-			Str("orgId", orgId).
-			Str("tenantId", org.TenantId).
+			Str("orgId", workspaceId).
+			Str("tenantId", ws.TenantID).
 			Err(subErr).
 			Msg("failed to get tenant limits")
 		return nil, ErrSubscriptionUnavailable
 	}
 
-	// Merge org config with subscription limits
-	// Safety: org config cannot exceed subscription limits
-	rateLimitPerSec := limits.PerOrgPerSec
-	rateLimitBurst := limits.PerOrgBurst
-	if org.IngestConfig.RateLimitPerSec > 0 && org.IngestConfig.RateLimitPerSec <= limits.PerOrgPerSec {
-		rateLimitPerSec = org.IngestConfig.RateLimitPerSec
-	}
-	if org.IngestConfig.RateLimitBurst > 0 && org.IngestConfig.RateLimitBurst <= limits.PerOrgBurst {
-		rateLimitBurst = org.IngestConfig.RateLimitBurst
-	}
-
 	policy := &cachedOrgPolicy{
 		Exists:          true,
-		TenantId:        org.TenantId,
+		TenantId:        ws.TenantID,
 		MaxPayloadBytes: limits.MaxPayloadBytes,
-		RateLimitPerSec: rateLimitPerSec,
-		RateLimitBurst:  rateLimitBurst,
+		RateLimitPerSec: limits.PerOrgPerSec,
+		RateLimitBurst:  limits.PerOrgBurst,
 		PerIpPerMin:     limits.PerIpPerMin,
 		OrgCacheTtlSec:  limits.OrgCacheTtlSec,
 	}
 
 	s.logger.Debug().
-		Str("orgId", orgId).
-		Str("tenantId", org.TenantId).
+		Str("orgId", workspaceId).
+		Str("tenantId", ws.TenantID).
 		Str("planId", limits.PlanId).
 		Int64("maxPayloadBytes", limits.MaxPayloadBytes).
 		Int("perOrgPerSec", limits.PerOrgPerSec).
@@ -438,8 +435,19 @@ func (s *IngestService) Ingest(
 	// 8) Build deterministic fingerprint: sorted key paths + normalized value types
 	fingerprint := BuildFingerprint(rawBody)
 
-	// 9) Template matching: sourceFamily + fingerprint
-	tmpl, matched, matchErr := s.tmplMatcher.MatchByFamily(ctx, policy.TenantId, orgId, sourceFamily, fingerprint, rawBody)
+	// 9) Pre-match canonical enrichment — resolve device identity + management record
+	//    BEFORE template matching so user-defined matchAll/matchAny can reference
+	//    canonical fields (source.deviceId, source.deviceType, ...) that match what
+	//    the UI displays — instead of vendor-specific raw fields (channelId vs deviceId).
+	candidates, _, _ := s.extractDeviceCandidates(body)
+	enrichment, deviceRef := s.resolveDeviceEnrichment(ctx, policy.TenantId, orgId, sourceFamily, candidates)
+
+	// 10) Build match bag = rawBody + canonical "source.*" — passed to template matcher.
+	//     Raw fields stay at top level (backward compat); canonical fields under "source.*".
+	matchBag := buildMatchBag(rawBody, deviceRef, enrichment, sourceFamily)
+
+	// 11) Template matching: sourceFamily + fingerprint, evaluating against matchBag
+	tmpl, matched, matchErr := s.tmplMatcher.MatchByFamily(ctx, policy.TenantId, orgId, sourceFamily, fingerprint, matchBag)
 	if matchErr != nil {
 		s.logger.Error().Err(matchErr).
 			Str("orgId", orgId).
@@ -454,13 +462,9 @@ func (s *IngestService) Ingest(
 			eventType = sourceFamily
 		}
 
-		// Extract all device identity candidates and resolve enrichment by priority
-		candidates, _, _ := s.extractDeviceCandidates(body)
-		enrichment, deviceRef := s.resolveDeviceEnrichment(ctx, policy.TenantId, orgId, sourceFamily, candidates)
-
 		// Auto-create/merge device_management record (conservative, non-blocking)
 		if deviceRef != nil && s.deviceMgmtSvc != nil {
-			s.deviceMgmtSvc.AutoUpsertFromEvent(ctx, policy.TenantId, orgId, sourceFamily, deviceRef, ingestmod.AutoUpsertHints{})
+			s.deviceMgmtSvc.AutoUpsertFromEvent(ctx, policy.TenantId, orgId, sourceFamily, deviceRef, buildAutoUpsertHints(sourceFamily, rawBody))
 		}
 
 		s.logger.Debug().
@@ -483,21 +487,19 @@ func (s *IngestService) Ingest(
 		return &IngestResult{EventId: eventId, ReceivedAt: receivedAt}, nil
 	}
 
-	// 9b) Suggestion fallback: if no DB template matched, try auto-apply from suggestion.
-	//     Persists template to DB so users can configure finalEventType, classificationRules,
-	//     deliveryTargets, messageTemplates via the management API later.
+	// 11b) Suggestion fallback: if no DB template matched, try auto-apply from suggestion.
+	//      Persists template to DB so users can configure finalEventType, classificationRules,
+	//      deliveryTargets, messageTemplates via the management API later.
 	if !matched {
 		if autoTmpl, suggestionId := s.tryAutoApplySuggestion(ctx, policy.TenantId, orgId, sourceFamily, rawBody); autoTmpl != nil {
 			eventType := autoTmpl.FinalEventType
 			if eventType == "" {
 				eventType = sourceFamily
 			}
-			candidates, _, _ := s.extractDeviceCandidates(body)
-			enrichment, deviceRef := s.resolveDeviceEnrichment(ctx, policy.TenantId, orgId, sourceFamily, candidates)
 
 			// Auto-create/merge device_management record (conservative, non-blocking)
 			if deviceRef != nil && s.deviceMgmtSvc != nil {
-				s.deviceMgmtSvc.AutoUpsertFromEvent(ctx, policy.TenantId, orgId, sourceFamily, deviceRef, ingestmod.AutoUpsertHints{})
+				s.deviceMgmtSvc.AutoUpsertFromEvent(ctx, policy.TenantId, orgId, sourceFamily, deviceRef, buildAutoUpsertHints(sourceFamily, rawBody))
 			}
 
 			s.logger.Info().
@@ -635,7 +637,7 @@ func (s *IngestService) processTemplateMappedEvent(
 			DeviceType:        deviceType,
 			DeviceName:        deviceName,
 			DeviceDescription: deviceDescription,
-			OrgId:             orgId,
+			WorkspaceId:       orgId,
 		},
 		Location:   location,
 		Payload:    rawBody, // raw payload — normalizer applies template again
@@ -650,7 +652,7 @@ func (s *IngestService) processTemplateMappedEvent(
 		"eventId":      eventId,
 		"eventType":    eventType,
 		"sourceFamily": sourceFamily,
-		"orgId":        orgId,
+		"workspaceId":  orgId,
 		"tenantId":     tenantId,
 		"templateId":   tmpl.TemplateId,
 	}
@@ -785,4 +787,71 @@ func (s *IngestService) resolveDeviceEnrichment(
 
 	// No enrichment found — use first candidate as deviceRef
 	return nil, &candidates[0]
+}
+
+// buildAutoUpsertHints extracts source-family-specific hints from a raw event body.
+// Currently extracts "sn" (serial number) for AIBOX events.
+func buildAutoUpsertHints(sourceFamily string, rawBody map[string]any) ingestmod.AutoUpsertHints {
+	hints := ingestmod.AutoUpsertHints{}
+	if sourceFamily == "AIBOX" {
+		if v, ok := rawBody["sn"]; ok {
+			if s, ok := v.(string); ok {
+				hints.SerialNo = s
+			}
+		}
+	}
+	return hints
+}
+
+// buildMatchBag merges raw payload with canonical source.* fields for V2 template matching.
+//
+// Why: rawBody contains vendor-specific keys (e.g. AIBOX uses channelId for "device" 51).
+// Users config templates against canonical concepts ("source.deviceId = 51") that they
+// see in the UI. This bag exposes both worlds:
+//
+//   - Raw vendor fields stay at top level (backward compat with legacy templates that
+//     still reference rawBody field names directly, e.g. {field: "deviceId", values: ["1"]})
+//   - Canonical fields live under "source.*" (e.g. source.deviceId, source.deviceType,
+//     source.deviceMgmtId, source.sn, source.zone)
+//
+// deviceRef is the winning DeviceIdentity from extractDeviceCandidates → resolveDeviceEnrichment
+// (priority: cameraId > sensorId > faceId > channelId > deviceId). enrichment is the matched
+// DeviceManagement record (nil if device is unknown to deviceManagement).
+func buildMatchBag(
+	rawBody map[string]any,
+	deviceRef *ingestmod.DeviceIdentity,
+	enrichment *ingestmod.DeviceManagement,
+	sourceFamily string,
+) map[string]any {
+	bag := make(map[string]any, len(rawBody)+1)
+	for k, v := range rawBody {
+		bag[k] = v
+	}
+
+	source := map[string]any{
+		"sourceFamily": sourceFamily,
+	}
+	if deviceRef != nil {
+		source["deviceId"] = deviceRef.ID
+		source["deviceType"] = deviceRef.Type
+	}
+	if enrichment != nil {
+		if enrichment.DeviceMgmtId != "" {
+			source["deviceMgmtId"] = enrichment.DeviceMgmtId
+		}
+		if enrichment.SerialNo != "" {
+			source["sn"] = enrichment.SerialNo
+		}
+		if enrichment.Name != "" {
+			source["name"] = enrichment.Name
+		}
+		if enrichment.Site != "" {
+			source["site"] = enrichment.Site
+		}
+		if enrichment.Zone != "" {
+			source["zone"] = enrichment.Zone
+		}
+	}
+	bag["source"] = source
+	return bag
 }

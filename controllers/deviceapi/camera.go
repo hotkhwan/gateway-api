@@ -34,9 +34,9 @@ func NewCameraController(service *devicesvc.CameraService) *CameraController {
 	return &CameraController{service: service}
 }
 
-func (ctrl *CameraController) mustLocals(c fiber.Ctx) (tenantId, orgId, callerUserId string) {
+func (ctrl *CameraController) mustLocals(c fiber.Ctx) (tenantId, workspaceId, callerUserId string) {
 	tenantId, _ = c.Locals("tenantId").(string)
-	orgId, _ = c.Locals("activeOrg").(string)
+	workspaceId, _ = c.Locals("activeWorkspace").(string)
 	callerUserId, _ = c.Locals("userId").(string)
 	return
 }
@@ -59,7 +59,7 @@ func (ctrl *CameraController) Create(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "CameraController.Create", "deviceapi", "Create")
 	defer end()
 
-	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
+	tenantId, workspaceId, callerUserId := ctrl.mustLocals(c)
 	var body CreateCameraRequest
 	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
@@ -67,9 +67,9 @@ func (ctrl *CameraController) Create(c fiber.Ctx) error {
 	if body.Name == "" || body.URL == "" {
 		return httputil.FailBadRequest(c, "name and url are required")
 	}
-	log.Info().Str("orgId", orgId).Str("name", body.Name).Msg("CreateCamera")
+	log.Info().Str("workspaceId", workspaceId).Str("name", body.Name).Msg("CreateCamera")
 	cam, err := ctrl.service.Create(c, devmod.CreateCameraInput{
-		TenantID: tenantId, OrgID: orgId, CallerID: callerUserId,
+		TenantID: tenantId, WorkspaceID: workspaceId, CallerID: callerUserId,
 		Name: body.Name, User: body.User, Password: body.Password,
 		URL: body.URL, District: body.District, Lat: body.Lat, Lng: body.Lng,
 		AtaWsFlvUrl: body.AtaWsFlvUrl, Brand: body.Brand, Roi: body.Roi,
@@ -87,11 +87,11 @@ func (ctrl *CameraController) List(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "CameraController.List", "deviceapi", "List")
 	defer end()
 
-	tenantId, orgId, _ := ctrl.mustLocals(c)
+	tenantId, workspaceId, _ := ctrl.mustLocals(c)
 	input := devicesvc.ListCameraInput{
-		TenantID: tenantId, OrgID: orgId,
+		TenantID: tenantId, WorkspaceID: workspaceId,
 		Search: c.Query("search"), GroupID: c.Query("groupId"),
-		Page: fiber.Query[int](c, "page", 1), PerPages: fiber.Query[int](c, "perPages", 10),
+		Page: fiber.Query[int](c, "page", 1), PerPage: fiber.Query[int](c, "perPage", 10),
 		SortField: c.Query("sortField", "dateTimeCreate"), SortOrder: c.Query("sortOrder", "desc"),
 	}
 	result, err := ctrl.service.List(c, input)
@@ -99,13 +99,13 @@ func (ctrl *CameraController) List(c fiber.Ctx) error {
 		log.Error().Err(err).Msg("List cameras failed")
 		return handleErr(c, err)
 	}
-	totalPages := (int(result.Total) + input.PerPages - 1) / input.PerPages
+	totalPages := (int(result.Total) + input.PerPage - 1) / input.PerPage
 	return c.JSON(fiber.Map{
 		"code": gmod.CodeSuccess, "message": "cameras fetched successfully", "status": true,
 		"details": result.Items,
 		"summary": fiber.Map{"online": result.Online, "offline": result.Offline},
 		"pagination": fiber.Map{
-			"page": input.Page, "perPages": input.PerPages,
+			"page": input.Page, "perPage": input.PerPage,
 			"totalRecords": result.Total, "totalPages": totalPages,
 			"sortField": input.SortField, "sortOrder": input.SortOrder,
 		},
@@ -116,8 +116,8 @@ func (ctrl *CameraController) GetByID(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "CameraController.GetByID", "deviceapi", "GetByID")
 	defer end()
 
-	tenantId, orgId, _ := ctrl.mustLocals(c)
-	cam, err := ctrl.service.GetByID(c, tenantId, orgId, c.Params("id"))
+	tenantId, workspaceId, _ := ctrl.mustLocals(c)
+	cam, err := ctrl.service.GetByID(c, tenantId, workspaceId, c.Params("id"))
 	if err != nil {
 		log.Error().Err(err).Msg("GetByID failed")
 		return handleErr(c, err)
@@ -141,13 +141,13 @@ func (ctrl *CameraController) Update(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "CameraController.Update", "deviceapi", "Update")
 	defer end()
 
-	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
+	tenantId, workspaceId, callerUserId := ctrl.mustLocals(c)
 	deviceId := c.Params("id")
 	var body UpdateCameraRequest
 	if err := c.Bind().Body(&body); err != nil {
 		return httputil.FailBadRequest(c, "invalid body")
 	}
-	if err := ctrl.service.Update(c, tenantId, orgId, callerUserId, deviceId, devmod.UpdateCameraInput{
+	if err := ctrl.service.Update(c, tenantId, workspaceId, callerUserId, deviceId, devmod.UpdateCameraInput{
 		Name: body.Name, User: body.User, Password: body.Password,
 		URL: body.URL, District: body.District, Lat: body.Lat, Lng: body.Lng,
 		Roi: body.Roi, MapVisibility: body.MapVisibility,
@@ -162,8 +162,8 @@ func (ctrl *CameraController) Delete(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "CameraController.Delete", "deviceapi", "Delete")
 	defer end()
 
-	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
-	if err := ctrl.service.Delete(c, tenantId, orgId, callerUserId, c.Params("id")); err != nil {
+	tenantId, workspaceId, callerUserId := ctrl.mustLocals(c)
+	if err := ctrl.service.Delete(c, tenantId, workspaceId, callerUserId, c.Params("id")); err != nil {
 		log.Error().Err(err).Msg("Delete camera failed")
 		return handleErr(c, err)
 	}
@@ -174,7 +174,7 @@ func (ctrl *CameraController) Import(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.deviceapi", "CameraController.Import", "deviceapi", "Import")
 	defer end()
 
-	tenantId, orgId, callerUserId := ctrl.mustLocals(c)
+	tenantId, workspaceId, callerUserId := ctrl.mustLocals(c)
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
 		return httputil.FailBadRequest(c, "file is required")
@@ -188,9 +188,9 @@ func (ctrl *CameraController) Import(c fiber.Ctx) error {
 	filename := strings.ToLower(fileHeader.Filename)
 	var result *devicesvc.ImportResult
 	if strings.HasSuffix(filename, ".xlsx") || strings.HasSuffix(filename, ".xls") {
-		result, err = ctrl.service.ImportFromXLSX(c, tenantId, orgId, callerUserId, file)
+		result, err = ctrl.service.ImportFromXLSX(c, tenantId, workspaceId, callerUserId, file)
 	} else {
-		result, err = ctrl.service.ImportFromCSV(c, tenantId, orgId, callerUserId, file)
+		result, err = ctrl.service.ImportFromCSV(c, tenantId, workspaceId, callerUserId, file)
 	}
 	if err != nil {
 		log.Error().Err(err).Msg("Import failed")

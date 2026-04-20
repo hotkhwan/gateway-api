@@ -27,7 +27,7 @@ import (
 // @Param listType query int false "eventAttribute.listType (omit = all; if provided filters exact int, including 0)"
 // @Param listName query string false "list name: blacklist|whitelist|redlist|strangers (omit = all). If both listType and listName provided, listType wins."
 // @Param page query int false "Page number"
-// @Param perPages query int false "Items per page (max 200)"
+// @Param perPage query int false "Items per page (max 200)"
 // @Param sortOrder query string false "asc or desc"
 // @Success 200 {object} aimodel.BlacklistSummaryResponse
 // @Router /atapi/blacklist/summary [get]
@@ -45,12 +45,12 @@ func BlacklistSummary(c fiber.Ctx) error {
 	}
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
-	if perPages <= 0 {
-		perPages = 10
+	perPage, _ := strconv.Atoi(c.Query("perPage", "10"))
+	if perPage <= 0 {
+		perPage = 10
 	}
-	if perPages > 200 {
-		perPages = 200
+	if perPage > 200 {
+		perPage = 200
 	}
 
 	channelIdStr := strings.TrimSpace(c.Query("channelId", ""))
@@ -90,7 +90,7 @@ func BlacklistSummary(c fiber.Ctx) error {
 		Str("search", search).
 		Int("listType", listType).
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPage).
 		Str("sortOrder", sortOrder).
 		Msg("[BlacklistSummary] querying")
 
@@ -101,7 +101,7 @@ func BlacklistSummary(c fiber.Ctx) error {
 		Search:    search,
 		ListType:  listType,
 		Page:      page,
-		PerPages:  perPages,
+		PerPage:   perPage,
 		SortOrder: sortOrder,
 	})
 	if err != nil {

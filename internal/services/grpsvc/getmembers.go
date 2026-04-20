@@ -76,7 +76,7 @@ func ListGroupMembers(ctx context.Context, page, perPages int, filters map[strin
 
 	pagination := gmod.Pagination{
 		Page:         page,
-		PerPages:     perPages,
+		PerPage:      perPages,
 		TotalRecords: int(total),
 		TotalPages:   (int(total) + perPages - 1) / perPages,
 		SortField:    sortField,

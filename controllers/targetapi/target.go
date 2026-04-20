@@ -49,8 +49,9 @@ func (ctrl *TargetController) Create(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
+	role, _ := c.Locals("role").(string)
 
 	if tenantId == "" || orgId == "" || userId == "" {
 		return httputil.FailUnauthorized(c, "unauthorized")
@@ -75,13 +76,14 @@ func (ctrl *TargetController) Create(c fiber.Ctx) error {
 	}
 
 	result, err := ctrl.service.Create(ctx, targetsvc.CreateTargetInput{
-		TenantId: tenantId,
-		OrgId:    orgId,
-		UserId:   userId,
-		Name:     body.Name,
-		Type:     body.Type,
-		Enabled:  enabled,
-		Config:   body.Config,
+		TenantId:        tenantId,
+		WorkspaceId:     orgId,
+		UserId:          userId,
+		Name:            body.Name,
+		Type:            body.Type,
+		Enabled:         enabled,
+		Config:          body.Config,
+		IsPlatformAdmin: role == "administrator",
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("create target failed")
@@ -101,7 +103,7 @@ func (ctrl *TargetController) List(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	if tenantId == "" || orgId == "" {
 		return httputil.FailUnauthorized(c, "unauthorized")
@@ -114,13 +116,13 @@ func (ctrl *TargetController) List(c fiber.Ctx) error {
 	sortOrder := c.Query("sortOrder", "desc")
 
 	items, total, err := ctrl.service.List(ctx, targetsvc.ListTargetInput{
-		TenantId:  tenantId,
-		OrgId:     orgId,
-		Search:    search,
-		Page:      page,
-		PerPage:   perPage,
-		SortField: sortField,
-		SortOrder: sortOrder,
+		TenantId:    tenantId,
+		WorkspaceId: orgId,
+		Search:      search,
+		Page:        page,
+		PerPage:     perPage,
+		SortField:   sortField,
+		SortOrder:   sortOrder,
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("list targets failed")
@@ -140,7 +142,7 @@ func (ctrl *TargetController) List(c fiber.Ctx) error {
 		"details": items,
 		"pagination": gmod.Pagination{
 			Page:         page,
-			PerPages:     perPage,
+			PerPage:     perPage,
 			TotalRecords: int(total),
 			TotalPages:   totalPages,
 			SortField:    sortField,
@@ -158,15 +160,16 @@ func (ctrl *TargetController) GetOne(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
+	role, _ := c.Locals("role").(string)
 	targetId := strings.TrimSpace(c.Params("id"))
 
 	if tenantId == "" || orgId == "" || userId == "" || targetId == "" {
 		return httputil.FailBadRequest(c, "missing params")
 	}
 
-	result, err := ctrl.service.GetOne(ctx, tenantId, orgId, userId, targetId)
+	result, err := ctrl.service.GetOne(ctx, tenantId, orgId, userId, targetId, role == "administrator")
 	if err != nil {
 		log.Error().Err(err).Msg("get target failed")
 		status, code := targetsvc.MapSvcError(err)
@@ -185,8 +188,9 @@ func (ctrl *TargetController) Update(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
+	role, _ := c.Locals("role").(string)
 	targetId := strings.TrimSpace(c.Params("id"))
 
 	if tenantId == "" || orgId == "" || userId == "" || targetId == "" {
@@ -199,13 +203,14 @@ func (ctrl *TargetController) Update(c fiber.Ctx) error {
 	}
 
 	result, err := ctrl.service.Update(ctx, targetsvc.UpdateTargetInput{
-		TenantId: tenantId,
-		OrgId:    orgId,
-		TargetId: targetId,
-		UserId:   userId,
-		Name:     body.Name,
-		Enabled:  body.Enabled,
-		Config:   body.Config,
+		TenantId:        tenantId,
+		WorkspaceId:     orgId,
+		TargetId:        targetId,
+		UserId:          userId,
+		Name:            body.Name,
+		Enabled:         body.Enabled,
+		Config:          body.Config,
+		IsPlatformAdmin: role == "administrator",
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("update target failed")
@@ -225,15 +230,16 @@ func (ctrl *TargetController) Delete(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
+	role, _ := c.Locals("role").(string)
 	targetId := strings.TrimSpace(c.Params("id"))
 
 	if tenantId == "" || orgId == "" || userId == "" || targetId == "" {
 		return httputil.FailBadRequest(c, "missing params")
 	}
 
-	if err := ctrl.service.Delete(ctx, tenantId, orgId, userId, targetId); err != nil {
+	if err := ctrl.service.Delete(ctx, tenantId, orgId, userId, targetId, role == "administrator"); err != nil {
 		log.Error().Err(err).Msg("delete target failed")
 		status, code := targetsvc.MapSvcError(err)
 		return c.Status(status).JSON(gmod.ApiErrorResponse{Code: code, Message: err.Error(), Status: false})

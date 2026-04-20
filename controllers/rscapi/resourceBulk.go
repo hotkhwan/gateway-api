@@ -13,17 +13,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// BulkCreateResources godoc
-// @Summary     Bulk create resources
-// @Description Create multiple resources in one request. The service validates required fields, removes in-payload duplicates by (provider,type,canonicalId), skips existing duplicates in DB, then inserts the rest.
-// @Tags        Resources
-// @Accept      json
-// @Produce     json
-// @Param       body  body     []rscmod.ResourceUpsert  true  "Array of resources to create"
-// @Success     201   {object} gmod.SuccessMessageBulkCreateResponse "Bulk resources created"
-// @Failure     400   {object} gmod.SuccessMessageBulkCreateResponse "Bad request / invalid body"
-// @Failure     500   {object} gmod.SuccessMessageBulkCreateResponse "Internal error"
-// @Router      /rsc/v1/resources/bulk [post]
 func BulkCreateResources(c fiber.Ctx) error {
 	_, end, log := traceutil.StartLite(c, "gateway.rscapi", "BulkCreateResources", "rscapi", "BulkCreateResources")
 	defer end()

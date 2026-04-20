@@ -27,7 +27,7 @@ func NewMenuPermissionProfileRepo() *MenuPermissionProfileRepo {
 func (r *MenuPermissionProfileRepo) EnsureIndexes(ctx context.Context) error {
 	return stomongo.EnsureUniqueIndex(ctx, r.collection, bson.D{
 		{Key: "tenantId", Value: 1},
-		{Key: "orgId", Value: 1},
+		{Key: "workspaceId", Value: 1},
 		{Key: "name", Value: 1},
 	}, "uq_menu_profile_name_per_org")
 }
@@ -35,7 +35,7 @@ func (r *MenuPermissionProfileRepo) EnsureIndexes(ctx context.Context) error {
 func (r *MenuPermissionProfileRepo) ExistsByNameInOrg(ctx context.Context, tenantId, orgId, name, excludeID string) (bool, error) {
 	filter := bson.M{
 		"tenantId": tenantId,
-		"orgId":    orgId,
+		"workspaceId": orgId,
 		"name":     name,
 	}
 	if excludeID != "" {
@@ -68,7 +68,7 @@ func (r *MenuPermissionProfileRepo) FindByIDAndOrg(ctx context.Context, profileI
 	err := stomongo.FindOne(ctx, r.collection, bson.M{
 		"profileId": profileId,
 		"tenantId":  tenantId,
-		"orgId":     orgId,
+		"workspaceId":    orgId,
 	}, &result)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -87,7 +87,7 @@ func (r *MenuPermissionProfileRepo) List(
 ) ([]authzmod.MenuPermissionProfile, int64, error) {
 	filter := bson.M{
 		"tenantId": tenantId,
-		"orgId":    orgId,
+		"workspaceId": orgId,
 	}
 	if search != "" {
 		filter["name"] = bson.M{"$regex": search, "$options": "i"}
@@ -118,7 +118,7 @@ func (r *MenuPermissionProfileRepo) Update(ctx context.Context, profileId, tenan
 	_, err := stomongo.UpdateOne(ctx, r.collection, bson.M{
 		"profileId": profileId,
 		"tenantId":  tenantId,
-		"orgId":     orgId,
+		"workspaceId":    orgId,
 	}, fields)
 	return err
 }
@@ -127,7 +127,7 @@ func (r *MenuPermissionProfileRepo) Delete(ctx context.Context, profileId, tenan
 	_, err := stomongo.DeleteOne(ctx, r.collection, bson.M{
 		"profileId": profileId,
 		"tenantId":  tenantId,
-		"orgId":     orgId,
+		"workspaceId":    orgId,
 	})
 	return err
 }
@@ -140,7 +140,7 @@ func (r *MenuPermissionProfileRepo) FindActiveByOrgUnitIDs(ctx context.Context, 
 	var results []authzmod.MenuPermissionProfile
 	err := stomongo.Find(ctx, r.collection, bson.M{
 		"tenantId":   tenantId,
-		"orgId":      orgId,
+		"workspaceId":     orgId,
 		"status":     true,
 		"orgUnitIds": bson.M{"$in": ouIDs},
 	}, nil, &results)

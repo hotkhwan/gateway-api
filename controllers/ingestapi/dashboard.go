@@ -35,13 +35,13 @@ func NewIngestDashboardController(service *ingeststatsvc.DashboardStatsService) 
 // @Failure      400  {object}  gmod.ApiErrorResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/dashboard [get]
+// @Router       /ingest/dashboard [get]
 func (ctrl *IngestDashboardController) GetIngestDashboard(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "IngestDashboardController.GetIngestDashboard", "ingestapi", "GetIngestDashboard")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	// Parse dateTime=from,to (RFC3339 UTC)
 	startDate, endDate := "", ""

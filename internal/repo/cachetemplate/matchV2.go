@@ -84,3 +84,21 @@ func InvalidateMatchV2ByFamily(ctx context.Context, tenantId, orgId, sourceFamil
 		_ = config.Redis.Del(ctx, keys...).Err()
 	}
 }
+
+// InvalidateMatchV2ByOrg removes all V2 match cache entries for an org across tenants/families.
+// Call after template create/update/delete so the next ingest re-evaluates matchAll/matchAny.
+// Key pattern: tmpl:match:{tenantId}:{orgId}:{sourceFamily}:{fingerprint} — scans "*:{orgId}:*".
+func InvalidateMatchV2ByOrg(ctx context.Context, orgId string) {
+	if config.Redis == nil {
+		return
+	}
+	pattern := fmt.Sprintf("%s*:%s:*", matchV2Prefix, orgId)
+	iter := config.Redis.Scan(ctx, 0, pattern, 0).Iterator()
+	var keys []string
+	for iter.Next(ctx) {
+		keys = append(keys, iter.Val())
+	}
+	if len(keys) > 0 {
+		_ = config.Redis.Del(ctx, keys...).Err()
+	}
+}

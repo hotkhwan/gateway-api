@@ -110,9 +110,16 @@ func (m *TemplateMatcher) Match(ctx context.Context, orgId, eventType, keyHash, 
 }
 
 // MatchByFamily performs V2 template matching by sourceFamily.
-// Loads all templates for orgId + sourceFamily, evaluates matchAll/matchAny against rawBody.
+// Loads all templates for orgId + sourceFamily, evaluates matchAll/matchAny against matchBag.
 // Returns highest priority match.
-func (m *TemplateMatcher) MatchByFamily(ctx context.Context, tenantId, orgId, sourceFamily, fingerprint string, rawBody map[string]any) (*ingestmod.MappingTemplate, bool, error) {
+//
+// matchBag is an enriched map produced by ingestsvc.buildMatchBag — it contains:
+//   - Raw payload fields at top level (e.g. channelId, deviceId, eventAttribute.*) for backward compat
+//   - Canonical fields under "source.*" (e.g. source.deviceId, source.deviceType, source.sn, source.zone)
+//
+// This lets users author match conditions against canonical concepts they see in the UI
+// (source.deviceId == "51") instead of vendor-specific raw keys (channelId == 51).
+func (m *TemplateMatcher) MatchByFamily(ctx context.Context, tenantId, orgId, sourceFamily, fingerprint string, matchBag map[string]any) (*ingestmod.MappingTemplate, bool, error) {
 	// 1) Redis V2 cache check
 	if cached, found := cachetemplate.GetMatchV2(ctx, tenantId, orgId, sourceFamily, fingerprint); found {
 		if cached == nil {
@@ -143,7 +150,7 @@ func (m *TemplateMatcher) MatchByFamily(ctx context.Context, tenantId, orgId, so
 
 	// 3) Evaluate matchAll/matchAny for each template (already sorted by priority)
 	for _, tmpl := range templates {
-		if evaluateTemplate(tmpl, rawBody) {
+		if evaluateTemplate(tmpl, matchBag) {
 			cachetemplate.SetMatchV2(ctx, tenantId, orgId, &cachetemplate.MatchV2CacheValue{
 				TemplateId:     tmpl.TemplateId,
 				FinalEventType: tmpl.FinalEventType,
@@ -171,8 +178,9 @@ func (m *TemplateMatcher) MatchByFamily(ctx context.Context, tenantId, orgId, so
 	return nil, false, nil
 }
 
-// evaluateTemplate checks whether a template's matchAll/matchAny conditions match rawBody.
-func evaluateTemplate(tmpl *ingestmod.MappingTemplate, rawBody map[string]any) bool {
+// evaluateTemplate checks whether a template's matchAll/matchAny conditions match matchBag.
+// matchBag = raw payload + canonical "source.*" fields (see ingestsvc.buildMatchBag).
+func evaluateTemplate(tmpl *ingestmod.MappingTemplate, matchBag map[string]any) bool {
 	// If no V2 conditions, fall through (backward compat — V1 templates use Match field)
 	if len(tmpl.MatchAll) == 0 && len(tmpl.MatchAny) == 0 {
 		return true
@@ -180,7 +188,7 @@ func evaluateTemplate(tmpl *ingestmod.MappingTemplate, rawBody map[string]any) b
 
 	// matchAll: all conditions must pass
 	for _, cond := range tmpl.MatchAll {
-		if !evaluateCondition(cond, rawBody) {
+		if !evaluateCondition(cond, matchBag) {
 			return false
 		}
 	}
@@ -189,7 +197,7 @@ func evaluateTemplate(tmpl *ingestmod.MappingTemplate, rawBody map[string]any) b
 	if len(tmpl.MatchAny) > 0 {
 		anyPassed := false
 		for _, cond := range tmpl.MatchAny {
-			if evaluateCondition(cond, rawBody) {
+			if evaluateCondition(cond, matchBag) {
 				anyPassed = true
 				break
 			}
@@ -202,14 +210,17 @@ func evaluateTemplate(tmpl *ingestmod.MappingTemplate, rawBody map[string]any) b
 	return true
 }
 
-// evaluateCondition checks a single MatchCondition against rawBody.
-func evaluateCondition(cond ingestmod.MatchCondition, rawBody map[string]any) bool {
-	// Resolve field value from rawBody (supports dotted paths like "raw.type")
+// evaluateCondition checks a single MatchCondition against matchBag.
+// Field path supports dotted notation (e.g. "source.deviceId", "eventAttribute.gender").
+// Optional "raw." prefix is stripped — both "raw.deviceId" and "deviceId" resolve identically
+// against the raw payload at top level. Canonical fields are addressed via "source.*".
+func evaluateCondition(cond ingestmod.MatchCondition, matchBag map[string]any) bool {
+	// Resolve field value from matchBag (supports dotted paths like "source.deviceId" or "eventAttribute.gender")
 	fieldPath := cond.Field
-	// Strip "raw." prefix since rawBody IS the raw payload
+	// Strip optional "raw." prefix — raw payload fields live at the top level of matchBag
 	fieldPath = strings.TrimPrefix(fieldPath, "raw.")
 
-	val, found := getNestedValue(rawBody, fieldPath)
+	val, found := getNestedValue(matchBag, fieldPath)
 	if !found {
 		return false
 	}

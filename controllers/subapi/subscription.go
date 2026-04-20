@@ -28,7 +28,7 @@ func NewSubscriptionController(svc *subscriptionsvc.SubscriptionService) *Subscr
 // @Param        publicOnly  query  bool    false  "Return only public packages"  default(true)
 // @Success      200 {object} gmod.SuccessDetailResponseAny
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/subscriptions/packages [get]
+// @Router       /subscriptions/packages [get]
 func (ctrl *SubscriptionController) ListPackages(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.subapi", "SubscriptionController.ListPackages", "subapi", "ListPackages")
 	defer end()
@@ -53,7 +53,7 @@ func (ctrl *SubscriptionController) ListPackages(c fiber.Ctx) error {
 // @Success      200 {object} gmod.SuccessDetailResponseAny
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/subscriptions/current [get]
+// @Router       /subscriptions/current [get]
 func (ctrl *SubscriptionController) GetCurrentSubscription(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.subapi", "SubscriptionController.GetCurrentSubscription", "subapi", "GetCurrentSubscription")
 	defer end()
@@ -77,7 +77,7 @@ func (ctrl *SubscriptionController) GetCurrentSubscription(c fiber.Ctx) error {
 // @Produce      json
 // @Success      200 {object} gmod.SuccessDetailResponseAny
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/subscriptions/bootstrap [post]
+// @Router       /subscriptions/bootstrap [post]
 func (ctrl *SubscriptionController) BootstrapSubscription(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.subapi", "SubscriptionController.BootstrapSubscription", "subapi", "BootstrapSubscription")
 	defer end()
@@ -110,7 +110,7 @@ func (ctrl *SubscriptionController) BootstrapSubscription(c fiber.Ctx) error {
 // @Failure      400 {object} gmod.ApiErrorResponse
 // @Failure      403 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/subscriptions/plan [patch]
+// @Router       /subscriptions/plan [patch]
 func (ctrl *SubscriptionController) UpdatePlan(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.subapi", "SubscriptionController.UpdatePlan", "subapi", "UpdatePlan")
 	defer end()
@@ -149,7 +149,7 @@ func (ctrl *SubscriptionController) UpdatePlan(c fiber.Ctx) error {
 // @Success      200 {object} gmod.SuccessDetailResponseAny
 // @Failure      400 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/subscriptions/enterprise/activate [post]
+// @Router       /subscriptions/enterprise/activate [post]
 func (ctrl *SubscriptionController) ActivateEnterprise(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.subapi", "SubscriptionController.ActivateEnterprise", "subapi", "ActivateEnterprise")
 	defer end()

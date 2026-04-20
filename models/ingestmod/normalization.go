@@ -28,7 +28,7 @@ type SourceInfo struct {
 	SubType           string `json:"subType,omitempty"            bson:"subType,omitempty"`
 	Vendor            string `json:"vendor,omitempty"             bson:"vendor,omitempty"`
 	Protocol          string `json:"protocol,omitempty"           bson:"protocol,omitempty"`
-	OrgId             string `json:"orgId"                        bson:"orgId"`
+	WorkspaceId        string `json:"workspaceId"                  bson:"workspaceId"`
 }
 
 // LocationInfo holds the resolved geographic coordinates.
@@ -47,6 +47,8 @@ type NormalizedEvent struct {
 	EventId       string    `json:"eventId"                    bson:"eventId"`
 	TenantId      string    `json:"tenantId"                   bson:"tenantId"`
 	EventType     string    `json:"eventType"                  bson:"eventType"`
+	EventCategory string    `json:"eventCategory,omitempty"    bson:"eventCategory,omitempty"`
+	EventAction   string    `json:"eventAction,omitempty"      bson:"eventAction,omitempty"`
 	EventClass    string    `json:"eventClass,omitempty"       bson:"eventClass,omitempty"`
 	EventSeverity string    `json:"eventSeverity,omitempty"    bson:"eventSeverity,omitempty"`
 	OccurredAt    time.Time `json:"occurredAt"                 bson:"occurredAt"`
@@ -94,9 +96,13 @@ type ByAdminAreaInfo map[string]any
 
 // BinaryRef — pointer to a binary object extracted from rawBody and stored in S3.
 type BinaryRef struct {
-	ObjectId    string `json:"objectId"    bson:"objectId"`    // S3 key
-	ContentType string `json:"contentType" bson:"contentType"` // "image/jpeg", "video/mp4"
+	ObjectId    string `json:"objectId"    bson:"objectId"`    // S3 key (includes extension: .jpg, .mp4, …)
+	Bucket      string `json:"bucket"      bson:"bucket"`      // S3 bucket name
+	ContentType string `json:"contentType" bson:"contentType"` // "image/jpeg" | "video/mp4" | …
 	FieldName   string `json:"fieldName"   bson:"fieldName"`   // source field in rawBody
+	Kind        string `json:"kind"        bson:"kind"`        // "image" | "video" | "binary"
+	Role        string `json:"role"        bson:"role"`        // "full" | "snapshot" | "thumbnail" | "clip" | "capture"
+	SourceIndex int    `json:"sourceIndex" bson:"sourceIndex"` // position in source array (0 for scalar fields)
 }
 
 // NormalizationMeta — audit and tracing metadata added by Normalizer.

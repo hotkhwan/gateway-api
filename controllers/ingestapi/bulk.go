@@ -34,7 +34,7 @@ type bulkApplyTemplateRequest struct {
 
 func mustBulkLocals(c fiber.Ctx) (tenantId, orgId, callerUserId string) {
 	tenantId, _ = c.Locals("tenantId").(string)
-	orgId, _ = c.Locals("activeOrg").(string)
+	orgId, _ = c.Locals("activeWorkspace").(string)
 	callerUserId, _ = c.Locals("userId").(string)
 	return
 }
@@ -52,7 +52,7 @@ func mustBulkLocals(c fiber.Ctx) (tenantId, orgId, callerUserId string) {
 // @Failure      400  {object}  gmod.ApiErrorResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/management/bulk/approve [post]
+// @Router       /ingest/management/bulk/approve [post]
 func (ctrl *BulkController) BulkApprove(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "BulkController.BulkApprove", "ingestapi", "BulkApprove")
 	defer end()
@@ -88,7 +88,7 @@ func (ctrl *BulkController) BulkApprove(c fiber.Ctx) error {
 // @Failure      400  {object}  gmod.ApiErrorResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/management/bulk/reject [post]
+// @Router       /ingest/management/bulk/reject [post]
 func (ctrl *BulkController) BulkReject(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "BulkController.BulkReject", "ingestapi", "BulkReject")
 	defer end()
@@ -124,7 +124,7 @@ func (ctrl *BulkController) BulkReject(c fiber.Ctx) error {
 // @Failure      400  {object}  gmod.ApiErrorResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/management/bulk/delete [post]
+// @Router       /ingest/management/bulk/delete [post]
 func (ctrl *BulkController) BulkDelete(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "BulkController.BulkDelete", "ingestapi", "BulkDelete")
 	defer end()
@@ -160,7 +160,7 @@ func (ctrl *BulkController) BulkDelete(c fiber.Ctx) error {
 // @Failure      400  {object}  gmod.ApiErrorResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/management/bulk/applyTemplate [post]
+// @Router       /ingest/management/bulk/applyTemplate [post]
 func (ctrl *BulkController) BulkApplyTemplate(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "BulkController.BulkApplyTemplate", "ingestapi", "BulkApplyTemplate")
 	defer end()

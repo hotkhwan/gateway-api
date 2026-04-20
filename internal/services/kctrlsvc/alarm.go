@@ -36,7 +36,7 @@ func ListAlarms(ctx context.Context, page, perPages int, filters map[string]stri
 
 	log.Debug().
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPages).
 		Str("sortField", sortField).
 		Str("sortOrder", sortOrder).
 		Msg("📥 Fetching list of alarms (exclude acknowledged)")
@@ -324,7 +324,7 @@ func ListAlarms(ctx context.Context, page, perPages int, filters map[string]stri
 
 	pagination := gmod.Pagination{
 		Page:         page,
-		PerPages:     perPages,
+		PerPage:      perPages,
 		TotalRecords: int(total),
 		TotalPages:   (int(total) + perPages - 1) / perPages,
 		SortField:    sortField,

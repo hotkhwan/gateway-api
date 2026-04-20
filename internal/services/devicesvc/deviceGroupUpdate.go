@@ -10,8 +10,8 @@ import (
 
 // UpdateGroupInput — service input for updating a resource group
 type UpdateGroupInput struct {
-	TenantID      string
-	OrgID         string
+	TenantID    string
+	WorkspaceID string
 	CallerID      string
 	GroupID       string
 	Name          string
@@ -28,15 +28,15 @@ func (s *ResourceGroupService) Update(ctx context.Context, input UpdateGroupInpu
 		return ErrInvalidArgs
 	}
 
-	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
+	if err := s.guardManageOrg(ctx, input.TenantID, input.WorkspaceID, input.CallerID); err != nil {
 		return err
 	}
 
-	if _, err := s.groupRepo.FindByIDAndOrg(ctx, input.GroupID, input.TenantID, input.OrgID); err != nil {
+	if _, err := s.groupRepo.FindByIDAndOrg(ctx, input.GroupID, input.TenantID, input.WorkspaceID); err != nil {
 		return err
 	}
 
-	exists, err := s.groupRepo.ExistsByNameInOrg(ctx, input.OrgID, input.Name, input.GroupID)
+	exists, err := s.groupRepo.ExistsByNameInOrg(ctx, input.WorkspaceID, input.Name, input.GroupID)
 	if err != nil {
 		return err
 	}

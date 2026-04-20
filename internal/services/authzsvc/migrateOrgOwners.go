@@ -47,12 +47,12 @@ func MigrateExistingOrgs(
 			if err == nil && user != nil && user.Enabled {
 				chosenUserId = org.CreatedBy
 				log.Info().
-					Str("orgId", org.OrgId).
+					Str("orgId", org.WorkspaceId).
 					Str("userId", chosenUserId).
 					Msg("migration: set createdBy as owner")
 			} else {
 				log.Warn().
-					Str("orgId", org.OrgId).
+					Str("orgId", org.WorkspaceId).
 					Str("createdBy", org.CreatedBy).
 					Err(err).
 					Msg("migration: createdBy user invalid or disabled")
@@ -61,13 +61,13 @@ func MigrateExistingOrgs(
 
 		// Step 2: If no createdBy or user invalid → choose "oldest admin" (deterministic)
 		if chosenUserId == "" {
-			admins := listAdminsByOrgId(ctx, authzClient, tenantId, org.OrgId)
+			admins := listAdminsByOrgId(ctx, authzClient, tenantId, org.WorkspaceId)
 			if len(admins) > 0 {
 				// DETERMINISTIC: sort by userId lexicographically for stable selection
 				sort.Strings(admins)
 				chosenUserId = admins[0] // first user in sorted list
 				log.Info().
-					Str("orgId", org.OrgId).
+					Str("orgId", org.WorkspaceId).
 					Str("userId", chosenUserId).
 					Int("adminCount", len(admins)).
 					Msg("migration: chose oldest admin (first by userId sort) as owner")
@@ -79,11 +79,11 @@ func MigrateExistingOrgs(
 			org.IsOrphaned = true
 			orphaned++
 			log.Error().
-				Str("orgId", org.OrgId).
+				Str("orgId", org.WorkspaceId).
 				Msg("migration: org marked as orphaned - no admins found, requires manual claim")
 			// Update org in MongoDB
 			if err := updateOrg(ctx, orgRepo, org); err != nil {
-				log.Error().Err(err).Str("orgId", org.OrgId).Msg("failed to update org as orphaned")
+				log.Error().Err(err).Str("orgId", org.WorkspaceId).Msg("failed to update org as orphaned")
 			}
 			continue
 		}
@@ -92,7 +92,7 @@ func MigrateExistingOrgs(
 		ownerTuple := map[string]any{
 			"entity": map[string]any{
 				"type": "organization",
-				"id":   org.OrgId,
+				"id":   org.WorkspaceId,
 			},
 			"relation": "owner",
 			"subject": map[string]any{
@@ -104,7 +104,7 @@ func MigrateExistingOrgs(
 		if err := writeTuples(ctx, authzClient, tenantId, []map[string]any{ownerTuple}); err != nil {
 			log.Error().
 				Err(err).
-				Str("orgId", org.OrgId).
+				Str("orgId", org.WorkspaceId).
 				Str("userId", chosenUserId).
 				Msg("migration: failed to write owner tuple")
 			continue
@@ -118,7 +118,7 @@ func MigrateExistingOrgs(
 		if err := updateOrg(ctx, orgRepo, org); err != nil {
 			log.Error().
 				Err(err).
-				Str("orgId", org.OrgId).
+				Str("orgId", org.WorkspaceId).
 				Msg("migration: failed to update org")
 			continue
 		}
@@ -195,7 +195,7 @@ func writeTuples(ctx context.Context, authzClient authzgw.Client, tenantId strin
 
 // updateOrg updates organization in MongoDB
 func updateOrg(ctx context.Context, repo *authzrepo.OrgRepo, org *authzmod.Organization) error {
-	return repo.Update(ctx, org.OrgId, map[string]interface{}{
+	return repo.Update(ctx, org.WorkspaceId, map[string]interface{}{
 		"billingOwnerId":    org.BillingOwnerId,
 		"isOrphaned":        org.IsOrphaned,
 		"membershipVersion": org.MembershipVersion,

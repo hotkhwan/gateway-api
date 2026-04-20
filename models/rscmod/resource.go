@@ -40,7 +40,7 @@ type ResourceUpsert struct {
 
 type Pagination struct {
 	Page         int    `json:"page"`
-	PerPages     int    `json:"perPages"`
+	PerPage      int    `json:"perPage"`
 	TotalRecords int    `json:"totalRecords"`
 	TotalPages   int    `json:"totalPages"`
 	SortField    string `json:"sortField"`

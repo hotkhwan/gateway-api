@@ -9,7 +9,7 @@ type DLQMessage struct {
 	MessageId           string         `json:"messageId"           bson:"messageId"`
 	EventId             string         `json:"eventId"             bson:"eventId"`
 	TenantId            string         `json:"tenantId"            bson:"tenantId"`
-	OrgId               string         `json:"orgId"               bson:"orgId"`
+	WorkspaceId               string         `json:"workspaceId"             bson:"workspaceId"`
 	TemplateId          string         `json:"templateId,omitempty" bson:"templateId,omitempty"` // source template (if matched)
 	Topic               string         `json:"topic"               bson:"topic"`                 // Kafka topic that failed
 	Stage               string         `json:"stage"               bson:"stage"`                 // "normalize" | "deliver" | "webhook"

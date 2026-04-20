@@ -24,7 +24,7 @@ func NewTemplateController(svc *templatesvc.TemplateService) *TemplateController
 }
 
 func (h *TemplateController) orgId(c fiber.Ctx) string {
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	return orgId
 }
 
@@ -34,13 +34,13 @@ func (h *TemplateController) orgId(c fiber.Ctx) string {
 // @Security     BearerAuth
 // @Param        X-Active-Org  header    string  true   "Active Org ID"
 // @Param        page          query     int     false  "Page number"    default(1)
-// @Param        perPages      query     int     false  "Items per page" default(10)
+// @Param        perPage       query     int     false  "Items per page" default(10)
 // @Param        search        query     string  false  "Search by name"
 // @Param        sortField     query     string  false  "Sort field"     default(createdAt)
 // @Param        sortOrder     query     string  false  "Sort order"     default(desc)
 // @Success      200  {object}  gmod.PaginatedResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/mappingTemplates [get]
+// @Router       /ingest/mappingTemplates [get]
 func (h *TemplateController) List(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "TemplateController.List", "ingestapi", "ListTemplates")
 	defer end()
@@ -49,7 +49,7 @@ func (h *TemplateController) List(c fiber.Ctx) error {
 		OrgId:     h.orgId(c),
 		Search:    c.Query("search"),
 		Page:      fiber.Query[int](c, "page", 1),
-		PerPage:   fiber.Query[int](c, "perPages", 10),
+		PerPage:   fiber.Query[int](c, "perPage", 10),
 		SortField: c.Query("sortField", "createdAt"),
 		SortOrder: c.Query("sortOrder", "desc"),
 	}
@@ -87,7 +87,7 @@ func (h *TemplateController) List(c fiber.Ctx) error {
 // @Param        templateId    path      string  true  "Template ID"
 // @Success      200  {object}  gmod.SuccessDataResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/mappingTemplates/{templateId} [get]
+// @Router       /ingest/mappingTemplates/{templateId} [get]
 func (h *TemplateController) Get(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "TemplateController.Get", "ingestapi", "GetTemplate")
 	defer end()
@@ -123,7 +123,7 @@ func (h *TemplateController) Get(c fiber.Ctx) error {
 // @Param        body          body      templatesvc.CreateTemplateInput true  "Template definition"
 // @Success      201  {object}  gmod.SuccessDataResponse
 // @Failure      400  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/mappingTemplates [post]
+// @Router       /ingest/mappingTemplates [post]
 func (h *TemplateController) Create(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "TemplateController.Create", "ingestapi", "CreateTemplate")
 	defer end()
@@ -164,7 +164,7 @@ func (h *TemplateController) Create(c fiber.Ctx) error {
 // @Success      200  {object}  gmod.SuccessMessageResponse
 // @Failure      400  {object}  gmod.ApiErrorResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/mappingTemplates/{templateId} [patch]
+// @Router       /ingest/mappingTemplates/{templateId} [patch]
 func (h *TemplateController) Update(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "TemplateController.Update", "ingestapi", "UpdateTemplate")
 	defer end()
@@ -201,7 +201,7 @@ func (h *TemplateController) Update(c fiber.Ctx) error {
 // @Param        templateId    path      string  true  "Template ID"
 // @Success      200  {object}  gmod.SuccessMessageResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/mappingTemplates/{templateId} [delete]
+// @Router       /ingest/mappingTemplates/{templateId} [delete]
 func (h *TemplateController) Delete(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "TemplateController.Delete", "ingestapi", "DeleteTemplate")
 	defer end()

@@ -255,7 +255,7 @@ func (s *ApprovalService) ListPending(
 	items, pagination, err := s.eventMgmtRepo.ListPending(
 		ctx,
 		input.TenantId,
-		input.OrgId,
+		input.WorkspaceId,
 		input.StatusName,
 		input.EventType,
 		input.Page,
@@ -306,7 +306,7 @@ func (s *ApprovalService) ListApproved(
 	items, pagination, err := s.eventDetailsRepo.ListApproved(
 		ctx,
 		input.TenantId,
-		input.OrgId,
+		input.WorkspaceId,
 		input.EventType,
 		input.Page,
 		input.PerPage,
@@ -486,7 +486,7 @@ func buildCanonicalEvent(pending *ingestmod.EventManagement, now time.Time) *ing
 			DeviceId:   deviceId,
 			DeviceType: deviceType,
 			DeviceName: pending.Name,
-			OrgId:      pending.OrgId,
+			WorkspaceId: pending.WorkspaceId,
 		},
 		Location: ingestmod.LocationInfo{
 			Lat: pending.Lat,

@@ -56,7 +56,7 @@ type updateMenuProfileBody struct {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/menu/list [get]
+// @Router       /orgs/menu/list [get]
 func (ctrl *MenuPermissionsProfileController) ListMenus(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.ListMenus", "authzapi", "ListMenus")
 	defer end()
@@ -83,13 +83,13 @@ func (ctrl *MenuPermissionsProfileController) ListMenus(c fiber.Ctx) error {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      409 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/menu/permissions [post]
+// @Router       /orgs/menu/permissions [post]
 func (ctrl *MenuPermissionsProfileController) Create(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.Create", "authzapi", "Create")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 
 	var body createMenuProfileBody
@@ -130,13 +130,13 @@ func (ctrl *MenuPermissionsProfileController) Create(c fiber.Ctx) error {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/menu/permissions/{id} [patch]
+// @Router       /orgs/menu/permissions/{id} [patch]
 func (ctrl *MenuPermissionsProfileController) Update(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.Update", "authzapi", "Update")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 	profileId := c.Params("id")
 
@@ -174,13 +174,13 @@ func (ctrl *MenuPermissionsProfileController) Update(c fiber.Ctx) error {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/menu/permissions/{id} [delete]
+// @Router       /orgs/menu/permissions/{id} [delete]
 func (ctrl *MenuPermissionsProfileController) Delete(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.Delete", "authzapi", "Delete")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 	profileId := c.Params("id")
 
@@ -197,23 +197,23 @@ func (ctrl *MenuPermissionsProfileController) Delete(c fiber.Ctx) error {
 // @Security     BearerAuth
 // @Produce      json
 // @Param        page      query int    false "page (default 1)"
-// @Param        perPages  query int    false "items per page (default 10)"
+// @Param        perPage   query int    false "items per page (default 10)"
 // @Param        search    query string false "search keyword"
 // @Param        sortField query string false "sort field (default createdAt)"
 // @Param        sortOrder query string false "sort order: asc|desc (default desc)"
 // @Success      200 {object} gmod.PaginatedResponse
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/menu/permissions [get]
+// @Router       /orgs/menu/permissions [get]
 func (ctrl *MenuPermissionsProfileController) List(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.List", "authzapi", "List")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPages, _ := strconv.Atoi(c.Query("perPage", "10"))
 
 	profiles, total, err := ctrl.svc.List(c, authzsvc.ListMenuProfileInput{
 		TenantID:  tenantId,
@@ -240,7 +240,7 @@ func (ctrl *MenuPermissionsProfileController) List(c fiber.Ctx) error {
 		Details: profiles,
 		Pagination: gmod.Pagination{
 			Page:         page,
-			PerPages:     perPages,
+			PerPage:      perPages,
 			TotalRecords: int(total),
 			TotalPages:   totalPages,
 		},
@@ -257,13 +257,13 @@ func (ctrl *MenuPermissionsProfileController) List(c fiber.Ctx) error {
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      404 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/menu/permissions/{id} [get]
+// @Router       /orgs/menu/permissions/{id} [get]
 func (ctrl *MenuPermissionsProfileController) GetOne(c fiber.Ctx) error {
 	_, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MenuPermissionsProfileController.GetOne", "authzapi", "GetOne")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	profileId := c.Params("id")
 
 	profile, err := ctrl.svc.Get(c, tenantId, orgId, profileId)

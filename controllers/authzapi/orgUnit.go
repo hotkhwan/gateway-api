@@ -46,7 +46,7 @@ type UpdateOrgUnitBody struct {
 // @Failure 400 {object} gmod.ApiErrorResponse
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 409 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/units [post]
+// @Router /orgs/units [post]
 func (ctrl *OrgUnitController) Create(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.Create", "authzapi", "Create")
 	defer end()
@@ -62,7 +62,7 @@ func (ctrl *OrgUnitController) Create(c fiber.Ctx) error {
 	}
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 
 	unitId, err := ctrl.service.CreateOrgUnit(
@@ -94,13 +94,13 @@ func (ctrl *OrgUnitController) Create(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Produce json
 // @Success 200 {object} map[string]interface{}
-// @Router /api/v1/orgs/units/tree [get]
+// @Router /orgs/units/tree [get]
 func (ctrl *OrgUnitController) Tree(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.Tree", "authzapi", "Tree")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	tree, err := ctrl.service.GetOrgUnitTree(
 		ctx,
@@ -123,7 +123,7 @@ func (ctrl *OrgUnitController) Tree(c fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "unitId"
 // @Success 200 {object} map[string]interface{}
-// @Router /api/v1/orgs/units/tree/{id} [get]
+// @Router /orgs/units/tree/{id} [get]
 func (ctrl *OrgUnitController) TreeNode(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.TreeNode", "authzapi", "TreeNode")
 	defer end()
@@ -131,7 +131,7 @@ func (ctrl *OrgUnitController) TreeNode(c fiber.Ctx) error {
 	unitId := strings.TrimSpace(c.Params("id"))
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	node, err := ctrl.service.GetOrgUnitTreeNode(
 		ctx,
@@ -156,7 +156,7 @@ func (ctrl *OrgUnitController) TreeNode(c fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "unitId"
 // @Param body body UpdateOrgUnitBody true "payload"
-// @Router /api/v1/orgs/units/{id} [patch]
+// @Router /orgs/units/{id} [patch]
 func (ctrl *OrgUnitController) Update(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.Update", "authzapi", "Update")
 	defer end()
@@ -174,7 +174,7 @@ func (ctrl *OrgUnitController) Update(c fiber.Ctx) error {
 	_, parentIdProvided := rawBody["parentId"]
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 
 	err := ctrl.service.UpdateOrgUnit(
@@ -203,7 +203,7 @@ func (ctrl *OrgUnitController) Update(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Produce json
 // @Param id path string true "unitId"
-// @Router /api/v1/orgs/units/{id} [delete]
+// @Router /orgs/units/{id} [delete]
 func (ctrl *OrgUnitController) Delete(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.Delete", "authzapi", "Delete")
 	defer end()
@@ -211,7 +211,7 @@ func (ctrl *OrgUnitController) Delete(c fiber.Ctx) error {
 	unitId := strings.TrimSpace(c.Params("id"))
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	err := ctrl.service.DeleteOrgUnit(
 		ctx,
@@ -234,13 +234,13 @@ func (ctrl *OrgUnitController) Delete(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Produce json
 // @Success 200 {object} map[string]interface{}
-// @Router /api/v1/orgs/units/tree-debug [get]
+// @Router /orgs/units/tree-debug [get]
 func (ctrl *OrgUnitController) TreeDebug(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.TreeDebug", "authzapi", "TreeDebug")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	// Get raw units from DB
 	units, err := ctrl.service.GetOrgUnitsRaw(ctx, tenantId, orgId)

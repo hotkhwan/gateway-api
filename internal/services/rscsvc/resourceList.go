@@ -91,7 +91,7 @@ func ResourceList(ctx context.Context, page, perPages int, filters map[string]st
 
 	return rows, gmod.Pagination{
 		Page:         page,
-		PerPages:     perPages,
+		PerPage:      perPages,
 		TotalRecords: total,
 		TotalPages:   (total + perPages - 1) / perPages,
 		SortField:    sf,
