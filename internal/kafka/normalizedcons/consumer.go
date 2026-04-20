@@ -259,6 +259,34 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 		// Route via EventBridge only when workspace is klynx-managed.
 		shouldPublishBridge = klynxOrgID != ""
 	}
+
+	// Emit routing decision for every event — covers the silent fallback case where
+	// GetKlynxOrgID() returns ("", nil) for a workspace with no klynxOrgId set.
+	resolvedKlynxOrgID := klynxOrgID
+	var route, reason string
+	switch {
+	case profile == "saasPublic":
+		route = "events.delivery.v1"
+		reason = "saasPublic"
+	case shouldPublishBridge:
+		route = "gw.events.normalized.v1"
+		reason = "appliance_klynx_mapped"
+	case profile == "appliance":
+		route = "normalized.events"
+		reason = "appliance_no_klynxOrgId"
+	default:
+		route = "normalized.events"
+		reason = "non_appliance"
+	}
+	log.Info().
+		Str("eventId", canonical.EventId).
+		Str("workspaceId", workspaceId).
+		Str("profile", profile).
+		Str("resolvedKlynxOrgId", resolvedKlynxOrgID).
+		Str("route", route).
+		Str("reason", reason).
+		Msg("[normalizer] routing decision")
+
 	if klynxOrgID == "" {
 		klynxOrgID = workspaceId // fallback: use workspaceId as routing key
 	}

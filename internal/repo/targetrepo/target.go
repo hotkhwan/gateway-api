@@ -72,6 +72,26 @@ func (r *TargetRepo) FindByIDAndOrg(ctx context.Context, targetId, tenantId, wor
 	return &result, nil
 }
 
+// FindByIDAndWorkspace looks up a delivery target by targetId scoped to workspace only.
+// Used on the delivery path where tenantId may not match the stored value — e.g. the
+// klynx-api republish sets event.TenantId to the klynxOrgId UUID while the target in
+// Mongo was created with the original tenant string ("klynx"). Workspace is 1-to-1
+// with tenant so targetId + workspaceId is sufficient for isolation.
+func (r *TargetRepo) FindByIDAndWorkspace(ctx context.Context, targetId, workspaceId string) (*authzmod.DeliveryTarget, error) {
+	var result authzmod.DeliveryTarget
+	err := stomongo.FindOne(ctx, r.collection, bson.M{
+		"targetId":    targetId,
+		"workspaceId": workspaceId,
+	}, &result)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrTargetNotFound
+		}
+		return nil, err
+	}
+	return &result, nil
+}
+
 func (r *TargetRepo) List(
 	ctx context.Context,
 	tenantId, workspaceId, search string,
