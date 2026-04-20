@@ -12,25 +12,39 @@ import (
 
 // renderContext builds the template data map used by Go text/template.
 // Access pattern: {{.eventId}}, {{.eventType}}, {{.payload.listType_label}}, {{.source.orgId}}, etc.
+//
+// Note on sourceFamily: klynx-api's republish path stores it in Source.DeviceType,
+// so we expose it as {{.sourceFamily}} for template convenience regardless of path.
 func renderContext(event *ingestmod.NormalizedEvent) map[string]any {
 	return map[string]any{
 		"eventId":       event.EventId,
+		"tenantId":      event.TenantId,
 		"eventType":     event.EventType,
+		"eventCategory": event.EventCategory,
+		"eventAction":   event.EventAction,
 		"eventClass":    event.EventClass,
 		"eventSeverity": event.EventSeverity,
+		"sourceFamily":  event.Source.DeviceType, // klynx republish puts SourceFamily here
 		"occurredAt":    event.OccurredAt.UTC().Format("2006-01-02T15:04:05Z"),
 		"payload":       event.Payload,
 		"source": map[string]any{
-			"orgId":      event.Source.WorkspaceId,
-			"deviceId":   event.Source.DeviceId,
-			"deviceType": event.Source.DeviceType,
-			"vendor":     event.Source.Vendor,
+			"workspaceId": event.Source.WorkspaceId,
+			"orgId":       event.Source.WorkspaceId, // legacy alias; prefer .workspaceId
+			"deviceId":    event.Source.DeviceId,
+			"deviceType":  event.Source.DeviceType,
+			"subType":     event.Source.SubType,
+			"vendor":      event.Source.Vendor,
 		},
 		"location": map[string]any{
 			"lat":  event.Location.Lat,
 			"lng":  event.Location.Lng,
 			"site": event.Location.Site,
 			"zone": event.Location.Zone,
+		},
+		"geo": map[string]any{
+			"countryCode": event.Geo.CountryCode,
+			"adminName":   event.Geo.AdminName,
+			"adminCode":   event.Geo.AdminCode,
 		},
 	}
 }

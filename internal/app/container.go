@@ -598,10 +598,11 @@ func (c *Container) buildAlertDispatcher() {
 
 func (c *Container) buildDeliveryConsumer() {
 	c.DeliveryDeps = deliverycons.ConsumerDeps{
-		TargetRepo:   targetrepo.NewTargetRepo(),
-		TemplateRepo: ingestrepo.NewMappingTemplateRepo(),
-		DLQRepo:      dlqrepo.NewDLQRepo(),
-		Logger:       logger.WithMeta("delivery", "consumer"),
+		TargetRepo:       targetrepo.NewTargetRepo(),
+		TemplateRepo:     ingestrepo.NewMappingTemplateRepo(),
+		DLQRepo:          dlqrepo.NewDLQRepo(),
+		EventDetailsRepo: ingestdetailsrepo.NewEventDetailsRepo(),
+		Logger:           logger.WithMeta("delivery", "consumer"),
 	}
 }
 

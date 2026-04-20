@@ -54,6 +54,30 @@ func (r *EventDetailsRepo) Upsert(ctx context.Context, event *ingestmod.Normaliz
 	return err
 }
 
+// FindBinaryRefsByEventId returns the binaryRefs array stored on the normalized
+// event_details document for a single eventId. Filters by eventId only because
+// the event_details collection's canonical tenantId is set at ingest time
+// (e.g. "klynx") and may not match the tenantId carried in downstream consumer
+// messages where tenantId was replaced with orgId by a bridging service.
+// eventId is a UUID so the single-field filter is safe against cross-tenant
+// collisions.
+func (r *EventDetailsRepo) FindBinaryRefsByEventId(ctx context.Context, eventId string) ([]ingestmod.BinaryRef, error) {
+	if eventId == "" {
+		return nil, nil
+	}
+	var doc struct {
+		BinaryRefs []ingestmod.BinaryRef `bson:"binaryRefs"`
+	}
+	err := stomongo.FindOne(ctx, "event_details", bson.M{"eventId": eventId}, &doc)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return doc.BinaryRefs, nil
+}
+
 // FindByEventId finds an approved event by eventId
 func (r *EventDetailsRepo) FindByEventId(
 	ctx context.Context,
