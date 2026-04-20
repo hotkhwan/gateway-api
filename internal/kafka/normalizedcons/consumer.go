@@ -274,6 +274,9 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 			"eventType":   resolvedEventType,
 			"workspaceId": workspaceId,
 			"tenantId":    canonical.TenantId,
+			// Forward templateId via header so delivery consumer can resolve it
+			// even if downstream uses an alternate decode path that drops Meta.TemplateId.
+			"templateId": templateId,
 		}
 		if err := config.SendToKafkaWithCtx(ctx, topic, workspaceId, payload, pubHeaders); err != nil {
 			log.Warn().
@@ -500,7 +503,10 @@ func buildBridgeEvent(
 		SourceFamily:   sourceFamily,
 		OccurredAt:     event.OccurredAt,
 		ReceivedAt:     event.Meta.NormalizedAt,
-		TraceID:        traceId,
+		// Forward matched templateId so klynx-api delivery can resolve deliveryTargets/messageTemplates.
+		// Empty when no template matched (suggestion fallback / pending).
+		TemplateID: event.Meta.TemplateId,
+		TraceID:    traceId,
 	}
 
 	// Source — device identity + context group.

@@ -32,17 +32,11 @@ func RegisterWorkspaceRoutes(router fiber.Router, c *app.Container) {
 		r.Get("/", c.WorkspaceController.List)
 		r.Post("/", c.WorkspaceController.Create)
 
-		// ---------- Workspace-scoped routes (ActiveWorkspace required) ----------
-		r.All("/:id", middleware.AllowMethods("GET", "PATCH", "DELETE"))
-		r.Get("/:id", middleware.ActiveWorkspace(), c.WorkspaceController.GetByID)
-		r.Patch("/:id", middleware.ActiveWorkspace(), c.WorkspaceController.Update)
-		r.Delete("/:id", middleware.ActiveWorkspace(), c.WorkspaceController.Delete)
-
-		// ---------- Entitlement (read-only snapshot) ----------
+		// ---------- Entitlement (read-only snapshot) — must be before /:id ----------
 		r.All("/entitlement", middleware.AllowMethods("GET"))
 		r.Get("/entitlement", middleware.ActiveWorkspace(), c.WorkspaceEntitlementController.GetEntitlement)
 
-		// ---------- Member management ----------
+		// ---------- Member management — must be before /:id ----------
 		memberGroup := r.Group("/members", middleware.ActiveWorkspace())
 
 		memberGroup.All("/", middleware.AllowMethods("GET"))
@@ -56,5 +50,11 @@ func RegisterWorkspaceRoutes(router fiber.Router, c *app.Container) {
 
 		memberGroup.All("/:userId/role", middleware.AllowMethods("PATCH"))
 		memberGroup.Patch("/:userId/role", c.WorkspaceMemberController.ChangeRole)
+
+		// ---------- Workspace-scoped routes (ActiveWorkspace required) — after static paths ----------
+		r.All("/:id", middleware.AllowMethods("GET", "PATCH", "DELETE"))
+		r.Get("/:id", middleware.ActiveWorkspace(), c.WorkspaceController.GetByID)
+		r.Patch("/:id", middleware.ActiveWorkspace(), c.WorkspaceController.Update)
+		r.Delete("/:id", middleware.ActiveWorkspace(), c.WorkspaceController.Delete)
 	})
 }

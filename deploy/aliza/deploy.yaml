@@ -46,7 +46,7 @@ spec:
       volumes:
         - name: src-code
           hostPath:
-            path: /home/aisom/gateway-api
+            path: /home/phibek/gateway-api
             type: Directory
         - name: rootca-volume
           configMap:
