@@ -1385,6 +1385,20 @@ definitions:
           Example: {"0": "offline", "1": "online"}
         type: object
     type: object
+  ingestmod.MatchCondition:
+    properties:
+      field:
+        description: e.g. "raw.type", "raw.typeValue"
+        type: string
+      operator:
+        description: '"eq" | "in" | "contains" | "prefix"'
+        type: string
+      values:
+        description: values to match against
+        items:
+          type: string
+        type: array
+    type: object
   ingestmod.MatchRule:
     properties:
       deviceId:
@@ -2533,17 +2547,33 @@ definitions:
         type: array
       dlq:
         $ref: '#/definitions/ingestmod.DLQConfig'
+      enabled:
+        type: boolean
+      finalEventType:
+        type: string
       mappings:
         items:
           $ref: '#/definitions/ingestmod.FieldMapping'
         type: array
       match:
         $ref: '#/definitions/ingestmod.MatchRule'
+      matchAll:
+        items:
+          $ref: '#/definitions/ingestmod.MatchCondition'
+        type: array
+      matchAny:
+        items:
+          $ref: '#/definitions/ingestmod.MatchCondition'
+        type: array
       messageTemplates:
         items:
           $ref: '#/definitions/ingestmod.MessageTemplate'
         type: array
       name:
+        type: string
+      priority:
+        type: integer
+      sourceFamily:
         type: string
     type: object
   templatesvc.UpdateTemplateInput:
@@ -2560,17 +2590,33 @@ definitions:
         type: array
       dlq:
         $ref: '#/definitions/ingestmod.DLQConfig'
+      enabled:
+        type: boolean
+      finalEventType:
+        type: string
       mappings:
         items:
           $ref: '#/definitions/ingestmod.FieldMapping'
         type: array
       match:
         $ref: '#/definitions/ingestmod.MatchRule'
+      matchAll:
+        items:
+          $ref: '#/definitions/ingestmod.MatchCondition'
+        type: array
+      matchAny:
+        items:
+          $ref: '#/definitions/ingestmod.MatchCondition'
+        type: array
       messageTemplates:
         items:
           $ref: '#/definitions/ingestmod.MessageTemplate'
         type: array
       name:
+        type: string
+      priority:
+        type: integer
+      sourceFamily:
         type: string
     type: object
   thirdmod.ClientCredentialsReq:
@@ -3985,6 +4031,38 @@ paths:
       summary: Group tree with hierarchy and members
       tags:
       - Groups
+  /image/{key}:
+    get:
+      description: 'Serves a binary from a public S3 bucket. No auth required. Path:
+        {bucket}/{key}.'
+      parameters:
+      - description: 'S3 path: {publicBucket}/{objectKey}'
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ErrorResponse'
+      summary: Proxy public image from S3
+      tags:
+      - Files
   /ingest:
     get:
       description: Returns ingest endpoint, masked secret, and rate limit config.

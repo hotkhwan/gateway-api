@@ -71,7 +71,8 @@ type MessageTemplate struct {
 // Defines how to map rawBody fields to canonical targets for a given device/event signature.
 type MappingTemplate struct {
 	TemplateId          string                   `json:"templateId"                        bson:"templateId"`
-	WorkspaceId               string                   `json:"workspaceId"                           bson:"workspaceId"`
+	WorkspaceId         string                   `json:"workspaceId"                       bson:"workspaceId"`
+	Enabled             bool                     `json:"enabled"                           bson:"enabled"`
 	SourceFamily        string                   `json:"sourceFamily,omitempty"            bson:"sourceFamily,omitempty"`
 	FinalEventType      string                   `json:"finalEventType,omitempty"          bson:"finalEventType,omitempty"`
 	Name                string                   `json:"name"                              bson:"name"`

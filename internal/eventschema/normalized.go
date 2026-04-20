@@ -40,6 +40,11 @@ type NormalizedEvent struct {
 	BinaryRefs    []NormalizedBinaryRef `json:"binaryRefs,omitempty"`
 	RawPayloadRef string                `json:"rawPayloadRef,omitempty"`
 
+	// TemplateID is the matching MappingTemplate.templateId from gateway-api ingest.
+	// Forwarded so klynx-api delivery consumer can resolve deliveryTargets / messageTemplates.
+	// Empty when ingest matched no template (event was suggestion-applied or pending).
+	TemplateID string `json:"templateId,omitempty"`
+
 	TraceID string `json:"traceId,omitempty"`
 }
 

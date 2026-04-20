@@ -43,6 +43,12 @@ func (p *kafkaEventBridgePublisher) Publish(ctx context.Context, event eventsche
 	headers := map[string]string{}
 	traceutil.InjectHeaders(ctx, headers)
 
+	// Forward templateId via header so delivery consumers can resolve it without
+	// depending on payload schema (root-level vs nested meta).
+	if event.TemplateID != "" {
+		headers["templateId"] = event.TemplateID
+	}
+
 	// Use workspaceId as the partition key for co-located events.
 	key := event.WorkspaceID
 	if key == "" {

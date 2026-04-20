@@ -33,11 +33,21 @@ func (s *TemplateService) Create(ctx context.Context, orgId string, in *CreateTe
 	log.Info().Str("orgId", orgId).Str("name", in.Name).Msg("📥 [CreateTemplate] creating template")
 
 	now := time.Now().UTC()
+	enabled := true
+	if in.Enabled != nil {
+		enabled = *in.Enabled
+	}
 	t := &ingestmod.MappingTemplate{
 		TemplateId:          uuid.NewString(),
-		WorkspaceId:               orgId,
+		WorkspaceId:         orgId,
+		Enabled:             enabled,
+		SourceFamily:        in.SourceFamily,
+		FinalEventType:      in.FinalEventType,
+		Priority:            in.Priority,
 		Name:                in.Name,
 		Match:               in.Match,
+		MatchAll:            in.MatchAll,
+		MatchAny:            in.MatchAny,
 		Mappings:            in.Mappings,
 		DefaultLocale:       in.DefaultLocale,
 		MessageTemplates:    in.MessageTemplates,
@@ -60,6 +70,7 @@ func (s *TemplateService) Create(ctx context.Context, orgId string, in *CreateTe
 
 	// Invalidate fingerprint cache so the new template is picked up on next ingest
 	_ = cachetemplate.InvalidateByOrg(ctx, orgId)
+	cachetemplate.InvalidateMatchV2ByOrg(ctx, orgId)
 
 	log.Info().Str("orgId", orgId).Str("templateId", t.TemplateId).Str("name", t.Name).Msg("✅ [CreateTemplate] template created")
 	return t, nil
@@ -124,8 +135,26 @@ func (s *TemplateService) Update(ctx context.Context, orgId, templateId string, 
 	if in.Name != nil {
 		set["name"] = *in.Name
 	}
+	if in.Enabled != nil {
+		set["enabled"] = *in.Enabled
+	}
+	if in.SourceFamily != nil {
+		set["sourceFamily"] = *in.SourceFamily
+	}
+	if in.FinalEventType != nil {
+		set["finalEventType"] = *in.FinalEventType
+	}
+	if in.Priority != nil {
+		set["priority"] = *in.Priority
+	}
 	if in.Match != nil {
 		set["match"] = *in.Match
+	}
+	if in.MatchAll != nil {
+		set["matchAll"] = in.MatchAll
+	}
+	if in.MatchAny != nil {
+		set["matchAny"] = in.MatchAny
 	}
 	if in.Mappings != nil {
 		set["mappings"] = in.Mappings
@@ -160,6 +189,7 @@ func (s *TemplateService) Update(ctx context.Context, orgId, templateId string, 
 
 	// Invalidate fingerprint cache so updated match rules take effect immediately
 	_ = cachetemplate.InvalidateByOrg(ctx, orgId)
+	cachetemplate.InvalidateMatchV2ByOrg(ctx, orgId)
 
 	log.Info().Str("orgId", orgId).Str("templateId", templateId).Msg("✅ [UpdateTemplate] template updated")
 	return nil
@@ -183,6 +213,7 @@ func (s *TemplateService) Delete(ctx context.Context, orgId, templateId string) 
 
 	// Invalidate fingerprint cache so deleted template is no longer matched
 	_ = cachetemplate.InvalidateByOrg(ctx, orgId)
+	cachetemplate.InvalidateMatchV2ByOrg(ctx, orgId)
 
 	log.Info().Str("orgId", orgId).Str("templateId", templateId).Msg("✅ [DeleteTemplate] template deleted")
 	return nil

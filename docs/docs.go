@@ -1872,6 +1872,53 @@ const docTemplate = `{
                 }
             }
         },
+        "/image/{key}": {
+            "get": {
+                "description": "Serves a binary from a public S3 bucket. No auth required. Path: {bucket}/{key}.",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "Files"
+                ],
+                "summary": "Proxy public image from S3",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "S3 path: {publicBucket}/{objectKey}",
+                        "name": "key",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/ingest": {
             "get": {
                 "security": [
@@ -14804,6 +14851,26 @@ const docTemplate = `{
                 }
             }
         },
+        "ingestmod.MatchCondition": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "description": "e.g. \"raw.type\", \"raw.typeValue\"",
+                    "type": "string"
+                },
+                "operator": {
+                    "description": "\"eq\" | \"in\" | \"contains\" | \"prefix\"",
+                    "type": "string"
+                },
+                "values": {
+                    "description": "values to match against",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "ingestmod.MatchRule": {
             "type": "object",
             "properties": {
@@ -16512,6 +16579,12 @@ const docTemplate = `{
                 "dlq": {
                     "$ref": "#/definitions/ingestmod.DLQConfig"
                 },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "finalEventType": {
+                    "type": "string"
+                },
                 "mappings": {
                     "type": "array",
                     "items": {
@@ -16521,6 +16594,18 @@ const docTemplate = `{
                 "match": {
                     "$ref": "#/definitions/ingestmod.MatchRule"
                 },
+                "matchAll": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.MatchCondition"
+                    }
+                },
+                "matchAny": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.MatchCondition"
+                    }
+                },
                 "messageTemplates": {
                     "type": "array",
                     "items": {
@@ -16528,6 +16613,12 @@ const docTemplate = `{
                     }
                 },
                 "name": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "sourceFamily": {
                     "type": "string"
                 }
             }
@@ -16553,6 +16644,12 @@ const docTemplate = `{
                 "dlq": {
                     "$ref": "#/definitions/ingestmod.DLQConfig"
                 },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "finalEventType": {
+                    "type": "string"
+                },
                 "mappings": {
                     "type": "array",
                     "items": {
@@ -16562,6 +16659,18 @@ const docTemplate = `{
                 "match": {
                     "$ref": "#/definitions/ingestmod.MatchRule"
                 },
+                "matchAll": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.MatchCondition"
+                    }
+                },
+                "matchAny": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.MatchCondition"
+                    }
+                },
                 "messageTemplates": {
                     "type": "array",
                     "items": {
@@ -16569,6 +16678,12 @@ const docTemplate = `{
                     }
                 },
                 "name": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "sourceFamily": {
                     "type": "string"
                 }
             }

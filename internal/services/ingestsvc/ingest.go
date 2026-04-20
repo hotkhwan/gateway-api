@@ -435,8 +435,19 @@ func (s *IngestService) Ingest(
 	// 8) Build deterministic fingerprint: sorted key paths + normalized value types
 	fingerprint := BuildFingerprint(rawBody)
 
-	// 9) Template matching: sourceFamily + fingerprint
-	tmpl, matched, matchErr := s.tmplMatcher.MatchByFamily(ctx, policy.TenantId, orgId, sourceFamily, fingerprint, rawBody)
+	// 9) Pre-match canonical enrichment — resolve device identity + management record
+	//    BEFORE template matching so user-defined matchAll/matchAny can reference
+	//    canonical fields (source.deviceId, source.deviceType, ...) that match what
+	//    the UI displays — instead of vendor-specific raw fields (channelId vs deviceId).
+	candidates, _, _ := s.extractDeviceCandidates(body)
+	enrichment, deviceRef := s.resolveDeviceEnrichment(ctx, policy.TenantId, orgId, sourceFamily, candidates)
+
+	// 10) Build match bag = rawBody + canonical "source.*" — passed to template matcher.
+	//     Raw fields stay at top level (backward compat); canonical fields under "source.*".
+	matchBag := buildMatchBag(rawBody, deviceRef, enrichment, sourceFamily)
+
+	// 11) Template matching: sourceFamily + fingerprint, evaluating against matchBag
+	tmpl, matched, matchErr := s.tmplMatcher.MatchByFamily(ctx, policy.TenantId, orgId, sourceFamily, fingerprint, matchBag)
 	if matchErr != nil {
 		s.logger.Error().Err(matchErr).
 			Str("orgId", orgId).
@@ -450,10 +461,6 @@ func (s *IngestService) Ingest(
 		if eventType == "" {
 			eventType = sourceFamily
 		}
-
-		// Extract all device identity candidates and resolve enrichment by priority
-		candidates, _, _ := s.extractDeviceCandidates(body)
-		enrichment, deviceRef := s.resolveDeviceEnrichment(ctx, policy.TenantId, orgId, sourceFamily, candidates)
 
 		// Auto-create/merge device_management record (conservative, non-blocking)
 		if deviceRef != nil && s.deviceMgmtSvc != nil {
@@ -480,17 +487,15 @@ func (s *IngestService) Ingest(
 		return &IngestResult{EventId: eventId, ReceivedAt: receivedAt}, nil
 	}
 
-	// 9b) Suggestion fallback: if no DB template matched, try auto-apply from suggestion.
-	//     Persists template to DB so users can configure finalEventType, classificationRules,
-	//     deliveryTargets, messageTemplates via the management API later.
+	// 11b) Suggestion fallback: if no DB template matched, try auto-apply from suggestion.
+	//      Persists template to DB so users can configure finalEventType, classificationRules,
+	//      deliveryTargets, messageTemplates via the management API later.
 	if !matched {
 		if autoTmpl, suggestionId := s.tryAutoApplySuggestion(ctx, policy.TenantId, orgId, sourceFamily, rawBody); autoTmpl != nil {
 			eventType := autoTmpl.FinalEventType
 			if eventType == "" {
 				eventType = sourceFamily
 			}
-			candidates, _, _ := s.extractDeviceCandidates(body)
-			enrichment, deviceRef := s.resolveDeviceEnrichment(ctx, policy.TenantId, orgId, sourceFamily, candidates)
 
 			// Auto-create/merge device_management record (conservative, non-blocking)
 			if deviceRef != nil && s.deviceMgmtSvc != nil {
@@ -796,4 +801,57 @@ func buildAutoUpsertHints(sourceFamily string, rawBody map[string]any) ingestmod
 		}
 	}
 	return hints
+}
+
+// buildMatchBag merges raw payload with canonical source.* fields for V2 template matching.
+//
+// Why: rawBody contains vendor-specific keys (e.g. AIBOX uses channelId for "device" 51).
+// Users config templates against canonical concepts ("source.deviceId = 51") that they
+// see in the UI. This bag exposes both worlds:
+//
+//   - Raw vendor fields stay at top level (backward compat with legacy templates that
+//     still reference rawBody field names directly, e.g. {field: "deviceId", values: ["1"]})
+//   - Canonical fields live under "source.*" (e.g. source.deviceId, source.deviceType,
+//     source.deviceMgmtId, source.sn, source.zone)
+//
+// deviceRef is the winning DeviceIdentity from extractDeviceCandidates → resolveDeviceEnrichment
+// (priority: cameraId > sensorId > faceId > channelId > deviceId). enrichment is the matched
+// DeviceManagement record (nil if device is unknown to deviceManagement).
+func buildMatchBag(
+	rawBody map[string]any,
+	deviceRef *ingestmod.DeviceIdentity,
+	enrichment *ingestmod.DeviceManagement,
+	sourceFamily string,
+) map[string]any {
+	bag := make(map[string]any, len(rawBody)+1)
+	for k, v := range rawBody {
+		bag[k] = v
+	}
+
+	source := map[string]any{
+		"sourceFamily": sourceFamily,
+	}
+	if deviceRef != nil {
+		source["deviceId"] = deviceRef.ID
+		source["deviceType"] = deviceRef.Type
+	}
+	if enrichment != nil {
+		if enrichment.DeviceMgmtId != "" {
+			source["deviceMgmtId"] = enrichment.DeviceMgmtId
+		}
+		if enrichment.SerialNo != "" {
+			source["sn"] = enrichment.SerialNo
+		}
+		if enrichment.Name != "" {
+			source["name"] = enrichment.Name
+		}
+		if enrichment.Site != "" {
+			source["site"] = enrichment.Site
+		}
+		if enrichment.Zone != "" {
+			source["zone"] = enrichment.Zone
+		}
+	}
+	bag["source"] = source
+	return bag
 }
