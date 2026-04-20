@@ -82,11 +82,6 @@ func (g *GrpcClient) WriteTuples(
 		return nil
 	}
 
-	schemaVersion := config.CurrentSchemaVersion
-	if schemaVersion == "" {
-		return fmt.Errorf("schema version required")
-	}
-
 	pbTuples := make([]*permify_payload.Tuple, 0, len(tuples))
 	// internal/gateways/authzgw/grpc.go — WriteTuples
 	for _, t := range tuples {
@@ -131,13 +126,51 @@ func (g *GrpcClient) WriteTuples(
 		&permify_payload.RelationshipWriteRequest{
 			TenantId: tenantId,
 			Metadata: &permify_payload.RelationshipWriteRequestMetadata{
-				SchemaVersion: schemaVersion,
+				SchemaVersion: "", // empty = use latest schema
 			},
 			Tuples: pbTuples,
 		},
 	)
 
 	return err
+}
+
+// LookupWorkspaces returns all workspace IDs the user has "view" access to (any role).
+func (g *GrpcClient) LookupWorkspaces(ctx context.Context, tenantId string, userId string) ([]string, error) {
+	subjectId := normalizeUserSubjectId(userId)
+
+	stream, err := config.PermifyClient.Permission.LookupEntityStream(
+		ctx,
+		&permify_payload.PermissionLookupEntityRequest{
+			TenantId: tenantId,
+			Metadata: &permify_payload.PermissionLookupEntityRequestMetadata{
+				SchemaVersion: config.CurrentSchemaVersion,
+				Depth:         50,
+			},
+			EntityType: "workspace",
+			Permission: "view",
+			Subject: &permify_payload.Subject{
+				Type: "user",
+				Id:   subjectId,
+			},
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for {
+		res, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, res.EntityId)
+	}
+	return ids, nil
 }
 
 func (g *GrpcClient) LookupOrganizations(ctx context.Context, tenantId string, userId string) ([]string, error) {
@@ -176,6 +209,50 @@ func (g *GrpcClient) LookupOrganizations(ctx context.Context, tenantId string, u
 	}
 
 	return ids, nil
+}
+
+// ListRelationshipsBySubject reads all tuples where subject = subjectType:subjectId.
+func (g *GrpcClient) ListRelationshipsBySubject(
+	ctx context.Context,
+	tenantId string,
+	subjectType string,
+	subjectId string,
+) ([]Relationship, error) {
+	if config.PermifyClient == nil {
+		return nil, fmt.Errorf("grpc client not initialized")
+	}
+
+	resp, err := config.PermifyClient.Data.ReadRelationships(
+		ctx,
+		&permify_payload.RelationshipReadRequest{
+			TenantId: tenantId,
+			Metadata: &permify_payload.RelationshipReadRequestMetadata{
+				SnapToken: "",
+			},
+			Filter: &permify_payload.TupleFilter{
+				Subject: &permify_payload.SubjectFilter{
+					Type: subjectType,
+					Ids:  []string{subjectId},
+				},
+			},
+		},
+	)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return []Relationship{}, nil
+		}
+		return nil, err
+	}
+
+	out := make([]Relationship, 0, len(resp.Tuples))
+	for _, t := range resp.Tuples {
+		out = append(out, Relationship{
+			Entity:   EntityRef{Type: t.Entity.Type, ID: t.Entity.Id},
+			Relation: t.Relation,
+			Subject:  SubjectRef{Type: t.Subject.Type, ID: t.Subject.Id},
+		})
+	}
+	return out, nil
 }
 
 func (g *GrpcClient) ListEntityRelationships(
@@ -231,7 +308,7 @@ func (g *GrpcClient) CheckPermission(
 		&permify_payload.PermissionCheckRequest{
 			TenantId: tenantId,
 			Metadata: &permify_payload.PermissionCheckRequestMetadata{
-				SchemaVersion: config.CurrentSchemaVersion,
+				SchemaVersion: "", // empty = use latest schema in Permify
 				Depth:         50,
 			},
 			Entity: &permify_payload.Entity{

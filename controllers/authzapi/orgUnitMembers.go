@@ -44,7 +44,7 @@ func buildBulkMessage(inserted int, removed int, duplicates int, errors int) str
 // @Produce json
 // @Param X-Active-Org header string true "Active Organization ID"
 // @Param id path string true "OrgUnit ID"
-// @Router /api/v1/orgs/units/{id}/members [get]
+// @Router /orgs/units/{id}/members [get]
 // controllers/authzapi/orgUnitMembers.go
 
 func (ctrl *OrgUnitController) ListMembers(c fiber.Ctx) error {
@@ -52,12 +52,12 @@ func (ctrl *OrgUnitController) ListMembers(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	ouId := c.Params("id")
 
 	// ✅ query params
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	sizeStr := c.Query("perPages", "")
+	sizeStr := c.Query("perPage", "")
 	if sizeStr == "" {
 		sizeStr = c.Query("size", "10")
 	}
@@ -84,7 +84,7 @@ func (ctrl *OrgUnitController) ListMembers(c fiber.Ctx) error {
 		"details": res.Members,
 		"pagination": fiber.Map{
 			"page":         res.Page,
-			"perPages":     res.Size,
+			"perPage":      res.Size,
 			"totalRecords": res.TotalRecords,
 			"totalPages":   res.TotalPages,
 			"sortField":    res.SortField,
@@ -112,14 +112,14 @@ func (ctrl *OrgUnitController) ListMembers(c fiber.Ctx) error {
 // @Success 200 {object} OUBulkResponse
 // @Failure 400 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/units/{id}/members [post]
+// @Router /orgs/units/{id}/members [post]
 func (ctrl *OrgUnitController) AssignMembers(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.AssignMembers", "authzapi", "AssignMembers")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	callerUserId, _ := c.Locals("userId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	ouId := c.Params("id")
 
 	var req AssignUsersRequest
@@ -169,14 +169,14 @@ func (ctrl *OrgUnitController) AssignMembers(c fiber.Ctx) error {
 // @Success 200 {object} OUBulkResponse
 // @Failure 400 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/units/{id}/members [patch]
+// @Router /orgs/units/{id}/members [patch]
 func (ctrl *OrgUnitController) RemoveMembers(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrgUnitController.RemoveMembers", "authzapi", "RemoveMembers")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	callerUserId, _ := c.Locals("userId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	ouId := c.Params("id")
 
 	var req RemoveUsersRequest

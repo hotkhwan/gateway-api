@@ -19,7 +19,7 @@ type EventManagement struct {
 	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	EventId  string             `bson:"eventId" json:"eventId"`
 	TenantId string             `bson:"tenantId" json:"tenantId"`
-	OrgId    string             `bson:"orgId" json:"orgId"`
+	WorkspaceId    string             `bson:"workspaceId" json:"workspaceId"`
 
 	// Editable metadata (by admin)
 	Name        string   `bson:"name" json:"name"`
@@ -65,7 +65,7 @@ type EventManagement struct {
 // statusName values: "pending" | "mapped" | "approved" | "rejected"
 type PendingEvent struct {
 	EventId       string         `json:"eventId"               bson:"eventId"`
-	OrgId         string         `json:"orgId"                 bson:"orgId"`
+	WorkspaceId         string         `json:"workspaceId"              bson:"workspaceId"`
 	EventType     string         `json:"eventType"             bson:"eventType"`
 	RawBody       map[string]any `json:"rawBody"               bson:"rawBody"`
 	FieldMappings []FieldMapping `json:"fieldMappings"         bson:"fieldMappings"`

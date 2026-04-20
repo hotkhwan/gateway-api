@@ -36,9 +36,14 @@ type lineBroadcastRequest struct {
 	Messages []lineMessage `json:"messages"`
 }
 
+// lineMessage is a polymorphic message container. For "text" messages, Text is set.
+// For "flex" messages, AltText + Contents are set. Unused fields stay empty and are
+// omitted from the wire JSON via the omitempty tags.
 type lineMessage struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
+	Type     string         `json:"type"`
+	Text     string         `json:"text,omitempty"`
+	AltText  string         `json:"altText,omitempty"`
+	Contents map[string]any `json:"contents,omitempty"`
 }
 
 type lineErrorResponse struct {
@@ -75,6 +80,10 @@ func NewClient(config authzmod.TargetConfig) *Client {
 
 // Send sends an event to LINE Messaging API.
 // Routing: len(To)==0 → broadcast, len(To)==1 → push, len(To)>1 → multicast.
+//
+// Message shape: if payload contains a "flex" object (built by the delivery
+// pipeline from template + binaryRefs), sends a Flex message; otherwise falls
+// back to a plain-text message composed of title + body.
 func (c *Client) Send(ctx context.Context, event interface{}, payload []byte) error {
 	token := c.config.ChannelAccessToken
 	if token == "" {
@@ -85,9 +94,7 @@ func (c *Client) Send(ctx context.Context, event interface{}, payload []byte) er
 	}
 	c.token = token
 
-	// Build message text from rendered payload (title + body) or fallback
-	msgText := buildMessageText(payload)
-	messages := []lineMessage{{Type: "text", Text: msgText}}
+	messages := buildLineMessages(payload)
 
 	recipients := c.config.To
 
@@ -164,15 +171,30 @@ func (c *Client) doRequest(ctx context.Context, url string, body []byte) error {
 	return nil
 }
 
-// buildMessageText extracts title/body from the rendered payload envelope.
-// If the payload has "title" and "body" (from buildMessagePayload), use those.
-// Otherwise fall back to a simple event summary.
-func buildMessageText(payload []byte) string {
+// buildLineMessages produces the []lineMessage to send: prefers Flex when the
+// payload envelope carries a "flex" object; otherwise emits a plain-text message.
+func buildLineMessages(payload []byte) []lineMessage {
 	var data map[string]any
 	if err := json.Unmarshal(payload, &data); err != nil {
-		return string(payload)
+		return []lineMessage{{Type: "text", Text: string(payload)}}
 	}
 
+	if flex, ok := data["flex"].(map[string]any); ok && len(flex) > 0 {
+		alt, _ := data["title"].(string)
+		if alt == "" {
+			alt, _ = data["body"].(string)
+		}
+		if alt == "" {
+			alt = "Event notification"
+		}
+		return []lineMessage{{Type: "flex", AltText: alt, Contents: flex}}
+	}
+
+	return []lineMessage{{Type: "text", Text: buildMessageText(data)}}
+}
+
+// buildMessageText returns a plain-text rendering of the event envelope.
+func buildMessageText(data map[string]any) string {
 	title, _ := data["title"].(string)
 	body, _ := data["body"].(string)
 

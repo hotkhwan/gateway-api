@@ -43,7 +43,7 @@ type EventDetail struct {
 
 	// Top-level convenience fields (FE backward compat)
 	// Projected from nested structures for list/detail API
-	OrgId string  `bson:"-" json:"orgId"`
+	WorkspaceId string `bson:"-" json:"workspaceId"`
 	Name  string  `bson:"-" json:"name"`
 	Lat   float64 `bson:"-" json:"lat"`
 	Lng   float64 `bson:"-" json:"lng"`
@@ -51,7 +51,7 @@ type EventDetail struct {
 
 // ProjectFlatFields populates top-level convenience fields from nested structures.
 func (e *EventDetail) ProjectFlatFields() {
-	e.OrgId = e.Source.OrgId
+	e.WorkspaceId = e.Source.WorkspaceId
 	e.Name = e.Source.DeviceName
 	e.Lat = e.Location.Lat
 	e.Lng = e.Location.Lng

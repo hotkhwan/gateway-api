@@ -58,7 +58,7 @@ func FindWithPagination[T any](
 
 	return gmod.Pagination{
 		Page:         page,
-		PerPages:     perPage,
+		PerPage:      perPage,
 		TotalRecords: int(total),
 		TotalPages:   totalPages,
 		SortField:    "", // สามารถเติมจากพารามิเตอร์ service

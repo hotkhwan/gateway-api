@@ -123,7 +123,7 @@ func (s *PermissionProfileService) Create(ctx context.Context, input CreatePermP
 
 	p := &authzmod.PermissionProfile{
 		TenantID:         input.TenantID,
-		OrgID:            input.OrgID,
+		WorkspaceID:            input.OrgID,
 		Name:             input.Name,
 		Description:      input.Description,
 		Status:           input.Status,

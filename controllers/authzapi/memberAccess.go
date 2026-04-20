@@ -31,13 +31,13 @@ func NewMemberAccessController(svc *authzsvc.MemberAccessService) *MemberAccessC
 // @Success      200 {object} gmod.SuccessDetailResponseMenuAccess
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/menu/access [get]
+// @Router       /orgs/menu/access [get]
 func (ctrl *MemberAccessController) MyMenuAccess(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MemberAccessController.MyMenuAccess", "authzapi", "MyMenuAccess")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 
 	menus, err := ctrl.svc.GetMemberMenuAccess(ctx, tenantId, orgId, userId)
@@ -62,23 +62,23 @@ func (ctrl *MemberAccessController) MyMenuAccess(c fiber.Ctx) error {
 // @Param        resourceType query string false "Filter by resource type (e.g. camera)"
 // @Param        search       query string false "Search camera name"
 // @Param        page         query int    false "Page number (default 1)"
-// @Param        perPages     query int    false "Items per page (default 10)"
+// @Param        perPage      query int    false "Items per page (default 10)"
 // @Param        sortField    query string false "Sort field (default createAt)"
 // @Param        sortOrder    query string false "Sort order: asc | desc (default desc)"
 // @Success      200 {object} gmod.SuccessDetailResponseResourceAccess
 // @Failure      401 {object} gmod.ApiErrorResponse
 // @Failure      500 {object} gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/resource/access [get]
+// @Router       /orgs/resource/access [get]
 func (ctrl *MemberAccessController) MyResourceAccess(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "MemberAccessController.MyResourceAccess", "authzapi", "MyResourceAccess")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPage, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPage, _ := strconv.Atoi(c.Query("perPage", "10"))
 
 	params := authzsvc.MemberCameraAccessParams{
 		ResourceType: c.Query("resourceType"),

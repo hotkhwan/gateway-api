@@ -45,9 +45,9 @@ func (r *EventManagementRepo) FindByEventId(
 ) (*ingestmod.EventManagement, error) {
 	var result ingestmod.EventManagement
 	err := stomongo.FindOne(ctx, "event_management", bson.M{
-		"tenantId": tenantId,
-		"orgId":    orgId,
-		"eventId":  eventId,
+		"tenantId":    tenantId,
+		"workspaceId": orgId,
+		"eventId":     eventId,
 	}, &result)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -67,7 +67,7 @@ func (r *EventManagementRepo) ListPending(
 	page, perPage int,
 	sortField, sortOrder string,
 ) ([]*ingestmod.EventManagement, *gmod.Pagination, error) {
-	filter := bson.M{"tenantId": tenantId, "orgId": orgId}
+	filter := bson.M{"tenantId": tenantId, "workspaceId": orgId}
 	if statusName != "all" {
 		filter["statusName"] = statusName
 	}
@@ -150,10 +150,10 @@ func (r *EventManagementRepo) FindByDeviceKey(
 ) (*ingestmod.EventManagement, error) {
 	var result ingestmod.EventManagement
 	err := stomongo.FindOne(ctx, "event_management", bson.M{
-		"tenantId":   tenantId,
-		"orgId":      orgId,
-		"deviceKey":  deviceKey,
-		"statusName": "pending",
+		"tenantId":    tenantId,
+		"workspaceId": orgId,
+		"deviceKey":   deviceKey,
+		"statusName":  "pending",
 	}, &result)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -183,9 +183,22 @@ func (r *EventManagementRepo) Delete(ctx context.Context, id string) error {
 
 // EnsureIndexes creates indexes for performance
 func (r *EventManagementRepo) EnsureIndexes(ctx context.Context) error {
+	// Migrate legacy orgId field → workspaceId for documents written before the rename.
+	_, _ = stomongo.UpdateManyPipeline(ctx, "event_management",
+		bson.M{"orgId": bson.M{"$exists": true}},
+		mongo.Pipeline{
+			bson.D{{Key: "$set", Value: bson.M{"workspaceId": "$orgId"}}},
+			bson.D{{Key: "$unset", Value: "orgId"}},
+		},
+	)
+
+	// Drop legacy orgId-based index that conflicts with the renamed workspaceId index.
+	// The index was renamed from orgId to workspaceId — MongoDB requires a drop before recreate.
+	_ = stomongo.DropIndexIfExists(ctx, "event_management", "idx_device_pending_lock")
+
 	indexes := []mongo.IndexModel{
 		{
-			Keys:    bson.D{{Key: "tenantId", Value: 1}, {Key: "orgId", Value: 1}, {Key: "eventId", Value: 1}},
+			Keys:    bson.D{{Key: "tenantId", Value: 1}, {Key: "workspaceId", Value: 1}, {Key: "eventId", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
 		{
@@ -194,12 +207,10 @@ func (r *EventManagementRepo) EnsureIndexes(ctx context.Context) error {
 		// Partial unique index for device pending lock.
 		// Applies ONLY to documents where statusName=="pending" AND deviceKey is non-empty.
 		// Excludes null/empty deviceKey so anonymous events (no device ID) never conflict.
-		// NOTE: if the old index (without deviceKey filter) exists in MongoDB, drop it first:
-		//   db.event_management.dropIndex("tenantId_1_orgId_1_deviceKey_1_statusName_1")
 		{
 			Keys: bson.D{
 				{Key: "tenantId", Value: 1},
-				{Key: "orgId", Value: 1},
+				{Key: "workspaceId", Value: 1},
 				{Key: "deviceKey", Value: 1},
 				{Key: "statusName", Value: 1},
 			},
@@ -213,6 +224,5 @@ func (r *EventManagementRepo) EnsureIndexes(ctx context.Context) error {
 		},
 	}
 
-	err := stomongo.CreateIndexes(ctx, "event_management", indexes)
-	return err
+	return stomongo.CreateIndexes(ctx, "event_management", indexes)
 }

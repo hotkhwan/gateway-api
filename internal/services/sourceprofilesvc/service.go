@@ -3,8 +3,10 @@ package sourceprofilesvc
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
+	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/repo/cachesourceprofile"
 	"github.com/hotkhwan/gateway-api/internal/repo/sourceprofilerepo"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
@@ -30,7 +32,11 @@ func (s *SourceProfileService) Create(ctx context.Context, p *ingestmod.SourcePr
 	now := time.Now().UTC()
 	p.CreatedAt = now
 	p.UpdatedAt = now
-	return s.repo.Insert(ctx, p)
+	if err := s.repo.Insert(ctx, p); err != nil {
+		return err
+	}
+	publishSourcesChanged(ctx, p.SourceFamily, "create")
+	return nil
 }
 
 func (s *SourceProfileService) Get(ctx context.Context, sourceFamily string) (*ingestmod.SourceProfile, error) {
@@ -64,6 +70,7 @@ func (s *SourceProfileService) Update(ctx context.Context, sourceFamily string, 
 		return err
 	}
 	cachesourceprofile.Invalidate(ctx, sourceFamily)
+	publishSourcesChanged(ctx, sourceFamily, "update")
 	return nil
 }
 
@@ -75,5 +82,20 @@ func (s *SourceProfileService) Delete(ctx context.Context, sourceFamily string) 
 		return err
 	}
 	cachesourceprofile.Invalidate(ctx, sourceFamily)
+	publishSourcesChanged(ctx, sourceFamily, "delete")
 	return nil
+}
+
+// publishSourcesChanged fires a non-blocking Kafka publish to gw.sources.changed.v1.
+// Non-fatal: errors are logged only.
+func publishSourcesChanged(ctx context.Context, sourceFamily, action string) {
+	topic := config.TopicEnv("KAFKA_TOPIC_GW_SOURCES", "gw.sources.changed.v1")
+	payload, _ := json.Marshal(map[string]any{
+		"sourceFamily": sourceFamily,
+		"action":       action,
+	})
+	headers := map[string]string{"sourceFamily": sourceFamily, "action": action}
+	go func() {
+		_ = config.SendToKafkaWithCtx(context.Background(), topic, sourceFamily, payload, headers)
+	}()
 }

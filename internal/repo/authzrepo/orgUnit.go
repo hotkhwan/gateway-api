@@ -30,10 +30,10 @@ func (r *OrgUnitRepo) EnsureIndexes(ctx context.Context) error {
 		r.collection,
 		bson.D{
 			{Key: "tenantId", Value: 1},
-			{Key: "orgId", Value: 1},
+			{Key: "workspaceId", Value: 1},
 			{Key: "unitId", Value: 1},
 		},
-		"uq_tenant_org_unitId",
+		"uq_tenant_workspace_unitId",
 	); err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func (r *OrgUnitRepo) EnsureIndexes(ctx context.Context) error {
 		{
 			Keys: bson.D{
 				{Key: "tenantId", Value: 1},
-				{Key: "orgId", Value: 1},
+				{Key: "workspaceId", Value: 1},
 				{Key: "parentUnitId", Value: 1},
 			},
 		},
@@ -56,7 +56,7 @@ func (r *OrgUnitRepo) EnsureIndexes(ctx context.Context) error {
 	rootUnique := mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "tenantId", Value: 1},
-			{Key: "orgId", Value: 1},
+			{Key: "workspaceId", Value: 1},
 			{Key: "name", Value: 1},
 		},
 		Options: options.Index().
@@ -79,7 +79,7 @@ func (r *OrgUnitRepo) ListByOrg(ctx context.Context, tenantId, orgId string) ([]
 	var result []authzmod.OrgUnit
 	err := stomongo.Find(ctx, r.collection, bson.M{
 		"tenantId": tenantId,
-		"orgId":    orgId,
+		"workspaceId": orgId,
 	}, nil, &result)
 	return result, err
 }
@@ -87,7 +87,7 @@ func (r *OrgUnitRepo) ListByOrg(ctx context.Context, tenantId, orgId string) ([]
 func (r *OrgUnitRepo) CountChildren(ctx context.Context, tenantId, orgId, parentUnitId string) (int64, error) {
 	return stomongo.Count(ctx, r.collection, bson.M{
 		"tenantId":     tenantId,
-		"orgId":        orgId,
+		"workspaceId":        orgId,
 		"parentUnitId": parentUnitId,
 	})
 }
@@ -106,7 +106,7 @@ func (r *OrgUnitRepo) FindChildren(
 		r.collection,
 		bson.M{
 			"tenantId":     tenantId,
-			"orgId":        orgId,
+			"workspaceId":        orgId,
 			"parentUnitId": parentUnitId,
 		},
 		nil,
@@ -124,7 +124,7 @@ func (r *OrgUnitRepo) UpdateMetadata(
 
 	filter := bson.M{
 		"tenantId": tenantId,
-		"orgId":    orgId,
+		"workspaceId": orgId,
 		"unitId":   unitId,
 	}
 
@@ -147,7 +147,7 @@ func (r *OrgUnitRepo) DeleteByUnitId(
 
 	filter := bson.M{
 		"tenantId": tenantId,
-		"orgId":    orgId,
+		"workspaceId": orgId,
 		"unitId":   unitId,
 	}
 
@@ -201,14 +201,14 @@ func (r *OrgUnitRepo) CountByOrg(
 
 	return stomongo.Count(ctx, r.collection, bson.M{
 		"tenantId": tenantId,
-		"orgId":    orgId,
+		"workspaceId": orgId,
 	})
 }
 
 func (r *OrgUnitRepo) ExistsByIDAndOrg(ctx context.Context, tenantId, orgId, unitId string) (bool, error) {
 	count, err := stomongo.Count(ctx, r.collection, bson.M{
 		"tenantId": tenantId,
-		"orgId":    orgId,
+		"workspaceId": orgId,
 		"unitId":   unitId,
 	})
 	return count > 0, err
@@ -224,7 +224,7 @@ func (r *OrgUnitRepo) UpdateParent(
 
 	filter := bson.M{
 		"tenantId": tenantId,
-		"orgId":    orgId,
+		"workspaceId": orgId,
 		"unitId":   unitId,
 	}
 

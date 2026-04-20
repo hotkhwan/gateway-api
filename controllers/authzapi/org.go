@@ -7,13 +7,15 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/workspacesvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
 type OrganizationController struct {
-	service *authzsvc.OrganizationService
+	service      *authzsvc.OrganizationService
+	workspaceSvc *workspacesvc.WorkspaceService
 }
 
 type CreateOrgRequest struct {
@@ -36,11 +38,11 @@ type DemoteFromOwnerRequest struct {
 	NewRole string `json:"newRole"` // "member" or "admin"
 }
 
-func NewOrganizationController(svc *authzsvc.OrganizationService) *OrganizationController {
+func NewOrganizationController(svc *authzsvc.OrganizationService, workspaceSvc *workspacesvc.WorkspaceService) *OrganizationController {
 	if svc == nil {
 		panic("organizationService required")
 	}
-	return &OrganizationController{service: svc}
+	return &OrganizationController{service: svc, workspaceSvc: workspaceSvc}
 }
 
 // =========================
@@ -56,19 +58,18 @@ func NewOrganizationController(svc *authzsvc.OrganizationService) *OrganizationC
 // @Success 200 {object} gmod.OrgListResponse
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 500 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs [get]
+// @Router /orgs [get]
 func (ctrl *OrganizationController) List(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.List", "authzapi", "List")
 	defer end()
 
 	userId, _ := c.Locals("userId").(string)
 	tenantId, _ := c.Locals("tenantId").(string)
-	// Use user's stored activeOrgId from JWT attributes, fallback to X-Active-Org header
 	userActiveOrgId, _ := c.Locals("userActiveOrgId").(string)
-	activeOrg, _ := c.Locals("activeOrg").(string)
+	activeWorkspace, _ := c.Locals("activeWorkspace").(string)
 	activeOrgId := userActiveOrgId
 	if activeOrgId == "" {
-		activeOrgId = activeOrg
+		activeOrgId = activeWorkspace
 	}
 
 	if userId == "" || tenantId == "" {
@@ -114,7 +115,7 @@ func (ctrl *OrganizationController) List(c fiber.Ctx) error {
 		Details: paged,
 		Pagination: gmod.Pagination{
 			Page:         page,
-			PerPages:     perPage,
+			PerPage:      perPage,
 			TotalRecords: total,
 			TotalPages:   totalPages,
 		},
@@ -131,7 +132,7 @@ func (ctrl *OrganizationController) List(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Router /api/v1/orgs [post]
+// @Router /orgs [post]
 func (ctrl *OrganizationController) Create(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.Create", "authzapi", "Create")
 	defer end()
@@ -169,33 +170,38 @@ func (ctrl *OrganizationController) Create(c fiber.Ctx) error {
 // =========================
 
 // GetIngestConfig godoc
-// @Summary Get ingest config for an organization (admin only)
-// @Description Returns ingest endpoint, masked secret, and rate limit config
-// @Tags Authorization
+// @Summary Get ingest config for the active workspace
+// @Description Returns ingest endpoint, masked secret, and rate limit config. Auto-provisions ingest key on first call.
+// @Tags Ingest
 // @Security BearerAuth
 // @Produce json
-// @Param id path string true "Organization ID"
 // @Success 200 {object} gmod.SuccessDataResponse
-// @Failure 401 {object} gmod.ApiErrorResponse
-// @Failure 403 {object} gmod.ApiErrorResponse
-// @Failure 404 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/{id}/ingest [get]
+// @Failure 401 {object} gmod.ErrorResponse
+// @Failure 404 {object} gmod.ErrorResponse
+// @Failure 500 {object} gmod.ErrorResponse
+// @Router /ingest [get]
 func (ctrl *OrganizationController) GetIngestConfig(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.GetIngestConfig", "authzapi", "GetIngestConfig")
 	defer end()
 
-	orgId := strings.TrimSpace(c.Locals("activeOrg").(string))
+	workspaceId := strings.TrimSpace(c.Locals("activeWorkspace").(string))
 	userId, _ := c.Locals("userId").(string)
 	tenantId, _ := c.Locals("tenantId").(string)
 
 	if userId == "" || tenantId == "" {
 		return httputil.FailUnauthorized(c, "Unauthorized")
 	}
+	if workspaceId == "" {
+		return httputil.FailBadRequest(c, "activeWorkspace required")
+	}
 
-	cfg, err := ctrl.service.GetIngestConfig(ctx, tenantId, userId, orgId)
+	if ctrl.workspaceSvc == nil {
+		return httputil.FailInternal(c, "workspace service not configured")
+	}
+
+	cfg, err := ctrl.workspaceSvc.GetIngestConfig(ctx, workspaceId)
 	if err != nil {
-		status, code := authzsvc.MapSvcError(err)
-		return httputil.Fail(c, status, code, err.Error())
+		return httputil.FailInternal(c, "get ingest config failed")
 	}
 
 	return httputil.Ok(c, cfg, "ingest config fetched")
@@ -216,23 +222,40 @@ func (ctrl *OrganizationController) GetIngestConfig(c fiber.Ctx) error {
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Failure 404 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/{id}/ingest/rotateSecret [post]
+// @Router /orgs/{id}/ingest/rotateSecret [post]
+// RotateIngestSecret godoc
+// @Summary Rotate ingest secret for the active workspace
+// @Description Generates a new HMAC signing key and returns the masked version
+// @Tags Ingest
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} gmod.SuccessDataResponse
+// @Failure 401 {object} gmod.ErrorResponse
+// @Failure 404 {object} gmod.ErrorResponse
+// @Failure 500 {object} gmod.ErrorResponse
+// @Router /ingest/rotateSecret [post]
 func (ctrl *OrganizationController) RotateIngestSecret(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.RotateIngestSecret", "authzapi", "RotateIngestSecret")
 	defer end()
 
-	orgId := strings.TrimSpace(c.Locals("activeOrg").(string))
+	workspaceId := strings.TrimSpace(c.Locals("activeWorkspace").(string))
 	userId, _ := c.Locals("userId").(string)
 	tenantId, _ := c.Locals("tenantId").(string)
 
 	if userId == "" || tenantId == "" {
 		return httputil.FailUnauthorized(c, "Unauthorized")
 	}
+	if workspaceId == "" {
+		return httputil.FailBadRequest(c, "activeWorkspace required")
+	}
 
-	cfg, err := ctrl.service.RotateIngestSecret(ctx, tenantId, userId, orgId)
+	if ctrl.workspaceSvc == nil {
+		return httputil.FailInternal(c, "workspace service not configured")
+	}
+
+	cfg, err := ctrl.workspaceSvc.RotateIngestSecret(ctx, workspaceId)
 	if err != nil {
-		status, code := authzsvc.MapSvcError(err)
-		return httputil.Fail(c, status, code, err.Error())
+		return httputil.FailInternal(c, "rotate ingest secret failed")
 	}
 
 	return httputil.Ok(c, cfg, "ingest secret rotated")
@@ -246,7 +269,7 @@ func (ctrl *OrganizationController) RotateIngestSecret(c fiber.Ctx) error {
 // @Summary Update organization
 // @Tags Authorization
 // @Security BearerAuth
-// @Router /api/v1/orgs/{id} [patch]
+// @Router /orgs/{id} [patch]
 func (ctrl *OrganizationController) Update(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.Update", "authzapi", "Update")
 	defer end()
@@ -286,7 +309,7 @@ func (ctrl *OrganizationController) Update(c fiber.Ctx) error {
 // @Summary Delete organization
 // @Tags Authorization
 // @Security BearerAuth
-// @Router /api/v1/orgs/{id} [delete]
+// @Router /orgs/{id} [delete]
 func (ctrl *OrganizationController) Delete(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.Delete", "authzapi", "Delete")
 	defer end()
@@ -322,7 +345,7 @@ func (ctrl *OrganizationController) Delete(c fiber.Ctx) error {
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Failure 409 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/{id}/owners/{userId} [post]
+// @Router /orgs/{id}/owners/{userId} [post]
 func (ctrl *OrganizationController) PromoteToOwner(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.PromoteToOwner", "authzapi", "PromoteToOwner")
 	defer end()
@@ -346,7 +369,7 @@ func (ctrl *OrganizationController) PromoteToOwner(c fiber.Ctx) error {
 	result.Code = gmod.CodeSuccess
 	result.Status = true
 	result.Message = "user promoted to owner"
-	result.Details.OrgId = orgId
+	result.Details.WorkspaceId = orgId
 	result.Details.UserId = userId
 	result.Details.Role = "owner"
 	result.Details.PromotedAt = time.Now().Unix()
@@ -368,7 +391,7 @@ func (ctrl *OrganizationController) PromoteToOwner(c fiber.Ctx) error {
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
 // @Failure 409 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/{id}/owners/{userId} [delete]
+// @Router /orgs/{id}/owners/{userId} [delete]
 func (ctrl *OrganizationController) DemoteFromOwner(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.DemoteFromOwner", "authzapi", "DemoteFromOwner")
 	defer end()
@@ -393,7 +416,7 @@ func (ctrl *OrganizationController) DemoteFromOwner(c fiber.Ctx) error {
 	result.Code = gmod.CodeSuccess
 	result.Status = true
 	result.Message = "user demoted from owner"
-	result.Details.OrgId = orgId
+	result.Details.WorkspaceId = orgId
 	result.Details.UserId = userId
 	result.Details.PreviousRole = "owner"
 	result.Details.NewRole = newRole
@@ -419,7 +442,7 @@ func (ctrl *OrganizationController) DemoteFromOwner(c fiber.Ctx) error {
 // @Failure 400 {object} gmod.ApiErrorResponse
 // @Failure 401 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/{id}/transfer-billing-ownership [post]
+// @Router /orgs/{id}/transfer-billing-ownership [post]
 func (ctrl *OrganizationController) TransferBillingOwnership(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.TransferBillingOwnership", "authzapi", "TransferBillingOwnership")
 	defer end()
@@ -462,7 +485,7 @@ func (ctrl *OrganizationController) TransferBillingOwnership(c fiber.Ctx) error 
 	result.Code = gmod.CodeSuccess
 	result.Status = true
 	result.Message = "billing ownership transferred"
-	result.Details.OrgId = orgId
+	result.Details.WorkspaceId = orgId
 	result.Details.PreviousOwnerId = oldBillingOwnerId
 	result.Details.NewOwnerId = newBillingOwnerId
 	result.Details.TransferredAt = time.Now().Unix()

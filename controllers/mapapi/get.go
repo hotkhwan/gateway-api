@@ -18,7 +18,7 @@ import (
 // @Accept json
 // @Produce json
 // @Param page query int false "Page number"
-// @Param perPages query int false "Items per page"
+// @Param perPage query int false "Items per page"
 // @Param sortOrder query string false "asc or desc"
 // @Success 200 {object} gmod.SuccessMessageResponse
 // @Failure 401 {object} gmod.ErrorResponse
@@ -30,7 +30,7 @@ func GetMAPPosition(c fiber.Ctx) error {
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPages, _ := strconv.Atoi(c.Query("perPage", "10"))
 	sortOrder := c.Query("sortOrder", "desc")
 
 	filters := map[string]string{}
@@ -46,7 +46,7 @@ func GetMAPPosition(c fiber.Ctx) error {
 
 	log.Info().
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPages).
 		Str("sortOrder", sortOrder).
 		Interface("filters", filters).
 		Msg("📡 [ListMAP] Listing map position")

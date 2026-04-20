@@ -18,18 +18,18 @@ var validOURelations = map[string]bool{
 }
 
 func (s *ResourceGroupService) AddDeviceToGroup(ctx context.Context, input AddDeviceToGroupInput, camRepo CameraRepo) error {
-	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
+	if err := s.guardManageOrg(ctx, input.TenantID, input.WorkspaceID, input.CallerID); err != nil {
 		return err
 	}
-	if _, err := s.groupRepo.FindByIDAndOrg(ctx, input.GroupID, input.TenantID, input.OrgID); err != nil {
+	if _, err := s.groupRepo.FindByIDAndOrg(ctx, input.GroupID, input.TenantID, input.WorkspaceID); err != nil {
 		return fmt.Errorf("group validation: %w", err)
 	}
-	deviceOrgID, err := camRepo.GetOrgID(ctx, input.DeviceID)
+	deviceWorkspaceID, err := camRepo.GetWorkspaceID(ctx, input.DeviceID)
 	if err != nil {
 		return fmt.Errorf("device not found: %w", err)
 	}
-	if deviceOrgID != input.OrgID {
-		return fmt.Errorf("cross-org injection blocked: device orgId mismatch")
+	if deviceWorkspaceID != input.WorkspaceID {
+		return fmt.Errorf("cross-workspace injection blocked: device workspaceId mismatch")
 	}
 	if err := s.authzClient.WriteTuples(ctx, input.TenantID, []map[string]any{
 		tupleDeviceParentGroup(input.DeviceID, input.GroupID),
@@ -40,7 +40,7 @@ func (s *ResourceGroupService) AddDeviceToGroup(ctx context.Context, input AddDe
 }
 
 func (s *ResourceGroupService) RemoveDeviceFromGroup(ctx context.Context, input AddDeviceToGroupInput, camRepo CameraRepo) error {
-	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
+	if err := s.guardManageOrg(ctx, input.TenantID, input.WorkspaceID, input.CallerID); err != nil {
 		return err
 	}
 	return s.authzClient.DeleteSpecificTupleWithRelation(
@@ -55,11 +55,11 @@ func (s *ResourceGroupService) AssignGroupToOU(ctx context.Context, input Assign
 		return fmt.Errorf("invalid relation '%s': must be creator|viewer|editor|deleter", input.Relation)
 	}
 	if ouErr := s.guardManageOU(ctx, input.TenantID, input.OUID, input.CallerID); ouErr != nil {
-		if orgErr := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); orgErr != nil {
+		if orgErr := s.guardManageOrg(ctx, input.TenantID, input.WorkspaceID, input.CallerID); orgErr != nil {
 			return ErrForbidden
 		}
 	}
-	if _, err := s.groupRepo.FindByIDAndOrg(ctx, input.GroupID, input.TenantID, input.OrgID); err != nil {
+	if _, err := s.groupRepo.FindByIDAndOrg(ctx, input.GroupID, input.TenantID, input.WorkspaceID); err != nil {
 		return fmt.Errorf("group validation: %w", err)
 	}
 	return s.authzClient.WriteTuples(ctx, input.TenantID, []map[string]any{
@@ -69,7 +69,7 @@ func (s *ResourceGroupService) AssignGroupToOU(ctx context.Context, input Assign
 
 func (s *ResourceGroupService) RemoveGroupFromOU(ctx context.Context, input AssignGroupToOUInput) error {
 	if ouErr := s.guardManageOU(ctx, input.TenantID, input.OUID, input.CallerID); ouErr != nil {
-		if orgErr := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); orgErr != nil {
+		if orgErr := s.guardManageOrg(ctx, input.TenantID, input.WorkspaceID, input.CallerID); orgErr != nil {
 			return ErrForbidden
 		}
 	}
@@ -86,22 +86,22 @@ func (s *ResourceGroupService) RemoveGroupFromOU(ctx context.Context, input Assi
 
 func (s *ResourceGroupService) BulkAssignGroupsToOU(
 	ctx context.Context,
-	tenantId, orgId, ouId, relation, callerUserId string,
+	tenantId, workspaceId, ouId, relation, callerUserId string,
 	items []OUGroupItem,
 ) ([]OUGroupBulkResult, int, int, error) {
 
 	log := logger.FromCtx(ctx, "devicesvc", "BulkAssignGroupsToOU")
 
-	if tenantId == "" || orgId == "" || ouId == "" || callerUserId == "" {
+	if tenantId == "" || workspaceId == "" || ouId == "" || callerUserId == "" {
 		return nil, 0, 0, ErrInvalidArgs
 	}
 	if !validOURelations[relation] {
 		return nil, 0, 0, fmt.Errorf("%w: relation must be creator|viewer|editor|deleter", ErrInvalidArgs)
 	}
 
-	// Permission: manage OU หรือ manage org
+	// Permission: manage OU หรือ manage workspace
 	if ouErr := s.guardManageOU(ctx, tenantId, ouId, callerUserId); ouErr != nil {
-		if orgErr := s.guardManageOrg(ctx, tenantId, orgId, callerUserId); orgErr != nil {
+		if orgErr := s.guardManageOrg(ctx, tenantId, workspaceId, callerUserId); orgErr != nil {
 			return nil, 0, 0, ErrForbidden
 		}
 	}
@@ -112,8 +112,8 @@ func (s *ResourceGroupService) BulkAssignGroupsToOU(
 	duplicates := 0
 
 	for _, item := range items {
-		// guard: resourceGroup ต้องมีในระบบและ belong to org
-		if _, err := s.groupRepo.FindByIDAndOrg(ctx, item.GroupID, tenantId, orgId); err != nil {
+		// guard: resourceGroup ต้องมีในระบบและ belong to workspace
+		if _, err := s.groupRepo.FindByIDAndOrg(ctx, item.GroupID, tenantId, workspaceId); err != nil {
 			results = append(results, OUGroupBulkResult{
 				GroupID: item.GroupID,
 				Success: false,
@@ -164,22 +164,22 @@ func (s *ResourceGroupService) BulkAssignGroupsToOU(
 
 func (s *ResourceGroupService) BulkRemoveGroupsFromOU(
 	ctx context.Context,
-	tenantId, orgId, ouId, relation, callerUserId string,
+	tenantId, workspaceId, ouId, relation, callerUserId string,
 	items []OUGroupItem,
 ) ([]OUGroupBulkResult, int, error) {
 
 	log := logger.FromCtx(ctx, "devicesvc", "BulkRemoveGroupsFromOU")
 
-	if tenantId == "" || orgId == "" || ouId == "" || callerUserId == "" {
+	if tenantId == "" || workspaceId == "" || ouId == "" || callerUserId == "" {
 		return nil, 0, ErrInvalidArgs
 	}
 	if !validOURelations[relation] {
 		return nil, 0, fmt.Errorf("%w: relation must be creator|viewer|editor|deleter", ErrInvalidArgs)
 	}
 
-	// Permission: manage OU หรือ manage org
+	// Permission: manage OU หรือ manage workspace
 	if ouErr := s.guardManageOU(ctx, tenantId, ouId, callerUserId); ouErr != nil {
-		if orgErr := s.guardManageOrg(ctx, tenantId, orgId, callerUserId); orgErr != nil {
+		if orgErr := s.guardManageOrg(ctx, tenantId, workspaceId, callerUserId); orgErr != nil {
 			return nil, 0, ErrForbidden
 		}
 	}
@@ -188,8 +188,8 @@ func (s *ResourceGroupService) BulkRemoveGroupsFromOU(
 	removed := 0
 
 	for _, item := range items {
-		// guard: resourceGroup ต้องมีในระบบและ belong to org
-		if _, err := s.groupRepo.FindByIDAndOrg(ctx, item.GroupID, tenantId, orgId); err != nil {
+		// guard: resourceGroup ต้องมีในระบบและ belong to workspace
+		if _, err := s.groupRepo.FindByIDAndOrg(ctx, item.GroupID, tenantId, workspaceId); err != nil {
 			results = append(results, OUGroupBulkResult{
 				GroupID: item.GroupID,
 				Success: false,
@@ -248,7 +248,7 @@ func (s *ResourceGroupService) BulkRemoveGroupsFromOU(
 
 // CreateDevice — ✅ signature ใหม่ + ✅ Roi convert [][]map[string]string → []interface{}
 func (s *ResourceGroupService) CreateDevice(ctx context.Context, input CreateDeviceInput, camRepo CameraRepo) (string, error) {
-	if err := s.guardManageOrg(ctx, input.TenantID, input.OrgID, input.CallerID); err != nil {
+	if err := s.guardManageOrg(ctx, input.TenantID, input.WorkspaceID, input.CallerID); err != nil {
 		return "", err
 	}
 
@@ -259,8 +259,8 @@ func (s *ResourceGroupService) CreateDevice(ctx context.Context, input CreateDev
 	}
 
 	deviceId, err := camRepo.Insert(ctx, devmod.CreateCameraInput{
-		TenantID: input.TenantID,
-		OrgID:    input.OrgID,
+		TenantID:    input.TenantID,
+		WorkspaceID: input.WorkspaceID,
 		CallerID: input.CallerID,
 		Name:     input.Device.Name,
 		User:     input.Device.User,
@@ -276,7 +276,7 @@ func (s *ResourceGroupService) CreateDevice(ctx context.Context, input CreateDev
 	}
 
 	if err := s.authzClient.WriteTuples(ctx, input.TenantID, []map[string]any{
-		tupleDeviceParentOrg(deviceId, input.OrgID),
+		tupleDeviceParentOrg(deviceId, input.WorkspaceID),
 	}); err != nil {
 		_ = camRepo.Delete(ctx, deviceId)
 		return "", fmt.Errorf("%w: %v", ErrPermifySyncFailed, err)

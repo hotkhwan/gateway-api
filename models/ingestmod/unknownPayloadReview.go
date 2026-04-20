@@ -8,7 +8,7 @@ import "time"
 // Status values: "pending" | "rejected"
 type UnknownPayloadReview struct {
 	ReviewId               string         `json:"reviewId"               bson:"reviewId"`
-	OrgId                  string         `json:"orgId"                  bson:"orgId"`
+	WorkspaceId                  string         `json:"workspaceId"              bson:"workspaceId"`
 	SourceFamily           string         `json:"sourceFamily"           bson:"sourceFamily"`
 	Fingerprint            string         `json:"fingerprint"            bson:"fingerprint"`
 	SamplePayload          map[string]any `json:"samplePayload"          bson:"samplePayload"`

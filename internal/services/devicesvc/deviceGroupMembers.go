@@ -34,7 +34,7 @@ type GroupDeviceBulkResult struct {
 func (s *ResourceGroupService) AddDevicesToGroup(
 	ctx context.Context,
 	tenantId string,
-	orgId string,
+	workspaceId string,
 	groupId string,
 	callerUserId string,
 	devices []GroupDeviceItem,
@@ -43,7 +43,7 @@ func (s *ResourceGroupService) AddDevicesToGroup(
 
 	log := logger.FromCtx(ctx, "devicesvc", "AddDevicesToGroup")
 
-	if tenantId == "" || orgId == "" || groupId == "" || callerUserId == "" {
+	if tenantId == "" || workspaceId == "" || groupId == "" || callerUserId == "" {
 		return nil, 0, 0, ErrInvalidArgs
 	}
 
@@ -53,7 +53,7 @@ func (s *ResourceGroupService) AddDevicesToGroup(
 		tenantId,
 		config.CurrentSchemaVersion,
 		"organization",
-		orgId,
+		workspaceId,
 		"manage",
 		"user",
 		callerUserId,
@@ -65,8 +65,8 @@ func (s *ResourceGroupService) AddDevicesToGroup(
 		return nil, 0, 0, ErrForbidden
 	}
 
-	// 2) Verify group belongs to org (cross-org guard)
-	group, err := s.groupRepo.FindByIDAndOrg(ctx, groupId, tenantId, orgId)
+	// 2) Verify group belongs to workspace (cross-workspace guard)
+	group, err := s.groupRepo.FindByIDAndOrg(ctx, groupId, tenantId, workspaceId)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -78,7 +78,7 @@ func (s *ResourceGroupService) AddDevicesToGroup(
 
 	for _, d := range devices {
 		// guard: camId ต้องมีในระบบ
-		deviceOrgID, err := camRepo.GetOrgID(ctx, d.DeviceID)
+		deviceWorkspaceID, err := camRepo.GetWorkspaceID(ctx, d.DeviceID)
 		if err != nil {
 			results = append(results, GroupDeviceBulkResult{
 				DeviceID: d.DeviceID,
@@ -87,11 +87,11 @@ func (s *ResourceGroupService) AddDevicesToGroup(
 			})
 			continue
 		}
-		if deviceOrgID != orgId {
+		if deviceWorkspaceID != workspaceId {
 			results = append(results, GroupDeviceBulkResult{
 				DeviceID: d.DeviceID,
 				Success:  false,
-				Error:    "device does not belong to this organization",
+				Error:    "device does not belong to this workspace",
 			})
 			continue
 		}
@@ -153,7 +153,7 @@ func (s *ResourceGroupService) AddDevicesToGroup(
 func (s *ResourceGroupService) RemoveDevicesFromGroup(
 	ctx context.Context,
 	tenantId string,
-	orgId string,
+	workspaceId string,
 	groupId string,
 	callerUserId string,
 	devices []GroupDeviceItem,
@@ -162,7 +162,7 @@ func (s *ResourceGroupService) RemoveDevicesFromGroup(
 
 	log := logger.FromCtx(ctx, "devicesvc", "RemoveDevicesFromGroup")
 
-	if tenantId == "" || orgId == "" || groupId == "" || callerUserId == "" {
+	if tenantId == "" || workspaceId == "" || groupId == "" || callerUserId == "" {
 		return nil, 0, ErrInvalidArgs
 	}
 
@@ -172,7 +172,7 @@ func (s *ResourceGroupService) RemoveDevicesFromGroup(
 		tenantId,
 		config.CurrentSchemaVersion,
 		"organization",
-		orgId,
+		workspaceId,
 		"manage",
 		"user",
 		callerUserId,
@@ -184,8 +184,8 @@ func (s *ResourceGroupService) RemoveDevicesFromGroup(
 		return nil, 0, ErrForbidden
 	}
 
-	// 2) Verify group belongs to org
-	if _, err := s.groupRepo.FindByIDAndOrg(ctx, groupId, tenantId, orgId); err != nil {
+	// 2) Verify group belongs to workspace
+	if _, err := s.groupRepo.FindByIDAndOrg(ctx, groupId, tenantId, workspaceId); err != nil {
 		return nil, 0, err
 	}
 
@@ -194,7 +194,7 @@ func (s *ResourceGroupService) RemoveDevicesFromGroup(
 
 	for _, d := range devices {
 		// guard: camId ต้องมีในระบบ
-		deviceOrgID, err := camRepo.GetOrgID(ctx, d.DeviceID)
+		deviceWorkspaceID, err := camRepo.GetWorkspaceID(ctx, d.DeviceID)
 		if err != nil {
 			results = append(results, GroupDeviceBulkResult{
 				DeviceID: d.DeviceID,
@@ -203,11 +203,11 @@ func (s *ResourceGroupService) RemoveDevicesFromGroup(
 			})
 			continue
 		}
-		if deviceOrgID != orgId {
+		if deviceWorkspaceID != workspaceId {
 			results = append(results, GroupDeviceBulkResult{
 				DeviceID: d.DeviceID,
 				Success:  false,
-				Error:    "device does not belong to this organization",
+				Error:    "device does not belong to this workspace",
 			})
 			continue
 		}
@@ -299,15 +299,15 @@ type ListResourceGroupsInOUResult struct {
 
 func (s *ResourceGroupService) ListCamerasInGroup(
 	ctx context.Context,
-	tenantId, orgId, groupId string,
+	tenantId, workspaceId, groupId string,
 	params ListInGroupParams,
 	camRepo CameraRepo,
 ) (*ListCamerasInGroupResult, error) {
 
 	log := logger.FromCtx(ctx, "devicesvc", "ListCamerasInGroup")
 
-	// 1) ตรวจ group ว่าอยู่ใน org
-	if _, err := s.groupRepo.FindByIDAndOrg(ctx, groupId, tenantId, orgId); err != nil {
+	// 1) ตรวจ group ว่าอยู่ใน workspace
+	if _, err := s.groupRepo.FindByIDAndOrg(ctx, groupId, tenantId, workspaceId); err != nil {
 		return nil, err
 	}
 
@@ -384,7 +384,7 @@ func (s *ResourceGroupService) ListCamerasInGroup(
 
 func (s *ResourceGroupService) ListResourceGroupsInOU(
 	ctx context.Context,
-	tenantId, orgId, ouId string,
+	tenantId, workspaceId, ouId string,
 	params ListInGroupParams,
 ) (*ListResourceGroupsInOUResult, error) {
 
@@ -437,10 +437,10 @@ func (s *ResourceGroupService) ListResourceGroupsInOU(
 	}
 
 	// 4) fetch from MongoDB with pagination
-	groups, total, err := s.groupRepo.FindByGroupIDs(ctx, tenantId, orgId, groupIds, devicerepo.ListOptions{
+	groups, total, err := s.groupRepo.FindByGroupIDs(ctx, tenantId, workspaceId, groupIds, devicerepo.ListOptions{
 		Search:    params.Search,
 		Page:      page,
-		PerPages:  perPage,
+		PerPage:   perPage,
 		SortField: sortField,
 		SortOrder: params.SortOrder,
 	})

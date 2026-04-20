@@ -29,7 +29,7 @@ func ListMembers(ctx context.Context, page, perPages int, filters map[string]str
 
 	log.Debug().
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPages).
 		Str("sortField", sortField).
 		Str("sortOrder", sortOrder).
 		Interface("filters", filters).
@@ -80,7 +80,7 @@ func ListMembers(ctx context.Context, page, perPages int, filters map[string]str
 
 	pagination := gmod.Pagination{
 		Page:         page,
-		PerPages:     perPages,
+		PerPage:      perPages,
 		TotalRecords: len(members),
 		TotalPages:   (len(members) + perPages - 1) / perPages,
 		SortField:    sortField,

@@ -14,7 +14,7 @@ type EventUpdateInput struct {
 // ListEventsInput represents list events query parameters
 type ListEventsInput struct {
 	TenantId   string `json:"tenantId"`
-	OrgId      string `json:"orgId"`
+	WorkspaceId string `json:"workspaceId"`
 	StatusName string `json:"statusName"` // "pending", "approved", "rejected", "all"
 	EventType  string `json:"eventType"`  // optional filter
 	Page       int    `json:"page"`

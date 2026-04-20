@@ -27,6 +27,10 @@ type SuggestionRuleItem struct {
 
 // SuggestionFieldMap maps a source payload field path to a target field path.
 type SuggestionFieldMap struct {
-	SourceField string `json:"sourceField"`
-	TargetField string `json:"targetField"`
+	SourceField string            `json:"sourceField"`
+	TargetField string            `json:"targetField"`
+	// ValueCodes maps raw integer/string codes to human-readable labels.
+	// Normalizer generates a `<targetField>_label` field for matched codes.
+	// Example: {"0": "Unknown", "1": "Male", "2": "Female"}
+	ValueCodes  map[string]string `json:"valueCodes,omitempty"`
 }

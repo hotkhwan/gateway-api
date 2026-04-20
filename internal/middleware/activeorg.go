@@ -13,6 +13,8 @@ import (
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
+// Deprecated: use ActiveWorkspace() + X-Active-Workspace header instead.
+// Kept temporarily for legacy klynx-api-facing routes during migration.
 const activeOrgHeader = "X-Active-Org"
 
 func maskId(v string) string {

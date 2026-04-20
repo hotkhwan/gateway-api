@@ -22,7 +22,7 @@ import (
 // @Produce      json
 //
 // @Param        page       query     int     false  "Page number"                  default(1)
-// @Param        perPages   query     int     false  "Items per page"               default(20)
+// @Param        perPage    query     int     false  "Items per page"               default(20)
 // @Param        sortField  query     string  false  "Sort field"                   default(createdAt)
 // @Param        sortOrder  query     string  false  "Sort order"                   Enums(asc,desc) default(desc)
 //
@@ -42,7 +42,7 @@ func ListAlarmsLogs(c fiber.Ctx) error {
 	defer end()
 
 	page := fiber.Query[int](c, "page", 1)
-	perPages := fiber.Query[int](c, "perPages", 20)
+	perPages := fiber.Query[int](c, "perPage", 20)
 
 	sortOrder := strings.ToLower(strings.TrimSpace(c.Query("sortOrder", "desc")))
 	sortField := strings.TrimSpace(c.Query("sortField", "createdAt"))

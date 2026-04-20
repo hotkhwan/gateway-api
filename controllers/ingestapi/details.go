@@ -23,7 +23,7 @@ func NewEventDetailsController(service *ingestsvc.ApprovalService) *EventDetails
 
 func (ctrl *EventDetailsController) mustLocals(c fiber.Ctx) (tenantId, orgId, callerUserId string) {
 	tenantId, _ = c.Locals("tenantId").(string)
-	orgId, _ = c.Locals("activeOrg").(string)
+	orgId, _ = c.Locals("activeWorkspace").(string)
 	callerUserId, _ = c.Locals("userId").(string)
 	return
 }
@@ -43,7 +43,7 @@ func (ctrl *EventDetailsController) mustLocals(c fiber.Ctx) (tenantId, orgId, ca
 // @Success      200  {object}  gmod.PaginatedResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/details [get]
+// @Router       /ingest/details [get]
 func (ctrl *EventDetailsController) ListApprovedEvents(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventDetailsController.ListApprovedEvents", "ingestapi", "ListApprovedEvents")
 	defer end()
@@ -52,7 +52,7 @@ func (ctrl *EventDetailsController) ListApprovedEvents(c fiber.Ctx) error {
 
 	input := ingestmod.ListEventsInput{
 		TenantId:  tenantId,
-		OrgId:     orgId,
+		WorkspaceId:     orgId,
 		EventType: c.Query("eventType", ""),
 		Page:      fiber.Query[int](c, "page", 1),
 		PerPage:   fiber.Query[int](c, "perPage", 10),
@@ -75,7 +75,7 @@ func (ctrl *EventDetailsController) ListApprovedEvents(c fiber.Ctx) error {
 
 	pagination := gmod.Pagination{
 		Page:         input.Page,
-		PerPages:     input.PerPage,
+		PerPage:     input.PerPage,
 		TotalRecords: int(result.Total),
 		TotalPages:   result.TotalPages,
 		SortField:    input.SortField,
@@ -106,7 +106,7 @@ func (ctrl *EventDetailsController) ListApprovedEvents(c fiber.Ctx) error {
 // @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
 // @Failure      500  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/details/{eventId} [get]
+// @Router       /ingest/details/{eventId} [get]
 func (ctrl *EventDetailsController) GetApprovedEvent(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "EventDetailsController.GetApprovedEvent", "ingestapi", "GetApprovedEvent")
 	defer end()

@@ -102,13 +102,14 @@ type TargetConfig struct {
 
 // DeliveryTarget คือ "ปลายทาง" ที่ event จะถูก forward ไป
 type DeliveryTarget struct {
-	TargetId string `bson:"targetId" json:"id"`
-	TenantId string `bson:"tenantId" json:"-"`
-	OrgId    string `bson:"orgId"    json:"orgId"`
+	TargetId    string `bson:"targetId"    json:"id"`
+	TenantId    string `bson:"tenantId"    json:"-"`
+	WorkspaceId string `bson:"workspaceId" json:"workspaceId"`
 
 	Name    string `bson:"name"    json:"name"`
-	Type    string `bson:"type"    json:"type"`    // webhook|line|telegram|discord
-	Enabled bool   `bson:"enabled" json:"enabled"` // default true
+	Type    string `bson:"type"    json:"type"`              // webhook|line|telegram|discord
+	Mode    string `bson:"mode,omitempty" json:"mode,omitempty"` // "klynx" = system routing marker (EventBridge); absent for regular targets
+	Enabled bool   `bson:"enabled" json:"enabled"`           // default true
 
 	Config TargetConfig `bson:"config" json:"config"`
 

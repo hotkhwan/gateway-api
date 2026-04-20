@@ -20,18 +20,18 @@ import (
 // @Param X-Active-Org header string true "Active Organization ID"
 // @Success 200 {object} gmod.OrgListResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/users/members [get]
+// @Router /orgs/users/members [get]
 func (ctrl *OrganizationController) ListMembers(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.ListMembers", "authzapi", "ListMembers")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	callerUserId, _ := c.Locals("userId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 
-	sizeStr := c.Query("perPages", "")
+	sizeStr := c.Query("perPage", "")
 	if sizeStr == "" {
 		sizeStr = c.Query("size", "10")
 	}
@@ -67,7 +67,7 @@ func (ctrl *OrganizationController) ListMembers(c fiber.Ctx) error {
 		Details: members,
 		Pagination: gmod.Pagination{
 			Page:         page,
-			PerPages:     size,
+			PerPage:      size,
 			TotalRecords: totalRecords,
 			TotalPages:   totalPages,
 			SortField:    sortField,

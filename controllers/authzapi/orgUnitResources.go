@@ -51,11 +51,11 @@ type ouResourceBulkResponse struct {
 // @Param        unitId    path   string  true   "orgUnit id"
 // @Param        search    query  string  false  "search by name"
 // @Param        page      query  int     false  "page"      default(1)
-// @Param        perPages  query  int     false  "per page"  default(10)
+// @Param        perPage   query  int     false  "per page"  default(10)
 // @Param        sortField query  string  false  "sort field"
 // @Param        sortOrder query  string  false  "asc|desc"
 // @Success      200  {object}  map[string]interface{}
-// @Router       /api/v1/orgs/units/{unitId}/resources [get]
+// @Router       /orgs/units/{unitId}/resources [get]
 // ============================================================
 
 func (ctrl *OrgUnitResourcesController) ListResourceGroups(c fiber.Ctx) error {
@@ -63,11 +63,11 @@ func (ctrl *OrgUnitResourcesController) ListResourceGroups(c fiber.Ctx) error {
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	unitId := c.Params("unitId")
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPage, _ := strconv.Atoi(c.Query("perPage", "10"))
 
 	result, err := ctrl.groupSvc.ListResourceGroupsInOU(
 		c,
@@ -75,7 +75,7 @@ func (ctrl *OrgUnitResourcesController) ListResourceGroups(c fiber.Ctx) error {
 		devicesvc.ListInGroupParams{
 			Search:    c.Query("search"),
 			Page:      page,
-			PerPage:   perPages,
+			PerPage:   perPage,
 			SortField: c.Query("sortField", "createdAt"),
 			SortOrder: c.Query("sortOrder", "desc"),
 		},
@@ -91,7 +91,7 @@ func (ctrl *OrgUnitResourcesController) ListResourceGroups(c fiber.Ctx) error {
 		"details": result.Items,
 		"pagination": fiber.Map{
 			"page":         result.Page,
-			"perPages":     result.PerPage,
+			"perPage":      result.PerPage,
 			"totalRecords": result.TotalRecords,
 			"totalPages":   result.TotalPages,
 		},
@@ -125,7 +125,7 @@ func handleOUResourceErr(c fiber.Ctx, err error) error {
 // @Success      200     {object}  ouResourceBulkResponse
 // @Failure      400     {object}  gmod.ApiErrorResponse
 // @Failure      403     {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/units/{unitId}/resources [post]
+// @Router       /orgs/units/{unitId}/resources [post]
 // ============================================================
 
 func (ctrl *OrgUnitResourcesController) AssignResourceGroups(c fiber.Ctx) error {
@@ -133,7 +133,7 @@ func (ctrl *OrgUnitResourcesController) AssignResourceGroups(c fiber.Ctx) error 
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 	unitId := c.Params("unitId")
 
@@ -194,7 +194,7 @@ func (ctrl *OrgUnitResourcesController) AssignResourceGroups(c fiber.Ctx) error 
 // @Success      200     {object}  ouResourceBulkResponse
 // @Failure      400     {object}  gmod.ApiErrorResponse
 // @Failure      403     {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/orgs/units/{unitId}/resources [delete]
+// @Router       /orgs/units/{unitId}/resources [delete]
 // ============================================================
 
 func (ctrl *OrgUnitResourcesController) RemoveResourceGroups(c fiber.Ctx) error {
@@ -202,7 +202,7 @@ func (ctrl *OrgUnitResourcesController) RemoveResourceGroups(c fiber.Ctx) error 
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 	userId, _ := c.Locals("userId").(string)
 	unitId := c.Params("unitId")
 

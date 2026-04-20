@@ -31,7 +31,7 @@ func NewUnknownPayloadReviewController(
 }
 
 func (h *UnknownPayloadReviewController) orgId(c fiber.Ctx) string {
-	oid, _ := c.Locals("activeOrg").(string)
+	oid, _ := c.Locals("activeWorkspace").(string)
 	return oid
 }
 
@@ -46,17 +46,17 @@ func (h *UnknownPayloadReviewController) userId(c fiber.Ctx) string {
 // @Security     BearerAuth
 // @Param        X-Active-Org  header  string  true  "Active Org ID"
 // @Param        page          query   int     false "Page" default(1)
-// @Param        perPages      query   int     false "Per page" default(10)
+// @Param        perPage       query   int     false "Per page" default(10)
 // @Success      200  {object}  gmod.PaginationResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/unknownPayloadReviews [get]
+// @Router       /ingest/unknownPayloadReviews [get]
 func (h *UnknownPayloadReviewController) List(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "UnknownPayloadReviewController.List", "ingestapi", "ListUnknownPayloadReviews")
 	defer end()
 
 	orgId := h.orgId(c)
 	page := fiber.Query[int](c, "page", 1)
-	perPage := fiber.Query[int](c, "perPages", 10)
+	perPage := fiber.Query[int](c, "perPage", 10)
 
 	items, pag, err := h.svc.List(ctx, orgId, page, perPage)
 	if err != nil {
@@ -80,7 +80,7 @@ func (h *UnknownPayloadReviewController) List(c fiber.Ctx) error {
 // @Param        id            path    string  true  "Review ID"
 // @Success      200  {object}  gmod.SuccessDataResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/unknownPayloadReviews/{id} [get]
+// @Router       /ingest/unknownPayloadReviews/{id} [get]
 func (h *UnknownPayloadReviewController) Get(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "UnknownPayloadReviewController.Get", "ingestapi", "GetUnknownPayloadReview")
 	defer end()
@@ -107,7 +107,7 @@ func (h *UnknownPayloadReviewController) Get(c fiber.Ctx) error {
 // @Param        id            path    string  true  "Review ID"
 // @Success      200  {object}  gmod.SuccessDataResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/unknownPayloadReviews/{id}/reject [post]
+// @Router       /ingest/unknownPayloadReviews/{id}/reject [post]
 func (h *UnknownPayloadReviewController) Reject(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "UnknownPayloadReviewController.Reject", "ingestapi", "RejectUnknownPayloadReview")
 	defer end()

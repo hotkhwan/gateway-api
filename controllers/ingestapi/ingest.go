@@ -2,24 +2,71 @@
 package ingestapi
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/hotkhwan/gateway-api/internal/adapters/alertdispatcher"
+	"github.com/hotkhwan/gateway-api/internal/services/bindingsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
+	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/hotkhwan/gateway-api/utils/httputil"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 )
 
-type IngestController struct {
-	service *ingestsvc.IngestService
+// ingestSvcI is the service subset used by IngestController.
+// *ingestsvc.IngestService satisfies this interface.
+type ingestSvcI interface {
+	Ingest(ctx context.Context, orgId, sourceFamily, sourceIp, contentType string, body []byte) (*ingestsvc.IngestResult, error)
 }
 
-func NewIngestController(svc *ingestsvc.IngestService) *IngestController {
+// alertDispatcherI is the dispatcher subset used by IngestController.
+// *alertdispatcher.Dispatcher satisfies this interface.
+type alertDispatcherI interface {
+	Dispatch(alert alertdispatcher.FastAlertEnvelope) bool
+}
+
+// alertDetectorI is the detector subset used by IngestController.
+// *alertdetectorsvc.AlertDetector satisfies this interface.
+type alertDetectorI interface {
+	HasAlert(payload map[string]any) bool
+	Extract(payload map[string]any) map[string]any
+}
+
+// realtimeBindingGetter is the binding-service subset used for Path A realtime dispatch.
+// *bindingsvc.BindingService satisfies this interface.
+type realtimeBindingGetter interface {
+	GetRealtimeBindings(ctx context.Context, workspaceId string) ([]ingestmod.TemplateDeliveryBinding, bool)
+}
+
+type IngestController struct {
+	service    ingestSvcI
+	alertDisp  alertDispatcherI       // nil = fast alert disabled
+	alertDet   alertDetectorI         // nil = fast alert disabled
+	bindingSvc realtimeBindingGetter  // nil = realtime binding dispatch disabled
+}
+
+func NewIngestController(svc ingestSvcI) *IngestController {
 	if svc == nil {
 		panic("IngestController: service required")
 	}
 	return &IngestController{service: svc}
+}
+
+// SetAlertDispatcher wires the bounded alert dispatcher and detector.
+// Call from container after construction.
+func (ctrl *IngestController) SetAlertDispatcher(d alertDispatcherI, det alertDetectorI) {
+	ctrl.alertDisp = d
+	ctrl.alertDet = det
+}
+
+// SetBindingService wires the binding service for realtime binding-based dispatch.
+// Call from container after construction.
+func (ctrl *IngestController) SetBindingService(svc realtimeBindingGetter) {
+	ctrl.bindingSvc = svc
 }
 
 // Ingest godoc
@@ -65,6 +112,52 @@ func (ctrl *IngestController) Ingest(c fiber.Ctx) error {
 		Str("contentType", contentType).
 		Int("bodySize", len(body)).
 		Msg("📥 [Ingest] incoming event")
+
+	// Path A — Fast Alert (provisional, non-blocking)
+	// Runs before Path B (Kafka publish) so the alert reaches UI before canonical storage.
+	// Uses traceutil.DetachWithParent so the dispatcher goroutine outlives the request.
+	// Parse payload once and reuse for both alert detection and binding dispatch.
+	now := time.Now().UTC().Format(time.RFC3339)
+	var parsedPayload map[string]any
+	_ = json.Unmarshal(body, &parsedPayload) // best-effort; nil on failure
+
+	if ctrl.alertDisp != nil && ctrl.alertDet != nil && parsedPayload != nil {
+		if ctrl.alertDet.HasAlert(parsedPayload) {
+			alertCtx := traceutil.DetachWithParent(ctx)
+			_ = alertCtx // ctx carried implicitly via closure below
+			alert := alertdispatcher.FastAlertEnvelope{
+				EventID:      "", // will be populated by Path B; UI reconciles later
+				WorkspaceID:  orgId,
+				SourceFamily: sourceFamily,
+				OccurredAt:   now,
+				Provisional:  true,
+				Canonical:    false,
+				AlertFields:  ctrl.alertDet.Extract(parsedPayload),
+			}
+			ctrl.alertDisp.Dispatch(alert)
+		}
+	}
+
+	// Realtime binding dispatch — check Redis cache for workspace bindings.
+	// For each enabled realtime binding whose matchFields matches the payload, fire a provisional alert.
+	// Non-blocking: uses the same alertdispatcher to avoid delaying the main Kafka path.
+	if ctrl.bindingSvc != nil && ctrl.alertDisp != nil && parsedPayload != nil {
+		if bindings, ok := ctrl.bindingSvc.GetRealtimeBindings(ctx, orgId); ok {
+			for _, b := range bindings {
+				if bindingsvc.MatchesFields(parsedPayload, b.MatchFields) {
+					ctrl.alertDisp.Dispatch(alertdispatcher.FastAlertEnvelope{
+						EventID:      "", // populated by Path B; UI reconciles via canonical notify
+						WorkspaceID:  orgId,
+						SourceFamily: sourceFamily,
+						OccurredAt:   now,
+						Provisional:  true,
+						Canonical:    false,
+						AlertFields:  parsedPayload,
+					})
+				}
+			}
+		}
+	}
 
 	result, err := ctrl.service.Ingest(ctx, orgId, sourceFamily, sourceIp, contentType, body)
 	if err != nil {

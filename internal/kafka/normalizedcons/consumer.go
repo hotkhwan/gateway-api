@@ -6,12 +6,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/internal/eventschema"
+	"github.com/hotkhwan/gateway-api/internal/gateways/webhookgw"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/alertmsg"
+	"github.com/hotkhwan/gateway-api/internal/sourcemapping/aibox"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
+	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"github.com/segmentio/kafka-go"
 )
+
+// PublishCanonicalNotify implements CanonicalNotifier using alertmsg.
+func (a *alertmsgNotifier) PublishCanonicalNotify(workspaceID, sourceFamily, eventID string) error {
+	return alertmsg.PublishCanonicalNotify(workspaceID, sourceFamily, eventID)
+}
 
 // StartNormalizerConsumer starts consuming raw.events, normalizes each event,
 // writes to event_details (MongoDB) and publishes to normalized.events.
@@ -80,37 +91,82 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 	for _, h := range m.Headers {
 		hdrs[h.Key] = string(h.Value)
 	}
-	orgId := hdrs["orgId"]
+	workspaceId := hdrs["workspaceId"]
 	tenantId := hdrs["tenantId"]
 	templateId := hdrs["templateId"]
 	traceId := hdrs["traceId"]
 
-	// Prefer headers over payload fields for tenantId/orgId (more authoritative)
+	// Prefer headers over payload fields for tenantId/workspaceId (more authoritative)
 	if canonical.TenantId == "" {
 		canonical.TenantId = tenantId
 	}
-	if canonical.Source.OrgId == "" {
-		canonical.Source.OrgId = orgId
+	if canonical.Source.WorkspaceId == "" {
+		canonical.Source.WorkspaceId = workspaceId
 	}
 
 	// 3) Apply template mappings → normalizedFields
-	normalizedFields := applyTemplate(ctx, canonical, templateId, orgId, deps.TemplateRepo, log)
+	normalizedFields := applyTemplate(ctx, canonical, templateId, workspaceId, deps.TemplateRepo, log)
 
-	// 4) Geo enrichment from lat/lng
+	// 3b) Device management enrichment — resolve before geo so lat/lng backfill feeds reverseGeocode.
+	var deviceMgmtId string
+	if deps.DeviceMgmtResolver != nil && canonical.Source.DeviceId != "" {
+		if dm := deps.DeviceMgmtResolver.Resolve(
+			ctx, tenantId, workspaceId,
+			canonical.SourceFamily, canonical.Source.DeviceType, canonical.Source.DeviceId,
+		); dm != nil {
+			deviceMgmtId = dm.DeviceMgmtId
+			// Backfill canonical.Location when the event carries no coordinates.
+			// This lets reverseGeocode and geoCell use the registered device position.
+			if canonical.Location.Lat == 0 && canonical.Location.Lng == 0 {
+				canonical.Location.Lat = dm.Lat
+				canonical.Location.Lng = dm.Lng
+			}
+			if canonical.Location.Site == "" && dm.Site != "" {
+				canonical.Location.Site = dm.Site
+			}
+			if canonical.Location.Zone == "" && dm.Zone != "" {
+				canonical.Location.Zone = dm.Zone
+			}
+		}
+	}
+	// Backfill zone from payload field (e.g. AIBOX sends "zone": "PHK") when still unset.
+	if canonical.Location.Zone == "" {
+		if zoneVal, ok := canonical.Payload["zone"]; ok {
+			if zoneStr, ok := zoneVal.(string); ok && zoneStr != "" {
+				canonical.Location.Zone = zoneStr
+			}
+		}
+	}
+
+	// 4) Geo enrichment from lat/lng (uses backfilled coordinates when event had none)
 	geo := reverseGeocode(canonical.Location.Lat, canonical.Location.Lng, deps.GeoCfg)
 	geoCell := computeGeoCell(canonical.Location.Lat, canonical.Location.Lng, deps.GeoCfg)
 	byArea := buildByAdminArea(geo)
 
 	// 5) Extract binary fields → S3
-	binaryRefs := extractBinaries(ctx, canonical, deps.S3BucketKey, tenantId, orgId, log)
+	binaryRefs := extractBinaries(ctx, canonical, deps.S3BucketKey, workspaceId, log)
+
+	// 5b) Resolve source-family-specific eventType before storing to MongoDB.
+	// AIBOX uses a generic "AIBOX" eventType in the raw event; the actual alarm type
+	// is encoded as "typeValue" (or "alarmType") in the raw payload as an integer.
+	// We read from canonical.Payload (raw, pre-template) because template mappings with
+	// valueCodes may have already converted the int to a string in normalizedFields.
+	resolvedEventType := canonical.EventType
+	if canonical.SourceFamily == "AIBOX" {
+		code := aibox.AlarmTypeFromPayload(canonical.Payload)
+		resolvedEventType = aibox.ResolveEventType(code, resolvedEventType)
+	}
 
 	// 6) Build NormalizedEvent
 	now := time.Now().UTC()
+	evtCategory, evtAction := splitEventType(resolvedEventType)
 	event := &ingestmod.NormalizedEvent{
-		EventId:     canonical.EventId,
-		TenantId:    canonical.TenantId,
-		EventType:   canonical.EventType,
-		OccurredAt:  canonical.OccurredAt,
+		EventId:       canonical.EventId,
+		TenantId:      canonical.TenantId,
+		EventType:     resolvedEventType,
+		EventCategory: evtCategory,
+		EventAction:   evtAction,
+		OccurredAt:    canonical.OccurredAt,
 		Source:      canonical.Source,
 		Location:    canonical.Location,
 		Geo:         geo,
@@ -126,17 +182,45 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 		},
 	}
 
+	// 6b) Entitlement gate (non-fatal — parallel mode)
+	if deps.EntitlementSvc != nil {
+		if err := deps.EntitlementSvc.CheckIngestAllowed(ctx, workspaceId, len(m.Value)); err != nil {
+			log.Warn().Str("eventId", canonical.EventId).Str("workspaceId", workspaceId).Err(err).
+				Msg("[normalizer] entitlement gate denied (continuing — parallel mode)")
+		}
+	}
+
+	// 6c) Authz gate (non-fatal — parallel mode)
+	if deps.IngestAuthzGw != nil {
+		if ok, err := deps.IngestAuthzGw.CanIngest(ctx, workspaceId, canonical.Source.DeviceId); err != nil {
+			log.Warn().Str("eventId", canonical.EventId).Str("workspaceId", workspaceId).Err(err).
+				Msg("[normalizer] authz gate error (continuing — parallel mode)")
+		} else if !ok {
+			log.Warn().Str("eventId", canonical.EventId).Str("workspaceId", workspaceId).Str("deviceId", canonical.Source.DeviceId).
+				Msg("[normalizer] authz gate denied (continuing — parallel mode)")
+		}
+	}
+
 	// 7) Upsert to event_details (idempotent)
 	if err := deps.EventDetailsRepo.Upsert(ctx, event); err != nil {
 		log.Error().
 			Str("eventId", canonical.EventId).
 			Err(err).
 			Msg("[normalizer] event_details upsert failed")
-		insertDLQ(ctx, deps, canonical, tenantId, orgId, templateId, m.Topic, err.Error())
+		insertDLQ(ctx, deps, canonical, tenantId, workspaceId, templateId, m.Topic, err.Error())
 		return err
 	}
 
-	// 7b) If this was a DLQ retry that succeeded, mark DLQ message resolved.
+	// 7b) Path A reconciliation — MQTT canonical notify (non-blocking, non-fatal)
+	// Allows UI to reconcile the provisional fast alert (Path A) with the canonical event.
+	if deps.CanonicalNotifier != nil {
+		notifier := deps.CanonicalNotifier
+		go func() {
+			_ = notifier.PublishCanonicalNotify(workspaceId, canonical.SourceFamily, canonical.EventId)
+		}()
+	}
+
+	// 7c) If this was a DLQ retry that succeeded, mark DLQ message resolved.
 	if hdrs["dlqRetry"] == "true" && deps.DLQRepo != nil {
 		msgId := fmt.Sprintf("%s:normalize", canonical.EventId)
 		if uerr := deps.DLQRepo.UpdateStatus(ctx, tenantId, msgId, "resolved", 0); uerr != nil {
@@ -144,26 +228,120 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 		}
 	}
 
-	// 8) Publish to normalized.events for downstream delivery
-	topic := config.TopicEnv("KAFKA_TOPIC_NORMALIZED_EVENTS", "normalized.events")
-	payload, _ := json.Marshal(event)
-	pubHeaders := map[string]string{
-		"eventId":   canonical.EventId,
-		"eventType": canonical.EventType,
-		"orgId":     orgId,
-		"tenantId":  canonical.TenantId,
+	// 7d) Normalize-stage binding dispatch — non-blocking, non-fatal.
+	// Lookup bindings where dispatchStage=normalize, evaluate matchFields, and POST to webhook targets.
+	if deps.BindingQuerier != nil && deps.TargetLookup != nil {
+		go dispatchNormalizeBindings(ctx, workspaceId, tenantId, event, deps)
 	}
-	if err := config.SendToKafkaWithCtx(ctx, topic, orgId, payload, pubHeaders); err != nil {
-		log.Warn().
-			Str("eventId", canonical.EventId).
-			Err(err).
-			Msg("[normalizer] publish to normalized.events failed (non-blocking, event already saved)")
+
+	// 8+9) Profile-based routing — exactly one delivery path per event.
+	//
+	// appliance + klynx workspace → gw.events.normalized.v1 only (klynx-api owns delivery)
+	// appliance, standalone ws   → normalized.events (gateway-delivery-group handles it)
+	// saasPublic                  → events.delivery.v1 (klynxdeliverycons POSTs webhook)
+	// default                     → normalized.events
+	profile := os.Getenv("DEPLOYMENT_PROFILE")
+
+	// Resolve klynxOrgId once — serves as both the EventBridge gate and the bridge event payload.
+	// A non-empty klynxOrgId is the authoritative signal that this workspace is klynx-managed;
+	// no separate delivery-target registration is required.
+	var klynxOrgID string
+	shouldPublishBridge := false
+	if deps.EventBridgePub != nil && profile == "appliance" {
+		if deps.KlynxOrgLookup != nil {
+			if kid, lookupErr := deps.KlynxOrgLookup.GetKlynxOrgID(ctx, workspaceId); lookupErr == nil {
+				klynxOrgID = kid
+			} else {
+				log.Warn().Str("workspaceId", workspaceId).Err(lookupErr).
+					Msg("[normalizer] klynxOrgId lookup failed — falling back to normalized.events")
+			}
+		}
+		// Route via EventBridge only when workspace is klynx-managed.
+		shouldPublishBridge = klynxOrgID != ""
+	}
+
+	// Emit routing decision for every event — covers the silent fallback case where
+	// GetKlynxOrgID() returns ("", nil) for a workspace with no klynxOrgId set.
+	resolvedKlynxOrgID := klynxOrgID
+	var route, reason string
+	switch {
+	case profile == "saasPublic":
+		route = "events.delivery.v1"
+		reason = "saasPublic"
+	case shouldPublishBridge:
+		route = "gw.events.normalized.v1"
+		reason = "appliance_klynx_mapped"
+	case profile == "appliance":
+		route = "normalized.events"
+		reason = "appliance_no_klynxOrgId"
+	default:
+		route = "normalized.events"
+		reason = "non_appliance"
+	}
+	log.Info().
+		Str("eventId", canonical.EventId).
+		Str("workspaceId", workspaceId).
+		Str("profile", profile).
+		Str("resolvedKlynxOrgId", resolvedKlynxOrgID).
+		Str("route", route).
+		Str("reason", reason).
+		Msg("[normalizer] routing decision")
+
+	if klynxOrgID == "" {
+		klynxOrgID = workspaceId // fallback: use workspaceId as routing key
+	}
+
+	// 8) Publish to normalized.events for downstream delivery.
+	// Skipped when EventBridge path is active — klynx-api handles delivery in that case,
+	// and double-publishing would cause gateway-delivery-group to re-process the event.
+	if !shouldPublishBridge && profile != "saasPublic" {
+		topic := config.TopicEnv("KAFKA_TOPIC_NORMALIZED_EVENTS", "normalized.events")
+		payload, _ := json.Marshal(event)
+		pubHeaders := map[string]string{
+			"eventId":     canonical.EventId,
+			"eventType":   resolvedEventType,
+			"workspaceId": workspaceId,
+			"tenantId":    canonical.TenantId,
+			// Forward templateId via header so delivery consumer can resolve it
+			// even if downstream uses an alternate decode path that drops Meta.TemplateId.
+			"templateId": templateId,
+		}
+		if err := config.SendToKafkaWithCtx(ctx, topic, workspaceId, payload, pubHeaders); err != nil {
+			log.Warn().
+				Str("eventId", canonical.EventId).
+				Err(err).
+				Msg("[normalizer] publish to normalized.events failed (non-blocking, event already saved)")
+		}
+	}
+
+	// 9) EventBridge or saasPublic handoff.
+
+	// Build the canonical bridge event from the stored NormalizedEvent.
+	bridgeEvt := buildBridgeEvent(event, workspaceId, klynxOrgID, traceId,
+		deviceMgmtId, canonical.SourceFamily, canonical.Payload)
+
+	if shouldPublishBridge {
+		if err := deps.EventBridgePub.Publish(ctx, bridgeEvt); err != nil {
+			log.Warn().Str("eventId", canonical.EventId).Err(err).
+				Msg("[normalizer] eventbridge publish failed (non-blocking)")
+		}
+	} else if profile == "saasPublic" {
+		// Publish to events.delivery.v1; klynxdeliverycons handles HTTP delivery
+		deliveryTopic := config.TopicEnv("KAFKA_TOPIC_EVENTS_DELIVERY", "events.delivery.v1")
+		bridgeEvt.OrgID = workspaceId // saasPublic: orgId = workspaceId
+		deliveryHeaders := map[string]string{}
+		traceutil.InjectHeaders(ctx, deliveryHeaders)
+		deliveryPayload, _ := json.Marshal(bridgeEvt)
+		if err := config.SendToKafkaWithCtx(ctx, deliveryTopic, workspaceId, deliveryPayload, deliveryHeaders); err != nil {
+			log.Warn().Str("eventId", canonical.EventId).Err(err).
+				Msg("[normalizer] saasPublic delivery publish failed (non-blocking)")
+		}
 	}
 
 	log.Debug().
 		Str("eventId", canonical.EventId).
 		Str("eventType", canonical.EventType).
-		Str("orgId", orgId).
+		Str("workspaceId", workspaceId).
 		Str("geoCell", geoCell.Cell).
 		Str("adminCode", geo.AdminCode).
 		Msg("[normalizer] event normalized and saved")
@@ -177,7 +355,7 @@ func insertDLQ(
 	ctx context.Context,
 	deps ConsumerDeps,
 	canonical ingestmod.CanonicalEvent,
-	tenantId, orgId, templateId, kafkaTopic, reason string,
+	tenantId, workspaceId, templateId, kafkaTopic, reason string,
 ) {
 	if deps.DLQRepo == nil {
 		return
@@ -185,8 +363,8 @@ func insertDLQ(
 
 	// Resolve DLQ config from template (default: enabled with 3 retries / 60s timeout)
 	dlqCfg := ingestmod.DLQConfig{Enabled: true, MaxRetries: 3, RetryTimeoutSeconds: 60}
-	if templateId != "" && orgId != "" {
-		if tmpl, err := deps.TemplateRepo.FindById(ctx, orgId, templateId); err == nil {
+	if templateId != "" && workspaceId != "" {
+		if tmpl, err := deps.TemplateRepo.FindById(ctx, workspaceId, templateId); err == nil {
 			dlqCfg = tmpl.DLQ
 		}
 	}
@@ -208,7 +386,7 @@ func insertDLQ(
 		MessageId:           messageId,
 		EventId:             canonical.EventId,
 		TenantId:            tenantId,
-		OrgId:               orgId,
+		WorkspaceId:         workspaceId,
 		TemplateId:          templateId,
 		Topic:               kafkaTopic,
 		Stage:               "normalize",
@@ -239,3 +417,215 @@ func insertDLQ(
 	}
 
 }
+
+// dispatchNormalizeBindings fetches all normalize-stage bindings for the workspace,
+// evaluates matchFields against the event payload, and POSTs to each matching target.
+// Non-fatal: all failures are logged only.
+func dispatchNormalizeBindings(ctx context.Context, workspaceId, tenantId string, event *ingestmod.NormalizedEvent, deps ConsumerDeps) {
+	log := deps.Logger.With().
+		Str("eventId", event.EventId).
+		Str("workspaceId", workspaceId).
+		Logger()
+
+	bindings, err := deps.BindingQuerier.GetNormalizeBindings(ctx, workspaceId)
+	if err != nil {
+		log.Warn().Err(err).Msg("[normalizer] normalize bindings lookup failed (non-fatal)")
+		return
+	}
+	if len(bindings) == 0 {
+		return
+	}
+
+	payload, _ := json.Marshal(event)
+
+	for _, b := range bindings {
+		if !bindingMatchesFields(event.Payload, b.MatchFields) {
+			continue
+		}
+
+		target, err := deps.TargetLookup.FindByIDAndOrg(ctx, b.TargetID, tenantId, workspaceId)
+		if err != nil {
+			log.Warn().Err(err).Str("targetId", b.TargetID).
+				Msg("[normalizer] target lookup failed — skipping binding")
+			continue
+		}
+		if !target.Enabled {
+			continue
+		}
+
+		client := webhookgw.NewClient(target.Config)
+		if err := client.Send(ctx, event, payload); err != nil {
+			log.Warn().Err(err).
+				Str("targetId", b.TargetID).
+				Str("bindingId", b.ID).
+				Msg("[normalizer] normalize binding dispatch failed (non-fatal)")
+		} else {
+			log.Info().
+				Str("targetId", b.TargetID).
+				Str("bindingId", b.ID).
+				Msg("[normalizer] normalize binding dispatch OK")
+		}
+	}
+}
+
+// bindingMatchesFields returns true when all matchFields key=value conditions are satisfied.
+// An empty matchFields map passes all payloads (wildcard match).
+func bindingMatchesFields(eventPayload map[string]any, matchFields map[string]any) bool {
+	for k, v := range matchFields {
+		actual, ok := eventPayload[k]
+		if !ok {
+			return false
+		}
+		if bindingFieldString(actual) != bindingFieldString(v) {
+			return false
+		}
+	}
+	return true
+}
+
+func bindingFieldString(v any) string {
+	if v == nil {
+		return ""
+	}
+	if s, ok := v.(string); ok {
+		return s
+	}
+	b, _ := json.Marshal(v)
+	return strings.Trim(string(b), `"`)
+}
+
+// splitEventType splits "category.action" into (category, action).
+// For "pedestrian.detected" → ("pedestrian", "detected").
+// For "vehicle.lpr.detected" → ("vehicle", "lpr.detected").
+// Returns ("", "") when eventType is empty or has no dot.
+func splitEventType(eventType string) (category, action string) {
+	idx := strings.Index(eventType, ".")
+	if idx < 0 || idx == len(eventType)-1 {
+		return "", ""
+	}
+	return eventType[:idx], eventType[idx+1:]
+}
+
+// buildBridgeEvent constructs the canonical NormalizedEvent forwarded to klynx.
+// Schema matches klynx-api's internal/eventbridge/types.go NormalizedEvent exactly
+// (copy-by-convention — both repos must be updated together on schema changes).
+//
+// rawPayload is the original canonical.Payload (pre-template) used as fallback
+// for fields that may not survive template mapping (e.g. sn).
+func buildBridgeEvent(
+	event *ingestmod.NormalizedEvent,
+	workspaceId, orgId, traceId string,
+	deviceMgmtId string,
+	sourceFamily string,
+	rawPayload map[string]any,
+) eventschema.NormalizedEvent {
+	srcCategory, srcAction := splitEventType(event.EventType)
+	bridgeEvt := eventschema.NormalizedEvent{
+		EventID:        event.EventId,
+		SchemaVersion:  event.Meta.SchemaVersion,
+		WorkspaceID:    workspaceId,
+		OrgID:          orgId,
+		SourceType:     event.EventType,
+		SourceCategory: srcCategory,
+		SourceAction:   srcAction,
+		SourceFamily:   sourceFamily,
+		OccurredAt:     event.OccurredAt,
+		ReceivedAt:     event.Meta.NormalizedAt,
+		// Forward matched templateId so klynx-api delivery can resolve deliveryTargets/messageTemplates.
+		// Empty when no template matched (suggestion fallback / pending).
+		TemplateID: event.Meta.TemplateId,
+		TraceID:    traceId,
+	}
+
+	// Source — device identity + context group.
+	src := &eventschema.NormalizedSource{
+		WorkspaceID:  workspaceId,
+		OrgID:        orgId,
+		SourceType:   event.EventType,
+		SourceFamily: sourceFamily,
+		DeviceID:     event.Source.DeviceId,
+		DeviceMgmtID: deviceMgmtId,
+	}
+	// sn: prefer normalized payload, fall back to raw canonical payload.
+	sn, _ := event.Payload["sn"].(string)
+	if sn == "" {
+		sn, _ = rawPayload["sn"].(string)
+	}
+	src.SN = sn
+	// edgeName: device name from normalized payload.
+	if v, ok := event.Payload["deviceName"].(string); ok && v != "" {
+		src.EdgeName = v
+	}
+	bridgeEvt.Source = src
+
+	// Payload — eventAttribute contents (with translated codes) + supplementary fields.
+	if ea, ok := event.Payload["eventAttribute"].(map[string]any); ok {
+		if sourceFamily == "AIBOX" {
+			bridgeEvt.Payload = aibox.TranslateEventAttribute(ea)
+		} else {
+			bridgeEvt.Payload = ea
+		}
+	} else {
+		bridgeEvt.Payload = map[string]any{}
+	}
+	// pictureCoordinates: prefer normalized payload, fall back to raw canonical payload.
+	if coords, ok := event.Payload["pictureCoordinates"]; ok {
+		bridgeEvt.Payload["pictureCoordinates"] = coords
+	} else if coords, ok := rawPayload["pictureCoordinates"]; ok {
+		bridgeEvt.Payload["pictureCoordinates"] = coords
+	}
+
+	// Location — include only when coordinates or site/zone are present.
+	if event.Location.Lat != 0 || event.Location.Lng != 0 || event.Location.Site != "" || event.Location.Zone != "" {
+		bridgeEvt.Location = &eventschema.NormalizedLocation{
+			Lat:  event.Location.Lat,
+			Lng:  event.Location.Lng,
+			Site: event.Location.Site,
+			Zone: event.Location.Zone,
+		}
+	}
+
+	// Geo — include only when reverse-geocode succeeded (adminCode non-empty).
+	if event.Geo.AdminCode != "" {
+		bridgeEvt.Geo = &eventschema.NormalizedGeo{
+			CountryCode: event.Geo.CountryCode,
+			AdminLevel:  event.Geo.AdminLevel,
+			AdminName:   event.Geo.AdminName,
+			AdminCode:   event.Geo.AdminCode,
+			IdScheme:    event.Geo.IdScheme,
+		}
+	}
+
+	// GeoCell — include only when a cell was computed.
+	if event.GeoCell.Cell != "" {
+		bridgeEvt.GeoCell = &eventschema.NormalizedGeoCell{
+			Cell:      event.GeoCell.Cell,
+			Scheme:    event.GeoCell.Scheme,
+			Precision: event.GeoCell.Precision,
+		}
+	}
+
+	// ByAdminArea — pass through as-is.
+	if len(event.ByAdminArea) > 0 {
+		bridgeEvt.ByAdminArea = event.ByAdminArea
+	}
+
+	// BinaryRefs — map ingestmod.BinaryRef → eventschema.NormalizedBinaryRef.
+	if len(event.BinaryRefs) > 0 {
+		refs := make([]eventschema.NormalizedBinaryRef, 0, len(event.BinaryRefs))
+		for _, r := range event.BinaryRefs {
+			refs = append(refs, eventschema.NormalizedBinaryRef{
+				ObjectID:    r.ObjectId,
+				Bucket:      r.Bucket,
+				ContentType: r.ContentType,
+				Kind:        r.Kind,
+				Role:        r.Role,
+				SourceIndex: r.SourceIndex,
+			})
+		}
+		bridgeEvt.BinaryRefs = refs
+	}
+
+	return bridgeEvt
+}
+

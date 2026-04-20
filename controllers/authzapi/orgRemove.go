@@ -21,14 +21,14 @@ import (
 // @Success 200 {object} map[string]any
 // @Failure 400 {object} gmod.ApiErrorResponse
 // @Failure 403 {object} gmod.ApiErrorResponse
-// @Router /api/v1/orgs/users/remove [post]
+// @Router /orgs/users/remove [post]
 func (ctrl *OrganizationController) RemoveMembers(c fiber.Ctx) error {
 	ctx, end, _ := traceutil.StartLite(c, "gateway.authzapi", "OrganizationController.RemoveMembers", "authzapi", "RemoveMembers")
 	defer end()
 
 	tenantId, _ := c.Locals("tenantId").(string)
 	callerUserId, _ := c.Locals("userId").(string)
-	orgId, _ := c.Locals("activeOrg").(string)
+	orgId, _ := c.Locals("activeWorkspace").(string)
 
 	var body InviteUsersRequest
 	if err := c.Bind().Body(&body); err != nil {

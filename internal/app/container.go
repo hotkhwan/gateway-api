@@ -6,13 +6,37 @@ import (
 	"os"
 
 	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/controllers/aiconfigdraftapi"
+	"github.com/hotkhwan/gateway-api/controllers/aimappingapi"
 	"github.com/hotkhwan/gateway-api/controllers/authzapi"
+	"github.com/hotkhwan/gateway-api/controllers/bindingapi"
 	"github.com/hotkhwan/gateway-api/controllers/deviceapi"
 	"github.com/hotkhwan/gateway-api/controllers/ingestapi"
+	"github.com/hotkhwan/gateway-api/controllers/ingesttmplapi"
+	"github.com/hotkhwan/gateway-api/controllers/msgtmplapi"
 	"github.com/hotkhwan/gateway-api/controllers/subapi"
 	"github.com/hotkhwan/gateway-api/controllers/targetapi"
+	"github.com/hotkhwan/gateway-api/controllers/workspaceapi"
+	"github.com/hotkhwan/gateway-api/controllers/wstargetapi"
+	"github.com/hotkhwan/gateway-api/internal/adapters/alertdispatcher"
+	"github.com/hotkhwan/gateway-api/internal/crypto/secretbox"
+	"github.com/hotkhwan/gateway-api/internal/eventbridge"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/alertmsg"
+	"github.com/hotkhwan/gateway-api/internal/repo/aiconfigrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/aisuggestauditrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/bindingrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/configdraftrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingesttmplrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/msgtmplrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/workspacerepo"
+	"github.com/hotkhwan/gateway-api/internal/services/alertdetectorsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/bindingsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/entitlementsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/ingesttmplsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/msgtmplsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/workspacesvc"
 	"github.com/hotkhwan/gateway-api/internal/kafka/deliverycons"
 	"github.com/hotkhwan/gateway-api/internal/kafka/normalizedcons"
 	"github.com/hotkhwan/gateway-api/internal/logger"
@@ -20,6 +44,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/repo/devicemgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicerepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/dlqrepo"
+	"github.com/hotkhwan/gateway-api/internal/grpc/eventservice"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestrepo"
@@ -28,6 +53,8 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/targetrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/unknownpayloadreviewrepo"
+	"github.com/hotkhwan/gateway-api/internal/services/aiconfigdraftsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/aimappingsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicemgmtsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
@@ -51,8 +78,19 @@ import (
 
 type Container struct {
 	// ===== Shared clients (singleton) =====
-	AuthzClient authzgw.Client
-	IDClient    *authgw.Client
+	AuthzClient   authzgw.Client
+	IngestAuthzGw authzgw.IngestAuthzGateway
+	IDClient      *authgw.Client
+
+	// ===== Entitlement domain (phibek-scoped) =====
+	EntitlementService *entitlementsvc.EntitlementService
+
+	// ===== Workspace domain (phibek-scoped) =====
+	WorkspaceService              *workspacesvc.WorkspaceService
+	WorkspaceMemberService        *workspacesvc.WorkspaceMemberService
+	WorkspaceController           *workspaceapi.WorkspaceController
+	WorkspaceMemberController     *workspaceapi.WorkspaceMemberController
+	WorkspaceEntitlementController *workspaceapi.WorkspaceEntitlementController
 
 	// ===== Authz domain =====
 	OrgService                           *authzsvc.OrganizationService
@@ -84,6 +122,9 @@ type Container struct {
 	ApprovalService           *ingestsvc.ApprovalService
 	EventManagementController *ingestapi.EventManagementController
 	EventDetailsController    *ingestapi.EventDetailsController
+
+	// ===== gRPC EventService (Phase C) =====
+	GrpcEventRepo eventservice.EventDetailsRepo
 
 	// ===== Ingest Dashboard domain =====
 	DashboardStatsService     *ingeststatsvc.DashboardStatsService
@@ -129,15 +170,40 @@ type Container struct {
 	SubscriptionService    *subscriptionsvc.SubscriptionService
 	SubscriptionController *subapi.SubscriptionController
 
-	// ===== Delivery Targets domain =====
+	// ===== Delivery Targets domain (org-scoped legacy) =====
 	TargetService    *targetsvc.TargetService
 	TargetController *targetapi.TargetController
+
+	// ===== Workspace-scoped Delivery Targets =====
+	WsTargetController *wstargetapi.WsTargetController
+
+	// ===== Delivery Bindings domain =====
+	BindingService    *bindingsvc.BindingService
+	BindingController *bindingapi.BindingController
+
+	// ===== Ingest Templates domain =====
+	IngestTemplateService    *ingesttmplsvc.IngestTemplateService
+	IngestTemplateController *ingesttmplapi.IngestTemplateController
+
+	// ===== Message Templates domain =====
+	MsgTemplateService    *msgtmplsvc.MsgTemplateService
+	MsgTemplateController *msgtmplapi.MsgTemplateController
+
+	// ===== AI Mapping domain =====
+	AIMappingService    *aimappingsvc.AIMappingService
+	AIMappingController *aimappingapi.AIMappingController
+
+	// ===== AI Config Draft domain (Feature B) =====
+	ConfigDraftService    *aiconfigdraftsvc.ConfigDraftService
+	ConfigDraftController *aiconfigdraftapi.ConfigDraftController
 }
 
 // NewContainer — เรียกครั้งเดียวใน main.go
 func NewContainer() *Container {
 	c := &Container{}
 	c.buildShared()
+	c.buildEntitlement()
+	c.buildWorkspace()
 	c.buildAuthz()
 	c.buildDevice()
 	c.buildSubscription()
@@ -146,9 +212,12 @@ func NewContainer() *Container {
 	c.buildRejectedPayloadPattern()
 	c.buildTemplateReview()
 	c.buildMappingSuggestion()
+	c.buildAIMapping()
 	c.buildIngest()
+	c.buildAlertDispatcher()
 	c.buildEvents()
 	c.buildTargets()
+	c.buildWorkspaceResources()
 	c.buildTemplate()
 	c.buildBulk()
 	c.buildNormalizer()
@@ -164,6 +233,7 @@ func NewContainer() *Container {
 
 func (c *Container) buildShared() {
 	c.AuthzClient = authzgw.NewClient()
+	c.IngestAuthzGw = authzgw.NewIngestAuthzGateway(c.AuthzClient)
 
 	c.IDClient = authgw.New(authgw.Config{
 		BaseURL:      os.Getenv("KEYCLOAK_URL"),
@@ -182,7 +252,7 @@ func (c *Container) buildAuthz() {
 	orgUnitRepo := authzrepo.NewOrgUnitRepo()
 
 	c.OrgService = authzsvc.NewOrganizationService(orgRepo, orgUnitRepo, c.AuthzClient, c.IDClient)
-	c.OrgController = authzapi.NewOrganizationController(c.OrgService)
+	c.OrgController = authzapi.NewOrganizationController(c.OrgService, c.WorkspaceService)
 
 	c.OrgUnitService = authzsvc.NewOrgUnitService(orgUnitRepo, c.AuthzClient, c.IDClient)
 	c.OrgUnitController = authzapi.NewOrgUnitController(c.OrgUnitService)
@@ -282,7 +352,7 @@ func (c *Container) buildTemplateReview() {
 // ============================================================
 
 func (c *Container) buildIngest() {
-	orgRepo := authzrepo.NewOrgRepo(config.DB)
+	wsRepo := workspacerepo.NewWorkspaceRepo()
 	eventMgmtRepo := ingestmgmtrepo.NewEventManagementRepo()
 
 	// fingerprint template matcher
@@ -290,7 +360,7 @@ func (c *Container) buildIngest() {
 	tmplMatcher := ingestsvc.NewTemplateMatcher(templateRepo, logger.WithMeta("ingest", "template-matcher"))
 
 	c.IngestService = ingestsvc.NewIngestService(
-		orgRepo,
+		wsRepo,
 		eventMgmtRepo,
 		c.SubscriptionService,
 		config.Redis,
@@ -338,12 +408,43 @@ func (c *Container) buildTargets() {
 }
 
 // ============================================================
+// buildWorkspaceResources — workspace-scoped resource domains
+// ============================================================
+
+func (c *Container) buildWorkspaceResources() {
+	// Workspace-scoped delivery targets — reuse TargetService
+	c.WsTargetController = wstargetapi.NewWsTargetController(c.TargetService)
+
+	// Delivery Bindings
+	bindRepo := bindingrepo.NewBindingRepo()
+	c.BindingService = bindingsvc.NewBindingService(bindRepo, config.Redis)
+	c.BindingController = bindingapi.NewBindingController(c.BindingService)
+
+	// Wire realtime binding cache into IngestController
+	c.IngestController.SetBindingService(c.BindingService)
+
+	// Warm realtime binding cache at startup (non-fatal)
+	c.BindingService.WarmRealtimeCacheOnStartup(context.Background())
+
+	// Ingest Templates
+	ingestTmplRepo := ingesttmplrepo.NewIngestTemplateRepo()
+	c.IngestTemplateService = ingesttmplsvc.NewIngestTemplateService(ingestTmplRepo)
+	c.IngestTemplateController = ingesttmplapi.NewIngestTemplateController(c.IngestTemplateService)
+
+	// Message Templates
+	msgTmplRepo := msgtmplrepo.NewMsgTemplateRepo()
+	c.MsgTemplateService = msgtmplsvc.NewMsgTemplateService(msgTmplRepo)
+	c.MsgTemplateController = msgtmplapi.NewMsgTemplateController(c.MsgTemplateService)
+}
+
+// ============================================================
 // buildEvents — Event Management domain
 // ============================================================
 
 func (c *Container) buildEvents() {
 	eventMgmtRepo := ingestmgmtrepo.NewEventManagementRepo()
 	eventDetailsRepo := ingestdetailsrepo.NewEventDetailsRepo()
+	c.GrpcEventRepo = eventDetailsRepo
 
 	c.ApprovalService = ingestsvc.NewApprovalService(
 		eventMgmtRepo,
@@ -408,14 +509,87 @@ func (c *Container) buildDLQ() {
 // ============================================================
 
 func (c *Container) buildNormalizer() {
-	c.NormalizerDeps = normalizedcons.ConsumerDeps{
-		EventDetailsRepo: ingestdetailsrepo.NewEventDetailsRepo(),
-		TemplateRepo:     ingestrepo.NewMappingTemplateRepo(),
-		DLQRepo:          dlqrepo.NewDLQRepo(),
-		GeoCfg:           normalizedcons.DefaultGeoConfig(),
-		S3BucketKey:      os.Getenv("S3_EVENTS_BUCKET_KEY"),
-		Logger:           logger.WithMeta("normalizer", "consumer"),
+	profile := os.Getenv("DEPLOYMENT_PROFILE")
+	isUnlimited := profile == "appliance" || profile == "enterprise"
+
+	var ebPub normalizedcons.EventBridgePublisher
+	if profile == "appliance" {
+		ebPub = eventbridge.NewKafkaEventBridgePublisher()
 	}
+
+	tgtRepo := targetrepo.NewTargetRepo()
+
+	// In appliance/enterprise: entitlement and authz gates are bypassed (unlimited ingest).
+	// In saasPublic: gates enforce quota and source authorization.
+	var entitlementSvc normalizedcons.EntitlementChecker
+	var ingestAuthzGw normalizedcons.IngestAuthzChecker
+	if !isUnlimited {
+		entitlementSvc = c.EntitlementService
+		ingestAuthzGw = c.IngestAuthzGw
+	}
+
+	c.NormalizerDeps = normalizedcons.ConsumerDeps{
+		EventDetailsRepo:   ingestdetailsrepo.NewEventDetailsRepo(),
+		TemplateRepo:       ingestrepo.NewMappingTemplateRepo(),
+		DLQRepo:            dlqrepo.NewDLQRepo(),
+		GeoCfg:             normalizedcons.DefaultGeoConfig(),
+		S3BucketKey:        func() string { if v := os.Getenv("S3_BUCKET_EVENTS"); v != "" { return v }; return "canonical" }(),
+		Logger:             logger.WithMeta("normalizer", "consumer"),
+		EntitlementSvc:     entitlementSvc,
+		IngestAuthzGw:      ingestAuthzGw,
+		EventBridgePub:     ebPub,
+		CanonicalNotifier:  normalizedcons.NewAlertmsgNotifier(),
+		BindingQuerier:     c.BindingService,
+		KlynxTargetChecker: tgtRepo,
+		TargetLookup:       tgtRepo,
+		KlynxOrgLookup:     workspacerepo.NewWorkspaceRepo(),
+		DeviceMgmtResolver: c.DeviceMgmtService,
+	}
+}
+
+// ============================================================
+// buildEntitlement — phibek runtime entitlement (Redis TTL cache)
+// ============================================================
+
+func (c *Container) buildEntitlement() {
+	c.EntitlementService = entitlementsvc.New(config.Redis)
+}
+
+// ============================================================
+// buildWorkspace — phibek workspace provisioning domain
+// ============================================================
+
+func (c *Container) buildWorkspace() {
+	repo := workspacerepo.NewWorkspaceRepo()
+	// In appliance mode: Permify is co-located — use pure gRPC, no REST fallback.
+	// In other profiles: use HybridClient (gRPC-first with REST fallback).
+	var authzWriter workspacesvc.AuthzWriter
+	if os.Getenv("DEPLOYMENT_PROFILE") == "appliance" {
+		authzWriter = authzgw.NewGrpcClient()
+	} else {
+		authzWriter = c.AuthzClient
+	}
+	c.WorkspaceService = workspacesvc.New(repo, authzWriter)
+	c.WorkspaceMemberService = workspacesvc.NewWorkspaceMemberService(c.AuthzClient, c.IDClient)
+
+	c.WorkspaceController = workspaceapi.NewWorkspaceController(c.WorkspaceService, c.AuthzClient)
+	c.WorkspaceMemberController = workspaceapi.NewWorkspaceMemberController(c.WorkspaceMemberService)
+	c.WorkspaceEntitlementController = workspaceapi.NewWorkspaceEntitlementController(c.EntitlementService)
+}
+
+// ============================================================
+// buildAlertDispatcher — wires fast alert (Path A) into IngestController
+// ============================================================
+
+func (c *Container) buildAlertDispatcher() {
+	det := alertdetectorsvc.New(nil) // uses DefaultAlertKeys
+	disp := alertdispatcher.New(1000, 4, func(alert alertdispatcher.FastAlertEnvelope) {
+		if err := alertmsg.PublishAlert(alert); err != nil {
+			// non-fatal: MQTT publish failure must not affect Path B
+			_ = err
+		}
+	})
+	c.IngestController.SetAlertDispatcher(disp, det)
 }
 
 // ============================================================
@@ -424,9 +598,41 @@ func (c *Container) buildNormalizer() {
 
 func (c *Container) buildDeliveryConsumer() {
 	c.DeliveryDeps = deliverycons.ConsumerDeps{
-		TargetRepo:   targetrepo.NewTargetRepo(),
-		TemplateRepo: ingestrepo.NewMappingTemplateRepo(),
-		DLQRepo:      dlqrepo.NewDLQRepo(),
-		Logger:       logger.WithMeta("delivery", "consumer"),
+		TargetRepo:       targetrepo.NewTargetRepo(),
+		TemplateRepo:     ingestrepo.NewMappingTemplateRepo(),
+		DLQRepo:          dlqrepo.NewDLQRepo(),
+		EventDetailsRepo: ingestdetailsrepo.NewEventDetailsRepo(),
+		Logger:           logger.WithMeta("delivery", "consumer"),
 	}
+}
+
+// ============================================================
+// buildAIMapping — AI Mapping Suggest + Config Draft domains
+// ============================================================
+
+func (c *Container) buildAIMapping() {
+	// Load keyring from env — fatal if missing (startup contract)
+	kr, err := secretbox.LoadKeyringFromEnv()
+	if err != nil {
+		panic("MASTER_KEYRING_JSON required for AI mapping service: " + err.Error())
+	}
+
+	// Repos
+	aiCfgRepo := aiconfigrepo.NewAIConfigRepo()
+	auditRepo := aisuggestauditrepo.NewAISuggestAuditRepo()
+	draftRepo := configdraftrepo.NewConfigDraftRepo()
+
+	// AI Mapping service (Feature A)
+	c.AIMappingService = aimappingsvc.NewAIMappingService(
+		aiCfgRepo,
+		auditRepo,
+		c.MappingSuggestionService,
+		config.Redis,
+		kr,
+	)
+	c.AIMappingController = aimappingapi.NewAIMappingController(c.AIMappingService)
+
+	// Config Draft service (Feature B)
+	c.ConfigDraftService = aiconfigdraftsvc.NewConfigDraftService(draftRepo, c.MappingSuggestionService)
+	c.ConfigDraftController = aiconfigdraftapi.NewConfigDraftController(c.ConfigDraftService)
 }

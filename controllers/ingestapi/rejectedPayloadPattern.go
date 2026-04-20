@@ -23,7 +23,7 @@ func NewRejectedPayloadPatternController(svc *rejectedpayloadpatternsvc.Rejected
 }
 
 func (h *RejectedPayloadPatternController) orgId(c fiber.Ctx) string {
-	oid, _ := c.Locals("activeOrg").(string)
+	oid, _ := c.Locals("activeWorkspace").(string)
 	return oid
 }
 
@@ -33,17 +33,17 @@ func (h *RejectedPayloadPatternController) orgId(c fiber.Ctx) string {
 // @Security     BearerAuth
 // @Param        X-Active-Org  header  string  true  "Active Org ID"
 // @Param        page          query   int     false "Page" default(1)
-// @Param        perPages      query   int     false "Per page" default(10)
+// @Param        perPage       query   int     false "Per page" default(10)
 // @Success      200  {object}  gmod.PaginationResponse
 // @Failure      401  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/rejectedPayloadPatterns [get]
+// @Router       /ingest/rejectedPayloadPatterns [get]
 func (h *RejectedPayloadPatternController) List(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "RejectedPayloadPatternController.List", "ingestapi", "ListRejectedPayloadPatterns")
 	defer end()
 
 	orgId := h.orgId(c)
 	page := fiber.Query[int](c, "page", 1)
-	perPage := fiber.Query[int](c, "perPages", 10)
+	perPage := fiber.Query[int](c, "perPage", 10)
 
 	items, pag, err := h.svc.List(ctx, orgId, page, perPage)
 	if err != nil {
@@ -67,7 +67,7 @@ func (h *RejectedPayloadPatternController) List(c fiber.Ctx) error {
 // @Param        id            path    string  true  "Pattern ID"
 // @Success      200  {object}  gmod.SuccessDataResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
-// @Router       /api/v1/ingest/rejectedPayloadPatterns/{id} [delete]
+// @Router       /ingest/rejectedPayloadPatterns/{id} [delete]
 func (h *RejectedPayloadPatternController) Delete(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "RejectedPayloadPatternController.Delete", "ingestapi", "DeleteRejectedPayloadPattern")
 	defer end()

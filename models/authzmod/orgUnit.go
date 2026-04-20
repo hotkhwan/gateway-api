@@ -12,7 +12,7 @@ type OrgUnit struct {
 	UnitId string             `bson:"unitId"`        // external stable id
 
 	TenantId string `bson:"tenantId"`
-	OrgId    string `bson:"orgId"` // FK to Organization.OrgId
+	WorkspaceId string `bson:"workspaceId"` // FK to Organization.WorkspaceId
 
 	ParentUnitId *string `bson:"parentUnitId,omitempty"` // FK to OrgUnit.UnitId
 

@@ -92,11 +92,11 @@ func PeopleCountingSummary(ctx context.Context, req aimodel.PeopleCountingSummar
 	if req.Page <= 0 {
 		req.Page = 1
 	}
-	if req.PerPages <= 0 {
-		req.PerPages = 10
+	if req.PerPage <= 0 {
+		req.PerPage = 10
 	}
-	if req.PerPages > 200 {
-		req.PerPages = 200
+	if req.PerPage > 200 {
+		req.PerPage = 200
 	}
 
 	sortVal := int32(-1)
@@ -139,8 +139,8 @@ func PeopleCountingSummary(ctx context.Context, req aimodel.PeopleCountingSummar
 	}
 
 	// pagination
-	skip := int64((req.Page - 1) * req.PerPages)
-	limit := int64(req.PerPages)
+	skip := int64((req.Page - 1) * req.PerPage)
+	limit := int64(req.PerPage)
 
 	// -----------------------------
 	// add direction from regionNames
@@ -371,7 +371,7 @@ func PeopleCountingSummary(ctx context.Context, req aimodel.PeopleCountingSummar
 	resp := &aimodel.PeopleCountingSummaryResponse{
 		Details: []aimodel.PeopleCountingItem{},
 		Pagination: aimodel.Pagination{
-			Page: req.Page, PerPages: req.PerPages,
+			Page: req.Page, PerPage: req.PerPage,
 			SortField: "dateTimeCreate", SortOrder: strings.ToLower(req.SortOrder),
 		},
 		Summary: aimodel.PeopleCountingSummary{},
@@ -390,7 +390,7 @@ func PeopleCountingSummary(ctx context.Context, req aimodel.PeopleCountingSummar
 		}
 	}
 	if resp.Pagination.TotalRecords > 0 {
-		resp.Pagination.TotalPages = (resp.Pagination.TotalRecords + int64(req.PerPages) - 1) / int64(req.PerPages)
+		resp.Pagination.TotalPages = (resp.Pagination.TotalRecords + int64(req.PerPage) - 1) / int64(req.PerPage)
 	}
 
 	// summary

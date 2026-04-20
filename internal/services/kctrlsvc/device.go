@@ -79,7 +79,7 @@ func ListDevices(ctx context.Context, page, perPages int, filters map[string]str
 
 	log.Debug().
 		Int("page", page).
-		Int("perPages", perPages).
+		Int("perPage", perPages).
 		Int("total", int(total)).
 		Str("sortOrder", sortOrder).
 		Msg("✅ Retrieved devices with pagination")
@@ -93,7 +93,7 @@ func ListDevices(ctx context.Context, page, perPages int, filters map[string]str
 
 	return devices, gmod.Pagination{
 		Page:         page,
-		PerPages:     perPages,
+		PerPage:      perPages,
 		TotalRecords: int(total),
 		TotalPages:   (int(total) + perPages - 1) / perPages,
 		SortOrder:    sortOrder,

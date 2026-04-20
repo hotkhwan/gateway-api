@@ -18,7 +18,7 @@ import (
 // @Tags Ksearch/Video
 // @Produce json
 // @Param page query int false "Page number" default(1)
-// @Param perPages query int false "Items per page" default(10)
+// @Param perPage query int false "Items per page" default(10)
 // @Param search query string false "Search by name"
 // @Param state query string false "Filter by state" default("created")
 // @Param status query string false "Filter by status true/false"
@@ -32,7 +32,7 @@ func VideoList(c fiber.Ctx) error {
 	defer end()
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPages, _ := strconv.Atoi(c.Query("perPages", "10"))
+	perPages, _ := strconv.Atoi(c.Query("perPage", "10"))
 	sortField := c.Query("sortField", "createdAt")
 	sortOrder := c.Query("sortOrder", "desc")
 

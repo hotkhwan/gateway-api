@@ -19,7 +19,7 @@ type OrgRepo struct {
 func (r *OrgRepo) FindById(ctx context.Context, orgId string) (*authzmod.Organization, error) {
 	var org authzmod.Organization
 
-	err := r.col.FindOne(ctx, bson.M{"orgId": orgId}).Decode(&org)
+	err := r.col.FindOne(ctx, bson.M{"workspaceId": orgId}).Decode(&org)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrNotFound
@@ -30,8 +30,8 @@ func (r *OrgRepo) FindById(ctx context.Context, orgId string) (*authzmod.Organiz
 	return &org, nil
 }
 
-// GetByOrgId is an alias for FindById for consistency with service layer naming
-func (r *OrgRepo) GetByOrgId(ctx context.Context, orgId string) (*authzmod.Organization, error) {
+// GetByWorkspaceId is an alias for FindById for consistency with service layer naming
+func (r *OrgRepo) GetByWorkspaceId(ctx context.Context, orgId string) (*authzmod.Organization, error) {
 	return r.FindById(ctx, orgId)
 }
 
@@ -39,7 +39,7 @@ func (r *OrgRepo) GetByOrgId(ctx context.Context, orgId string) (*authzmod.Organ
 // Returns true if updated, false if version mismatch (race detected)
 func (r *OrgRepo) UpdateMembershipVersion(ctx context.Context, orgId string, oldVersion, newVersion int) (bool, error) {
 	filter := bson.M{
-		"orgId":             orgId,
+		"workspaceId":       orgId,
 		"membershipVersion": oldVersion,
 	}
 	update := bson.M{
@@ -59,7 +59,7 @@ func (r *OrgUnitRepo) FindByUnitId(ctx context.Context, tenantId string, orgId s
 	var result authzmod.OrgUnit
 	err := stomongo.FindOne(ctx, r.collection, bson.M{
 		"tenantId": tenantId,
-		"orgId":    orgId,
+		"workspaceId": orgId,
 		"unitId":   unitId,
 	}, &result)
 	if err != nil {
@@ -84,7 +84,7 @@ func (r *OrgUnitRepo) UpdateName(
 		r.collection,
 		bson.M{
 			"tenantId": tenantId,
-			"orgId":    orgId,
+			"workspaceId": orgId,
 			"unitId":   unitId,
 		},
 		bson.M{
@@ -132,9 +132,9 @@ func (r *OrgRepo) EnsureIndexes(ctx context.Context) error {
 		ctx,
 		"organizations",
 		bson.D{
-			{Key: "orgId", Value: 1},
+			{Key: "workspaceId", Value: 1},
 		},
-		"uq_orgId",
+		"uq_workspaceId",
 	); err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func (r *OrgRepo) Insert(ctx context.Context, org *authzmod.Organization) error 
 }
 
 func (r *OrgRepo) MarkSyncError(ctx context.Context, orgId string) error {
-	_, err := r.col.UpdateOne(ctx, bson.M{"orgId": orgId}, bson.M{
+	_, err := r.col.UpdateOne(ctx, bson.M{"workspaceId": orgId}, bson.M{
 		"$set": bson.M{"syncStatus": "errorSync"},
 	})
 	return err
@@ -163,7 +163,7 @@ func (r *OrgRepo) MarkSyncError(ctx context.Context, orgId string) error {
 func (r *OrgRepo) MarkSyncOK(ctx context.Context, orgId string) error {
 	_, err := r.col.UpdateOne(
 		ctx,
-		bson.M{"orgId": orgId},
+		bson.M{"workspaceId": orgId},
 		bson.M{
 			"$set": bson.M{"syncStatus": "ok"},
 		},
@@ -202,7 +202,7 @@ func (r *OrgRepo) FindByIds(ctx context.Context, tenantId string, orgIds []strin
 		"organizations",
 		bson.M{
 			"tenantId": tenantId,
-			"orgId":    bson.M{"$in": orgIds},
+			"workspaceId": bson.M{"$in": orgIds},
 		},
 		nil,
 		&result,
@@ -211,7 +211,7 @@ func (r *OrgRepo) FindByIds(ctx context.Context, tenantId string, orgIds []strin
 }
 
 func (r *OrgRepo) Update(ctx context.Context, orgId string, update bson.M) error {
-	res, err := r.col.UpdateOne(ctx, bson.M{"orgId": orgId}, update)
+	res, err := r.col.UpdateOne(ctx, bson.M{"workspaceId": orgId}, update)
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func (r *OrgRepo) Update(ctx context.Context, orgId string, update bson.M) error
 }
 
 func (r *OrgRepo) Delete(ctx context.Context, orgId string) error {
-	res, err := r.col.DeleteOne(ctx, bson.M{"orgId": orgId})
+	res, err := r.col.DeleteOne(ctx, bson.M{"workspaceId": orgId})
 	if err != nil {
 		return err
 	}
@@ -245,7 +245,7 @@ func (r *OrgUnitRepo) FindRootByOrg(
 		r.collection,
 		bson.M{
 			"tenantId": tenantId,
-			"orgId":    orgId,
+			"workspaceId": orgId,
 			"isRoot":   true,
 		},
 		&result,

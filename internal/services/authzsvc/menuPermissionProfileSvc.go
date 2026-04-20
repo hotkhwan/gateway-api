@@ -116,7 +116,7 @@ func (s *ProfileMenuPermissionService) Create(ctx context.Context, input CreateM
 
 	p := &authzmod.MenuPermissionProfile{
 		TenantID:    input.TenantID,
-		OrgID:       input.OrgID,
+		WorkspaceID:       input.OrgID,
 		Name:        input.Name,
 		Description: input.Description,
 		Status:      input.Status,

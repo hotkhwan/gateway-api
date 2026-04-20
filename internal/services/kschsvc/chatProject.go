@@ -69,7 +69,7 @@ func ProjectList(ctx context.Context, userId string, page, perPage int, sortFiel
 
 	pagination := gmod.Pagination{
 		Page:         page,
-		PerPages:     perPage,
+		PerPage:      perPage,
 		TotalRecords: total,
 		TotalPages:   (total + perPage - 1) / perPage,
 		SortField:    sortField,
@@ -113,7 +113,7 @@ func ProjectGetByID(ctx context.Context, projectId string, page, perPage int) (*
 	total64, _ := stomongo.Count(ctx, chatColl, filter)
 	pagination := gmod.Pagination{
 		Page:         page,
-		PerPages:     perPage,
+		PerPage:      perPage,
 		TotalRecords: int(total64),
 		TotalPages:   int((total64 + int64(perPage) - 1) / int64(perPage)),
 		SortField:    "createdAt",
