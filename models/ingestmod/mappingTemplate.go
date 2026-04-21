@@ -42,8 +42,10 @@ type ClassificationRule struct {
 // EventClasses: whitelist of eventClass values this target accepts. Empty = accept all.
 // EventSeverities: whitelist of eventSeverity values this target accepts. Empty = accept all.
 // MessageTemplateKey: key to select a MessageTemplate for message channels (line/discord/telegram).
+// Webhook targets ignore this field and send raw JSON.
 //
-//	Webhook targets ignore this field and send raw JSON.
+// After Wide slice Phase-E, webhook body = raw gw.events.normalized.v1 payload.
+// The schemaVersion field added by narrow-v2 has been removed (contract §5.5).
 type TemplateDeliveryTarget struct {
 	TargetId           string             `json:"targetId"                      bson:"targetId"`
 	Filter             []PayloadCondition `json:"filter,omitempty"              bson:"filter,omitempty"`
@@ -79,6 +81,8 @@ type MappingTemplate struct {
 	Match               MatchRule                `json:"match"                             bson:"match"`
 	MatchAll            []MatchCondition         `json:"matchAll,omitempty"                bson:"matchAll,omitempty"`
 	MatchAny            []MatchCondition         `json:"matchAny,omitempty"                bson:"matchAny,omitempty"`
+	DeliveryMatchAll    []MatchCondition         `json:"deliveryMatchAll,omitempty"        bson:"deliveryMatchAll,omitempty"`
+	DeliveryMatchAny    []MatchCondition         `json:"deliveryMatchAny,omitempty"        bson:"deliveryMatchAny,omitempty"`
 	Priority            int                      `json:"priority,omitempty"                bson:"priority,omitempty"`
 	Mappings            []FieldMapping           `json:"mappings"                          bson:"mappings"`
 	DLQ                 DLQConfig                `json:"dlq"                               bson:"dlq"`

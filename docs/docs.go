@@ -3853,6 +3853,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
+                "description": "Creates a mapping template. ` + "`" + `matchAll` + "`" + ` / ` + "`" + `matchAny` + "`" + ` select the template at ingest; ` + "`" + `deliveryMatchAll` + "`" + ` / ` + "`" + `deliveryMatchAny` + "`" + ` filter delivery dispatch. ` + "`" + `enabled=false` + "`" + ` keeps normalization but stops all delivery. Delivery rules reject ` + "`" + `raw.*` + "`" + ` fields with 400.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3889,7 +3890,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid body or unsupported deliveryMatch field/operator",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/gmod.ApiErrorResponse"
                         }
@@ -4042,6 +4055,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
+                "description": "Partial update. Sending ` + "`" + `deliveryMatchAll: []` + "`" + ` clears the rule (dispatch passes the gate for all events). Sending ` + "`" + `enabled: false` + "`" + ` stops delivery without disabling normalization. Delivery rules reject ` + "`" + `raw.*` + "`" + ` fields and unknown operators with 400.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4085,13 +4099,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid body or unsupported deliveryMatch field/operator",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/gmod.ApiErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/gmod.ApiErrorResponse"
                         }
@@ -16570,6 +16596,18 @@ const docTemplate = `{
                 "defaultLocale": {
                     "type": "string"
                 },
+                "deliveryMatchAll": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.MatchCondition"
+                    }
+                },
+                "deliveryMatchAny": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.MatchCondition"
+                    }
+                },
                 "deliveryTargets": {
                     "type": "array",
                     "items": {
@@ -16634,6 +16672,18 @@ const docTemplate = `{
                 },
                 "defaultLocale": {
                     "type": "string"
+                },
+                "deliveryMatchAll": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.MatchCondition"
+                    }
+                },
+                "deliveryMatchAny": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ingestmod.MatchCondition"
+                    }
                 },
                 "deliveryTargets": {
                     "type": "array",

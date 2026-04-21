@@ -165,6 +165,37 @@ func (r *MappingTemplateRepo) FindByMatch(ctx context.Context, orgId, eventType,
 	return &result, nil
 }
 
+// backfillEnabledFilter is the Mongo filter used by the one-shot backfill.
+// Only docs whose `enabled` field is absent are matched — an explicit
+// `enabled: false` set by an operator via admin PATCH is preserved
+// (their intent must not be silently flipped by a migration).
+//
+// Legacy docs written before the Enabled field existed in the struct do not
+// have the key at all, so `{ $exists: false }` targets exactly that cohort.
+func backfillEnabledFilter() bson.M {
+	return bson.M{
+		"enabled":         bson.M{"$exists": false},
+		"deliveryTargets": bson.M{"$exists": true, "$not": bson.M{"$size": 0}},
+	}
+}
+
+// BackfillEnabledForTemplatesWithDeliveryTargets sets enabled=true on every
+// mapping_templates row where the `enabled` field is absent AND at least one
+// delivery target is configured. Idempotent. Returns (matched, modified, err).
+//
+// Plan decision D10 (revised after review): this backfill is an explicit
+// deploy-time migration, invoked by a one-shot CLI flag (`-migrate=template-enabled`)
+// that runs once per environment BEFORE the enforcement binary deploys.
+// It is NOT called on normal startup, so operator-set `enabled=false` is never
+// revisited automatically.
+func (r *MappingTemplateRepo) BackfillEnabledForTemplatesWithDeliveryTargets(ctx context.Context) (int64, int64, error) {
+	res, err := stomongo.UpdateMany(ctx, colTemplate, backfillEnabledFilter(), bson.M{"enabled": true})
+	if err != nil {
+		return 0, 0, err
+	}
+	return res.MatchedCount, res.ModifiedCount, nil
+}
+
 // FindBySourceFamily returns all templates for an org + sourceFamily, sorted by priority desc.
 // Used by V2 template matcher to evaluate matchAll/matchAny in Go.
 func (r *MappingTemplateRepo) FindBySourceFamily(ctx context.Context, orgId, sourceFamily string) ([]*ingestmod.MappingTemplate, error) {

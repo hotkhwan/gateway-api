@@ -10,6 +10,7 @@ import (
 
 	"github.com/hotkhwan/gateway-api/internal/repo/cachetemplate"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestrepo"
+	"github.com/hotkhwan/gateway-api/internal/services/templatematcher"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/rs/zerolog"
 )
@@ -150,7 +151,7 @@ func (m *TemplateMatcher) MatchByFamily(ctx context.Context, tenantId, orgId, so
 
 	// 3) Evaluate matchAll/matchAny for each template (already sorted by priority)
 	for _, tmpl := range templates {
-		if evaluateTemplate(tmpl, matchBag) {
+		if templatematcher.Evaluate(tmpl.MatchAll, tmpl.MatchAny, matchBag) {
 			cachetemplate.SetMatchV2(ctx, tenantId, orgId, &cachetemplate.MatchV2CacheValue{
 				TemplateId:     tmpl.TemplateId,
 				FinalEventType: tmpl.FinalEventType,
@@ -176,89 +177,6 @@ func (m *TemplateMatcher) MatchByFamily(ctx context.Context, tenantId, orgId, so
 		Str("fingerprint", fingerprint).
 		Msg("[TemplateMatcherV2] no template matched")
 	return nil, false, nil
-}
-
-// evaluateTemplate checks whether a template's matchAll/matchAny conditions match matchBag.
-// matchBag = raw payload + canonical "source.*" fields (see ingestsvc.buildMatchBag).
-func evaluateTemplate(tmpl *ingestmod.MappingTemplate, matchBag map[string]any) bool {
-	// If no V2 conditions, fall through (backward compat — V1 templates use Match field)
-	if len(tmpl.MatchAll) == 0 && len(tmpl.MatchAny) == 0 {
-		return true
-	}
-
-	// matchAll: all conditions must pass
-	for _, cond := range tmpl.MatchAll {
-		if !evaluateCondition(cond, matchBag) {
-			return false
-		}
-	}
-
-	// matchAny: at least one condition must pass (if defined)
-	if len(tmpl.MatchAny) > 0 {
-		anyPassed := false
-		for _, cond := range tmpl.MatchAny {
-			if evaluateCondition(cond, matchBag) {
-				anyPassed = true
-				break
-			}
-		}
-		if !anyPassed {
-			return false
-		}
-	}
-
-	return true
-}
-
-// evaluateCondition checks a single MatchCondition against matchBag.
-// Field path supports dotted notation (e.g. "source.deviceId", "eventAttribute.gender").
-// Optional "raw." prefix is stripped — both "raw.deviceId" and "deviceId" resolve identically
-// against the raw payload at top level. Canonical fields are addressed via "source.*".
-func evaluateCondition(cond ingestmod.MatchCondition, matchBag map[string]any) bool {
-	// Resolve field value from matchBag (supports dotted paths like "source.deviceId" or "eventAttribute.gender")
-	fieldPath := cond.Field
-	// Strip optional "raw." prefix — raw payload fields live at the top level of matchBag
-	fieldPath = strings.TrimPrefix(fieldPath, "raw.")
-
-	val, found := getNestedValue(matchBag, fieldPath)
-	if !found {
-		return false
-	}
-
-	strVal := fmt.Sprintf("%v", val)
-
-	switch strings.ToLower(cond.Operator) {
-	case "eq":
-		for _, v := range cond.Values {
-			if strVal == v {
-				return true
-			}
-		}
-		return false
-	case "in":
-		for _, v := range cond.Values {
-			if strVal == v {
-				return true
-			}
-		}
-		return false
-	case "contains":
-		for _, v := range cond.Values {
-			if strings.Contains(strVal, v) {
-				return true
-			}
-		}
-		return false
-	case "prefix":
-		for _, v := range cond.Values {
-			if strings.HasPrefix(strVal, v) {
-				return true
-			}
-		}
-		return false
-	default:
-		return false
-	}
 }
 
 // ApplyMappings applies a template's FieldMappings to rawBody.
