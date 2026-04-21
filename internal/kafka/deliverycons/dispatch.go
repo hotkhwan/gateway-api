@@ -13,17 +13,57 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/gateways/linegw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/telegw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/webhookgw"
+	"github.com/hotkhwan/gateway-api/internal/services/templatematcher"
 	"github.com/hotkhwan/gateway-api/models/authzmod"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
+	"github.com/rs/zerolog"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+// passesTemplateDeliveryGate applies the template-level delivery gate:
+// Enabled master toggle (plan decision D4) followed by DeliveryMatchAll /
+// DeliveryMatchAny (plan decisions D2, D6). Pure — no I/O — so it can be
+// unit-tested in isolation. Logs a structured skip record and increments the
+// corresponding in-process counter when the gate blocks dispatch.
+func passesTemplateDeliveryGate(
+	tmpl *ingestmod.MappingTemplate,
+	event *ingestmod.NormalizedEvent,
+	log zerolog.Logger,
+) bool {
+	if !tmpl.Enabled {
+		deliverySkipDisabled.Add(1)
+		log.Info().
+			Str("templateId", tmpl.TemplateId).
+			Str("workspaceId", event.Source.WorkspaceId).
+			Str("skipReason", "disabled").
+			Msg("[delivery] template disabled — skip all targets")
+		return false
+	}
+	if len(tmpl.DeliveryMatchAll) == 0 && len(tmpl.DeliveryMatchAny) == 0 {
+		return true
+	}
+	bag := buildDeliveryMatchBag(event)
+	if templatematcher.Evaluate(tmpl.DeliveryMatchAll, tmpl.DeliveryMatchAny, bag) {
+		return true
+	}
+	deliverySkipDeliveryRuleMiss.Add(1)
+	log.Info().
+		Str("templateId", tmpl.TemplateId).
+		Str("workspaceId", event.Source.WorkspaceId).
+		Str("skipReason", "delivery_rule_miss").
+		Msg("[delivery] template delivery rule not matched — skip all targets")
+	return false
+}
 
 // dispatchToTargets loads the mapping template for the event's templateId/orgId,
 // evaluates classificationRules to set eventClass/eventSeverity,
 // then evaluates per-target filters (payload + eventClasses + eventSeverities)
 // and dispatches to each matching enabled target.
-// Each target failure is recorded individually in the DLQ (messageId: {eventId}:deliver:{targetId}).
-func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, deps ConsumerDeps) {
+//
+// rawCanonical is the original gw.events.normalized.v1 wire payload — used
+// verbatim as the webhook body so receivers see exactly what Kafka carries.
+// Each target failure is recorded individually in the DLQ.
+func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, rawCanonical []byte, deps ConsumerDeps) {
 	log := deps.Logger.With().
 		Str("eventId", event.EventId).
 		Str("orgId", event.Source.WorkspaceId).
@@ -35,21 +75,17 @@ func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, de
 		return
 	}
 
-	// Hydrate BinaryRefs from event_details when missing. The klynx-api
-	// republish path strips binaryRefs from the minimal klynxEvent payload, so
-	// the hero image of a Flex card would be empty without this fallback.
-	if len(event.BinaryRefs) == 0 && deps.EventDetailsRepo != nil {
-		if refs, rerr := deps.EventDetailsRepo.FindBinaryRefsByEventId(ctx, event.EventId); rerr == nil && len(refs) > 0 {
-			event.BinaryRefs = refs
-			log.Debug().
-				Int("binaryRefs", len(refs)).
-				Msg("[delivery] hydrated binaryRefs from event_details")
-		}
-	}
-
+	// Load template first; the template-level gate needs Enabled and the
+	// delivery rules. Loading is a cheap Mongo read (with Redis cache).
 	tmpl, err := deps.TemplateRepo.FindById(ctx, event.Source.WorkspaceId, templateId)
 	if err != nil {
 		log.Warn().Err(err).Str("templateId", templateId).Msg("[delivery] template not found — skipping dispatch")
+		return
+	}
+
+	// Template-level gate: enforces Template.Enabled + DeliveryMatchAll/Any.
+	// Placed before classification so skipped events incur zero enrichment work.
+	if !passesTemplateDeliveryGate(tmpl, event, log) {
 		return
 	}
 
@@ -66,7 +102,13 @@ func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, de
 		return
 	}
 
-	payload, _ := json.Marshal(event)
+	// Webhook body = raw gw.events.normalized.v1 wire payload (contract §5.5).
+	// Fallback to re-marshal of the ingestmod shape if raw is empty (defensive
+	// against callers that didn't pass through the original bytes).
+	payload := rawCanonical
+	if len(payload) == 0 {
+		payload, _ = json.Marshal(event)
+	}
 
 	for _, tdt := range tmpl.DeliveryTargets {
 		// Step 2: Evaluate payload filter
@@ -283,7 +325,7 @@ func insertDeliveryDLQ(
 		TenantId:            event.TenantId,
 		WorkspaceId:         event.Source.WorkspaceId,
 		TemplateId:          event.Meta.TemplateId,
-		Topic:               "normalized.events",
+		Topic:               "gw.events.normalized.v1",
 		Stage:               "deliver",
 		Reason:              reason,
 		Payload:             rawPayload,

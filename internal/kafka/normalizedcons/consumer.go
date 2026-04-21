@@ -234,55 +234,52 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 		go dispatchNormalizeBindings(ctx, workspaceId, tenantId, event, deps)
 	}
 
-	// 8+9) Profile-based routing — exactly one delivery path per event.
+	// 8+9) Profile-based routing — Wide slice unified topology (r2).
 	//
-	// appliance + klynx workspace → gw.events.normalized.v1 only (klynx-api owns delivery)
-	// appliance, standalone ws   → normalized.events (gateway-delivery-group handles it)
-	// saasPublic                  → events.delivery.v1 (klynxdeliverycons POSTs webhook)
-	// default                     → normalized.events
+	//   appliance (klynx-mapped OR standalone) → gw.events.normalized.v1 only.
+	//                                            klynx-api reads for event_refs;
+	//                                            gateway-api.deliverycons v2 reads for dispatch.
+	//   saasPublic                              → events.delivery.v1 (unchanged).
+	//
+	// normalized.events is RETIRED — no longer published (contract §5.7 Phase-C).
 	profile := os.Getenv("DEPLOYMENT_PROFILE")
 
-	// Resolve klynxOrgId once — serves as both the EventBridge gate and the bridge event payload.
-	// A non-empty klynxOrgId is the authoritative signal that this workspace is klynx-managed;
-	// no separate delivery-target registration is required.
+	// Resolve klynxOrgId once (for the bridge event payload). A missing or empty
+	// klynxOrgId is no longer a routing branch — all appliance workspaces publish
+	// to gw.events.normalized.v1. The klynxOrgId still populates OrgID on the
+	// bridge event so klynx-api's event_refs writer can scope correctly; for
+	// standalone workspaces we fall back to workspaceId as the routing key.
 	var klynxOrgID string
-	shouldPublishBridge := false
-	if deps.EventBridgePub != nil && profile == "appliance" {
-		if deps.KlynxOrgLookup != nil {
-			if kid, lookupErr := deps.KlynxOrgLookup.GetKlynxOrgID(ctx, workspaceId); lookupErr == nil {
-				klynxOrgID = kid
-			} else {
-				log.Warn().Str("workspaceId", workspaceId).Err(lookupErr).
-					Msg("[normalizer] klynxOrgId lookup failed — falling back to normalized.events")
-			}
+	if deps.KlynxOrgLookup != nil && profile == "appliance" {
+		if kid, lookupErr := deps.KlynxOrgLookup.GetKlynxOrgID(ctx, workspaceId); lookupErr == nil {
+			klynxOrgID = kid
+		} else {
+			log.Warn().Str("workspaceId", workspaceId).Err(lookupErr).
+				Msg("[normalizer] klynxOrgId lookup failed — continuing with empty orgId")
 		}
-		// Route via EventBridge only when workspace is klynx-managed.
-		shouldPublishBridge = klynxOrgID != ""
 	}
 
-	// Emit routing decision for every event — covers the silent fallback case where
-	// GetKlynxOrgID() returns ("", nil) for a workspace with no klynxOrgId set.
-	resolvedKlynxOrgID := klynxOrgID
 	var route, reason string
-	switch {
-	case profile == "saasPublic":
+	switch profile {
+	case "saasPublic":
 		route = "events.delivery.v1"
 		reason = "saasPublic"
-	case shouldPublishBridge:
+	case "appliance":
 		route = "gw.events.normalized.v1"
-		reason = "appliance_klynx_mapped"
-	case profile == "appliance":
-		route = "normalized.events"
-		reason = "appliance_no_klynxOrgId"
+		if klynxOrgID != "" {
+			reason = "appliance_klynx_mapped"
+		} else {
+			reason = "appliance_standalone"
+		}
 	default:
-		route = "normalized.events"
-		reason = "non_appliance"
+		route = "gw.events.normalized.v1"
+		reason = "default_canonical"
 	}
 	log.Info().
 		Str("eventId", canonical.EventId).
 		Str("workspaceId", workspaceId).
 		Str("profile", profile).
-		Str("resolvedKlynxOrgId", resolvedKlynxOrgID).
+		Str("resolvedKlynxOrgId", klynxOrgID).
 		Str("route", route).
 		Str("reason", reason).
 		Msg("[normalizer] routing decision")
@@ -291,42 +288,12 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 		klynxOrgID = workspaceId // fallback: use workspaceId as routing key
 	}
 
-	// 8) Publish to normalized.events for downstream delivery.
-	// Skipped when EventBridge path is active — klynx-api handles delivery in that case,
-	// and double-publishing would cause gateway-delivery-group to re-process the event.
-	if !shouldPublishBridge && profile != "saasPublic" {
-		topic := config.TopicEnv("KAFKA_TOPIC_NORMALIZED_EVENTS", "normalized.events")
-		payload, _ := json.Marshal(event)
-		pubHeaders := map[string]string{
-			"eventId":     canonical.EventId,
-			"eventType":   resolvedEventType,
-			"workspaceId": workspaceId,
-			"tenantId":    canonical.TenantId,
-			// Forward templateId via header so delivery consumer can resolve it
-			// even if downstream uses an alternate decode path that drops Meta.TemplateId.
-			"templateId": templateId,
-		}
-		if err := config.SendToKafkaWithCtx(ctx, topic, workspaceId, payload, pubHeaders); err != nil {
-			log.Warn().
-				Str("eventId", canonical.EventId).
-				Err(err).
-				Msg("[normalizer] publish to normalized.events failed (non-blocking, event already saved)")
-		}
-	}
-
-	// 9) EventBridge or saasPublic handoff.
-
 	// Build the canonical bridge event from the stored NormalizedEvent.
 	bridgeEvt := buildBridgeEvent(event, workspaceId, klynxOrgID, traceId,
 		deviceMgmtId, canonical.SourceFamily, canonical.Payload)
 
-	if shouldPublishBridge {
-		if err := deps.EventBridgePub.Publish(ctx, bridgeEvt); err != nil {
-			log.Warn().Str("eventId", canonical.EventId).Err(err).
-				Msg("[normalizer] eventbridge publish failed (non-blocking)")
-		}
-	} else if profile == "saasPublic" {
-		// Publish to events.delivery.v1; klynxdeliverycons handles HTTP delivery
+	if profile == "saasPublic" {
+		// Publish to events.delivery.v1; klynxdeliverycons handles HTTP delivery (unchanged).
 		deliveryTopic := config.TopicEnv("KAFKA_TOPIC_EVENTS_DELIVERY", "events.delivery.v1")
 		bridgeEvt.OrgID = workspaceId // saasPublic: orgId = workspaceId
 		deliveryHeaders := map[string]string{}
@@ -335,6 +302,14 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 		if err := config.SendToKafkaWithCtx(ctx, deliveryTopic, workspaceId, deliveryPayload, deliveryHeaders); err != nil {
 			log.Warn().Str("eventId", canonical.EventId).Err(err).
 				Msg("[normalizer] saasPublic delivery publish failed (non-blocking)")
+		}
+	} else if deps.EventBridgePub != nil {
+		// Appliance + default profiles → gw.events.normalized.v1 (EventBridge path).
+		// Covers both klynx-mapped and standalone workspaces. Delivery consumer
+		// (gateway-delivery-v2-group) receives directly from this topic.
+		if err := deps.EventBridgePub.Publish(ctx, bridgeEvt); err != nil {
+			log.Warn().Str("eventId", canonical.EventId).Err(err).
+				Msg("[normalizer] eventbridge publish failed (non-blocking)")
 		}
 	}
 

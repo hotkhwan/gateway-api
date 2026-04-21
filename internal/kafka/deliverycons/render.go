@@ -13,8 +13,15 @@ import (
 // renderContext builds the template data map used by Go text/template.
 // Access pattern: {{.eventId}}, {{.eventType}}, {{.payload.listType_label}}, {{.source.orgId}}, etc.
 //
-// Note on sourceFamily: klynx-api's republish path stores it in Source.DeviceType,
-// so we expose it as {{.sourceFamily}} for template convenience regardless of path.
+// Note on sourceFamily: after the Wide slice (delivery-topic-unification),
+// SourceFamily comes natively from eventschema and is stored in Source.DeviceType
+// via FromEventSchema; it is still exposed as {{.sourceFamily}} for template
+// convenience regardless of path.
+//
+// The {{.canonical}} block that narrow-v2 added is REMOVED — webhook receivers
+// now receive the raw eventschema.NormalizedEvent as the body (contract §5.5),
+// so template authors who previously reached for .canonical.sourceAction can
+// use .eventAction (same value, already exposed) or the source/payload blocks.
 func renderContext(event *ingestmod.NormalizedEvent) map[string]any {
 	return map[string]any{
 		"eventId":       event.EventId,

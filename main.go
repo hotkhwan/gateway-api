@@ -17,6 +17,7 @@ import (
 	_ "github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/klivesvc"
+	"github.com/hotkhwan/gateway-api/internal/services/templatesvc"
 	"github.com/hotkhwan/gateway-api/models/systemmod"
 
 	"github.com/hotkhwan/gateway-api/internal/kafka/deliverycons"
@@ -67,6 +68,7 @@ import (
 // @Tags 3.Ingest
 func main() {
 	env := flag.String("env", "dev", "Environment: dev / uat / prod")
+	migrate := flag.String("migrate", "", "Run a one-shot migration and exit. Supported: template-enabled")
 	flag.Parse()
 	envFile := fmt.Sprintf(".env.%s", *env)
 
@@ -105,6 +107,23 @@ func main() {
 	// kwatchmsg.InitMQTT()
 	log := logger.Boot("bootstrap", "main")
 	log.Info().Str("sub", envFile).Msg("📂 Loading env file")
+
+	// One-shot migration mode: run the requested migration and exit.
+	// Intended to be invoked explicitly by a release engineer BEFORE the
+	// enforcement binary deploys (plan decision D10, revised after review).
+	// Keeping this path separate from normal startup prevents persistent data
+	// mutation from coupling to routine restarts and preserves rollback control.
+	if *migrate != "" {
+		switch *migrate {
+		case "template-enabled":
+			templatesvc.BackfillEnabledForDeliveringTemplates(ctx)
+			log.Info().Str("migration", *migrate).Msg("✅ migration complete — exiting")
+			os.Exit(0)
+		default:
+			log.Error().Str("migration", *migrate).Msg("❌ unknown migration")
+			os.Exit(2)
+		}
+	}
 
 	// ใน main.go หลังจาก config.InitMongo()
 	cfgRepo := optionsrepo.New(config.DB)

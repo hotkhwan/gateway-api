@@ -28,7 +28,14 @@ type SourceInfo struct {
 	SubType           string `json:"subType,omitempty"            bson:"subType,omitempty"`
 	Vendor            string `json:"vendor,omitempty"             bson:"vendor,omitempty"`
 	Protocol          string `json:"protocol,omitempty"           bson:"protocol,omitempty"`
-	WorkspaceId        string `json:"workspaceId"                  bson:"workspaceId"`
+	WorkspaceId       string `json:"workspaceId"                  bson:"workspaceId"`
+	// Added by Wide-slice Phase-A (delivery-topic-unification) to preserve
+	// eventschema.NormalizedEvent nested source fields across the adapter.
+	// Fields are optional — legacy ingest paths may leave them empty.
+	OrgId        string `json:"orgId,omitempty"        bson:"orgId,omitempty"`
+	DeviceMgmtId string `json:"deviceMgmtId,omitempty" bson:"deviceMgmtId,omitempty"`
+	SN           string `json:"sn,omitempty"           bson:"sn,omitempty"`
+	EdgeName     string `json:"edgeName,omitempty"     bson:"edgeName,omitempty"`
 }
 
 // LocationInfo holds the resolved geographic coordinates.

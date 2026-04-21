@@ -823,10 +823,14 @@ func buildMatchBag(
 	enrichment *ingestmod.DeviceManagement,
 	sourceFamily string,
 ) map[string]any {
-	bag := make(map[string]any, len(rawBody)+1)
+	bag := make(map[string]any, len(rawBody)+2)
 	for k, v := range rawBody {
 		bag[k] = v
 	}
+	// Expose raw payload under the "raw" namespace too, so conditions written
+	// as "raw.<field>" resolve via the generic matcher's dotted-path lookup
+	// without stage-specific prefix stripping (plan decision D6).
+	bag["raw"] = rawBody
 
 	source := map[string]any{
 		"sourceFamily": sourceFamily,
