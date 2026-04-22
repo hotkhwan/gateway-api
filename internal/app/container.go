@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/hotkhwan/gateway-api/config"
+	"github.com/hotkhwan/gateway-api/controllers/adminapi"
 	"github.com/hotkhwan/gateway-api/controllers/aiconfigdraftapi"
 	"github.com/hotkhwan/gateway-api/controllers/aimappingapi"
 	"github.com/hotkhwan/gateway-api/controllers/authzapi"
@@ -61,6 +62,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/services/dlqsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/ingeststatsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/licensesvc"
 	"github.com/hotkhwan/gateway-api/internal/services/mappingsuggestionsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/rejectedpayloadpatternsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/sourceprofilesvc"
@@ -170,6 +172,11 @@ type Container struct {
 	SubscriptionService    *subscriptionsvc.SubscriptionService
 	SubscriptionController *subapi.SubscriptionController
 
+	// ===== License domain (admin issuance + platform activation) =====
+	LicenseService            *licensesvc.Service
+	LicenseAdminController    *adminapi.LicenseAdminController
+	PlatformLicenseController *adminapi.PlatformLicenseController
+
 	// ===== Delivery Targets domain (org-scoped legacy) =====
 	TargetService    *targetsvc.TargetService
 	TargetController *targetapi.TargetController
@@ -207,6 +214,7 @@ func NewContainer() *Container {
 	c.buildAuthz()
 	c.buildDevice()
 	c.buildSubscription()
+	c.buildLicense()
 	c.buildSourceProfile()
 	c.buildDeviceManagement()
 	c.buildRejectedPayloadPattern()
@@ -386,6 +394,12 @@ func (c *Container) buildSubscription() {
 	c.SubscriptionService = subscriptionsvc.NewSubscriptionService(subRepo, licenseRepo, config.Redis)
 	c.SubscriptionController = subapi.NewSubscriptionController(c.SubscriptionService)
 
+	// Let entitlementsvc overlay local tenant subscription limits onto the
+	// profile catalog on cache miss (used in saasPublic only).
+	if c.EntitlementService != nil {
+		c.EntitlementService.SetSubscriptionResolver(c.SubscriptionService)
+	}
+
 	// Auto-bootstrap freemium subscription for default tenant on startup
 	tenantId := config.PermifyTenantID
 	if tenantId != "" {
@@ -398,12 +412,43 @@ func (c *Container) buildSubscription() {
 }
 
 // ============================================================
+// buildLicense — enterprise license admin + platform activation
+// Controllers are registered only when their feature flags are on; the
+// service itself is always built so Subscription.ActivateEnterprise stays
+// consistent across deployments.
+// ============================================================
+func (c *Container) buildLicense() {
+	licenseRepo := subscriprepo.NewLicenseRepo(config.DB)
+	c.LicenseService = licensesvc.New(licenseRepo)
+
+	if envTrue("LICENSE_ADMIN_ENABLED") {
+		c.LicenseAdminController = adminapi.NewLicenseAdminController(c.LicenseService)
+	}
+	if envTrue("PLATFORM_LICENSE_ENABLED") {
+		c.PlatformLicenseController = adminapi.NewPlatformLicenseController(
+			c.LicenseService,
+			c.SubscriptionService,
+			c.EntitlementService,
+			licenseRepo,
+			workspacerepo.NewWorkspaceRepo(),
+		)
+	}
+}
+
+// envTrue returns true when the named env var is set to "true" (case-insensitive).
+func envTrue(name string) bool {
+	v := os.Getenv(name)
+	return v == "true" || v == "TRUE" || v == "True"
+}
+
+// ============================================================
 // buildTargets — Delivery Targets domain
 // ============================================================
 
 func (c *Container) buildTargets() {
 	repo := targetrepo.NewTargetRepo()
-	c.TargetService = targetsvc.NewTargetService(repo, c.AuthzClient, c.SubscriptionService)
+	tmplRepo := ingestrepo.NewMappingTemplateRepo()
+	c.TargetService = targetsvc.NewTargetService(repo, tmplRepo, c.AuthzClient, c.SubscriptionService)
 	c.TargetController = targetapi.NewTargetController(c.TargetService)
 }
 
@@ -551,8 +596,27 @@ func (c *Container) buildNormalizer() {
 // buildEntitlement — phibek runtime entitlement (Redis TTL cache)
 // ============================================================
 
+// workspaceTenantAdapter adapts workspacerepo.WorkspaceRepo to
+// entitlementsvc.WorkspaceTenantResolver so the entitlement service can
+// resolve the owning tenant on cache miss (needed on the ingest hot path
+// where the consumer only has workspaceId in hand).
+type workspaceTenantAdapter struct {
+	repo *workspacerepo.WorkspaceRepo
+}
+
+func (a *workspaceTenantAdapter) GetTenantIDForWorkspace(ctx context.Context, workspaceID string) (string, error) {
+	ws, err := a.repo.FindByWorkspaceID(ctx, workspaceID)
+	if err != nil {
+		return "", err
+	}
+	return ws.TenantID, nil
+}
+
 func (c *Container) buildEntitlement() {
 	c.EntitlementService = entitlementsvc.New(config.Redis)
+	c.EntitlementService.SetWorkspaceTenantResolver(&workspaceTenantAdapter{
+		repo: workspacerepo.NewWorkspaceRepo(),
+	})
 }
 
 // ============================================================

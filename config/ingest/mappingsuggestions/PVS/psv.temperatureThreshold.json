@@ -1,0 +1,47 @@
+{
+  "id": "psv.temperatureThreshold.v1",
+  "sourceFamily": "PVS",
+  "displayName": "PVS Temperature Threshold",
+  "matchRule": {
+    "type": "all",
+    "rules": [
+      { "field": "from_device", "operator": "eq", "value": "GENETEC" },
+      { "field": "event_name",  "operator": "contains", "value": "Temperature Threshold" }
+    ]
+  },
+  "fieldMappings": [
+    { "sourceField": "id",                 "targetField": "eventAttribute.refEventId" },
+    { "sourceField": "ref_id",             "targetField": "eventAttribute.refId" },
+    { "sourceField": "site_name",          "targetField": "eventAttribute.siteName" },
+    { "sourceField": "event_type",         "targetField": "eventAttribute.eventType" },
+    { "sourceField": "event_name",         "targetField": "eventAttribute.eventName" },
+    { "sourceField": "description",        "targetField": "eventAttribute.description" },
+    { "sourceField": "event_date",         "targetField": "eventAttribute.eventTime" },
+    { "sourceField": "app_date",           "targetField": "eventAttribute.appTime" },
+    { "sourceField": "sensor_name",        "targetField": "eventAttribute.sensorName" },
+    { "sourceField": "alarm_triggered_by", "targetField": "eventAttribute.triggeredBy" },
+    { "sourceField": "from_device",        "targetField": "eventAttribute.sourceDeviceType" },
+    { "sourceField": "image_base64",       "targetField": "eventAttribute.imageBase64" },
+
+    { "sourceField": "event_date",         "targetField": "occurredAt" },
+    { "sourceField": "latitude",           "targetField": "location.lat" },
+    { "sourceField": "longitude",          "targetField": "location.lng" },
+    { "sourceField": "site_name",          "targetField": "zone" }
+  ],
+  "samplePayload": {
+    "alarm_triggered_by": "ALARM",
+    "app_date": "2026-04-08T17:54:45",
+    "description": "",
+    "event_date": "2026-04-08T10:54:45",
+    "event_name": "Pelco_Temperature Threshold_alarm",
+    "event_type": "Genetec.Sdk.AlarmTriggeredEventArgs",
+    "from_device": "GENETEC",
+    "id": "8b01ed7d-d58a-42bb-89fa-c755890200e2",
+    "image_base64": null,
+    "latitude": 0,
+    "longitude": 0,
+    "ref_id": 87287,
+    "sensor_name": "172.16.10.186 - Camera - 01",
+    "site_name": "HKT"
+  }
+}

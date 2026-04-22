@@ -10,6 +10,7 @@ import (
 
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
+	"github.com/hotkhwan/gateway-api/internal/services/entitlementsvc"
 	"github.com/hotkhwan/gateway-api/models/subscripmod"
 
 	"github.com/redis/go-redis/v9"
@@ -231,6 +232,49 @@ func (s *SubscriptionService) ActivateEnterprise(
 
 	// 6. Activate enterprise for tenant
 	return s.subRepo.ActivateEnterprise(ctx, tenantId, licenseKey, licenseKeyHash, finalLimits)
+}
+
+// GetTenantEntitlementOverlay returns the subset of tenant subscription limits
+// that overlap with RuntimeEntitlement fields. Used by entitlementsvc to
+// synthesize a runtime snapshot in saasPublic when Redis has not received a
+// klynx.entitlement.snapshot.v1 message for the workspace.
+//
+// This is the implementation of entitlementsvc.SubscriptionResolver. Structural
+// typing (no explicit "implements") keeps the dependency direction one-way.
+func (s *SubscriptionService) GetTenantEntitlementOverlay(
+	ctx context.Context,
+	tenantId string,
+) (*entitlementsvc.TenantOverlay, error) {
+	limits, err := s.GetEffectiveLimits(ctx, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	maxPayload := 0
+	if limits.MaxPayloadBytes > 0 {
+		maxPayload = int(limits.MaxPayloadBytes)
+	}
+
+	// WebhookTargetsLimit is not mirrored on EffectiveLimits today, so resolve
+	// it from the plan catalog + overrides via a direct repo read. Missing
+	// subscription -> zero value, which the entitlement service treats as
+	// "do not overlay".
+	webhook := 0
+	if sub, err := s.subRepo.FindByTenantId(ctx, tenantId); err == nil && sub != nil {
+		if plan, err := s.planCatalog.GetPlan(sub.PlanId); err == nil {
+			webhook = plan.Limits.WebhooksPerOrg
+			if sub.Overrides != nil && sub.Overrides.WebhooksPerOrg > 0 && sub.Overrides.WebhooksPerOrg <= plan.Limits.WebhooksPerOrg {
+				webhook = sub.Overrides.WebhooksPerOrg
+			}
+		}
+	}
+
+	return &entitlementsvc.TenantOverlay{
+		PlanID:              limits.PlanId,
+		MaxEventsPerSecond:  limits.PerOrgPerSec,
+		MaxPayloadBytes:     maxPayload,
+		WebhookTargetsLimit: webhook,
+	}, nil
 }
 
 // CheckOrganizationLimit checks if tenant can create more organizations

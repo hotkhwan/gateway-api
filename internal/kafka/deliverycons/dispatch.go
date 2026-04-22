@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hotkhwan/gateway-api/config"
@@ -260,14 +261,15 @@ func buildMessagePayload(
 		mt = selectTemplate(tmpl.MessageTemplates, channelType, locale, tmpl.DefaultLocale)
 	}
 
-	if mt == nil {
-		// No template configured — fall back to raw JSON payload
-		return json.Marshal(event)
-	}
-
-	title, body, err := renderMessage(mt, event)
-	if err != nil {
-		return nil, fmt.Errorf("render message: %w", err)
+	var title, body string
+	var extras map[string]string
+	if mt != nil {
+		var err error
+		title, body, err = renderMessage(mt, event)
+		if err != nil {
+			return nil, fmt.Errorf("render message: %w", err)
+		}
+		extras = mt.Extras
 	}
 
 	// Build a generic message envelope that each gateway interprets
@@ -279,15 +281,46 @@ func buildMessagePayload(
 		"title":         title,
 		"body":          body,
 	}
-	if mt.Extras != nil {
-		msg["extras"] = mt.Extras
+	if extras != nil {
+		msg["extras"] = extras
 	}
-	if channelType == authzmod.TargetTypeLine {
+
+	// Default location enrichment — so every channel that wants lat/lng can use
+	// it without re-deriving from the raw event.
+	if event.Location.Lat != 0 || event.Location.Lng != 0 {
+		msg["lat"] = event.Location.Lat
+		msg["lng"] = event.Location.Lng
+	}
+
+	// First image binaryRef as a presigned URL — used by Telegram (sendPhoto)
+	// and any future channel that wants to render an image without going back
+	// to the event itself.
+	if url := firstImagePresignedURL(ctx, event); url != "" {
+		msg["imageUrl"] = url
+	}
+
+	if channelType == authzmod.TargetTypeLine && mt != nil {
 		if flex := buildFlexCard(ctx, event, tmpl, mt, title, body); flex != nil {
 			msg["flex"] = flex
 		}
 	}
 	return json.Marshal(msg)
+}
+
+// firstImagePresignedURL returns a presigned GET URL for the first image
+// binaryRef on the event, or "" when there is no image or presigning fails.
+func firstImagePresignedURL(ctx context.Context, event *ingestmod.NormalizedEvent) string {
+	for _, ref := range event.BinaryRefs {
+		if ref.Kind != "image" && !strings.HasPrefix(ref.ContentType, "image/") {
+			continue
+		}
+		url, err := config.PresignS3GetURL(ctx, ref.Bucket, ref.ObjectId)
+		if err != nil {
+			continue
+		}
+		return url
+	}
+	return ""
 }
 
 // insertDeliveryDLQ records a per-target delivery failure in the DLQ.
