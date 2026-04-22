@@ -111,6 +111,32 @@ func (r *MappingTemplateRepo) Delete(ctx context.Context, orgId, templateId stri
 	return nil
 }
 
+// TemplateUsageRef is a minimal projection used to report which templates
+// are still referencing a given delivery target.
+type TemplateUsageRef struct {
+	TemplateId string `json:"templateId" bson:"templateId"`
+	Name       string `json:"name"       bson:"name"`
+}
+
+// FindUsageByTargetId returns all templates in a workspace that reference
+// the given delivery target via deliveryTargets[].targetId.
+func (r *MappingTemplateRepo) FindUsageByTargetId(ctx context.Context, workspaceId, targetId string) ([]TemplateUsageRef, error) {
+	if workspaceId == "" || targetId == "" {
+		return nil, nil
+	}
+	filter := bson.M{
+		"workspaceId":              workspaceId,
+		"deliveryTargets.targetId": targetId,
+	}
+	opts := options.Find().SetProjection(bson.M{"templateId": 1, "name": 1, "_id": 0})
+
+	var result []TemplateUsageRef
+	if err := stomongo.Find(ctx, colTemplate, filter, opts, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 // FindByMatch returns the first template whose match rule fits the incoming event.
 //
 // Matching is flexible: if a template's match field is empty, it acts as a wildcard.

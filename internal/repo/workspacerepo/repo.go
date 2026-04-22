@@ -118,6 +118,26 @@ func (r *WorkspaceRepo) ListByIDs(ctx context.Context, ids []string) ([]*workspa
 	return out, nil
 }
 
+// ListByTenantID returns every workspace belonging to a tenant. Used by the
+// platform-license activation path to invalidate runtime entitlement caches
+// across all workspaces owned by the activating tenant.
+func (r *WorkspaceRepo) ListByTenantID(ctx context.Context, tenantID string) ([]*workspacemod.Workspace, error) {
+	if tenantID == "" {
+		return nil, nil
+	}
+	col := config.DB.Collection(collection)
+	cursor, err := col.Find(ctx, bson.M{"tenantId": tenantID})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	var out []*workspacemod.Workspace
+	if err := cursor.All(ctx, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ListAll returns all workspaces regardless of ownership. Used by platform admins.
 func (r *WorkspaceRepo) ListAll(ctx context.Context) ([]*workspacemod.Workspace, error) {
 	col := config.DB.Collection(collection)

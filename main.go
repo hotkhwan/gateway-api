@@ -321,6 +321,13 @@ func main() {
 	router.RegisterHookzkt(api)
 	router.RegisterHookATA(api)
 	router.RegisterSubscriptionRoutes(api, container)
+	router.RegisterBillingRoutes(api, container)
+	router.RegisterStripeWebhookRoute(api, container)
+
+	// Enterprise license admin (issuance) + platform activation — env-gated so
+	// customer deployments ship activate-only while backoffice ships issuer.
+	router.RegisterAdminLicenseRoutes(api, container)
+	router.RegisterPlatformLicenseRoutes(api, container)
 
 	// ---------- Ingest hot-path: POST /events/:orgId (no JWT, root level) ----------
 	router.RegisterIngestEventsRoutes(app, container)
