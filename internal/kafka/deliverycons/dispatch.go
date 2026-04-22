@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hotkhwan/gateway-api/config"
@@ -13,17 +14,57 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/gateways/linegw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/telegw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/webhookgw"
+	"github.com/hotkhwan/gateway-api/internal/services/templatematcher"
 	"github.com/hotkhwan/gateway-api/models/authzmod"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
+	"github.com/rs/zerolog"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+// passesTemplateDeliveryGate applies the template-level delivery gate:
+// Enabled master toggle (plan decision D4) followed by DeliveryMatchAll /
+// DeliveryMatchAny (plan decisions D2, D6). Pure — no I/O — so it can be
+// unit-tested in isolation. Logs a structured skip record and increments the
+// corresponding in-process counter when the gate blocks dispatch.
+func passesTemplateDeliveryGate(
+	tmpl *ingestmod.MappingTemplate,
+	event *ingestmod.NormalizedEvent,
+	log zerolog.Logger,
+) bool {
+	if !tmpl.Enabled {
+		deliverySkipDisabled.Add(1)
+		log.Info().
+			Str("templateId", tmpl.TemplateId).
+			Str("workspaceId", event.Source.WorkspaceId).
+			Str("skipReason", "disabled").
+			Msg("[delivery] template disabled — skip all targets")
+		return false
+	}
+	if len(tmpl.DeliveryMatchAll) == 0 && len(tmpl.DeliveryMatchAny) == 0 {
+		return true
+	}
+	bag := buildDeliveryMatchBag(event)
+	if templatematcher.Evaluate(tmpl.DeliveryMatchAll, tmpl.DeliveryMatchAny, bag) {
+		return true
+	}
+	deliverySkipDeliveryRuleMiss.Add(1)
+	log.Info().
+		Str("templateId", tmpl.TemplateId).
+		Str("workspaceId", event.Source.WorkspaceId).
+		Str("skipReason", "delivery_rule_miss").
+		Msg("[delivery] template delivery rule not matched — skip all targets")
+	return false
+}
 
 // dispatchToTargets loads the mapping template for the event's templateId/orgId,
 // evaluates classificationRules to set eventClass/eventSeverity,
 // then evaluates per-target filters (payload + eventClasses + eventSeverities)
 // and dispatches to each matching enabled target.
-// Each target failure is recorded individually in the DLQ (messageId: {eventId}:deliver:{targetId}).
-func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, deps ConsumerDeps) {
+//
+// rawCanonical is the original gw.events.normalized.v1 wire payload — used
+// verbatim as the webhook body so receivers see exactly what Kafka carries.
+// Each target failure is recorded individually in the DLQ.
+func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, rawCanonical []byte, deps ConsumerDeps) {
 	log := deps.Logger.With().
 		Str("eventId", event.EventId).
 		Str("orgId", event.Source.WorkspaceId).
@@ -35,21 +76,17 @@ func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, de
 		return
 	}
 
-	// Hydrate BinaryRefs from event_details when missing. The klynx-api
-	// republish path strips binaryRefs from the minimal klynxEvent payload, so
-	// the hero image of a Flex card would be empty without this fallback.
-	if len(event.BinaryRefs) == 0 && deps.EventDetailsRepo != nil {
-		if refs, rerr := deps.EventDetailsRepo.FindBinaryRefsByEventId(ctx, event.EventId); rerr == nil && len(refs) > 0 {
-			event.BinaryRefs = refs
-			log.Debug().
-				Int("binaryRefs", len(refs)).
-				Msg("[delivery] hydrated binaryRefs from event_details")
-		}
-	}
-
+	// Load template first; the template-level gate needs Enabled and the
+	// delivery rules. Loading is a cheap Mongo read (with Redis cache).
 	tmpl, err := deps.TemplateRepo.FindById(ctx, event.Source.WorkspaceId, templateId)
 	if err != nil {
 		log.Warn().Err(err).Str("templateId", templateId).Msg("[delivery] template not found — skipping dispatch")
+		return
+	}
+
+	// Template-level gate: enforces Template.Enabled + DeliveryMatchAll/Any.
+	// Placed before classification so skipped events incur zero enrichment work.
+	if !passesTemplateDeliveryGate(tmpl, event, log) {
 		return
 	}
 
@@ -66,7 +103,13 @@ func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, de
 		return
 	}
 
-	payload, _ := json.Marshal(event)
+	// Webhook body = raw gw.events.normalized.v1 wire payload (contract §5.5).
+	// Fallback to re-marshal of the ingestmod shape if raw is empty (defensive
+	// against callers that didn't pass through the original bytes).
+	payload := rawCanonical
+	if len(payload) == 0 {
+		payload, _ = json.Marshal(event)
+	}
 
 	for _, tdt := range tmpl.DeliveryTargets {
 		// Step 2: Evaluate payload filter
@@ -218,14 +261,15 @@ func buildMessagePayload(
 		mt = selectTemplate(tmpl.MessageTemplates, channelType, locale, tmpl.DefaultLocale)
 	}
 
-	if mt == nil {
-		// No template configured — fall back to raw JSON payload
-		return json.Marshal(event)
-	}
-
-	title, body, err := renderMessage(mt, event)
-	if err != nil {
-		return nil, fmt.Errorf("render message: %w", err)
+	var title, body string
+	var extras map[string]string
+	if mt != nil {
+		var err error
+		title, body, err = renderMessage(mt, event)
+		if err != nil {
+			return nil, fmt.Errorf("render message: %w", err)
+		}
+		extras = mt.Extras
 	}
 
 	// Build a generic message envelope that each gateway interprets
@@ -237,15 +281,46 @@ func buildMessagePayload(
 		"title":         title,
 		"body":          body,
 	}
-	if mt.Extras != nil {
-		msg["extras"] = mt.Extras
+	if extras != nil {
+		msg["extras"] = extras
 	}
-	if channelType == authzmod.TargetTypeLine {
+
+	// Default location enrichment — so every channel that wants lat/lng can use
+	// it without re-deriving from the raw event.
+	if event.Location.Lat != 0 || event.Location.Lng != 0 {
+		msg["lat"] = event.Location.Lat
+		msg["lng"] = event.Location.Lng
+	}
+
+	// First image binaryRef as a presigned URL — used by Telegram (sendPhoto)
+	// and any future channel that wants to render an image without going back
+	// to the event itself.
+	if url := firstImagePresignedURL(ctx, event); url != "" {
+		msg["imageUrl"] = url
+	}
+
+	if channelType == authzmod.TargetTypeLine && mt != nil {
 		if flex := buildFlexCard(ctx, event, tmpl, mt, title, body); flex != nil {
 			msg["flex"] = flex
 		}
 	}
 	return json.Marshal(msg)
+}
+
+// firstImagePresignedURL returns a presigned GET URL for the first image
+// binaryRef on the event, or "" when there is no image or presigning fails.
+func firstImagePresignedURL(ctx context.Context, event *ingestmod.NormalizedEvent) string {
+	for _, ref := range event.BinaryRefs {
+		if ref.Kind != "image" && !strings.HasPrefix(ref.ContentType, "image/") {
+			continue
+		}
+		url, err := config.PresignS3GetURL(ctx, ref.Bucket, ref.ObjectId)
+		if err != nil {
+			continue
+		}
+		return url
+	}
+	return ""
 }
 
 // insertDeliveryDLQ records a per-target delivery failure in the DLQ.
@@ -283,7 +358,7 @@ func insertDeliveryDLQ(
 		TenantId:            event.TenantId,
 		WorkspaceId:         event.Source.WorkspaceId,
 		TemplateId:          event.Meta.TemplateId,
-		Topic:               "normalized.events",
+		Topic:               "gw.events.normalized.v1",
 		Stage:               "deliver",
 		Reason:              reason,
 		Payload:             rawPayload,

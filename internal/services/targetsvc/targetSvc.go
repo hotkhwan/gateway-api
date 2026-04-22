@@ -11,6 +11,7 @@ import (
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
 	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingestrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/targetrepo"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
 	"github.com/hotkhwan/gateway-api/models/authzmod"
@@ -28,6 +29,13 @@ type TargetRepoI interface {
 	Delete(ctx context.Context, targetId, tenantId, workspaceId string) error
 	CountByTypeAndOrg(ctx context.Context, tenantId, workspaceId, targetType string) (int64, error)
 	CountMessageChannelsByOrg(ctx context.Context, tenantId, workspaceId string) (int64, error)
+}
+
+// TemplateUsageRepoI reports which mapping templates still reference a given
+// delivery target. Scoped to a workspace so deletion of a workspace target
+// cannot be blocked by a template in another workspace.
+type TemplateUsageRepoI interface {
+	FindUsageByTargetId(ctx context.Context, workspaceId, targetId string) ([]ingestrepo.TemplateUsageRef, error)
 }
 
 // ============================================================
@@ -73,15 +81,16 @@ type ListTargetInput struct {
 
 type TargetService struct {
 	repo        TargetRepoI
+	tmplRepo    TemplateUsageRepoI
 	authzClient authzgw.Client
 	subSvc      *subscriptionsvc.SubscriptionService
 }
 
-func NewTargetService(repo TargetRepoI, authzClient authzgw.Client, subSvc *subscriptionsvc.SubscriptionService) *TargetService {
-	if repo == nil || authzClient == nil {
-		panic("TargetService: repo and authzClient required")
+func NewTargetService(repo TargetRepoI, tmplRepo TemplateUsageRepoI, authzClient authzgw.Client, subSvc *subscriptionsvc.SubscriptionService) *TargetService {
+	if repo == nil || tmplRepo == nil || authzClient == nil {
+		panic("TargetService: repo, tmplRepo and authzClient required")
 	}
-	return &TargetService{repo: repo, authzClient: authzClient, subSvc: subSvc}
+	return &TargetService{repo: repo, tmplRepo: tmplRepo, authzClient: authzClient, subSvc: subSvc}
 }
 
 // validTargetTypes ตรวจ type ก่อน insert
@@ -90,6 +99,80 @@ var validTargetTypes = map[string]bool{
 	authzmod.TargetTypeLine:     true,
 	authzmod.TargetTypeTelegram: true,
 	authzmod.TargetTypeDiscord:  true,
+}
+
+// normalizeConfigForType trims whitespace from per-type identifier/secret fields
+// before validation and storage. Without this, a value like " @phibek_channel"
+// passes validation but Telegram rejects it at delivery time as "chat not found".
+func normalizeConfigForType(targetType string, cfg *authzmod.TargetConfig) {
+	if cfg == nil {
+		return
+	}
+	switch targetType {
+	case authzmod.TargetTypeTelegram:
+		cfg.BotToken = strings.TrimSpace(cfg.BotToken)
+		cfg.ChatId = strings.TrimSpace(cfg.ChatId)
+	case authzmod.TargetTypeLine:
+		cfg.ChannelAccessToken = strings.TrimSpace(cfg.ChannelAccessToken)
+		cfg.ChannelAccessTokenRef = strings.TrimSpace(cfg.ChannelAccessTokenRef)
+		for i, r := range cfg.To {
+			cfg.To[i] = strings.TrimSpace(r)
+		}
+	case authzmod.TargetTypeWebhook, authzmod.TargetTypeDiscord:
+		cfg.URL = strings.TrimSpace(cfg.URL)
+		cfg.SigningSecret = strings.TrimSpace(cfg.SigningSecret)
+	}
+}
+
+// validateConfigForType enforces per-type required config fields so empty
+// secrets cannot slip through and surface only at delivery time.
+// Skipped for mode=klynx — system routing markers do not carry creds.
+func validateConfigForType(targetType, mode string, cfg authzmod.TargetConfig) error {
+	if mode == "klynx" {
+		return nil
+	}
+	switch targetType {
+	case authzmod.TargetTypeTelegram:
+		if strings.TrimSpace(cfg.BotToken) == "" {
+			return ErrMissingBotToken
+		}
+		if strings.TrimSpace(cfg.ChatId) == "" {
+			return ErrMissingChatId
+		}
+	case authzmod.TargetTypeLine:
+		if strings.TrimSpace(cfg.ChannelAccessToken) == "" && strings.TrimSpace(cfg.ChannelAccessTokenRef) == "" {
+			return ErrMissingChannelToken
+		}
+		if len(cfg.To) == 0 {
+			return ErrMissingRecipients
+		}
+	case authzmod.TargetTypeWebhook, authzmod.TargetTypeDiscord:
+		if strings.TrimSpace(cfg.URL) == "" {
+			return ErrMissingURL
+		}
+	}
+	return nil
+}
+
+// mergeConfigPreservingSecrets produces the effective config for an Update
+// by keeping every existing secret/ref field whose incoming value is empty.
+// This prevents accidental wipes when a UI shows a masked secret field and
+// does not re-send it on save.
+func mergeConfigPreservingSecrets(existing, incoming authzmod.TargetConfig) authzmod.TargetConfig {
+	merged := incoming
+	if strings.TrimSpace(merged.BotToken) == "" {
+		merged.BotToken = existing.BotToken
+	}
+	if strings.TrimSpace(merged.ChannelAccessToken) == "" {
+		merged.ChannelAccessToken = existing.ChannelAccessToken
+	}
+	if strings.TrimSpace(merged.ChannelAccessTokenRef) == "" {
+		merged.ChannelAccessTokenRef = existing.ChannelAccessTokenRef
+	}
+	if strings.TrimSpace(merged.SigningSecret) == "" {
+		merged.SigningSecret = existing.SigningSecret
+	}
+	return merged
 }
 
 // checkAdmin ตรวจว่า userId เป็น admin ของ workspace ใน Permify
@@ -134,6 +217,11 @@ func (s *TargetService) Create(ctx context.Context, input CreateTargetInput) (*a
 		if os.Getenv("DEPLOYMENT_PROFILE") == "saasPublic" {
 			return nil, ErrKlynxModeInSaasPublic
 		}
+	}
+
+	normalizeConfigForType(input.Type, &input.Config)
+	if err := validateConfigForType(input.Type, input.Mode, input.Config); err != nil {
+		return nil, err
 	}
 
 	if err := s.checkAdmin(ctx, input.TenantId, input.WorkspaceId, input.UserId, input.IsPlatformAdmin); err != nil {
@@ -248,7 +336,8 @@ func (s *TargetService) Update(ctx context.Context, input UpdateTargetInput) (*a
 		return nil, err
 	}
 
-	if _, err := s.repo.FindByIDAndOrg(ctx, input.TargetId, input.TenantId, input.WorkspaceId); err != nil {
+	existing, err := s.repo.FindByIDAndOrg(ctx, input.TargetId, input.TenantId, input.WorkspaceId)
+	if err != nil {
 		if errors.Is(err, targetrepo.ErrTargetNotFound) {
 			return nil, ErrNotFound
 		}
@@ -277,7 +366,13 @@ func (s *TargetService) Update(ctx context.Context, input UpdateTargetInput) (*a
 	}
 
 	if input.Config != nil {
-		fields["config"] = *input.Config
+		normalizeConfigForType(existing.Type, input.Config)
+		merged := mergeConfigPreservingSecrets(existing.Config, *input.Config)
+		normalizeConfigForType(existing.Type, &merged)
+		if err := validateConfigForType(existing.Type, existing.Mode, merged); err != nil {
+			return nil, err
+		}
+		fields["config"] = merged
 	}
 
 	if len(fields) == 0 {
@@ -312,6 +407,14 @@ func (s *TargetService) Delete(ctx context.Context, tenantId, workspaceId, userI
 			return ErrNotFound
 		}
 		return err
+	}
+
+	usage, err := s.tmplRepo.FindUsageByTargetId(ctx, workspaceId, targetId)
+	if err != nil {
+		return err
+	}
+	if len(usage) > 0 {
+		return &TargetInUseError{Templates: usage}
 	}
 
 	_ = s.authzClient.DeleteEntityRelationships(ctx, tenantId, "target", targetId)

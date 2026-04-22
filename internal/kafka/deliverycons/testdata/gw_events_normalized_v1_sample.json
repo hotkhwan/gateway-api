@@ -1,0 +1,95 @@
+{
+  "binaryRefs": [
+    {
+      "bucket": "canonical",
+      "contentType": "image/jpeg",
+      "kind": "image",
+      "objectId": "2688fa46-00d6-4e50-b2b9-5482187b844a/events/84935d9b-6d90-4f6c-967a-c81c11a24839/pictureList_0.jpg",
+      "role": "capture",
+      "sourceIndex": 0
+    },
+    {
+      "bucket": "canonical",
+      "contentType": "image/jpeg",
+      "kind": "image",
+      "objectId": "2688fa46-00d6-4e50-b2b9-5482187b844a/events/84935d9b-6d90-4f6c-967a-c81c11a24839/pictureList_1.jpg",
+      "role": "capture",
+      "sourceIndex": 1
+    }
+  ],
+  "byAdminArea": {
+    "TH-83": {}
+  },
+  "eventId": "84935d9b-6d90-4f6c-967a-c81c11a24839",
+  "geo": {
+    "adminCode": "TH-83",
+    "adminLevel": 1,
+    "adminName": "Phuket",
+    "countryCode": "TH",
+    "idScheme": "ISO_3166_2"
+  },
+  "geoCell": {
+    "cell": "w1mvn",
+    "precision": 5,
+    "scheme": "geohash"
+  },
+  "location": {
+    "lat": 7.930034962227505,
+    "lng": 98.360595703125,
+    "zone": "PHK"
+  },
+  "occurredAt": "2026-04-21T06:53:12.014113159Z",
+  "orgId": "390ac6ec-073b-4265-99da-9c17b7a2c4f5",
+  "payload": {
+    "age": "Unknown",
+    "age_label": "Unknown",
+    "gender": "Male",
+    "gender_label": "Male",
+    "helmet": 2,
+    "helmet_label": "Not Wearing Helmet",
+    "nonVehiclePlate": "",
+    "nonVehicleType": 1,
+    "nonVehicleType_label": "Motorcycle",
+    "number": 2,
+    "number_label": "2 Persons",
+    "pictureCoordinates": [
+      {
+        "height": 1080,
+        "width": 1920,
+        "x1": 0.1094,
+        "x2": 0.1781,
+        "y1": 0.3278,
+        "y2": 0.5694
+      }
+    ],
+    "upper": "Short Sleeves",
+    "upperColor": "Black",
+    "upperColor_label": "Black",
+    "upper_label": "Short Sleeves",
+    "vestFeatureImageId": "",
+    "vestFeatureImageUrl": "",
+    "vestListType": 0,
+    "vestListType_label": "Stranger",
+    "vestName": "",
+    "vestSimilarity": 0,
+    "vestUnit": ""
+  },
+  "receivedAt": "2026-04-21T06:53:12.211810826Z",
+  "schemaVersion": "v1",
+  "source": {
+    "deviceId": "51",
+    "deviceMgmtId": "eaf2f1da-33f6-4d29-b027-486110ad3cac",
+    "edgeName": "EDGEAI-8ch",
+    "orgId": "390ac6ec-073b-4265-99da-9c17b7a2c4f5",
+    "sn": "6016600d431d6040",
+    "sourceFamily": "AIBOX",
+    "sourceType": "non-motor-vehicle.detected",
+    "workspaceId": "2688fa46-00d6-4e50-b2b9-5482187b844a"
+  },
+  "sourceAction": "detected",
+  "sourceCategory": "non-motor-vehicle",
+  "sourceFamily": "AIBOX",
+  "sourceType": "non-motor-vehicle.detected",
+  "templateId": "auto:aibox.generalDetect.v1",
+  "workspaceId": "2688fa46-00d6-4e50-b2b9-5482187b844a"
+}
