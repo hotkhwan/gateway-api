@@ -2541,6 +2541,14 @@ definitions:
         type: array
       defaultLocale:
         type: string
+      deliveryMatchAll:
+        items:
+          $ref: '#/definitions/ingestmod.MatchCondition'
+        type: array
+      deliveryMatchAny:
+        items:
+          $ref: '#/definitions/ingestmod.MatchCondition'
+        type: array
       deliveryTargets:
         items:
           $ref: '#/definitions/ingestmod.TemplateDeliveryTarget'
@@ -2584,6 +2592,14 @@ definitions:
         type: array
       defaultLocale:
         type: string
+      deliveryMatchAll:
+        items:
+          $ref: '#/definitions/ingestmod.MatchCondition'
+        type: array
+      deliveryMatchAny:
+        items:
+          $ref: '#/definitions/ingestmod.MatchCondition'
+        type: array
       deliveryTargets:
         items:
           $ref: '#/definitions/ingestmod.TemplateDeliveryTarget'
@@ -5317,6 +5333,10 @@ paths:
     post:
       consumes:
       - application/json
+      description: Creates a mapping template. `matchAll` / `matchAny` select the
+        template at ingest; `deliveryMatchAll` / `deliveryMatchAny` filter delivery
+        dispatch. `enabled=false` keeps normalization but stops all delivery. Delivery
+        rules reject `raw.*` fields with 400.
       parameters:
       - description: Active Org ID
         in: header
@@ -5337,7 +5357,15 @@ paths:
           schema:
             $ref: '#/definitions/gmod.SuccessDataResponse'
         "400":
-          description: Bad Request
+          description: Invalid body or unsupported deliveryMatch field/operator
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/gmod.ApiErrorResponse'
       security:
@@ -5401,6 +5429,10 @@ paths:
     patch:
       consumes:
       - application/json
+      description: 'Partial update. Sending `deliveryMatchAll: []` clears the rule
+        (dispatch passes the gate for all events). Sending `enabled: false` stops
+        delivery without disabling normalization. Delivery rules reject `raw.*` fields
+        and unknown operators with 400.'
       parameters:
       - description: Active Org ID
         in: header
@@ -5426,11 +5458,19 @@ paths:
           schema:
             $ref: '#/definitions/gmod.SuccessMessageResponse'
         "400":
-          description: Bad Request
+          description: Invalid body or unsupported deliveryMatch field/operator
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
           schema:
             $ref: '#/definitions/gmod.ApiErrorResponse'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/gmod.ApiErrorResponse'
       security:

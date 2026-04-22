@@ -2,6 +2,7 @@
 package targetapi
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
@@ -242,7 +243,12 @@ func (ctrl *TargetController) Delete(c fiber.Ctx) error {
 	if err := ctrl.service.Delete(ctx, tenantId, orgId, userId, targetId, role == "administrator"); err != nil {
 		log.Error().Err(err).Msg("delete target failed")
 		status, code := targetsvc.MapSvcError(err)
-		return c.Status(status).JSON(gmod.ApiErrorResponse{Code: code, Message: err.Error(), Status: false})
+		resp := gmod.ApiErrorResponse{Code: code, Message: err.Error(), Status: false}
+		var inUse *targetsvc.TargetInUseError
+		if errors.As(err, &inUse) {
+			resp.Details = fiber.Map{"templates": inUse.Templates}
+		}
+		return c.Status(status).JSON(resp)
 	}
 
 	return httputil.MessageOK(c, "target deleted")

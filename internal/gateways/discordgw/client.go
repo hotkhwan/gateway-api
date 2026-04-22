@@ -133,40 +133,41 @@ func (c *Client) Send(ctx context.Context, event interface{}, payload []byte) er
 	return nil
 }
 
-// buildWebhookRequest formats the event for Discord webhook
+// buildWebhookRequest formats the event for Discord webhook.
+// Prefers the rendered `title` / `body` from the dispatch envelope
+// (MappingTemplate.MessageTemplates) and falls back to a minimal
+// eventType/eventId summary when no template is configured.
 func (c *Client) buildWebhookRequest(eventData map[string]interface{}) DiscordWebhookRequest {
-	var eventType, eventId string
+	title, _ := eventData["title"].(string)
+	body, _ := eventData["body"].(string)
 
-	if v, ok := eventData["eventType"].(string); ok {
-		eventType = v
-	}
-	if v, ok := eventData["eventId"].(string); ok {
-		eventId = v
-	}
-
-	// Green color for successful events
+	// Green — neutral default until severity→color mapping lands (step 2).
 	color := 65280
 
-	embed := DiscordEmbed{
-		Title:       "🔔 New Event",
-		Description: "A new event has been processed",
-		Color:       color,
-		Fields: []DiscordEmbedField{
-			{
-				Name:   "Event Type",
-				Value:  eventType,
-				Inline: true,
-			},
-			{
-				Name:   "Event ID",
-				Value:  eventId,
-				Inline: true,
-			},
-		},
+	if title != "" || body != "" {
+		if title == "" {
+			title = "Event notification"
+		}
+		return DiscordWebhookRequest{
+			Embeds: []DiscordEmbed{{
+				Title:       title,
+				Description: body,
+				Color:       color,
+			}},
+		}
 	}
 
+	eventType, _ := eventData["eventType"].(string)
+	eventId, _ := eventData["eventId"].(string)
 	return DiscordWebhookRequest{
-		Content: "New event detected",
-		Embeds:  []DiscordEmbed{embed},
+		Embeds: []DiscordEmbed{{
+			Title:       "New Event",
+			Description: "A new event has been processed",
+			Color:       color,
+			Fields: []DiscordEmbedField{
+				{Name: "Event Type", Value: eventType, Inline: true},
+				{Name: "Event ID", Value: eventId, Inline: true},
+			},
+		}},
 	}
 }

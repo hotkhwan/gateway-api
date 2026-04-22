@@ -8,34 +8,26 @@ import (
 	"time"
 
 	"github.com/hotkhwan/gateway-api/config"
-	"github.com/hotkhwan/gateway-api/models/ingestmod"
+	"github.com/hotkhwan/gateway-api/internal/eventschema"
 	"github.com/segmentio/kafka-go"
 )
 
-type resolvedFieldSources struct {
-	TemplateID  string
-	WorkspaceID string
-	TenantID    string
-}
-
-type rawNormalizedEvent struct {
-	TemplateID  string `json:"templateId"`
-	TenantID    string `json:"tenantId"`
-	WorkspaceID string `json:"workspaceId"`
-	OrgID       string `json:"orgId"`
-	Source      struct {
-		WorkspaceID string `json:"workspaceId"`
-		OrgID       string `json:"orgId"`
-	} `json:"source"`
-}
-
-// StartDeliveryConsumer consumes normalized.events, loads the matching template,
-// and dispatches each event to its configured delivery targets.
-// Consumer group: gateway-delivery-group
+// StartDeliveryConsumer consumes gw.events.normalized.v1 directly (Wide slice
+// post-unification). Each Kafka message is decoded as eventschema.NormalizedEvent,
+// converted to the internal ingestmod.NormalizedEvent shape via FromEventSchema,
+// and handed to dispatchToTargets along with the original raw bytes. The raw
+// bytes are used verbatim as webhook body so receivers see exactly what Kafka
+// carries — no lossy bridging, no hydration, no canonical re-synthesis.
+//
+// Consumer group: gateway-delivery-v2-group (LastOffset — never replay history).
+//
+// DELIVERY_V2_ENABLED env var still exists for operational reversibility:
+//   - "true"  (default after r2) → dispatch authoritatively
+//   - "false"                    → dry-run: decode + log intended targets, no dispatch
 func StartDeliveryConsumer(ctx context.Context, deps ConsumerDeps) {
 	broker := os.Getenv("KAFKA_BROKER")
-	topic := config.TopicEnv("KAFKA_TOPIC_NORMALIZED_EVENTS", "normalized.events")
-	groupID := "gateway-delivery-group"
+	topic := config.TopicEnv("KAFKA_TOPIC_GW_EVENTS_NORMALIZED", "gw.events.normalized.v1")
+	groupID := "gateway-delivery-v2-group"
 
 	log := deps.Logger.With().
 		Str("topic", topic).
@@ -50,10 +42,12 @@ func StartDeliveryConsumer(ctx context.Context, deps ConsumerDeps) {
 		MaxBytes:       10e6,
 		MaxWait:        10 * time.Second,
 		CommitInterval: 0,
+		StartOffset:    kafka.LastOffset, // Contract §5.3 — never replay history
 	})
 	defer func() { _ = reader.Close() }()
 
-	log.Info().Msg("delivery consumer started")
+	dryRun := os.Getenv("DELIVERY_V2_ENABLED") == "false"
+	log.Info().Bool("dryRun", dryRun).Msg("delivery consumer started (v2, reads gw.events.normalized.v1)")
 
 	for {
 		m, err := reader.FetchMessage(ctx)
@@ -67,108 +61,40 @@ func StartDeliveryConsumer(ctx context.Context, deps ConsumerDeps) {
 			continue
 		}
 
-		handleNormalizedEvent(ctx, m, deps)
+		handleCanonicalEvent(ctx, m, deps, dryRun)
 		_ = reader.CommitMessages(ctx, m)
 	}
 }
 
-// handleNormalizedEvent decodes a normalized.events message and dispatches it to targets.
-//
-// templateId resolution (in order of precedence — first non-empty wins):
-//  1. event.Meta.TemplateId        (canonical ingestmod.NormalizedEvent shape)
-//  2. raw JSON top-level templateId (eventschema.NormalizedEvent / bridge shape)
-//  3. Kafka header "templateId"     (set by upstream producer)
-//
-// Defensive against schema drift when delivery consumer subscribes either
-// normalized.events (Meta.TemplateId) or gw.events.normalized.v1 (root-level).
-func handleNormalizedEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) {
+// handleCanonicalEvent decodes a gw.events.normalized.v1 message and
+// dispatches to the template's delivery targets. The original raw bytes are
+// retained and passed through as the webhook body (contract §5.5 — Phase-E).
+func handleCanonicalEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps, dryRun bool) {
 	log := deps.Logger
 
-	var event ingestmod.NormalizedEvent
-	if err := json.Unmarshal(m.Value, &event); err != nil {
+	var src eventschema.NormalizedEvent
+	if err := json.Unmarshal(m.Value, &src); err != nil {
 		log.Error().
 			Err(err).
 			Int("partition", m.Partition).
 			Int64("offset", m.Offset).
-			Msg("[delivery] decode failed — skipping")
+			Msg("[delivery] decode eventschema failed — skipping")
 		return
 	}
 
-	sources := resolveNormalizedEventFields(&event, m)
-
-	log.Debug().
-		Str("eventId", event.EventId).
-		Str("templateId", event.Meta.TemplateId).
-		Str("templateIdSource", sources.TemplateID).
-		Str("workspaceId", event.Source.WorkspaceId).
-		Str("workspaceIdSource", sources.WorkspaceID).
-		Str("tenantId", event.TenantId).
-		Str("tenantIdSource", sources.TenantID).
-		Str("topic", m.Topic).
-		Msg("[delivery] templateId resolved (defensive)")
-
-	dispatchToTargets(ctx, &event, deps)
-}
-
-func resolveNormalizedEventFields(event *ingestmod.NormalizedEvent, m kafka.Message) resolvedFieldSources {
-	sources := resolvedFieldSources{
-		TemplateID:  "meta",
-		WorkspaceID: "payload",
-		TenantID:    "payload",
+	event := FromEventSchema(&src)
+	if event == nil {
+		return
 	}
 
-	var raw rawNormalizedEvent
-	_ = json.Unmarshal(m.Value, &raw)
-
-	if event.Meta.TemplateId == "" {
-		if raw.TemplateID != "" {
-			event.Meta.TemplateId = raw.TemplateID
-			sources.TemplateID = "rootJson"
-		} else if v := headerValue(m.Headers, "templateId"); v != "" {
-			event.Meta.TemplateId = v
-			sources.TemplateID = "header"
-		}
+	if dryRun {
+		log.Info().
+			Str("eventId", event.EventId).
+			Str("templateId", event.Meta.TemplateId).
+			Str("workspaceId", event.Source.WorkspaceId).
+			Msg("[delivery-v2 dry-run] would dispatch")
+		return
 	}
 
-	if event.Source.WorkspaceId == "" {
-		// Resolve workspaceId from authoritative sources only.
-		// orgId fields are NOT fallbacks for workspaceId — klynx-api's minimal republish
-		// puts klynxOrgId at source.orgId / root orgId, which is a different entity.
-		// Kafka header "workspaceId" is set explicitly by upstream publishers
-		// (normalizedcons in gateway-api, handleNormalized in klynx-api) and is the
-		// authoritative phibek workspaceId when the JSON payload omits it.
-		headerWorkspaceID := headerValue(m.Headers, "workspaceId")
-		switch {
-		case raw.Source.WorkspaceID != "":
-			event.Source.WorkspaceId = raw.Source.WorkspaceID
-			sources.WorkspaceID = "sourceRootJson"
-		case raw.WorkspaceID != "":
-			event.Source.WorkspaceId = raw.WorkspaceID
-			sources.WorkspaceID = "rootJson"
-		case headerWorkspaceID != "":
-			event.Source.WorkspaceId = headerWorkspaceID
-			sources.WorkspaceID = "header"
-		}
-	}
-
-	if event.TenantId == "" {
-		if raw.TenantID != "" {
-			event.TenantId = raw.TenantID
-			sources.TenantID = "rootJson"
-		} else if v := headerValue(m.Headers, "tenantId"); v != "" {
-			event.TenantId = v
-			sources.TenantID = "header"
-		}
-	}
-
-	return sources
-}
-
-func headerValue(headers []kafka.Header, key string) string {
-	for _, h := range headers {
-		if h.Key == key && len(h.Value) > 0 {
-			return string(h.Value)
-		}
-	}
-	return ""
+	dispatchToTargets(ctx, event, m.Value, deps)
 }

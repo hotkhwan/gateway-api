@@ -13,6 +13,8 @@ type CreateTemplateInput struct {
 	Match               ingestmod.MatchRule                `json:"match"`
 	MatchAll            []ingestmod.MatchCondition         `json:"matchAll,omitempty"`
 	MatchAny            []ingestmod.MatchCondition         `json:"matchAny,omitempty"`
+	DeliveryMatchAll    []ingestmod.MatchCondition         `json:"deliveryMatchAll,omitempty"`
+	DeliveryMatchAny    []ingestmod.MatchCondition         `json:"deliveryMatchAny,omitempty"`
 	Mappings            []ingestmod.FieldMapping           `json:"mappings"`
 	DLQ                 *ingestmod.DLQConfig               `json:"dlq,omitempty"`
 	DefaultLocale       string                             `json:"defaultLocale,omitempty"`
@@ -37,6 +39,8 @@ type UpdateTemplateInput struct {
 	Match               *ingestmod.MatchRule               `json:"match,omitempty"`
 	MatchAll            []ingestmod.MatchCondition         `json:"matchAll,omitempty"`
 	MatchAny            []ingestmod.MatchCondition         `json:"matchAny,omitempty"`
+	DeliveryMatchAll    []ingestmod.MatchCondition         `json:"deliveryMatchAll,omitempty"`
+	DeliveryMatchAny    []ingestmod.MatchCondition         `json:"deliveryMatchAny,omitempty"`
 	Mappings            []ingestmod.FieldMapping           `json:"mappings,omitempty"`
 	DLQ                 *ingestmod.DLQConfig               `json:"dlq,omitempty"`
 	DefaultLocale       *string                            `json:"defaultLocale,omitempty"`

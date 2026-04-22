@@ -32,6 +32,11 @@ func (s *TemplateService) Create(ctx context.Context, orgId string, in *CreateTe
 
 	log.Info().Str("orgId", orgId).Str("name", in.Name).Msg("📥 [CreateTemplate] creating template")
 
+	if err := validateDeliveryRules(in.DeliveryMatchAll, in.DeliveryMatchAny); err != nil {
+		log.Warn().Err(err).Str("orgId", orgId).Str("name", in.Name).Msg("❌ [CreateTemplate] invalid delivery rule")
+		return nil, err
+	}
+
 	now := time.Now().UTC()
 	enabled := true
 	if in.Enabled != nil {
@@ -48,6 +53,8 @@ func (s *TemplateService) Create(ctx context.Context, orgId string, in *CreateTe
 		Match:               in.Match,
 		MatchAll:            in.MatchAll,
 		MatchAny:            in.MatchAny,
+		DeliveryMatchAll:    in.DeliveryMatchAll,
+		DeliveryMatchAny:    in.DeliveryMatchAny,
 		Mappings:            in.Mappings,
 		DefaultLocale:       in.DefaultLocale,
 		MessageTemplates:    in.MessageTemplates,
@@ -131,6 +138,11 @@ func (s *TemplateService) Update(ctx context.Context, orgId, templateId string, 
 
 	log.Info().Str("orgId", orgId).Str("templateId", templateId).Msg("📥 [UpdateTemplate] updating template")
 
+	if err := validateDeliveryRules(in.DeliveryMatchAll, in.DeliveryMatchAny); err != nil {
+		log.Warn().Err(err).Str("orgId", orgId).Str("templateId", templateId).Msg("❌ [UpdateTemplate] invalid delivery rule")
+		return err
+	}
+
 	set := bson.M{}
 	if in.Name != nil {
 		set["name"] = *in.Name
@@ -155,6 +167,12 @@ func (s *TemplateService) Update(ctx context.Context, orgId, templateId string, 
 	}
 	if in.MatchAny != nil {
 		set["matchAny"] = in.MatchAny
+	}
+	if in.DeliveryMatchAll != nil {
+		set["deliveryMatchAll"] = in.DeliveryMatchAll
+	}
+	if in.DeliveryMatchAny != nil {
+		set["deliveryMatchAny"] = in.DeliveryMatchAny
 	}
 	if in.Mappings != nil {
 		set["mappings"] = in.Mappings
@@ -193,6 +211,28 @@ func (s *TemplateService) Update(ctx context.Context, orgId, templateId string, 
 
 	log.Info().Str("orgId", orgId).Str("templateId", templateId).Msg("✅ [UpdateTemplate] template updated")
 	return nil
+}
+
+// BackfillEnabledForDeliveringTemplates flips enabled=true on every mapping
+// template that has at least one delivery target and is not already enabled.
+// Idempotent. Intended to run from bootstrap before the delivery consumer
+// starts, so legacy documents whose enabled field was missing / false do not
+// silently lose delivery when the template-level gate is enforced
+// (plan decision D10).
+func (s *TemplateService) BackfillEnabledForDeliveringTemplates(ctx context.Context) (int64, int64, error) {
+	ctx, end, log := traceutil.StartLite(ctx, "gateway.templatesvc", "TemplateService.BackfillEnabled", "templatesvc", "BackfillEnabled")
+	defer end()
+
+	matched, modified, err := s.repo.BackfillEnabledForTemplatesWithDeliveryTargets(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("[templatesvc] backfill enabled failed")
+		return 0, 0, err
+	}
+	log.Info().
+		Int64("matched", matched).
+		Int64("modified", modified).
+		Msg("[templatesvc] backfill enabled complete")
+	return matched, modified, nil
 }
 
 // Delete removes a template.

@@ -115,6 +115,7 @@ func (h *TemplateController) Get(c fiber.Ctx) error {
 
 // Create godoc
 // @Summary      Create mapping template
+// @Description  Creates a mapping template. `matchAll` / `matchAny` select the template at ingest; `deliveryMatchAll` / `deliveryMatchAny` filter delivery dispatch. `enabled=false` keeps normalization but stops all delivery. Delivery rules reject `raw.*` fields with 400.
 // @Tags         ingest-mapping-templates
 // @Security     BearerAuth
 // @Accept       json
@@ -122,7 +123,9 @@ func (h *TemplateController) Get(c fiber.Ctx) error {
 // @Param        X-Active-Org  header    string                         true  "Active Org ID"
 // @Param        body          body      templatesvc.CreateTemplateInput true  "Template definition"
 // @Success      201  {object}  gmod.SuccessDataResponse
-// @Failure      400  {object}  gmod.ApiErrorResponse
+// @Failure      400  {object}  gmod.ApiErrorResponse  "Invalid body or unsupported deliveryMatch field/operator"
+// @Failure      401  {object}  gmod.ApiErrorResponse
+// @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /ingest/mappingTemplates [post]
 func (h *TemplateController) Create(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "TemplateController.Create", "ingestapi", "CreateTemplate")
@@ -144,6 +147,10 @@ func (h *TemplateController) Create(c fiber.Ctx) error {
 
 	t, err := h.svc.Create(ctx, orgId, &in)
 	if err != nil {
+		if templatesvc.IsInvalidDeliveryRule(err) {
+			log.Warn().Err(err).Str("orgId", orgId).Str("name", in.Name).Msg("❌ [CreateTemplate] invalid delivery rule")
+			return httputil.FailBadRequest(c, err.Error())
+		}
 		log.Error().Err(err).Str("orgId", orgId).Str("name", in.Name).Msg("❌ [CreateTemplate] failed to create template")
 		return httputil.FailInternal(c, "failed to create template")
 	}
@@ -154,6 +161,7 @@ func (h *TemplateController) Create(c fiber.Ctx) error {
 
 // Update godoc
 // @Summary      Update mapping template
+// @Description  Partial update. Sending `deliveryMatchAll: []` clears the rule (dispatch passes the gate for all events). Sending `enabled: false` stops delivery without disabling normalization. Delivery rules reject `raw.*` fields and unknown operators with 400.
 // @Tags         ingest-mapping-templates
 // @Security     BearerAuth
 // @Accept       json
@@ -162,8 +170,10 @@ func (h *TemplateController) Create(c fiber.Ctx) error {
 // @Param        templateId    path      string                         true  "Template ID"
 // @Param        body          body      templatesvc.UpdateTemplateInput true  "Fields to update"
 // @Success      200  {object}  gmod.SuccessMessageResponse
-// @Failure      400  {object}  gmod.ApiErrorResponse
+// @Failure      400  {object}  gmod.ApiErrorResponse  "Invalid body or unsupported deliveryMatch field/operator"
+// @Failure      401  {object}  gmod.ApiErrorResponse
 // @Failure      404  {object}  gmod.ApiErrorResponse
+// @Failure      500  {object}  gmod.ApiErrorResponse
 // @Router       /ingest/mappingTemplates/{templateId} [patch]
 func (h *TemplateController) Update(c fiber.Ctx) error {
 	ctx, end, log := traceutil.StartLite(c, "gateway.ingestapi", "TemplateController.Update", "ingestapi", "UpdateTemplate")
@@ -184,6 +194,10 @@ func (h *TemplateController) Update(c fiber.Ctx) error {
 		if errors.Is(err, templatesvc.ErrTemplateNotFound) {
 			log.Warn().Str("orgId", orgId).Str("templateId", templateId).Msg("❌ [UpdateTemplate] not found")
 			return httputil.FailNotFound(c, err.Error())
+		}
+		if templatesvc.IsInvalidDeliveryRule(err) {
+			log.Warn().Err(err).Str("orgId", orgId).Str("templateId", templateId).Msg("❌ [UpdateTemplate] invalid delivery rule")
+			return httputil.FailBadRequest(c, err.Error())
 		}
 		log.Error().Err(err).Str("orgId", orgId).Str("templateId", templateId).Msg("❌ [UpdateTemplate] internal error")
 		return httputil.FailInternal(c, "failed to update template")

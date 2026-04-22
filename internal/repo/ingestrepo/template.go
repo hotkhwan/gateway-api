@@ -111,6 +111,32 @@ func (r *MappingTemplateRepo) Delete(ctx context.Context, orgId, templateId stri
 	return nil
 }
 
+// TemplateUsageRef is a minimal projection used to report which templates
+// are still referencing a given delivery target.
+type TemplateUsageRef struct {
+	TemplateId string `json:"templateId" bson:"templateId"`
+	Name       string `json:"name"       bson:"name"`
+}
+
+// FindUsageByTargetId returns all templates in a workspace that reference
+// the given delivery target via deliveryTargets[].targetId.
+func (r *MappingTemplateRepo) FindUsageByTargetId(ctx context.Context, workspaceId, targetId string) ([]TemplateUsageRef, error) {
+	if workspaceId == "" || targetId == "" {
+		return nil, nil
+	}
+	filter := bson.M{
+		"workspaceId":              workspaceId,
+		"deliveryTargets.targetId": targetId,
+	}
+	opts := options.Find().SetProjection(bson.M{"templateId": 1, "name": 1, "_id": 0})
+
+	var result []TemplateUsageRef
+	if err := stomongo.Find(ctx, colTemplate, filter, opts, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 // FindByMatch returns the first template whose match rule fits the incoming event.
 //
 // Matching is flexible: if a template's match field is empty, it acts as a wildcard.
@@ -163,6 +189,37 @@ func (r *MappingTemplateRepo) FindByMatch(ctx context.Context, orgId, eventType,
 		return nil, err
 	}
 	return &result, nil
+}
+
+// backfillEnabledFilter is the Mongo filter used by the one-shot backfill.
+// Only docs whose `enabled` field is absent are matched — an explicit
+// `enabled: false` set by an operator via admin PATCH is preserved
+// (their intent must not be silently flipped by a migration).
+//
+// Legacy docs written before the Enabled field existed in the struct do not
+// have the key at all, so `{ $exists: false }` targets exactly that cohort.
+func backfillEnabledFilter() bson.M {
+	return bson.M{
+		"enabled":         bson.M{"$exists": false},
+		"deliveryTargets": bson.M{"$exists": true, "$not": bson.M{"$size": 0}},
+	}
+}
+
+// BackfillEnabledForTemplatesWithDeliveryTargets sets enabled=true on every
+// mapping_templates row where the `enabled` field is absent AND at least one
+// delivery target is configured. Idempotent. Returns (matched, modified, err).
+//
+// Plan decision D10 (revised after review): this backfill is an explicit
+// deploy-time migration, invoked by a one-shot CLI flag (`-migrate=template-enabled`)
+// that runs once per environment BEFORE the enforcement binary deploys.
+// It is NOT called on normal startup, so operator-set `enabled=false` is never
+// revisited automatically.
+func (r *MappingTemplateRepo) BackfillEnabledForTemplatesWithDeliveryTargets(ctx context.Context) (int64, int64, error) {
+	res, err := stomongo.UpdateMany(ctx, colTemplate, backfillEnabledFilter(), bson.M{"enabled": true})
+	if err != nil {
+		return 0, 0, err
+	}
+	return res.MatchedCount, res.ModifiedCount, nil
 }
 
 // FindBySourceFamily returns all templates for an org + sourceFamily, sorted by priority desc.
