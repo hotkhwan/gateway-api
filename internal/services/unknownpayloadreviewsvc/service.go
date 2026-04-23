@@ -56,11 +56,16 @@ func (s *UnknownPayloadReviewService) Get(ctx context.Context, orgId, reviewId s
 	return s.repo.FindById(ctx, orgId, reviewId)
 }
 
-func (s *UnknownPayloadReviewService) List(ctx context.Context, orgId string, page, perPage int) ([]*ingestmod.UnknownPayloadReview, *gmod.Pagination, error) {
+func (s *UnknownPayloadReviewService) List(
+	ctx context.Context,
+	orgId string,
+	f unknownpayloadreviewrepo.ListFilter,
+	page, perPage int,
+) ([]*ingestmod.UnknownPayloadReview, *gmod.Pagination, error) {
 	ctx, end, _ := traceutil.StartLite(ctx, "gateway.unknownpayloadreviewsvc", "List", "unknownpayloadreviewsvc", "List")
 	defer end()
 
-	return s.repo.List(ctx, orgId, page, perPage)
+	return s.repo.List(ctx, orgId, f, page, perPage)
 }
 
 // Reject marks a review as "rejected" and clears its cache entry.
