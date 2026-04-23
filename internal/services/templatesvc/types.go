@@ -50,11 +50,14 @@ type UpdateTemplateInput struct {
 }
 
 // ListTemplatesInput carries query parameters for the list endpoint.
+// nil Enabled = no filter; non-nil = filter by that value.
 type ListTemplatesInput struct {
-	OrgId     string
-	Search    string
-	Page      int
-	PerPage   int
-	SortField string
-	SortOrder string
+	OrgId        string
+	Search       string
+	SourceFamily string
+	Enabled      *bool
+	Page         int
+	PerPage      int
+	SortField    string
+	SortOrder    string
 }
