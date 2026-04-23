@@ -299,12 +299,33 @@ func buildMessagePayload(
 		msg["imageUrl"] = url
 	}
 
+	// Event-details deep link — template extras win, otherwise fall back to the
+	// WEB_BASE_URL default so every channel can render a "View details" action
+	// without per-template configuration.
+	eventDetailsURL := resolveEventDetailsURL(event, extras)
+	if eventDetailsURL != "" {
+		msg["eventDetailsUrl"] = eventDetailsURL
+	}
+
 	if channelType == authzmod.TargetTypeLine && mt != nil {
-		if flex := buildFlexCard(ctx, event, tmpl, mt, title, body); flex != nil {
+		if flex := buildFlexCard(ctx, event, tmpl, mt, title, body, eventDetailsURL); flex != nil {
 			msg["flex"] = flex
 		}
 	}
 	return json.Marshal(msg)
+}
+
+// resolveEventDetailsURL chooses the deep link rendered into delivery messages.
+// Precedence: template extras["eventDetailsUrl"] (rendered with event data) →
+// WEB_BASE_URL/events/{eventId} default. Returns "" when neither is set.
+func resolveEventDetailsURL(event *ingestmod.NormalizedEvent, extras map[string]string) string {
+	if raw := strings.TrimSpace(extras["eventDetailsUrl"]); raw != "" {
+		if rendered, err := renderText(raw, renderContext(event)); err == nil {
+			return strings.TrimSpace(rendered)
+		}
+		return raw
+	}
+	return config.EventDetailsURL(event.EventId)
 }
 
 // firstImagePresignedURL returns a presigned GET URL for the first image
