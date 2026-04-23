@@ -3,8 +3,11 @@ package ingestapi
 
 import (
 	"errors"
+	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/hotkhwan/gateway-api/internal/repo/unknownpayloadreviewrepo"
 	"github.com/hotkhwan/gateway-api/internal/services/rejectedpayloadpatternsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/unknownpayloadreviewsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
@@ -45,6 +48,9 @@ func (h *UnknownPayloadReviewController) userId(c fiber.Ctx) string {
 // @Tags         ingest-unknown-payload-reviews
 // @Security     BearerAuth
 // @Param        X-Active-Org  header  string  true  "Active Org ID"
+// @Param        status        query   string  false "Filter by status (pending|rejected|all)"  default(pending)
+// @Param        sourceFamily  query   string  false "Filter by source family"
+// @Param        dateTime      query   string  false "Date range on lastSeenAt: from,to (RFC3339 UTC)"
 // @Param        page          query   int     false "Page" default(1)
 // @Param        perPage       query   int     false "Per page" default(10)
 // @Success      200  {object}  gmod.PaginationResponse
@@ -58,7 +64,23 @@ func (h *UnknownPayloadReviewController) List(c fiber.Ctx) error {
 	page := fiber.Query[int](c, "page", 1)
 	perPage := fiber.Query[int](c, "perPage", 10)
 
-	items, pag, err := h.svc.List(ctx, orgId, page, perPage)
+	f := unknownpayloadreviewrepo.ListFilter{
+		Status:       c.Query("status", "pending"),
+		SourceFamily: c.Query("sourceFamily", ""),
+	}
+	if dt := c.Query("dateTime", ""); dt != "" {
+		parts := strings.SplitN(dt, ",", 2)
+		if len(parts) == 2 {
+			if t, err := time.Parse(time.RFC3339, strings.TrimSpace(parts[0])); err == nil {
+				f.StartDate = t.UTC()
+			}
+			if t, err := time.Parse(time.RFC3339, strings.TrimSpace(parts[1])); err == nil {
+				f.EndDate = t.UTC()
+			}
+		}
+	}
+
+	items, pag, err := h.svc.List(ctx, orgId, f, page, perPage)
 	if err != nil {
 		log.Error().Err(err).Msg("[ListUnknownPayloadReviews] failed")
 		return httputil.FailInternal(c, "failed to list unknown payload reviews")

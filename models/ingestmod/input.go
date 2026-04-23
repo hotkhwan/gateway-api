@@ -13,14 +13,18 @@ type EventUpdateInput struct {
 
 // ListEventsInput represents list events query parameters
 type ListEventsInput struct {
-	TenantId   string `json:"tenantId"`
-	WorkspaceId string `json:"workspaceId"`
-	StatusName string `json:"statusName"` // "pending", "approved", "rejected", "all"
-	EventType  string `json:"eventType"`  // optional filter
-	Page       int    `json:"page"`
-	PerPage    int    `json:"perPage"`
-	SortField  string `json:"sortField"`
-	SortOrder  string `json:"sortOrder"` // "asc" or "desc"
+	TenantId     string `json:"tenantId"`
+	WorkspaceId  string `json:"workspaceId"`
+	StatusName   string `json:"statusName"`   // "pending", "approved", "rejected", "all"
+	EventType    string `json:"eventType"`    // optional filter
+	SourceFamily string `json:"sourceFamily"` // optional filter (source.sourceFamily)
+	Search       string `json:"search"`       // optional search on deviceName / eventType
+	StartDate    string `json:"startDate"`    // RFC3339 UTC (inclusive) — filter occurredAt >=
+	EndDate      string `json:"endDate"`      // RFC3339 UTC (inclusive) — filter occurredAt <=
+	Page         int    `json:"page"`
+	PerPage      int    `json:"perPage"`
+	SortField    string `json:"sortField"`
+	SortOrder    string `json:"sortOrder"` // "asc" or "desc"
 }
 
 // PaginatedResult represents paginated query result

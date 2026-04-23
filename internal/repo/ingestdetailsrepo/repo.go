@@ -3,6 +3,7 @@ package ingestdetailsrepo
 import (
 	"context"
 	"errors"
+	"regexp"
 	"time"
 
 	"github.com/hotkhwan/gateway-api/internal/repo/stomongo"
@@ -13,6 +14,16 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+// ListApprovedFilter carries optional filter values for ListApproved.
+// Zero values are treated as "no filter" for each dimension.
+type ListApprovedFilter struct {
+	EventType    string
+	SourceFamily string
+	Search       string    // matches eventType / source.deviceName / source.deviceId (case-insensitive substring)
+	StartDate    time.Time // inclusive lower bound on occurredAt (zero = no lower bound)
+	EndDate      time.Time // inclusive upper bound on occurredAt (zero = no upper bound)
+}
 
 var (
 	ErrNotFound = errors.New("event detail not found")
@@ -99,17 +110,38 @@ func (r *EventDetailsRepo) FindByEventId(
 	return &result, nil
 }
 
-// ListApproved lists approved events with pagination
+// ListApproved lists approved events with pagination.
 func (r *EventDetailsRepo) ListApproved(
 	ctx context.Context,
 	tenantId, orgId string,
-	eventType string, // optional filter
+	f ListApprovedFilter,
 	page, perPage int,
 	sortField, sortOrder string,
 ) ([]*ingestmod.EventDetail, *gmod.Pagination, error) {
 	filter := bson.M{"tenantId": tenantId, "source.workspaceId": orgId}
-	if eventType != "" {
-		filter["eventType"] = eventType
+	if f.EventType != "" {
+		filter["eventType"] = f.EventType
+	}
+	if f.SourceFamily != "" {
+		filter["source.sourceFamily"] = f.SourceFamily
+	}
+	if f.Search != "" {
+		rx := bson.M{"$regex": regexp.QuoteMeta(f.Search), "$options": "i"}
+		filter["$or"] = bson.A{
+			bson.M{"eventType": rx},
+			bson.M{"source.deviceName": rx},
+			bson.M{"source.deviceId": rx},
+		}
+	}
+	if !f.StartDate.IsZero() || !f.EndDate.IsZero() {
+		occ := bson.M{}
+		if !f.StartDate.IsZero() {
+			occ["$gte"] = f.StartDate
+		}
+		if !f.EndDate.IsZero() {
+			occ["$lte"] = f.EndDate
+		}
+		filter["occurredAt"] = occ
 	}
 
 	sort := bson.D{}

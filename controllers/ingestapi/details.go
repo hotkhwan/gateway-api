@@ -2,6 +2,8 @@
 package ingestapi
 
 import (
+	"strings"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
 	"github.com/hotkhwan/gateway-api/models/gmod"
@@ -30,12 +32,15 @@ func (ctrl *EventDetailsController) mustLocals(c fiber.Ctx) (tenantId, orgId, ca
 
 // ListApprovedEvents godoc
 // @Summary      List approved events
-// @Description  Returns paginated list of approved ingest events, optionally filtered by eventType.
+// @Description  Returns paginated list of approved ingest events, filterable by eventType, sourceFamily, dateTime range, and free-text search.
 // @Tags         ingest-details
 // @Security     BearerAuth
 // @Produce      json
 // @Param        X-Active-Org  header    string  true   "Active Org ID"
 // @Param        eventType     query     string  false  "Filter by event type"
+// @Param        sourceFamily  query     string  false  "Filter by source family"
+// @Param        search        query     string  false  "Free-text search (eventType, deviceName, deviceId)"
+// @Param        dateTime      query     string  false  "Date range: from,to (RFC3339 UTC, e.g. 2026-03-01T00:00:00Z,2026-03-06T23:59:59Z)"
 // @Param        page          query     int     false  "Page number"    default(1)
 // @Param        perPage       query     int     false  "Items per page" default(10)
 // @Param        sortField     query     string  false  "Sort field"     default(approvedAt)
@@ -50,14 +55,27 @@ func (ctrl *EventDetailsController) ListApprovedEvents(c fiber.Ctx) error {
 
 	tenantId, orgId, _ := ctrl.mustLocals(c)
 
+	startDate, endDate := "", ""
+	if dt := c.Query("dateTime", ""); dt != "" {
+		parts := strings.SplitN(dt, ",", 2)
+		if len(parts) == 2 {
+			startDate = strings.TrimSpace(parts[0])
+			endDate = strings.TrimSpace(parts[1])
+		}
+	}
+
 	input := ingestmod.ListEventsInput{
-		TenantId:  tenantId,
-		WorkspaceId:     orgId,
-		EventType: c.Query("eventType", ""),
-		Page:      fiber.Query[int](c, "page", 1),
-		PerPage:   fiber.Query[int](c, "perPage", 10),
-		SortField: c.Query("sortField", "approvedAt"),
-		SortOrder: c.Query("sortOrder", "desc"),
+		TenantId:     tenantId,
+		WorkspaceId:  orgId,
+		EventType:    c.Query("eventType", ""),
+		SourceFamily: c.Query("sourceFamily", ""),
+		Search:       strings.TrimSpace(c.Query("search", "")),
+		StartDate:    startDate,
+		EndDate:      endDate,
+		Page:         fiber.Query[int](c, "page", 1),
+		PerPage:      fiber.Query[int](c, "perPage", 10),
+		SortField:    c.Query("sortField", "approvedAt"),
+		SortOrder:    c.Query("sortOrder", "desc"),
 	}
 
 	// Debug — read-only list query
