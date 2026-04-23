@@ -36,6 +36,8 @@ func (h *TemplateController) orgId(c fiber.Ctx) string {
 // @Param        page          query     int     false  "Page number"    default(1)
 // @Param        perPage       query     int     false  "Items per page" default(10)
 // @Param        search        query     string  false  "Search by name"
+// @Param        sourceFamily  query     string  false  "Filter by source family"
+// @Param        enabled       query     string  false  "Filter by enabled (true|false)"
 // @Param        sortField     query     string  false  "Sort field"     default(createdAt)
 // @Param        sortOrder     query     string  false  "Sort order"     default(desc)
 // @Success      200  {object}  gmod.PaginatedResponse
@@ -46,12 +48,21 @@ func (h *TemplateController) List(c fiber.Ctx) error {
 	defer end()
 
 	in := &templatesvc.ListTemplatesInput{
-		OrgId:     h.orgId(c),
-		Search:    c.Query("search"),
-		Page:      fiber.Query[int](c, "page", 1),
-		PerPage:   fiber.Query[int](c, "perPage", 10),
-		SortField: c.Query("sortField", "createdAt"),
-		SortOrder: c.Query("sortOrder", "desc"),
+		OrgId:        h.orgId(c),
+		Search:       c.Query("search"),
+		SourceFamily: c.Query("sourceFamily"),
+		Page:         fiber.Query[int](c, "page", 1),
+		PerPage:      fiber.Query[int](c, "perPage", 10),
+		SortField:    c.Query("sortField", "createdAt"),
+		SortOrder:    c.Query("sortOrder", "desc"),
+	}
+	switch c.Query("enabled", "") {
+	case "true":
+		t := true
+		in.Enabled = &t
+	case "false":
+		f := false
+		in.Enabled = &f
 	}
 
 	// Debug — read-only list query

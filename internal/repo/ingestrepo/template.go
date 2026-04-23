@@ -47,16 +47,30 @@ func (r *MappingTemplateRepo) FindById(ctx context.Context, orgId, templateId st
 	return &result, nil
 }
 
-// List returns paginated templates for an org, with optional name search.
+// ListFilter carries optional filter values for List. nil Enabled = no filter.
+type ListFilter struct {
+	Search       string
+	SourceFamily string
+	Enabled      *bool
+}
+
+// List returns paginated templates for an org, with optional filters.
 func (r *MappingTemplateRepo) List(
 	ctx context.Context,
-	orgId, search string,
+	orgId string,
+	f ListFilter,
 	page, perPage int,
 	sortField, sortOrder string,
 ) ([]*ingestmod.MappingTemplate, *gmod.Pagination, error) {
 	filter := bson.M{"workspaceId": orgId}
-	if search != "" {
-		filter["name"] = bson.M{"$regex": regexp.QuoteMeta(search), "$options": "i"}
+	if f.Search != "" {
+		filter["name"] = bson.M{"$regex": regexp.QuoteMeta(f.Search), "$options": "i"}
+	}
+	if f.SourceFamily != "" {
+		filter["sourceFamily"] = f.SourceFamily
+	}
+	if f.Enabled != nil {
+		filter["enabled"] = *f.Enabled
 	}
 
 	sort := bson.D{}

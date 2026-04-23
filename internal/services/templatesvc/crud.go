@@ -119,9 +119,13 @@ func (s *TemplateService) List(ctx context.Context, in *ListTemplatesInput) ([]*
 		in.PerPage = 250
 	}
 
-	log.Debug().Str("orgId", in.OrgId).Int("page", in.Page).Str("search", in.Search).Msg("📥 [ListTemplates] listing templates")
+	log.Debug().Str("orgId", in.OrgId).Int("page", in.Page).Str("search", in.Search).Str("sourceFamily", in.SourceFamily).Msg("📥 [ListTemplates] listing templates")
 
-	items, pag, err := s.repo.List(ctx, in.OrgId, in.Search, in.Page, in.PerPage, in.SortField, in.SortOrder)
+	items, pag, err := s.repo.List(ctx, in.OrgId, ingestrepo.ListFilter{
+		Search:       in.Search,
+		SourceFamily: in.SourceFamily,
+		Enabled:      in.Enabled,
+	}, in.Page, in.PerPage, in.SortField, in.SortOrder)
 	if err != nil {
 		log.Error().Err(err).Str("orgId", in.OrgId).Msg("❌ [ListTemplates] db error")
 		return nil, nil, err

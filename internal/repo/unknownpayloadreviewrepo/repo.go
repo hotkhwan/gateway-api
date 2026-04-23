@@ -19,6 +19,15 @@ const col = "unknown_payload_reviews"
 
 var ErrNotFound = errors.New("unknown payload review not found")
 
+// ListFilter carries optional filter values for List.
+// Status "" or "all" means no status filter. Empty time values mean no date bound.
+type ListFilter struct {
+	Status       string
+	SourceFamily string
+	StartDate    time.Time // inclusive lower bound on lastSeenAt
+	EndDate      time.Time // inclusive upper bound on lastSeenAt
+}
+
 type UnknownPayloadReviewRepo struct{}
 
 func NewUnknownPayloadReviewRepo() *UnknownPayloadReviewRepo {
@@ -89,10 +98,30 @@ func (r *UnknownPayloadReviewRepo) FindById(ctx context.Context, orgId, reviewId
 func (r *UnknownPayloadReviewRepo) List(
 	ctx context.Context,
 	orgId string,
+	f ListFilter,
 	page, perPage int,
 ) ([]*ingestmod.UnknownPayloadReview, *gmod.Pagination, error) {
-	filter := bson.M{"workspaceId": orgId, "status": "pending"}
-	sort := bson.D{{Key: "createdAt", Value: -1}}
+	filter := bson.M{"workspaceId": orgId}
+	switch f.Status {
+	case "", "all":
+		// no status filter
+	default:
+		filter["status"] = f.Status
+	}
+	if f.SourceFamily != "" {
+		filter["sourceFamily"] = f.SourceFamily
+	}
+	if !f.StartDate.IsZero() || !f.EndDate.IsZero() {
+		ls := bson.M{}
+		if !f.StartDate.IsZero() {
+			ls["$gte"] = f.StartDate
+		}
+		if !f.EndDate.IsZero() {
+			ls["$lte"] = f.EndDate
+		}
+		filter["lastSeenAt"] = ls
+	}
+	sort := bson.D{{Key: "lastSeenAt", Value: -1}}
 
 	var result []*ingestmod.UnknownPayloadReview
 	pagination, err := stomongo.FindWithPagination(ctx, col, filter, sort, page, perPage, &result)

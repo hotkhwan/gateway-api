@@ -303,11 +303,27 @@ func (s *ApprovalService) ListApproved(
 		input.PerPage = 100
 	}
 
+	f := ingestdetailsrepo.ListApprovedFilter{
+		EventType:    input.EventType,
+		SourceFamily: input.SourceFamily,
+		Search:       input.Search,
+	}
+	if input.StartDate != "" {
+		if t, err := time.Parse(time.RFC3339, input.StartDate); err == nil {
+			f.StartDate = t.UTC()
+		}
+	}
+	if input.EndDate != "" {
+		if t, err := time.Parse(time.RFC3339, input.EndDate); err == nil {
+			f.EndDate = t.UTC()
+		}
+	}
+
 	items, pagination, err := s.eventDetailsRepo.ListApproved(
 		ctx,
 		input.TenantId,
 		input.WorkspaceId,
-		input.EventType,
+		f,
 		input.Page,
 		input.PerPage,
 		input.SortField,
