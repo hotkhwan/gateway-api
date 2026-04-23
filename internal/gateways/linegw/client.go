@@ -194,22 +194,35 @@ func buildLineMessages(payload []byte) []lineMessage {
 }
 
 // buildMessageText returns a plain-text rendering of the event envelope.
+// Used as the LINE message body when no Flex bubble is built (e.g. no message
+// template configured). Lat/lng and the eventDetailsUrl are appended so the
+// receiver gets the same context the Flex card would have shown.
 func buildMessageText(data map[string]any) string {
 	title, _ := data["title"].(string)
 	body, _ := data["body"].(string)
 
-	if title != "" && body != "" {
-		return fmt.Sprintf("%s\n%s", title, body)
-	}
-	if body != "" {
-		return body
-	}
-	if title != "" {
-		return title
+	var head string
+	switch {
+	case title != "" && body != "":
+		head = fmt.Sprintf("%s\n%s", title, body)
+	case body != "":
+		head = body
+	case title != "":
+		head = title
+	default:
+		eventType, _ := data["eventType"].(string)
+		eventId, _ := data["eventId"].(string)
+		head = fmt.Sprintf("New Event\nType: %s\nID: %s", eventType, eventId)
 	}
 
-	// Fallback: basic event info
-	eventType, _ := data["eventType"].(string)
-	eventId, _ := data["eventId"].(string)
-	return fmt.Sprintf("New Event\nType: %s\nID: %s", eventType, eventId)
+	out := head
+	if lat, ok := data["lat"].(float64); ok {
+		if lng, ok2 := data["lng"].(float64); ok2 && (lat != 0 || lng != 0) {
+			out += fmt.Sprintf("\n📍 https://www.google.com/maps/search/?api=1&query=%f,%f", lat, lng)
+		}
+	}
+	if url, ok := data["eventDetailsUrl"].(string); ok && url != "" {
+		out += "\n🔎 " + url
+	}
+	return out
 }

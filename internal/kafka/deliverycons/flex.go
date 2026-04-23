@@ -70,8 +70,20 @@ type flexOpts struct {
 //
 // Returns nil when there is nothing meaningful to render (no header, no body,
 // no image) so the caller can fall back to plain text.
-func buildFlexCard(ctx context.Context, event *ingestmod.NormalizedEvent, tmpl *ingestmod.MappingTemplate, mt *ingestmod.MessageTemplate, renderedTitle, renderedBody string) map[string]any {
+//
+// eventDetailsURL is the resolved deep link for the event; it becomes the
+// default Action1 when the template extras don't already configure one.
+func buildFlexCard(ctx context.Context, event *ingestmod.NormalizedEvent, tmpl *ingestmod.MappingTemplate, mt *ingestmod.MessageTemplate, renderedTitle, renderedBody, eventDetailsURL string) map[string]any {
 	opts := resolveFlexOpts(ctx, event, mt, renderedTitle, renderedBody)
+
+	// Default-action fallback: if the template author did not configure an
+	// Action1 button but we have a deep link, expose it as "View Event Details"
+	// so every channel surfaces the same affordance.
+	if !opts.Action1Enabled && eventDetailsURL != "" {
+		opts.Action1Enabled = true
+		opts.Action1Label = "🔎 View Event Details"
+		opts.Action1URL = eventDetailsURL
+	}
 
 	body := []map[string]any{}
 	if opts.TagEnabled && opts.TagText != "" {

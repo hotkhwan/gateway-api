@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/hotkhwan/gateway-api/internal/logger"
@@ -24,8 +25,10 @@ type DiscordWebhookRequest struct {
 type DiscordEmbed struct {
 	Title       string              `json:"title"`
 	Description string              `json:"description"`
+	URL         string              `json:"url,omitempty"`
 	Color       int                 `json:"color"`
 	Fields      []DiscordEmbedField `json:"fields,omitempty"`
+	Image       *DiscordEmbedImage  `json:"image,omitempty"`
 	Timestamp   string              `json:"timestamp,omitempty"`
 }
 
@@ -33,6 +36,10 @@ type DiscordEmbedField struct {
 	Name   string `json:"name"`
 	Value  string `json:"value"`
 	Inline bool   `json:"inline,omitempty"`
+}
+
+type DiscordEmbedImage struct {
+	URL string `json:"url"`
 }
 
 type DiscordErrorResponse struct {
@@ -137,37 +144,87 @@ func (c *Client) Send(ctx context.Context, event interface{}, payload []byte) er
 // Prefers the rendered `title` / `body` from the dispatch envelope
 // (MappingTemplate.MessageTemplates) and falls back to a minimal
 // eventType/eventId summary when no template is configured.
+//
+// Enrichments wired off the envelope:
+//   - imageUrl       → embed.image (renders below the description)
+//   - eventDetailsUrl → embed.url   (makes the title clickable)
+//   - lat/lng        → "Location" field with a Google Maps link
 func (c *Client) buildWebhookRequest(eventData map[string]interface{}) DiscordWebhookRequest {
 	title, _ := eventData["title"].(string)
 	body, _ := eventData["body"].(string)
+	imageURL := strings.TrimSpace(stringField(eventData, "imageUrl"))
+	detailsURL := strings.TrimSpace(stringField(eventData, "eventDetailsUrl"))
 
 	// Green — neutral default until severity→color mapping lands (step 2).
 	color := 65280
 
-	if title != "" || body != "" {
+	embed := DiscordEmbed{Color: color}
+	if title == "" && body == "" {
+		embed.Title = "New Event"
+		embed.Description = "A new event has been processed"
+		eventType, _ := eventData["eventType"].(string)
+		eventId, _ := eventData["eventId"].(string)
+		if eventType != "" {
+			embed.Fields = append(embed.Fields, DiscordEmbedField{Name: "Event Type", Value: eventType, Inline: true})
+		}
+		if eventId != "" {
+			embed.Fields = append(embed.Fields, DiscordEmbedField{Name: "Event ID", Value: eventId, Inline: true})
+		}
+	} else {
 		if title == "" {
 			title = "Event notification"
 		}
-		return DiscordWebhookRequest{
-			Embeds: []DiscordEmbed{{
-				Title:       title,
-				Description: body,
-				Color:       color,
-			}},
+		embed.Title = title
+		embed.Description = body
+	}
+
+	if imageURL != "" {
+		embed.Image = &DiscordEmbedImage{URL: imageURL}
+	}
+	if detailsURL != "" {
+		embed.URL = detailsURL
+	}
+
+	if lat, hasLat := floatField(eventData, "lat"); hasLat {
+		if lng, hasLng := floatField(eventData, "lng"); hasLng && (lat != 0 || lng != 0) {
+			mapsURL := fmt.Sprintf("https://www.google.com/maps/search/?api=1&query=%f,%f", lat, lng)
+			embed.Fields = append(embed.Fields, DiscordEmbedField{
+				Name:   "📍 Location",
+				Value:  fmt.Sprintf("[%.6f, %.6f](%s)", lat, lng, mapsURL),
+				Inline: false,
+			})
 		}
 	}
 
-	eventType, _ := eventData["eventType"].(string)
-	eventId, _ := eventData["eventId"].(string)
-	return DiscordWebhookRequest{
-		Embeds: []DiscordEmbed{{
-			Title:       "New Event",
-			Description: "A new event has been processed",
-			Color:       color,
-			Fields: []DiscordEmbedField{
-				{Name: "Event Type", Value: eventType, Inline: true},
-				{Name: "Event ID", Value: eventId, Inline: true},
-			},
-		}},
+	if detailsURL != "" {
+		embed.Fields = append(embed.Fields, DiscordEmbedField{
+			Name:   "🔎 Details",
+			Value:  fmt.Sprintf("[View Event Details](%s)", detailsURL),
+			Inline: false,
+		})
 	}
+
+	return DiscordWebhookRequest{Embeds: []DiscordEmbed{embed}}
+}
+
+func stringField(m map[string]interface{}, key string) string {
+	if v, ok := m[key].(string); ok {
+		return v
+	}
+	return ""
+}
+
+// floatField pulls a numeric value out of the envelope, accepting either a
+// float64 (the JSON default) or a json.Number (when the decoder is configured
+// for it). Returns false on missing/wrong-type so the caller can skip cleanly.
+func floatField(m map[string]interface{}, key string) (float64, bool) {
+	switch v := m[key].(type) {
+	case float64:
+		return v, true
+	case json.Number:
+		if f, err := v.Float64(); err == nil {
+			return f, true
+		}
+	}
+	return 0, false
 }
