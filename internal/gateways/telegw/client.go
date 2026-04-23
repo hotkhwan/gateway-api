@@ -18,16 +18,29 @@ import (
 
 // Telegram Bot API request/response structures
 type TelegramMessageRequest struct {
-	ChatID    string `json:"chat_id"`
-	Text      string `json:"text"`
-	ParseMode string `json:"parse_mode,omitempty"`
+	ChatID      string             `json:"chat_id"`
+	Text        string             `json:"text"`
+	ParseMode   string             `json:"parse_mode,omitempty"`
+	ReplyMarkup *TelegramInlineKbd `json:"reply_markup,omitempty"`
 }
 
 type TelegramPhotoRequest struct {
-	ChatID    string `json:"chat_id"`
-	Photo     string `json:"photo"`
-	Caption   string `json:"caption,omitempty"`
-	ParseMode string `json:"parse_mode,omitempty"`
+	ChatID      string             `json:"chat_id"`
+	Photo       string             `json:"photo"`
+	Caption     string             `json:"caption,omitempty"`
+	ParseMode   string             `json:"parse_mode,omitempty"`
+	ReplyMarkup *TelegramInlineKbd `json:"reply_markup,omitempty"`
+}
+
+// TelegramInlineKbd is the reply_markup wrapper for inline buttons.
+// inline_keyboard is a 2D array of buttons (rows of buttons).
+type TelegramInlineKbd struct {
+	InlineKeyboard [][]TelegramInlineButton `json:"inline_keyboard"`
+}
+
+type TelegramInlineButton struct {
+	Text string `json:"text"`
+	URL  string `json:"url,omitempty"`
 }
 
 type TelegramErrorResponse struct {
@@ -84,14 +97,16 @@ func (c *Client) Send(ctx context.Context, event interface{}, payload []byte) er
 	}
 
 	imageURL := strings.TrimSpace(stringField(envelope, "imageUrl"))
+	replyMarkup := buildReplyMarkup(envelope)
 
 	if imageURL != "" {
 		caption := truncateForTelegram(c.buildMessageText(envelope), telegramCaptionLimit)
 		photoReq := TelegramPhotoRequest{
-			ChatID:    chatID,
-			Photo:     imageURL,
-			Caption:   caption,
-			ParseMode: "HTML",
+			ChatID:      chatID,
+			Photo:       imageURL,
+			Caption:     caption,
+			ParseMode:   "HTML",
+			ReplyMarkup: replyMarkup,
 		}
 		if err := c.post(ctx, botToken, "sendPhoto", photoReq); err != nil {
 			// sendPhoto can fail when Telegram cannot fetch the URL (e.g. presigned
@@ -112,9 +127,10 @@ func (c *Client) Send(ctx context.Context, event interface{}, payload []byte) er
 	}
 
 	textReq := TelegramMessageRequest{
-		ChatID:    chatID,
-		Text:      truncateForTelegram(c.buildMessageText(envelope), telegramTextLimit),
-		ParseMode: "HTML",
+		ChatID:      chatID,
+		Text:        truncateForTelegram(c.buildMessageText(envelope), telegramTextLimit),
+		ParseMode:   "HTML",
+		ReplyMarkup: replyMarkup,
 	}
 	if err := c.post(ctx, botToken, "sendMessage", textReq); err != nil {
 		return err
@@ -233,6 +249,29 @@ func floatField(m map[string]interface{}, key string) (float64, bool) {
 		}
 	}
 	return 0, false
+}
+
+// buildReplyMarkup returns an inline-keyboard reply_markup with a "View
+// Event Details" button when the envelope carries an eventDetailsUrl.
+// Telegram requires url to be HTTP/HTTPS — anything else is dropped to avoid
+// the API rejecting the message ("Bad Request: BUTTON_URL_INVALID").
+func buildReplyMarkup(envelope map[string]interface{}) *TelegramInlineKbd {
+	url := strings.TrimSpace(stringField(envelope, "eventDetailsUrl"))
+	if url == "" {
+		return nil
+	}
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		return nil
+	}
+	label := strings.TrimSpace(stringField(envelope, "eventDetailsLabel"))
+	if label == "" {
+		label = "🔎 View Event Details"
+	}
+	return &TelegramInlineKbd{
+		InlineKeyboard: [][]TelegramInlineButton{
+			{{Text: label, URL: url}},
+		},
+	}
 }
 
 // truncateForTelegram cuts a string at limit, replacing the tail with an
