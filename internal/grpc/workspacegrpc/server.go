@@ -10,6 +10,7 @@ import (
 
 	"github.com/hotkhwan/gateway-api/internal/eventschema"
 	"github.com/hotkhwan/gateway-api/internal/grpc/eventservice"
+	"github.com/hotkhwan/gateway-api/internal/grpc/targetgrpc"
 	"github.com/hotkhwan/gateway-api/internal/logger"
 	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/workspacesvc"
@@ -62,6 +63,25 @@ type RegisterDeliveryTargetResponse struct {
 type workspaceServer struct {
 	svc       *workspacesvc.WorkspaceService
 	targetSvc *targetsvc.TargetService
+}
+
+// workspaceLookupAdapter bridges workspacesvc.WorkspaceService to the
+// targetgrpc.WorkspaceLookup interface. The adapter lives here (not in
+// targetgrpc) so targetgrpc has no dependency on workspacesvc and can
+// be tested with a lightweight stub.
+type workspaceLookupAdapter struct {
+	svc *workspacesvc.WorkspaceService
+}
+
+func (a workspaceLookupAdapter) GetByID(ctx context.Context, workspaceID string) (*targetgrpc.WorkspaceLookupResult, error) {
+	ws, err := a.svc.GetByID(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	if ws == nil {
+		return nil, nil
+	}
+	return &targetgrpc.WorkspaceLookupResult{TenantID: ws.TenantID}, nil
 }
 
 // sharedSecretInterceptor validates x-gw-token metadata.
@@ -125,6 +145,14 @@ func Start(ctx context.Context, svc *workspacesvc.WorkspaceService, targetSvc *t
 	if eventRepo != nil {
 		esSrv := eventservice.NewEventServiceServer(eventRepo)
 		srv.RegisterService(esSrv.ServiceDesc(), struct{}{})
+	}
+
+	// Register handler for /phibek.target.v1.TargetService
+	// (delivery-target admin CRUD — klynx-api proxy surface, see
+	// docs/plan/target-provisioning-cross-repo.md).
+	if targetSvc != nil {
+		tsSrv := targetgrpc.NewTargetServiceServer(targetSvc, workspaceLookupAdapter{svc: svc})
+		srv.RegisterService(tsSrv.ServiceDesc(), struct{}{})
 	}
 
 	log.Info().Str("port", port).Msg("✅ phibek gRPC workspace server started")
