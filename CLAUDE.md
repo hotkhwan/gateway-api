@@ -645,12 +645,32 @@ logger.Init()
 
 Infra must be ready before container wiring and before serving/consuming starts.
 
+## Cross-Repo Planning & Contracts
+
+For any feature, bug, flow change, event change, sync change, deploy change, or cross-repo work, follow the plan-review-implement workflow defined in `AGENTS.md`. Do not implement before the plan and contract are reviewed.
+
+### Contract Authority Model
+
+The platform runs hub-and-spoke for cross-repo contracts:
+
+- **Hub (cross-repo / cross-service flow contracts):** `klynx-api/docs/contracts/<name>.md` is canonical. It groups every surface that shares one lifecycle — REST + Kafka + MQTT + Redis + sync + cache + rollout — into one contract per domain or per flow. See `klynx-api/docs/contracts/README.md` for the grouping rule before authoring or consuming.
+- **`gateway-api` SoR (this repo):** events canonical detail and `device_management` identity / sync state are owned here. Hub contracts that touch these domains reference `gateway-api` as the canonical writer; do not let projection / consumer state be treated as canonical.
+- **`gateway-api/docs/swagger.yaml`:** is the REST schema *subset* of a contract — generated from the `swag` annotations. It is not the full contract. Async (Kafka / MQTT) and Redis-visible behavior, write authority, field ownership, and rollout / replay rules live in the contract `.md` only.
+- **`gateway-api/docs/contracts/<name>.md`:** reserved for `gateway-api`-owned cross-repo behavior that has no klynx-api hub equivalent. Use `klynx-api/docs/contracts/TEMPLATE.md` as the skeleton and keep one contract per domain or per flow. See `docs/contracts/README.md` (this repo).
+
+### Frontend Contract Rule
+
+Frontend repos (`klynx-feature`, `gateway-portal`, 3rd-party integrators) consume the contracts above and must not invent any schema across REST / Kafka / MQTT / Redis-visible / cache / sync / auth / permission surfaces. Network traces, screenshots, and source code are not contracts. If FE needs behavior not in the contract, the BE contract must be updated first.
+
 ## References
 
 Read before implementing:
 - `.claude/rule/code-style.md`
 - `.claude/rule/security.md`
 - `.claude/rule/test.md`
+- `AGENTS.md` (cross-repo plan-review-implement workflow)
+- `klynx-api/docs/contracts/README.md` (cross-repo contract grouping rules)
+- `klynx-api/docs/contracts/TEMPLATE.md` (canonical contract skeleton — also used when authoring `gateway-api/docs/contracts/<name>.md`)
 
 ## Final Rule
 
