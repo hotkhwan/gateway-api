@@ -62,6 +62,13 @@ func ensureKafkaWriter() error {
 			{"KAFKA_TOPIC_GW_SOURCES", "gw.sources.changed.v1"},
 			{"KAFKA_TOPIC_GW_DEVICES", "gw.devices.changed.v1"},
 			{"KAFKA_TOPIC_GW_DELIVERY_STATUS", "gw.delivery.status.v1"},
+			// Phase 0 — kctrlsubmsg producer surface (klynx-api Phase 2 consumer side):
+			// MQTT kcontrol.* → kctrlsubmsg → these Kafka topics → klynx-api gwkctrl*cons → WSS hub
+			{"KAFKA_TOPIC_GW_KCONTROL_HEALTH", "gw.kcontrol.health.v1"},
+			{"KAFKA_TOPIC_GW_KCONTROL_ALARMS", "gw.kcontrol.alarms.v1"},
+			{"KAFKA_TOPIC_GW_KCONTROL_SENSOR", "gw.kcontrol.sensor.v1"},
+			{"KAFKA_TOPIC_GW_KCONTROL_EVENTS", "gw.kcontrol.events.v1"},
+			{"KAFKA_TOPIC_GW_KCONTROL_RESPONSE", "gw.kcontrol.response.v1"},
 			{"KAFKA_TOPIC_ORG_CREATED", "klynx.org.created.v1"},
 			{"KAFKA_TOPIC_ORG_DELETED", "klynx.org.deleted.v1"},
 			{"KAFKA_TOPIC_ENTITLEMENT_SNAPSHOT", "klynx.entitlement.snapshot.v1"},
