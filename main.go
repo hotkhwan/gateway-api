@@ -42,6 +42,7 @@ import (
 	"github.com/hotkhwan/gateway-api/config"
 	gatewaydocs "github.com/hotkhwan/gateway-api/docs"
 	"github.com/hotkhwan/gateway-api/internal/mqtt/kcontrolmsg"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/kctrlsubmsg"
 	"github.com/hotkhwan/gateway-api/internal/mqtt/kwatchmsg"
 	"github.com/hotkhwan/gateway-api/internal/services/crimes"
 	"github.com/hotkhwan/gateway-api/router"
@@ -103,8 +104,9 @@ func main() {
 	config.InitS3()
 	// config.InitLLMConfig()
 	// config.InitTelemetry()
-	// kcontrolmsg.InitMQTT()
+	// kcontrolmsg.InitMQTT()  // legacy gateway-api kcontrol subscriber — kept disabled; superseded by kctrlsubmsg (Phase 0 of klynx-realtime-restoration)
 	// kwatchmsg.InitMQTT()
+	kctrlsubmsg.InitMQTT()
 	log := logger.Boot("bootstrap", "main")
 	log.Info().Str("sub", envFile).Msg("📂 Loading env file")
 
@@ -383,6 +385,7 @@ func main() {
 		config.CloseKafka()
 		config.DisconnectMongo()
 		kcontrolmsg.DisconnectMQTT()
+		kctrlsubmsg.DisconnectMQTT()
 		kwatchmsg.DisconnectMQTT()
 		config.DisconnectTelemetry()
 		config.DisconnectRedis()
