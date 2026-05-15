@@ -144,3 +144,44 @@ func TestFromEventSchema_NestedSourceWorkspaceIdWins(t *testing.T) {
 		t.Errorf("nested WorkspaceID should win; got %q", out.Source.WorkspaceId)
 	}
 }
+
+// Layer C — klynx-api docs/contracts/event-severity-forwarding.md §6 wire
+// adapter rule: when the wire payload carries severity (producer stamped at
+// buildBridgeEvent time), FromEventSchema must map it back onto the
+// ingestmod shape so the delivery consumer reuses the value verbatim
+// instead of re-running classification rules.
+func TestFromEventSchema_CarriesSeverityAndEventClass(t *testing.T) {
+	src := &eventschema.NormalizedEvent{
+		EventID:    "evt-sev-1",
+		Severity:   "high",
+		EventClass: "intrusion",
+	}
+	out := FromEventSchema(src)
+	if out == nil {
+		t.Fatal("unexpected nil output")
+	}
+	if out.EventSeverity != "high" {
+		t.Errorf("EventSeverity = %q, want high", out.EventSeverity)
+	}
+	if out.EventClass != "intrusion" {
+		t.Errorf("EventClass = %q, want intrusion", out.EventClass)
+	}
+}
+
+// Pre-feature wire payload (no severity) maps to empty ingestmod fields;
+// existing filter.go fallback then re-runs classification rules. Locks the
+// "empty wire severity triggers re-classify fallback" semantic preserved
+// from contract §6 (Codex round-1 lock).
+func TestFromEventSchema_EmptySeverityPassesThrough(t *testing.T) {
+	src := &eventschema.NormalizedEvent{
+		EventID: "evt-sev-empty",
+		// Severity + EventClass intentionally left empty (zero value).
+	}
+	out := FromEventSchema(src)
+	if out.EventSeverity != "" {
+		t.Errorf("EventSeverity should be empty, got %q", out.EventSeverity)
+	}
+	if out.EventClass != "" {
+		t.Errorf("EventClass should be empty, got %q", out.EventClass)
+	}
+}
