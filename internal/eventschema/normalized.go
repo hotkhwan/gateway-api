@@ -10,6 +10,9 @@ import "time"
 // IMPORTANT: This struct is a copy-by-convention mirror of klynx-api's
 // internal/eventbridge/types.go NormalizedEvent.
 // Any field add/rename/remove MUST be PR'd on BOTH repos and deployed together.
+// See klynx-api/docs/contracts/event-severity-forwarding.md for the
+// severity + eventClass rollout (Layer C — klynx-api 4.51.0 ships the
+// consumer-side mirror + projection; this PR ships the producer side).
 //
 // Trace propagation MUST go through transport headers (Kafka message headers or HTTP headers),
 // NOT embedded in this struct. TraceID is for business correlation logging only.
@@ -25,6 +28,19 @@ type NormalizedEvent struct {
 	SourceFamily   string    `json:"sourceFamily"`
 	OccurredAt     time.Time `json:"occurredAt"`
 	ReceivedAt     time.Time `json:"receivedAt"`
+
+	// --- Classification (Layer C — klynx-api docs/contracts/event-severity-forwarding.md) ---
+	// Severity is admin-classified per ClassificationRule on the matched
+	// MappingTemplate. Canonical vocab: high | medium | low | info | none
+	// (pass-through — producer may emit any string; klynx FE Phase 2 maps
+	// unknown to "none" gray badge). Carried on the wire so klynx consumer
+	// projects to event_refs.severity without re-running classification
+	// rules. Empty when no rule matched OR rule emitted "none".
+	Severity string `json:"severity,omitempty"`
+	// EventClass is admin-classified category per ClassificationRule.
+	// Free-form (admin-configurable). Phase 2 dashboard donut groups by
+	// this field on the klynx side.
+	EventClass string `json:"eventClass,omitempty"`
 
 	// --- Device identity (grouped) ---
 	Source *NormalizedSource `json:"source,omitempty"`
