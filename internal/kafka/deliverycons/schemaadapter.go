@@ -58,6 +58,13 @@ func FromEventSchema(src *eventschema.NormalizedEvent) *ingestmod.NormalizedEven
 		EventType:     src.SourceType,
 		EventCategory: src.SourceCategory,
 		EventAction:   src.SourceAction,
+		// Severity + EventClass — producer-stamped via normalizedcons.buildBridgeEvent
+		// (Layer C, klynx-api docs/contracts/event-severity-forwarding.md §6).
+		// When non-empty the delivery consumer reuses the value verbatim and
+		// filter.go skips re-classification; the existing fallback rule re-run
+		// in filter.go covers empty wire severity (legacy or no rule matched).
+		EventSeverity: src.Severity,
+		EventClass:    src.EventClass,
 		OccurredAt:    src.OccurredAt,
 		Payload:       src.Payload,
 		Meta: ingestmod.NormalizationMeta{
