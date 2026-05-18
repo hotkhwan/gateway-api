@@ -45,6 +45,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/repo/devicemgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicerepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/dlqrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/kctrlregistryrepo"
 	"github.com/hotkhwan/gateway-api/internal/grpc/eventservice"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
@@ -60,6 +61,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/services/devicemgmtsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
 	"github.com/hotkhwan/gateway-api/internal/services/dlqsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/kctrlregistrysvc"
 	"github.com/hotkhwan/gateway-api/internal/services/ingeststatsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/licensesvc"
@@ -181,6 +183,13 @@ type Container struct {
 	// Per klynx-api/docs/contracts/camera-gw-managed-overlay.md §8.
 	CameraOverlayInboundController *adminapi.CameraOverlayInboundController
 
+	// ===== Klynx kcontrol registry (Phase A — receiving side) =====
+	// Per klynx-api/docs/contracts/kcontrol-gw-managed-registry.md §4 + §5.
+	// Service powers both the admin REST handlers and the kctrlsubmsg MQTT
+	// 3-branch routing decision.
+	KctrlRegistryService    *kctrlregistrysvc.Service
+	KctrlRegistryController *adminapi.KctrlRegistryController
+
 	// ===== Delivery Targets domain (org-scoped legacy) =====
 	TargetService    *targetsvc.TargetService
 	TargetController *targetapi.TargetController
@@ -221,6 +230,7 @@ func NewContainer() *Container {
 	c.buildLicense()
 	c.buildSourceProfile()
 	c.buildDeviceManagement()
+	c.buildKctrlRegistry()
 	c.buildRejectedPayloadPattern()
 	c.buildTemplateReview()
 	c.buildMappingSuggestion()
@@ -335,6 +345,15 @@ func (c *Container) buildDeviceManagement() {
 	c.DeviceMgmtService = devicemgmtsvc.NewDeviceManagementService(repo)
 	c.DeviceMgmtController = ingestapi.NewDeviceManagementController(c.DeviceMgmtService)
 	c.CameraOverlayInboundController = adminapi.NewCameraOverlayInboundController(c.DeviceMgmtService)
+}
+
+// buildKctrlRegistry wires the kctrl_registry surface — receives klynx-api
+// Phase B PATCH/DELETE and powers the kctrlsubmsg routing decision per
+// klynx-api/docs/contracts/kcontrol-gw-managed-registry.md.
+func (c *Container) buildKctrlRegistry() {
+	repo := kctrlregistryrepo.NewKctrlRegistryRepo()
+	c.KctrlRegistryService = kctrlregistrysvc.NewService(repo)
+	c.KctrlRegistryController = adminapi.NewKctrlRegistryController(c.KctrlRegistryService)
 }
 
 // ============================================================
