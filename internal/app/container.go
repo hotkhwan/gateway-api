@@ -177,6 +177,10 @@ type Container struct {
 	LicenseAdminController    *adminapi.LicenseAdminController
 	PlatformLicenseController *adminapi.PlatformLicenseController
 
+	// ===== Klynx camera overlay inbound (Phase B) =====
+	// Per klynx-api/docs/contracts/camera-gw-managed-overlay.md §8.
+	CameraOverlayInboundController *adminapi.CameraOverlayInboundController
+
 	// ===== Delivery Targets domain (org-scoped legacy) =====
 	TargetService    *targetsvc.TargetService
 	TargetController *targetapi.TargetController
@@ -330,6 +334,7 @@ func (c *Container) buildDeviceManagement() {
 	repo := devicemgmtrepo.NewDeviceManagementRepo()
 	c.DeviceMgmtService = devicemgmtsvc.NewDeviceManagementService(repo)
 	c.DeviceMgmtController = ingestapi.NewDeviceManagementController(c.DeviceMgmtService)
+	c.CameraOverlayInboundController = adminapi.NewCameraOverlayInboundController(c.DeviceMgmtService)
 }
 
 // ============================================================
