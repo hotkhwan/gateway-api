@@ -139,13 +139,30 @@ func InitMQTT() {
 		}
 
 		client = mqtt.NewClient(opts)
-		if token := client.Connect(); token.Wait() && token.Error() != nil {
-			log.Fatal().
-				Err(token.Error()).
+
+		// Connect is non-blocking on boot: paho's ConnectRetry=true keeps
+		// trying in the background until the first successful connection,
+		// at which point OnConnect fires and subscribes. Bounded WaitTimeout
+		// lets boot record a definitive log line ("connected" or "still
+		// trying") without blocking the rest of main() — previously a hard
+		// Wait() would freeze startup forever if the broker was unreachable
+		// or the first TLS handshake stalled.
+		token := client.Connect()
+		if !token.WaitTimeout(10 * time.Second) {
+			log.Warn().
 				Str("broker", broker).
 				Str("sni", serverName).
 				Str("clientId", clientID).
-				Msg("❌ MQTT connection error (kctrlsubmsg)")
+				Msg("⚠️ MQTT connect still in progress after 10s — continuing boot; paho will keep retrying in background (kctrlsubmsg)")
+			return
+		}
+		if err := token.Error(); err != nil {
+			log.Error().
+				Err(err).
+				Str("broker", broker).
+				Str("sni", serverName).
+				Str("clientId", clientID).
+				Msg("❌ MQTT connect error — paho will keep retrying in background (kctrlsubmsg)")
 		}
 	})
 }
