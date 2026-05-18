@@ -29,7 +29,7 @@ Responsibilities:
 
 Target quality bar:
 - the plan does not need to be perfect
-- the plan should be at least 90% ready before implementation starts
+- the plan should be at least 80% ready before implementation starts
 
 ## Standard Context
 
@@ -42,14 +42,24 @@ These defaults apply unless the plan explicitly justifies an override.
 - Event consumer: `klynx-api`
 - Device/camera identity and sync state source of truth: `gateway-api/device_management`
 - `klynx/camera` is a projection and consumer model for Klynx workflows
-- Frontend must follow documented contracts and must not invent API, request/response, error, or event schemas
+- Frontend must follow documented backend contracts and must not invent **any** schema — REST request/response/error, Kafka event, MQTT topic+payload, Redis-visible behavior (TTL / invalidation timing / stale-read window), permission rule, auth flow, sync rule. Network traces, screenshots, and BE source code are not contracts.
+
+## Contract Authority Model
+
+The platform runs hub-and-spoke for cross-repo contracts:
+
+- **Hub (cross-repo / cross-service flow contracts):** `klynx-api/docs/contracts/<name>.md` is canonical. It covers REST + Kafka + MQTT + Redis + sync + cache + rollout for the flow, grouped by domain or flow (not per endpoint or per topic). See `klynx-api/docs/contracts/README.md` for grouping rules.
+- **`gateway-api`-owned domains (this repo's SoR):** events canonical detail and `device_management` identity / sync state are owned here. Cross-repo flows that touch these domains must mirror or link the gateway-api SoR; klynx-api hub contracts that consume these domains reference `gateway-api` as the canonical writer.
+- **OpenAPI / Swagger (`docs/swagger.yaml`):** is the REST schema *subset* of a contract — not the full contract. Async surfaces (Kafka topics, MQTT topics, Redis-visible behavior) and cross-repo behavior (write authority, field ownership, rollout, replay) live in the contract `.md` only. `docs/swagger.yaml` is regenerated from the `swag` annotations on controllers; it must stay aligned with the REST surfaces declared in any consuming contract.
+- **`gateway-api/docs/contracts/<name>.md`:** reserved for `gateway-api`-owned cross-repo behavior that has no klynx-api hub equivalent (e.g. when `gateway-api` ships a flow consumed only by `gateway-portal` or by 3rd-party integrators). Use `klynx-api/docs/contracts/TEMPLATE.md` as the skeleton; keep the same domain-or-flow grouping rule.
 
 ## Cross-Repo Paths
 
-- BE1 (`klynx-api`): `/home/klynx/klynx-api-feature`
+- BE1 (`klynx-api`): `/home/klynx/klynx-api`
 - BE2 (`gateway-api`): `/home/phibek/gateway-api`
-- FE1 (`KLynx-Platform`): `/home/klynx/klynx-feature`
+- FE1 (`KLynx-Platform`): `/home/klynx/klynx`
 - FE2 (`gateway-Platform`): `/home/phibek/gateway-portal`
+- FE3 (`phibek`): `/home/phibek/app`
 
 ## Required Workflow
 
@@ -140,9 +150,13 @@ The safe default is:
 
 ### Frontend Contract Rule
 
-- frontend must not guess schema
-- frontend should implement only against the shared backend contract
-- the plan must contain enough detail that FE1 and FE2 can implement without reverse-engineering backend code
+- frontend must not guess schema across **any** surface — REST request/response/error, Kafka event, MQTT topic + payload, Redis-visible behavior (TTL / invalidation timing / stale-read), permission, auth, or sync. Network traces, screenshots, and BE source code are not contracts.
+- frontend should implement only against the shared backend contract:
+  - cross-repo / hub flows: `klynx-api/docs/contracts/<name>.md` (with `klynx-api/openapi/<name>.yaml` as REST subset when linked from the `.md`)
+  - `gateway-api`-direct REST: `gateway-api/docs/swagger.yaml` (REST subset) plus any `gateway-api/docs/contracts/<name>.md` that exists for cross-repo behavior
+- frontend plan / PR description must cite the exact contract file AND section (e.g. `klynx-api/docs/contracts/gateway-klynx-realtime.md §7.1`, not just "see contract")
+- if the FE needs behavior the contract does not cover (a new endpoint, new MQTT topic, different Redis TTL / invalidation, different permission rule, etc.) — stop and request a backend contract update first
+- the plan must contain enough detail that FE1 (`klynx`) and FE2 (`gateway-portal`) can implement without reverse-engineering backend code, without watching network traces, and without inferring behavior from screenshots
 
 ## Minimum Plan Contents
 

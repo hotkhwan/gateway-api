@@ -15,6 +15,359 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/device-management/cameras/{gwDeviceMgmtId}": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Accept a klynx-side operator edit on a gw-managed camera and persist into device_management. Whitelist-restricted: only name/description/lat/lng/site/zone/serialNo accepted. Other fields return 400. If-Match is replay-only in v1 (no 409); X-If-Match-Status response header reports drift. Companion to klynx-api/docs/contracts/camera-gw-managed-overlay.md §8.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin.DeviceManagement"
+                ],
+                "summary": "Klynx-initiated camera overlay PATCH",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "device_management.deviceMgmtId UUID",
+                        "name": "gwDeviceMgmtId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "gw workspace id",
+                        "name": "X-Active-Workspace",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "previous lastOutboundHash; replay-only — never gates the write",
+                        "name": "If-Match",
+                        "in": "header"
+                    },
+                    {
+                        "description": "accepted fields whitelist: name, description, lat, lng, site, zone, serialNo",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/licenses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all license keys ordered by createdAt desc.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin.License"
+                ],
+                "summary": "List license keys",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generates a new license key and stores it in available state. Requires LICENSE_ADMIN_ENABLED=true.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin.License"
+                ],
+                "summary": "Issue a new enterprise license key",
+                "parameters": [
+                    {
+                        "description": "Issue options",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/adminapi.issueRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/licenses/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin.License"
+                ],
+                "summary": "Get one license key",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "License id (ObjectID hex)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/licenses/{id}/revoke": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin.License"
+                ],
+                "summary": "Revoke a license key",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "License id (ObjectID hex)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/platformLicense": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin.PlatformLicense"
+                ],
+                "summary": "Get current activated license for the tenant",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/platformLicense/activate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Binds the license to the tenant, upgrades the subscription to enterprise with any license-specific overrides, and invalidates runtime entitlement caches for every workspace owned by the tenant so the new limits apply on the next read without waiting for Kafka.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin.PlatformLicense"
+                ],
+                "summary": "Activate a license key for the current tenant",
+                "parameters": [
+                    {
+                        "description": "Key payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/adminapi.keyPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/platformLicense/validate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin.PlatformLicense"
+                ],
+                "summary": "Validate a license key without activating",
+                "parameters": [
+                    {
+                        "description": "Key payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/adminapi.keyPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/ata/stream/{channelId}": {
             "get": {
                 "security": [
@@ -2449,7 +2802,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns paginated list of approved ingest events, optionally filtered by eventType.",
+                "description": "Returns paginated list of approved ingest events, filterable by eventType, sourceFamily, dateTime range, and free-text search.",
                 "produces": [
                     "application/json"
                 ],
@@ -2469,6 +2822,24 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Filter by event type",
                         "name": "eventType",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by source family",
+                        "name": "sourceFamily",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Free-text search (eventType, deviceName, deviceId)",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Date range: from,to (RFC3339 UTC, e.g. 2026-03-01T00:00:00Z,2026-03-06T23:59:59Z)",
+                        "name": "dateTime",
                         "in": "query"
                     },
                     {
@@ -3819,6 +4190,18 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "description": "Filter by source family",
+                        "name": "sourceFamily",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by enabled (true|false)",
+                        "name": "enabled",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "default": "createdAt",
                         "description": "Sort field",
                         "name": "sortField",
@@ -4290,6 +4673,25 @@ const docTemplate = `{
                         "name": "X-Active-Org",
                         "in": "header",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "pending",
+                        "description": "Filter by status (pending|rejected|all)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by source family",
+                        "name": "sourceFamily",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Date range on lastSeenAt: from,to (RFC3339 UTC)",
+                        "name": "dateTime",
+                        "in": "query"
                     },
                     {
                         "type": "integer",
@@ -11098,7 +11500,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns the cached RuntimeEntitlement snapshot for the active workspace. Read-only.",
+                "description": "Returns the RuntimeEntitlement for the active workspace. On cache miss the service synthesizes a product-neutral snapshot from the deployment profile catalog (overlaid with the tenant's local subscription in saasPublic), so the caller always receives a usable entitlement without having to translate \"not cached yet\" into a user-visible error.",
                 "produces": [
                     "application/json"
                 ],
@@ -11122,14 +11524,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/gmod.SuccessDataResponse"
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/gmod.ErrorResponse"
                         }
                     },
-                    "404": {
-                        "description": "Not Found",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/gmod.ErrorResponse"
                         }
@@ -12816,6 +13218,31 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "adminapi.issueRequest": {
+            "type": "object",
+            "properties": {
+                "limits": {
+                    "$ref": "#/definitions/subscripmod.SubscriptionLimits"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "planId": {
+                    "type": "string"
+                }
+            }
+        },
+        "adminapi.keyPayload": {
+            "type": "object",
+            "properties": {
+                "licenseKey": {
+                    "type": "string"
+                },
+                "limits": {
+                    "$ref": "#/definitions/subscripmod.SubscriptionLimits"
+                }
+            }
+        },
         "aiconfigdraftapi.dryRunRequest": {
             "type": "object",
             "properties": {

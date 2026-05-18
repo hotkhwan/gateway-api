@@ -239,11 +239,11 @@ func countingServer(t *testing.T) (*httptest.Server, *int32) {
 // webhookTarget returns an enabled webhook DeliveryTarget pointing at url.
 func webhookTarget(id, url string) *authzmod.DeliveryTarget {
 	return &authzmod.DeliveryTarget{
-		TargetId: id,
-		OrgId:    "org-1",
-		Type:     authzmod.TargetTypeWebhook,
-		Enabled:  true,
-		Config:   authzmod.TargetConfig{URL: url, TimeoutMs: 5000},
+		TargetId:    id,
+		WorkspaceId: "org-1",
+		Type:        authzmod.TargetTypeWebhook,
+		Enabled:     true,
+		Config:      authzmod.TargetConfig{URL: url, TimeoutMs: 5000},
 	}
 }
 
@@ -537,4 +537,138 @@ func TestEventBridgeGate(t *testing.T) {
 			t.Errorf("want nil error, got %v", err)
 		}
 	})
+}
+
+// ============================================================
+// Source enrichment persisted into event_details
+// (event-source-enrichment-persistence.md — verifies the consumer
+// backfills canonical.Source.DeviceMgmtId from the resolver and
+// canonical.Source.SN from canonical.Payload["sn"] *before* the
+// event_details.Upsert. Earlier these values reached the bridge
+// republish struct but never the persisted document.)
+// ============================================================
+
+// recordingEventDetailsRepo captures the NormalizedEvent passed to Upsert
+// so tests can inspect what would actually be persisted.
+type recordingEventDetailsRepo struct {
+	last *ingestmod.NormalizedEvent
+}
+
+func (r *recordingEventDetailsRepo) Upsert(_ context.Context, ev *ingestmod.NormalizedEvent) error {
+	r.last = ev
+	return nil
+}
+
+// stubDeviceMgmtResolver returns a fixed DeviceManagement record (or nil).
+type stubDeviceMgmtResolver struct {
+	rec *ingestmod.DeviceManagement
+}
+
+func (s *stubDeviceMgmtResolver) Resolve(_ context.Context, _, _, _, _, _ string) *ingestmod.DeviceManagement {
+	return s.rec
+}
+
+// canonicalEventWithPayload builds a CanonicalEvent JSON allowing the caller
+// to override the raw payload (so we can drop "sn" in).
+func canonicalEventWithPayload(eventId, orgId string, payload map[string]any) []byte {
+	ev := ingestmod.CanonicalEvent{
+		EventId:      eventId,
+		TenantId:     "tenant-1",
+		SourceFamily: "AIBOX",
+		EventType:    "test.event",
+		OccurredAt:   time.Now().UTC(),
+		Source: ingestmod.SourceInfo{
+			DeviceId:   "channel-24",
+			DeviceType: "channel",
+			OrgId:      orgId,
+		},
+		Location: ingestmod.LocationInfo{Lat: 0, Lng: 0},
+		Payload:  payload,
+	}
+	b, _ := json.Marshal(ev)
+	return b
+}
+
+func TestSourceEnrichmentPersisted_DeviceMgmtIdFromResolver(t *testing.T) {
+	t.Parallel()
+
+	rec := &recordingEventDetailsRepo{}
+	deps := minimalDeps(rec)
+	deps.DeviceMgmtResolver = &stubDeviceMgmtResolver{
+		rec: &ingestmod.DeviceManagement{
+			DeviceMgmtId: "dm-uuid-abc",
+			Lat:          0,
+			Lng:          0,
+		},
+	}
+
+	msg := kafkaMsg(canonicalEventWithPayload("evt-dm", "org-1", map[string]any{"status": "ok"}), map[string]string{
+		"orgId":    "org-1",
+		"tenantId": "tenant-1",
+	})
+
+	if err := handleRawEvent(context.Background(), msg, deps); err != nil {
+		t.Fatalf("handleRawEvent: %v", err)
+	}
+	if rec.last == nil {
+		t.Fatal("event_details Upsert was not called")
+	}
+	if got := rec.last.Source.DeviceMgmtId; got != "dm-uuid-abc" {
+		t.Errorf("Source.DeviceMgmtId = %q, want %q", got, "dm-uuid-abc")
+	}
+}
+
+func TestSourceEnrichmentPersisted_SNFromRawPayload(t *testing.T) {
+	t.Parallel()
+
+	rec := &recordingEventDetailsRepo{}
+	deps := minimalDeps(rec)
+	deps.DeviceMgmtResolver = nil // no DM enrichment — only SN should populate
+
+	msg := kafkaMsg(canonicalEventWithPayload("evt-sn", "org-1", map[string]any{
+		"sn":     "60109012431d6040",
+		"status": "ok",
+	}), map[string]string{
+		"orgId":    "org-1",
+		"tenantId": "tenant-1",
+	})
+
+	if err := handleRawEvent(context.Background(), msg, deps); err != nil {
+		t.Fatalf("handleRawEvent: %v", err)
+	}
+	if rec.last == nil {
+		t.Fatal("event_details Upsert was not called")
+	}
+	if got := rec.last.Source.SN; got != "60109012431d6040" {
+		t.Errorf("Source.SN = %q, want %q", got, "60109012431d6040")
+	}
+	if got := rec.last.Source.DeviceMgmtId; got != "" {
+		t.Errorf("Source.DeviceMgmtId = %q, want empty (resolver nil)", got)
+	}
+}
+
+func TestSourceEnrichmentPersisted_NoEnrichmentLeavesFieldsEmpty(t *testing.T) {
+	t.Parallel()
+
+	rec := &recordingEventDetailsRepo{}
+	deps := minimalDeps(rec)
+	deps.DeviceMgmtResolver = &stubDeviceMgmtResolver{rec: nil} // resolver returns nil
+
+	msg := kafkaMsg(canonicalEventWithPayload("evt-empty", "org-1", map[string]any{"status": "ok"}), map[string]string{
+		"orgId":    "org-1",
+		"tenantId": "tenant-1",
+	})
+
+	if err := handleRawEvent(context.Background(), msg, deps); err != nil {
+		t.Fatalf("handleRawEvent: %v", err)
+	}
+	if rec.last == nil {
+		t.Fatal("event_details Upsert was not called")
+	}
+	if got := rec.last.Source.DeviceMgmtId; got != "" {
+		t.Errorf("Source.DeviceMgmtId = %q, want empty (resolver returned nil, no enrichment)", got)
+	}
+	if got := rec.last.Source.SN; got != "" {
+		t.Errorf("Source.SN = %q, want empty (no sn in payload)", got)
+	}
 }
