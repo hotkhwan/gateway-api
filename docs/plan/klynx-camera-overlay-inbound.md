@@ -298,8 +298,8 @@ See klynx hub `camera-gw-managed-overlay.md` §6 (with §8.6 amendment) and §8.
 
 ### Upstream / Peer Backends (`klynx-api` — separate co-merged PR)
 
-- [ ] Hub contract `camera-gw-managed-overlay.md` §8 update — **DONE in this rev** (authored from this session; co-submitted with gateway-api PR for joint Codex review)
-- [ ] Hub contract §6 amendment per §8.6 — mark stream creds + brand/ip/district/location/type as "Push to gw? ❌"
+- [x] Hub contract `camera-gw-managed-overlay.md` §8 update — DONE (klynx-api commit `121e3e2`: STUB → canonical rev 2)
+- [x] Hub contract §6 rewritten in place (no longer an amendment) — DONE (klynx-api commits `9aaaf0a` round-3 + `4baa9bb` round-4): stream creds + brand/ip/district/location/type marked `Push to gw? ❌` (klynx-canonical); §2 ownership matrix and §1 credentials-v2 dependency aligned
 - [ ] Implement `internal/services/gwdevicesync/pushWorker.go` per klynx hub §7
 - [ ] Implement outbound HTTP call to this endpoint via `internal/gateways/gwgw.UpdateCamera` per klynx hub §8
 - [ ] Wire `ENABLE_GW_CAMERA_OVERLAY_PUSH` flag (default `false`)
