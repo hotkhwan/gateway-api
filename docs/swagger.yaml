@@ -2925,6 +2925,96 @@ paths:
       summary: Klynx-initiated camera overlay PATCH
       tags:
       - Admin.DeviceManagement
+  /admin/kctrl-registry/{hwId}:
+    delete:
+      description: klynx-api Phase B outbound calls this on UnapproveDevice. Idempotent
+        — missing row returns 204 (not 404) per contract §4.2.
+      parameters:
+      - description: device hwId
+        in: path
+        name: hwId
+        required: true
+        type: string
+      - description: gw workspace id
+        in: header
+        name: X-Active-Workspace
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete kctrl-registry row (klynx → gw)
+      tags:
+      - Admin.KctrlRegistry
+    patch:
+      consumes:
+      - application/json
+      description: klynx-api Phase B outbound calls this on ApproveDevice. Whitelists
+        orgId/approved/approvedAt/approvedBy; rejects others with 400 FIELD_NOT_ACCEPTED.
+        Idempotent by hash — repeated PATCH with the same body returns 200 without
+        rewriting fields. Companion to klynx-api/docs/contracts/kcontrol-gw-managed-registry.md
+        §4.1.
+      parameters:
+      - description: device hwId (mac-style or vendor serial)
+        in: path
+        name: hwId
+        required: true
+        type: string
+      - description: gw workspace id
+        in: header
+        name: X-Active-Workspace
+        required: true
+        type: string
+      - description: 'accepted fields whitelist: orgId, approved, approvedAt, approvedBy'
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upsert kctrl-registry row (klynx → gw)
+      tags:
+      - Admin.KctrlRegistry
   /admin/licenses:
     get:
       description: Returns all license keys ordered by createdAt desc.
@@ -3091,6 +3181,60 @@ paths:
       summary: Validate a license key without activating
       tags:
       - Admin.PlatformLicense
+  /admin/system/kctrlRegistryDrift:
+    get:
+      description: Returns rows where lastSyncFromKlynxAt is older than the configured
+        stale window (default 1h). Operator triage view per contract §4.3.
+      parameters:
+      - description: stale window in seconds (default 3600)
+        in: query
+        name: staleSecs
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessDataResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List drifted kctrl-registry rows (operator)
+      tags:
+      - Admin.System
+  /admin/system/kctrlRegistryRetry/{hwId}:
+    post:
+      description: Operator-driven nudge that tells klynx-api to retry the outbox
+        row for hwId. gateway-api itself has no retry state; this endpoint exists
+        so klynx-api's outbound worker can reset attemptCount and re-attempt. Returns
+        200 immediately — the actual retry is klynx-api's responsibility per contract
+        §7.3.
+      parameters:
+      - description: device hwId
+        in: path
+        name: hwId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gmod.SuccessMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/gmod.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Acknowledge operator retry for a stale kctrl-registry row
+      tags:
+      - Admin.System
   /ata/stream/{channelId}:
     get:
       consumes:

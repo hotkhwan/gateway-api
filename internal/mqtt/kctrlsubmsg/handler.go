@@ -9,14 +9,56 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/internal/kafka"
 	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/kctrlregistrysvc"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
+
+// registryDecider is the narrow interface the MQTT handler needs from
+// kctrlregistrysvc.Service. Allows tests to substitute a fake without standing
+// up Mongo + the LRU cache.
+type registryDecider interface {
+	Decide(ctx context.Context, hwId string) kctrlregistrysvc.Decision
+}
+
+// deciderHolder boxes the registryDecider so atomic.Value stores a single
+// concrete pointer type across nil and non-nil values — atomic.Value
+// requires consistent dynamic type across Stores, which a bare interface
+// can't satisfy when alternating between nil and a typed pointer.
+type deciderHolder struct{ d registryDecider }
+
+// deciderRef is the process-global registry decision source set by main /
+// container at boot. nil holder (or unset) = legacy "forward verbatim"
+// behavior (the pre-Phase A baseline). Set via SetRegistryDecider to enable
+// contract §5 3-branch routing.
+var deciderRef atomic.Value // holds *deciderHolder
+
+// SetRegistryDecider installs the registry decision source used by
+// MessageHandler. Called once from the container at boot. Idempotent — a nil
+// argument is treated as "disable" (revert to legacy forward-verbatim).
+func SetRegistryDecider(d registryDecider) {
+	deciderRef.Store(&deciderHolder{d: d})
+}
+
+// loadDecider returns the currently-installed registry decider, or nil if
+// none has been wired. Reads are lock-free via atomic.Value.
+func loadDecider() registryDecider {
+	v := deciderRef.Load()
+	if v == nil {
+		return nil
+	}
+	h, ok := v.(*deciderHolder)
+	if !ok || h == nil {
+		return nil
+	}
+	return h.d
+}
 
 // kafkaTopicForMQTT maps an inbound MQTT topic to the corresponding outbound
 // Kafka topic (env-driven, gw-prefixed, v1). Returned topic is empty for
@@ -150,6 +192,47 @@ func MessageHandler(_ mqtt.Client, msg mqtt.Message) {
 	}
 
 	ctx := context.Background()
+
+	// Contract §5 — 3-branch routing against kctrl_registry. When no decider
+	// is wired (test / bootstrap before container ready) we fall through to
+	// the legacy forward-as-is behavior.
+	if dec := loadDecider(); dec != nil && hwID != "" {
+		d := dec.Decide(ctx, hwID)
+		switch d.Action {
+		case kctrlregistrysvc.ActionEnrich:
+			// Approved device — enrich envelope with the operator-resolved
+			// orgId + workspaceId so klynx-api consumers can broadcast
+			// without the Layer-1 Mongo fallback.
+			out["orgId"] = d.OrgId
+			if d.WorkspaceId != "" {
+				out["workspaceId"] = d.WorkspaceId
+			}
+			headers["orgId"] = d.OrgId
+			log.Debug().
+				Str("hwId", hwID).
+				Str("orgId", d.OrgId).
+				Str("mqttTopic", mqttTopic).
+				Msg("kctrlsubmsg: enriched")
+		case kctrlregistrysvc.ActionDrop:
+			// Operator explicitly revoked this device. Do not write to Kafka.
+			log.Info().
+				Str("hwId", hwID).
+				Str("mqttTopic", mqttTopic).
+				Msg("kctrlsubmsg: hwId revoked — dropping")
+			return
+		case kctrlregistrysvc.ActionForward:
+			// Unknown device — forward verbatim so klynx-api can discover it
+			// per contract §5.1. orgId stays empty; klynx Layer-1 resolver
+			// (4.59.2) handles enrichment on the consumer side until backfill
+			// or admin approve fills the registry.
+			log.Info().
+				Str("hwId", hwID).
+				Str("mqttTopic", mqttTopic).
+				Msg("kctrlsubmsg: unknown hwId — forwarding for discovery")
+		}
+	}
+
+
 	if err := kafka.PublishEventTo(ctx, kafkaTopic, key, out, headers); err != nil {
 		log.Error().
 			Err(err).
