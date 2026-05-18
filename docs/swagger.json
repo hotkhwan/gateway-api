@@ -97,6 +97,137 @@
                 }
             }
         },
+        "/admin/kctrl-registry/{hwId}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "klynx-api Phase B outbound calls this on UnapproveDevice. Idempotent — missing row returns 204 (not 404) per contract §4.2.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin.KctrlRegistry"
+                ],
+                "summary": "Delete kctrl-registry row (klynx → gw)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "device hwId",
+                        "name": "hwId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "gw workspace id",
+                        "name": "X-Active-Workspace",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "klynx-api Phase B outbound calls this on ApproveDevice. Whitelists orgId/approved/approvedAt/approvedBy; rejects others with 400 FIELD_NOT_ACCEPTED. Idempotent by hash — repeated PATCH with the same body returns 200 without rewriting fields. Companion to klynx-api/docs/contracts/kcontrol-gw-managed-registry.md §4.1.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin.KctrlRegistry"
+                ],
+                "summary": "Upsert kctrl-registry row (klynx → gw)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "device hwId (mac-style or vendor serial)",
+                        "name": "hwId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "gw workspace id",
+                        "name": "X-Active-Workspace",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "accepted fields whitelist: orgId, approved, approvedAt, approvedBy",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/licenses": {
             "get": {
                 "security": [
@@ -354,6 +485,85 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/system/kctrlRegistryDrift": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns rows where lastSyncFromKlynxAt is older than the configured stale window (default 1h). Operator triage view per contract §4.3.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin.System"
+                ],
+                "summary": "List drifted kctrl-registry rows (operator)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "stale window in seconds (default 3600)",
+                        "name": "staleSecs",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessDataResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/system/kctrlRegistryRetry/{hwId}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Operator-driven nudge that tells klynx-api to retry the outbox row for hwId. gateway-api itself has no retry state; this endpoint exists so klynx-api's outbound worker can reset attemptCount and re-attempt. Returns 200 immediately — the actual retry is klynx-api's responsibility per contract §7.3.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin.System"
+                ],
+                "summary": "Acknowledge operator retry for a stale kctrl-registry row",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "device hwId",
+                        "name": "hwId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gmod.SuccessMessageResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/gmod.ApiErrorResponse"
                         }
