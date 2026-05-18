@@ -1,25 +1,32 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: phibek
+  labels:
+    istio-injection: enabled
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kapi
-  namespace: gw
+  name: gateway-api
+  namespace: phibek
   labels:
-    app: kapi
+    app: gateway-api
 spec:
   selector:
     matchLabels:
-      app: kapi
+      app: gateway-api
   template:
     metadata:
       labels:
-        app: kapi
+        app: gateway-api
+      annotations:
+        sidecar.istio.io/inject: "true"
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: gateway
       imagePullSecrets:
         - name: regis-secret
       containers:
-        - name: kapi
+        - name: gateway-api
           image: golang:1.26
           workingDir: /app
           command: ["sleep"]
@@ -32,12 +39,14 @@ spec:
               value: /usr/local/go/bin:/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
           # envFrom:
           #   - configMapRef:
-          #       name: kapi-aisom-config
+          #       name: gateway-api-config
           #   - secretRef:
-          #       name: kapi-aisom-secrets
+          #       name: gateway-api-secrets
           ports:
             - name: http
               containerPort: 3001
+            - name: grpc
+              containerPort: 50051
           volumeMounts:
             - name: src-code
               mountPath: /app
@@ -57,27 +66,32 @@ spec:
       volumes:
         - name: src-code
           hostPath:
-            path: /home/aisom/gateway-api
+            path: /home/phibek/gateway-api
             type: Directory
         - name: rootca-volume
-          hostPath:
-            path: /home/aisom/gateway-api/certs
-            type: Directory
+          configMap:
+            name: rootca
+            items:
+              - key: ca.crt
+                path: tls.ca
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: kapi
-  namespace: gw
+  name: gateway-api
+  namespace: phibek
 spec:
   selector:
-    app: kapi
+    app: gateway-api
   ports:
     - name: http
       port: 3001
       targetPort: http
       protocol: TCP
+    - name: grpc
+      port: 50051
+      targetPort: grpc
+      protocol: TCP
   type: ClusterIP
-
 
 # go install github.com/swaggo/swag/cmd/swag@latest
