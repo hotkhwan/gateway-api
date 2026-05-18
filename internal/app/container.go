@@ -4,6 +4,7 @@ package app
 import (
 	"context"
 	"os"
+	"strings"
 
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/controllers/adminapi"
@@ -350,9 +351,15 @@ func (c *Container) buildDeviceManagement() {
 // buildKctrlRegistry wires the kctrl_registry surface — receives klynx-api
 // Phase B PATCH/DELETE and powers the kctrlsubmsg routing decision per
 // klynx-api/docs/contracts/kcontrol-gw-managed-registry.md.
+//
+// Phase A.1 (3.13.1+): KCTRL_REGISTRY_STRICT_MODE=true flips the §5.2 fourth
+// branch on so unknown-hwId messages drop at the MQTT boundary once the
+// registry has been quiet for ≥5 minutes (i.e. backfill has settled). Read
+// once at boot — restart required to change.
 func (c *Container) buildKctrlRegistry() {
 	repo := kctrlregistryrepo.NewKctrlRegistryRepo()
-	c.KctrlRegistryService = kctrlregistrysvc.NewService(repo)
+	strict := strings.EqualFold(strings.TrimSpace(os.Getenv("KCTRL_REGISTRY_STRICT_MODE")), "true")
+	c.KctrlRegistryService = kctrlregistrysvc.NewServiceWithOptions(repo, kctrlregistrysvc.Options{StrictMode: strict})
 	c.KctrlRegistryController = adminapi.NewKctrlRegistryController(c.KctrlRegistryService)
 }
 
