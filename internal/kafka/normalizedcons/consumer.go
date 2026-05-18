@@ -115,6 +115,13 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 			canonical.SourceFamily, canonical.Source.DeviceType, canonical.Source.DeviceId,
 		); dm != nil {
 			deviceMgmtId = dm.DeviceMgmtId
+			// Backfill canonical.Source.DeviceMgmtId so the persisted event_details
+			// document includes the gateway-api device_management UUID. Without this
+			// the field was only used downstream in buildBridgeEvent for the Kafka
+			// republish path and never reached event_details.
+			if canonical.Source.DeviceMgmtId == "" {
+				canonical.Source.DeviceMgmtId = dm.DeviceMgmtId
+			}
 			// Backfill canonical.Location when the event carries no coordinates.
 			// This lets reverseGeocode and geoCell use the registered device position.
 			if canonical.Location.Lat == 0 && canonical.Location.Lng == 0 {
@@ -127,6 +134,13 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 			if canonical.Location.Zone == "" && dm.Zone != "" {
 				canonical.Location.Zone = dm.Zone
 			}
+		}
+	}
+	// Backfill canonical.Source.SN from raw payload (e.g. AIBOX "sn") when the
+	// canonical event did not carry one. Same rationale as DeviceMgmtId above.
+	if canonical.Source.SN == "" {
+		if v, ok := canonical.Payload["sn"].(string); ok && v != "" {
+			canonical.Source.SN = v
 		}
 	}
 	// Backfill zone from payload field (e.g. AIBOX sends "zone": "PHK") when still unset.
