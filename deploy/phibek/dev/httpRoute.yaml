@@ -1,0 +1,26 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: phibek-events
+  namespace: istio-system
+spec:
+  hostnames:
+    - istio.k-lynx.com
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: ingressgateway
+      namespace: istio-system
+      sectionName: https
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /events
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: gateway-api
+          namespace: phibek
+          port: 3001
+          weight: 1
