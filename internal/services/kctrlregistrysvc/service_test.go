@@ -180,6 +180,98 @@ func TestService_Upsert_IdempotentHash(t *testing.T) {
 	}
 }
 
+// Phase A.1 strict-mode tests — contract §5.2 fourth branch.
+
+func TestService_StrictMode_OffPreservesCompatForward(t *testing.T) {
+	// strictMode=false (Phase A default) → ROW NOT FOUND always FORWARDS.
+	repo := newFakeRepo()
+	svc := NewServiceWithOptions(repo, Options{StrictMode: false})
+
+	if dec := svc.Decide(context.Background(), "unknown"); dec.Action != ActionForward {
+		t.Errorf("got %s, want forward (strict off)", dec.Action)
+	}
+}
+
+func TestService_StrictMode_OnButWithinGrace_StillForwards(t *testing.T) {
+	// strictMode=true but the registry has had recent writes (within the
+	// 5-minute grace window) → keep compat behavior so backfill doesn't get
+	// pre-empted mid-flight.
+	repo := newFakeRepo()
+	svc := NewServiceWithOptions(repo, Options{StrictMode: true})
+
+	now := time.Date(2026, 5, 18, 12, 0, 0, 0, time.UTC)
+	svc.clock = func() time.Time { return now }
+	// Simulate a recent Upsert by manually bumping lastWriteAt — this is
+	// what NewServiceWithOptions already does at construction time. We then
+	// advance the clock by 4 minutes (still inside the 5-minute grace).
+	svc.lastWriteAt.Store(now.UnixNano())
+	now = now.Add(4 * time.Minute)
+
+	if dec := svc.Decide(context.Background(), "unknown"); dec.Action != ActionForward {
+		t.Errorf("got %s, want forward (within grace)", dec.Action)
+	}
+}
+
+func TestService_StrictMode_OnAndStale_Drops(t *testing.T) {
+	// strictMode=true AND the registry has been quiet for > 5 min → DROP
+	// the unknown-hwId message at the gateway boundary.
+	repo := newFakeRepo()
+	svc := NewServiceWithOptions(repo, Options{StrictMode: true})
+
+	now := time.Date(2026, 5, 18, 12, 0, 0, 0, time.UTC)
+	svc.clock = func() time.Time { return now }
+	svc.lastWriteAt.Store(now.UnixNano())
+	now = now.Add(5*time.Minute + 1*time.Nanosecond) // just outside grace
+
+	if dec := svc.Decide(context.Background(), "unknown"); dec.Action != ActionDrop {
+		t.Errorf("got %s, want drop (registry stale, strict on)", dec.Action)
+	}
+}
+
+func TestService_StrictMode_UpsertRefreshesGrace(t *testing.T) {
+	// A new Upsert must reset the grace window — so a long-quiet registry
+	// that just received a klynx-api PATCH switches back to FORWARD mode
+	// until 5 minutes elapse again.
+	repo := newFakeRepo()
+	svc := NewServiceWithOptions(repo, Options{StrictMode: true})
+
+	now := time.Date(2026, 5, 18, 12, 0, 0, 0, time.UTC)
+	svc.clock = func() time.Time { return now }
+	svc.lastWriteAt.Store(now.UnixNano())
+	now = now.Add(10 * time.Minute) // outside grace — strict drop would apply
+
+	// Pre-flight: confirm strict drop is now in effect.
+	if dec := svc.Decide(context.Background(), "unknown"); dec.Action != ActionDrop {
+		t.Fatalf("pre-flight: got %s, want drop", dec.Action)
+	}
+
+	// Now an Upsert arrives → bumps lastWriteAt to "now"; grace resets.
+	in := UpsertInput{HwId: "h-new", OrgId: "org-1", Approved: true, ApprovedAt: now}
+	if _, err := svc.Upsert(context.Background(), in); err != nil {
+		t.Fatal(err)
+	}
+	// Within the new grace, unknowns FORWARD again.
+	if dec := svc.Decide(context.Background(), "other-unknown"); dec.Action != ActionForward {
+		t.Errorf("after Upsert: got %s, want forward (grace refreshed)", dec.Action)
+	}
+}
+
+func TestService_StrictMode_DegradedMongo_DoesNotDrop(t *testing.T) {
+	// When Mongo lookups error, Decide() falls through to FORWARD
+	// unconditionally — strict mode must not amplify a degraded backend
+	// into a realtime outage.
+	svc := NewServiceWithOptions(errorRepo{}, Options{StrictMode: true})
+
+	now := time.Date(2026, 5, 18, 12, 0, 0, 0, time.UTC)
+	svc.clock = func() time.Time { return now }
+	svc.lastWriteAt.Store(now.UnixNano())
+	now = now.Add(10 * time.Minute)
+
+	if dec := svc.Decide(context.Background(), "any"); dec.Action != ActionForward {
+		t.Errorf("degraded Mongo + strict: got %s, want forward", dec.Action)
+	}
+}
+
 func TestService_ListDrift_ReportsSummary(t *testing.T) {
 	repo := newFakeRepo()
 	repo.countAll = 12
