@@ -506,6 +506,14 @@ func buildBridgeEvent(
 		SourceFamily:   sourceFamily,
 		OccurredAt:     event.OccurredAt,
 		ReceivedAt:     event.Meta.NormalizedAt,
+		// Severity + EventClass — admin-classified per ClassificationRule.
+		// Layer C — klynx-api docs/contracts/event-severity-forwarding.md §6.
+		// Empty when no rule matched OR rule emitted "none" — omitempty on
+		// the JSON tag keeps the wire compact and lets pre-feature consumers
+		// ignore the field. ingestmod.EventSeverity is populated by
+		// normalizesvc.classification before this build site runs.
+		Severity:   event.EventSeverity,
+		EventClass: event.EventClass,
 		// Forward matched templateId so klynx-api delivery can resolve deliveryTargets/messageTemplates.
 		// Empty when no template matched (suggestion fallback / pending).
 		TemplateID: event.Meta.TemplateId,
