@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: phibek
+  labels:
+    app: mongodb
+spec:
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:7
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mongodb
+              containerPort: 27017
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: phibek
+spec:
+  type: NodePort
+  selector:
+    app: mongodb
+  ports:
+    - name: mongodb
+      port: 27017
+      targetPort: mongodb
+      nodePort: 30218
+      protocol: TCP
