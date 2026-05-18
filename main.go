@@ -329,6 +329,10 @@ func main() {
 	router.RegisterAdminLicenseRoutes(api, container)
 	router.RegisterPlatformLicenseRoutes(api, container)
 
+	// Klynx camera overlay inbound PATCH (Phase B) — see
+	// klynx-api/docs/contracts/camera-gw-managed-overlay.md §8.
+	router.RegisterAdminDeviceManagementRoutes(api, container)
+
 	// ---------- Ingest hot-path: POST /events/:orgId (no JWT, root level) ----------
 	router.RegisterIngestEventsRoutes(app, container)
 	// ---------- Ingest config: GET|POST /api/v1/ingest (JWT + X-Active-Org) ----------
