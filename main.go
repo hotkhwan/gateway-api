@@ -269,6 +269,12 @@ func main() {
 	// ✅ สร้าง container ครั้งเดียว
 	container := appcontainer.NewContainer()
 
+	// Phase A — wire the kctrlsubmsg MQTT subscriber to the kctrl_registry
+	// service so every inbound MQTT message consults the registry per
+	// klynx-api/docs/contracts/kcontrol-gw-managed-registry.md §5. Done after
+	// container init because the service requires Mongo.
+	kctrlsubmsg.SetRegistryDecider(container.KctrlRegistryService)
+
 	// Start normalizer consumer (uses container deps — includes gates + EventBridge routing)
 	go normalizedcons.StartNormalizerConsumer(ctx, container.NormalizerDeps)
 
@@ -334,6 +340,10 @@ func main() {
 	// Klynx camera overlay inbound PATCH (Phase B) — see
 	// klynx-api/docs/contracts/camera-gw-managed-overlay.md §8.
 	router.RegisterAdminDeviceManagementRoutes(api, container)
+
+	// Klynx kctrl-registry inbound PATCH/DELETE + operator drift/retry — see
+	// klynx-api/docs/contracts/kcontrol-gw-managed-registry.md §4.
+	router.RegisterAdminKctrlRegistryRoutes(api, container)
 
 	// ---------- Ingest hot-path: POST /events/:orgId (no JWT, root level) ----------
 	router.RegisterIngestEventsRoutes(app, container)
