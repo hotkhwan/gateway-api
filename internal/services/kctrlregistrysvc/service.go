@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"errors"
 	"sort"
+	"sync/atomic"
 	"time"
 
 	"github.com/hotkhwan/gateway-api/internal/repo/kctrlregistryrepo"
@@ -35,19 +36,57 @@ type registryRepo interface {
 type Service struct {
 	repo  registryRepo
 	cache *registryCache
+
+	// strictMode + lastWriteAt implement contract §5.2 Phase A.1. Default
+	// strictMode=false preserves compat-mode behavior (FORWARD on miss);
+	// flipping to true via env enables the registry-quiet-→-drop branch.
+	strictMode  bool
+	lastWriteAt atomic.Int64 // unix nanoseconds; bumped on every successful Upsert
+
+	// strictGracePeriod is the window after the last registry write during
+	// which strict-mode is suspended. Per contract §5.2 this is 5 minutes —
+	// a klynx-api backfill burst keeps the watermark fresh, so unknowns are
+	// FORWARDED rather than DROPPED while backfill is in flight.
+	strictGracePeriod time.Duration
+
+	// clock is injectable for tests; defaults to time.Now.
+	clock func() time.Time
 }
 
 // ErrNotFound is re-exported so callers don't need to import the repo package
 // just to type-check sentinel errors.
 var ErrNotFound = kctrlregistryrepo.ErrNotFound
 
+// Options configures NewService. Zero-value Options is safe and uses the
+// contract §5.2 / §6 defaults.
+type Options struct {
+	// StrictMode enables the §5.2 fourth branch. Default false → behave as
+	// Phase A compat mode. Read from KCTRL_REGISTRY_STRICT_MODE at boot.
+	StrictMode bool
+}
+
 // NewService wires the service against the repo. capacity=1000 / ttl=5s are
 // the contract §6 defaults; callers may override for tests.
 func NewService(repo registryRepo) *Service {
-	return &Service{
-		repo:  repo,
-		cache: newRegistryCache(1000, 5*time.Second),
+	return NewServiceWithOptions(repo, Options{})
+}
+
+// NewServiceWithOptions wires the service with non-default options. The
+// container reads KCTRL_REGISTRY_STRICT_MODE and passes Options{StrictMode}.
+func NewServiceWithOptions(repo registryRepo, opts Options) *Service {
+	s := &Service{
+		repo:              repo,
+		cache:             newRegistryCache(1000, 5*time.Second),
+		strictMode:        opts.StrictMode,
+		strictGracePeriod: 5 * time.Minute,
+		clock:             time.Now,
 	}
+	// Seed lastWriteAt at service-start time so the strict-mode drop is
+	// suspended for the first 5 minutes of uptime — gives the klynx-api
+	// outbox worker time to drain its backlog onto the registry before the
+	// gateway starts dropping unknowns.
+	s.lastWriteAt.Store(s.clock().UnixNano())
+	return s
 }
 
 // UpsertInput is the whitelisted PATCH body per contract §4.1. Other fields
@@ -96,6 +135,9 @@ func (s *Service) Upsert(ctx context.Context, in UpsertInput) (*kctrlmod.KctrlRe
 	}
 
 	s.cache.Invalidate(in.HwId)
+	// Phase A.1: bump the watermark so the strict-mode grace window stays
+	// fresh while klynx-api is actively pushing rows.
+	s.lastWriteAt.Store(s.clock().UnixNano())
 	log.Info().
 		Str("hwId", in.HwId).
 		Bool("approved", in.Approved).
@@ -158,26 +200,52 @@ func (a DecisionAction) String() string {
 
 // Decide is the hot-path lookup for kctrlsubmsg. Reads cache → falls back to
 // Mongo on miss → caches result (positive or negative).
+//
+// Strict mode (contract §5.2): when enabled AND the row is missing AND the
+// registry has been quiet (no Upsert) for longer than strictGracePeriod, the
+// "row not found" verdict is upgraded from FORWARD to DROP. The grace window
+// suppresses drops during klynx-api backfill bursts, where writes are
+// arriving in quick succession and any not-yet-PATCHed unknown device may be
+// in flight.
 func (s *Service) Decide(ctx context.Context, hwId string) Decision {
 	if hwId == "" {
 		return Decision{Action: ActionForward}
 	}
 	if row, hit := s.cache.Get(hwId); hit {
-		return decisionFromRow(row)
+		return s.applyStrictMode(decisionFromRow(row))
 	}
 	row, err := s.repo.FindByHwId(ctx, hwId)
 	if errors.Is(err, ErrNotFound) {
 		s.cache.Put(hwId, nil) // negative cache
-		return Decision{Action: ActionForward}
+		return s.applyStrictMode(Decision{Action: ActionForward})
 	}
 	if err != nil {
 		// On Mongo error we fall through to FORWARD so realtime traffic does
-		// not silently stop when the registry is degraded. The error is
-		// surfaced via the metrics / logs in the calling site.
+		// not silently stop when the registry is degraded. Strict mode is
+		// intentionally NOT applied here — a degraded Mongo is exactly the
+		// wrong time to start dropping traffic.
 		return Decision{Action: ActionForward}
 	}
 	s.cache.Put(hwId, row)
-	return decisionFromRow(row)
+	return s.applyStrictMode(decisionFromRow(row))
+}
+
+// applyStrictMode upgrades a FORWARD-on-miss verdict to DROP when strict mode
+// is enabled and the registry has been quiet long enough that any backfill is
+// presumed complete. Decisions other than ActionForward are passed through
+// unchanged.
+func (s *Service) applyStrictMode(d Decision) Decision {
+	if !s.strictMode || d.Action != ActionForward {
+		return d
+	}
+	last := time.Unix(0, s.lastWriteAt.Load())
+	if s.clock().Sub(last) <= s.strictGracePeriod {
+		// Recent registry activity → backfill might still be in flight →
+		// keep compat behavior to avoid dropping devices that are about to
+		// be approved.
+		return d
+	}
+	return Decision{Action: ActionDrop}
 }
 
 func decisionFromRow(row *kctrlmod.KctrlRegistry) Decision {
