@@ -660,7 +660,7 @@ The platform runs hub-and-spoke for cross-repo contracts:
 
 ### Frontend Contract Rule
 
-Frontend repos (`klynx-feature`, `gateway-portal`, 3rd-party integrators) consume the contracts above and must not invent any schema across REST / Kafka / MQTT / Redis-visible / cache / sync / auth / permission surfaces. Network traces, screenshots, and source code are not contracts. If FE needs behavior not in the contract, the BE contract must be updated first.
+Frontend repos (`klynx`, `gateway-portal`, 3rd-party integrators) consume the contracts above and must not invent any schema across REST / Kafka / MQTT / Redis-visible / cache / sync / auth / permission surfaces. Network traces, screenshots, and source code are not contracts. If FE needs behavior not in the contract, the BE contract must be updated first.
 
 ## References
 

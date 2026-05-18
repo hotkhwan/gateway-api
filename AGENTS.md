@@ -29,7 +29,7 @@ Responsibilities:
 
 Target quality bar:
 - the plan does not need to be perfect
-- the plan should be at least 90% ready before implementation starts
+- the plan should be at least 80% ready before implementation starts
 
 ## Standard Context
 
@@ -55,10 +55,11 @@ The platform runs hub-and-spoke for cross-repo contracts:
 
 ## Cross-Repo Paths
 
-- BE1 (`klynx-api`): `/home/klynx/klynx-api-feature`
+- BE1 (`klynx-api`): `/home/klynx/klynx-api`
 - BE2 (`gateway-api`): `/home/phibek/gateway-api`
-- FE1 (`KLynx-Platform`): `/home/klynx/klynx-feature`
+- FE1 (`KLynx-Platform`): `/home/klynx/klynx`
 - FE2 (`gateway-Platform`): `/home/phibek/gateway-portal`
+- FE3 (`phibek`): `/home/phibek/app`
 
 ## Required Workflow
 
@@ -155,7 +156,7 @@ The safe default is:
   - `gateway-api`-direct REST: `gateway-api/docs/swagger.yaml` (REST subset) plus any `gateway-api/docs/contracts/<name>.md` that exists for cross-repo behavior
 - frontend plan / PR description must cite the exact contract file AND section (e.g. `klynx-api/docs/contracts/gateway-klynx-realtime.md §7.1`, not just "see contract")
 - if the FE needs behavior the contract does not cover (a new endpoint, new MQTT topic, different Redis TTL / invalidation, different permission rule, etc.) — stop and request a backend contract update first
-- the plan must contain enough detail that FE1 (`klynx-feature`) and FE2 (`gateway-portal`) can implement without reverse-engineering backend code, without watching network traces, and without inferring behavior from screenshots
+- the plan must contain enough detail that FE1 (`klynx`) and FE2 (`gateway-portal`) can implement without reverse-engineering backend code, without watching network traces, and without inferring behavior from screenshots
 
 ## Minimum Plan Contents
 
