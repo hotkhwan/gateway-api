@@ -287,9 +287,12 @@ func main() {
 	// Start org lifecycle consumers — provision/suspend EVENTS workspace on klynx org events
 	orglifecyclecons.StartOrgLifecycleConsumers(container.WorkspaceService)
 
-	// Start gRPC server — WorkspaceService (provisioning) + EventService (Phase C event query)
+	// Start gRPC server — WorkspaceService (provisioning) + EventService (Phase C
+	// event query) + TargetService (delivery-target CRUD) + CameraOverlayService
+	// (klynx-initiated camera overlay PATCH; replaces the HTTP endpoint per
+	// docs/contracts/camera-gw-managed-overlay.md §8).
 	go func() {
-		if err := workspacegrpc.Start(ctx, container.WorkspaceService, container.TargetService, container.GrpcEventRepo); err != nil {
+		if err := workspacegrpc.Start(ctx, container.WorkspaceService, container.TargetService, container.DeviceMgmtService, container.GrpcEventRepo); err != nil {
 			log.Error().Err(err).Msg("❌ gRPC server exited")
 		}
 	}()
