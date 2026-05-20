@@ -252,6 +252,33 @@ kafka.StartConsumerWithHeaders(broker, topic, groupID, func(msg MyEvent, headers
 })
 ```
 
+### 8a) Cross-service transport (klynx-api ↔ gateway-api)
+
+Service-to-service calls between `klynx-api` and `gateway-api` SHALL prefer **gRPC over HTTP**, mirroring the pattern already used by:
+
+- `phibek.workspace.v1.WorkspaceService` (provisioning + delivery-target registration)
+- `phibek.target.v1.TargetService` (delivery-target admin CRUD)
+- `phibek.event.v1.EventService` (event detail fetch)
+- `phibek.cameraoverlay.v1.CameraOverlayService` (klynx → gw camera overlay PATCH)
+
+The single gRPC server lives in `internal/grpc/workspacegrpc/server.go`; new services register via `srv.RegisterService(svc.ServiceDesc(), struct{}{})` alongside the existing ones (no new port, no new auth path).
+
+Use the corresponding `phibekgw.Client` on the klynx side — it owns the dial, JSON codec, shared-secret metadata, and the otelgrpc stats handler that propagates W3C trace context.
+
+**Auth model:**
+- gRPC service-to-service auth is the shared-secret `x-gw-token` metadata (`GRPC_SHARED_SECRET`), checked by `sharedSecretInterceptor`. There is no operator JWT verification on the gRPC path.
+- When per-operator audit is required and both services run against the **same Keycloak realm**, the HTTP variant (`Authorization: Bearer <operator JWT>` + `X-Active-Workspace`) is a valid alternative. The dual-transport dispatcher pattern (see `klynx-api/overlayPatcher.go`) lets the caller pick primary + fallback per env.
+- For any new cross-service surface, document the choice in the relevant `docs/contracts/<name>.md` §8 (`Auth`).
+
+**HTTP is allowed (not deprecated) for:**
+- Ingest hot-path (`POST /events/:orgId/:source`) — public, no JWT, rate-limit-gated.
+- Operator-facing routes mounted under `BASE_PATH` (`/api/v1/...`) hit by the FE or external integrators via the istio gateway.
+- Internal "admin" REST endpoints used by ops/curl for direct testing (e.g. the legacy `PATCH /admin/device-management/cameras/{id}` kept as the HTTP variant of `phibek.cameraoverlay.v1`).
+
+**Service-to-service HTTP is discouraged** because it requires Keycloak realm parity between caller and callee. When realms drift (or when the deployment runs without a shared SSO), the forwarded-JWT scheme fails with `401 INVALID_TOKEN` and no audit context can be derived. Prefer gRPC + shared secret; add HTTP as a dual-transport alternate only when per-operator audit is required AND realm parity is guaranteed.
+
+**`GW_API_URL` rule (klynx-side):** the env value MUST include gw-api's `BASE_PATH` (`/api/v1`). All `gwgw.*` clients build URLs as `${GW_API_URL}/<route>` — without the prefix, fiber returns a router-level `404`.
+
 ### 9) Pragmatic DI rule
 
 Full DI is **not required everywhere**.

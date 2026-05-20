@@ -9,11 +9,14 @@ import (
 	"os"
 
 	"github.com/hotkhwan/gateway-api/internal/eventschema"
+	"github.com/hotkhwan/gateway-api/internal/grpc/cameraoverlaygrpc"
 	"github.com/hotkhwan/gateway-api/internal/grpc/eventservice"
 	"github.com/hotkhwan/gateway-api/internal/grpc/targetgrpc"
 	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/services/devicemgmtsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/workspacesvc"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/encoding"
@@ -84,6 +87,24 @@ func (a workspaceLookupAdapter) GetByID(ctx context.Context, workspaceID string)
 	return &targetgrpc.WorkspaceLookupResult{TenantID: ws.TenantID}, nil
 }
 
+// cameraOverlayLookupAdapter bridges workspacesvc to cameraoverlaygrpc.WorkspaceLookup.
+// Mirrors workspaceLookupAdapter — the two interfaces are intentionally
+// duplicated so each gRPC sub-package stays independent of workspacesvc.
+type cameraOverlayLookupAdapter struct {
+	svc *workspacesvc.WorkspaceService
+}
+
+func (a cameraOverlayLookupAdapter) GetByID(ctx context.Context, workspaceID string) (*cameraoverlaygrpc.WorkspaceLookupResult, error) {
+	ws, err := a.svc.GetByID(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	if ws == nil {
+		return nil, nil
+	}
+	return &cameraoverlaygrpc.WorkspaceLookupResult{TenantID: ws.TenantID}, nil
+}
+
 // sharedSecretInterceptor validates x-gw-token metadata.
 // Bypassed when GRPC_SHARED_SECRET is empty (dev mode).
 func sharedSecretInterceptor(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
@@ -102,9 +123,10 @@ func sharedSecretInterceptor(ctx context.Context, req any, _ *grpc.UnaryServerIn
 	return handler(ctx, req)
 }
 
-// Start registers the WorkspaceService and EventService handlers on GRPC_PORT (default 50051).
-// Blocks until ctx is cancelled or a fatal listen error.
-func Start(ctx context.Context, svc *workspacesvc.WorkspaceService, targetSvc *targetsvc.TargetService, eventRepo eventservice.EventDetailsRepo) error {
+// Start registers the WorkspaceService, EventService, TargetService, and
+// CameraOverlayService handlers on GRPC_PORT (default 50051). Blocks until
+// ctx is cancelled or a fatal listen error.
+func Start(ctx context.Context, svc *workspacesvc.WorkspaceService, targetSvc *targetsvc.TargetService, deviceMgmtSvc *devicemgmtsvc.DeviceManagementService, eventRepo eventservice.EventDetailsRepo) error {
 	port := os.Getenv("GRPC_PORT")
 	if port == "" {
 		port = "50051"
@@ -119,8 +141,13 @@ func Start(ctx context.Context, svc *workspacesvc.WorkspaceService, targetSvc *t
 
 	ws := &workspaceServer{svc: svc, targetSvc: targetSvc}
 
+	// otelgrpc.NewServerHandler() extracts W3C trace context (traceparent/
+	// tracestate) from incoming gRPC metadata and starts a child span.
+	// Pairs with the otelgrpc.NewClientHandler() on the klynx-api side so
+	// trace chains cross the gRPC boundary.
 	srv := grpc.NewServer(
 		grpc.ForceServerCodec(jsonCodec{}),
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.UnaryInterceptor(sharedSecretInterceptor),
 	)
 
@@ -153,6 +180,15 @@ func Start(ctx context.Context, svc *workspacesvc.WorkspaceService, targetSvc *t
 	if targetSvc != nil {
 		tsSrv := targetgrpc.NewTargetServiceServer(targetSvc, workspaceLookupAdapter{svc: svc})
 		srv.RegisterService(tsSrv.ServiceDesc(), struct{}{})
+	}
+
+	// Register handler for /phibek.cameraoverlay.v1.CameraOverlayService
+	// (klynx-initiated camera overlay PATCH over gRPC — replaces the HTTP
+	// path that required Keycloak realm parity. See
+	// docs/contracts/camera-gw-managed-overlay.md §8.)
+	if deviceMgmtSvc != nil {
+		coSrv := cameraoverlaygrpc.NewCameraOverlayServiceServer(deviceMgmtSvc, cameraOverlayLookupAdapter{svc: svc})
+		srv.RegisterService(coSrv.ServiceDesc(), struct{}{})
 	}
 
 	log.Info().Str("port", port).Msg("✅ phibek gRPC workspace server started")
