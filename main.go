@@ -10,8 +10,8 @@ import (
 	"time"
 
 	appcontainer "github.com/hotkhwan/gateway-api/internal/app"
-	"github.com/hotkhwan/gateway-api/internal/grpc/workspacegrpc"
 	"github.com/hotkhwan/gateway-api/internal/configruntime"
+	"github.com/hotkhwan/gateway-api/internal/grpc/workspacegrpc"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/optionsrepo"
 	_ "github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
@@ -41,6 +41,7 @@ import (
 
 	"github.com/hotkhwan/gateway-api/config"
 	gatewaydocs "github.com/hotkhwan/gateway-api/docs"
+	"github.com/hotkhwan/gateway-api/internal/kafka/kctrlpubcons"
 	"github.com/hotkhwan/gateway-api/internal/mqtt/kcontrolmsg"
 	"github.com/hotkhwan/gateway-api/internal/mqtt/kctrlsubmsg"
 	"github.com/hotkhwan/gateway-api/internal/mqtt/kwatchmsg"
@@ -192,6 +193,11 @@ func main() {
 	go kwatchcons.StartWatchlistConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_KWATCH_TOPIC", "kwatch.watchlist"))
 	go kwatchcons.StartWatchlistConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_KWATCH_SYNC_TOPIC", "kwatch.watchlist.sync"))
 	go iwowncons.StartKafkaIwownConsumer(os.Getenv("KAFKA_BROKER"), utils.Getenv("KAFKA_TOPIC_IWOWN", "kwatch4g.iwown"))
+	// Phase 4b.1 outbound bridge: consume klynx.kcontrol.commands.v1 →
+	// validate + publish to MQTT broker. Default GW_KCONTROL_PUBLISH_ENABLED=false
+	// (shadow mode — log only); operator flips at contract §9.2.1 step 4.
+	// See klynx-api/docs/contracts/kcontrol-outbound-commands.md (Rev 3).
+	go kctrlpubcons.StartConsumer(os.Getenv("KAFKA_BROKER"))
 	// Delivery consumer started after container is built — deps come from container
 	// (wired below after container is created)
 

@@ -69,6 +69,10 @@ func ensureKafkaWriter() error {
 			{"KAFKA_TOPIC_GW_KCONTROL_SENSOR", "gw.kcontrol.sensor.v1"},
 			{"KAFKA_TOPIC_GW_KCONTROL_EVENTS", "gw.kcontrol.events.v1"},
 			{"KAFKA_TOPIC_GW_KCONTROL_RESPONSE", "gw.kcontrol.response.v1"},
+			// Phase 4b.1 outbound bridge (klynx-api → gw-api → MQTT device):
+			// klynx-api kctrlsvc.PublishCommand → this topic → gw-api kctrlpubcons.
+			// See klynx-api/docs/contracts/kcontrol-outbound-commands.md (Rev 3).
+			{"KAFKA_TOPIC_KLYNX_KCONTROL_COMMANDS", "klynx.kcontrol.commands.v1"},
 			{"KAFKA_TOPIC_ORG_CREATED", "klynx.org.created.v1"},
 			{"KAFKA_TOPIC_ORG_DELETED", "klynx.org.deleted.v1"},
 			{"KAFKA_TOPIC_ENTITLEMENT_SNAPSHOT", "klynx.entitlement.snapshot.v1"},
