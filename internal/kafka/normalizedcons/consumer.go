@@ -13,6 +13,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/eventschema"
 	"github.com/hotkhwan/gateway-api/internal/gateways/webhookgw"
 	"github.com/hotkhwan/gateway-api/internal/mqtt/alertmsg"
+	"github.com/hotkhwan/gateway-api/internal/services/classification"
 	"github.com/hotkhwan/gateway-api/internal/sourcemapping/aibox"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
@@ -104,8 +105,10 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 		canonical.Source.WorkspaceId = workspaceId
 	}
 
-	// 3) Apply template mappings → normalizedFields
-	normalizedFields := applyTemplate(ctx, canonical, templateId, workspaceId, deps.TemplateRepo, log)
+	// 3) Apply template mappings → normalizedFields. The loaded template is
+	// returned so the producer-side classification step (6d below) can reuse
+	// it without a second Mongo/Redis round-trip.
+	normalizedFields, tmpl := applyTemplate(ctx, canonical, templateId, workspaceId, deps.TemplateRepo, log)
 
 	// 3b) Device management enrichment — resolve before geo so lat/lng backfill feeds reverseGeocode.
 	var deviceMgmtId string
@@ -195,6 +198,21 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 			NormalizedAt:  now,
 		},
 	}
+
+	// 6a) Producer-side classification — apply ClassificationRules so the
+	// wire payload on gw.events.normalized.v1 carries EventClass / EventSeverity.
+	// Closes the gap noted in klynx-api/docs/contracts/event-severity-forwarding.md §4
+	// and template-classification-rules.md §1.1. Idempotent with the delivery-side
+	// re-application (deliverycons/dispatch.go), which now uses the same shared
+	// evaluator and yields the same first-match-wins result.
+	//
+	// Defaults (unknown / none) are applied unconditionally even when tmpl is nil,
+	// so downstream consumers never see empty values.
+	var rules []ingestmod.ClassificationRule
+	if tmpl != nil {
+		rules = tmpl.ClassificationRules
+	}
+	classification.Apply(event, rules)
 
 	// 6b) Entitlement gate (non-fatal — parallel mode)
 	if deps.EntitlementSvc != nil {
@@ -522,10 +540,10 @@ func buildBridgeEvent(
 		ReceivedAt:     event.Meta.NormalizedAt,
 		// Severity + EventClass — admin-classified per ClassificationRule.
 		// Layer C — klynx-api docs/contracts/event-severity-forwarding.md §6.
-		// Empty when no rule matched OR rule emitted "none" — omitempty on
-		// the JSON tag keeps the wire compact and lets pre-feature consumers
-		// ignore the field. ingestmod.EventSeverity is populated by
-		// normalizesvc.classification before this build site runs.
+		// Populated upstream at handleRawEvent step 6a by
+		// classification.Apply(event, tmpl.ClassificationRules); defaults to
+		// "none" / "unknown" when no rule matches. omitempty on the JSON tag
+		// keeps the wire compact and lets pre-feature consumers ignore the field.
 		Severity:   event.EventSeverity,
 		EventClass: event.EventClass,
 		// Forward matched templateId so klynx-api delivery can resolve deliveryTargets/messageTemplates.

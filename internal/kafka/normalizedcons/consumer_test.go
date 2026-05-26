@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -65,14 +66,46 @@ func (s *stubTargetLookup) FindByIDAndOrg(_ context.Context, targetId, _, _ stri
 	return nil, nil
 }
 
-// spyEventBridgePub counts Publish calls.
+// spyEventBridgePub counts Publish calls and captures the latest event so
+// tests can assert on the bridge wire shape (e.g. Severity / EventClass after
+// producer-side classification).
 type spyEventBridgePub struct {
-	calls int32
+	calls     int32
+	mu        sync.Mutex
+	lastEvent eventschema.NormalizedEvent
 }
 
-func (s *spyEventBridgePub) Publish(_ context.Context, _ eventschema.NormalizedEvent) error {
+func (s *spyEventBridgePub) Publish(_ context.Context, ev eventschema.NormalizedEvent) error {
 	atomic.AddInt32(&s.calls, 1)
+	s.mu.Lock()
+	s.lastEvent = ev
+	s.mu.Unlock()
 	return nil
+}
+
+// Last returns a copy of the most recent event passed to Publish (zero value
+// when never called). Safe for concurrent use.
+func (s *spyEventBridgePub) Last() eventschema.NormalizedEvent {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.lastEvent
+}
+
+// stubTemplateRepo satisfies templateRepoI with a fixed (templateId → template)
+// lookup table. err is returned regardless of templateId when non-nil.
+type stubTemplateRepo struct {
+	templates map[string]*ingestmod.MappingTemplate
+	err       error
+}
+
+func (s *stubTemplateRepo) FindById(_ context.Context, _ /*orgId*/, templateId string) (*ingestmod.MappingTemplate, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	if t, ok := s.templates[templateId]; ok {
+		return t, nil
+	}
+	return nil, nil
 }
 
 // stubKlynxTargetChecker returns a fixed has/err pair.
@@ -670,5 +703,186 @@ func TestSourceEnrichmentPersisted_NoEnrichmentLeavesFieldsEmpty(t *testing.T) {
 	}
 	if got := rec.last.Source.SN; got != "" {
 		t.Errorf("Source.SN = %q, want empty (no sn in payload)", got)
+	}
+}
+
+// ============================================================
+// Producer-side classification (Phase 1.0 regression)
+//
+// Closes the gap that previously left Severity / EventClass empty on the
+// gw.events.normalized.v1 wire payload. Exercises handleRawEvent end-to-end:
+// raw event → applyTemplate (stubbed) → classification.Apply → buildBridgeEvent
+// → EventBridgePub.Publish — asserting the bridge event the spy captures
+// carries the populated classification fields.
+//
+// Contract: klynx-api/docs/contracts/template-classification-rules.md §1.1
+// Plan checklist: §9.0 ("normalizedcons.consumer table test")
+// ============================================================
+
+// aiboxBlacklistTemplate returns a *MappingTemplate whose ClassificationRules
+// mirror contract §13.1: listType=3 → security/high, listType=2 → security/medium,
+// listType in {0,1} → info/low. No field mappings — the stub repo path skips
+// mapping anyway (see normalize.go), and that's fine: classification reads
+// event.Payload which the consumer passes through raw when mappings are empty.
+func aiboxBlacklistTemplate(templateId, workspaceId string) *ingestmod.MappingTemplate {
+	return &ingestmod.MappingTemplate{
+		TemplateId:   templateId,
+		WorkspaceId:  workspaceId,
+		Enabled:      true,
+		SourceFamily: "AIBOX",
+		Name:         "AIBOX blacklist classification (test)",
+		ClassificationRules: []ingestmod.ClassificationRule{
+			{
+				Name:  "blacklist-high",
+				Order: 1,
+				When: []ingestmod.PayloadCondition{
+					{Field: "payload.listType", Operator: "eq", Values: []string{"3"}},
+				},
+				Set: ingestmod.ClassificationSet{EventClass: "security", EventSeverity: "high"},
+			},
+			{
+				Name:  "redlist-medium",
+				Order: 2,
+				When: []ingestmod.PayloadCondition{
+					{Field: "payload.listType", Operator: "eq", Values: []string{"2"}},
+				},
+				Set: ingestmod.ClassificationSet{EventClass: "security", EventSeverity: "medium"},
+			},
+			{
+				Name:  "whitelist-low",
+				Order: 3,
+				When: []ingestmod.PayloadCondition{
+					{Field: "payload.listType", Operator: "in", Values: []string{"0", "1"}},
+				},
+				Set: ingestmod.ClassificationSet{EventClass: "info", EventSeverity: "low"},
+			},
+		},
+	}
+}
+
+// runProducerClassification wires the appliance EventBridge path with a stubbed
+// template repo + classification rules, calls handleRawEvent on a kafka.Message
+// carrying the given templateId + listType payload, and returns the captured
+// bridge event for assertions.
+func runProducerClassification(t *testing.T, templateId, workspaceId string, listType int, tmplStub *stubTemplateRepo) eventschema.NormalizedEvent {
+	t.Helper()
+	t.Setenv("DEPLOYMENT_PROFILE", "appliance")
+
+	spy := &spyEventBridgePub{}
+	deps := minimalDeps(&stubEventDetailsRepo{})
+	deps.TemplateRepo = tmplStub
+	deps.EventBridgePub = spy
+	deps.KlynxTargetChecker = &stubKlynxTargetChecker{has: true}
+
+	msg := kafkaMsg(
+		canonicalEventWithPayload("evt-class-"+templateId, workspaceId, map[string]any{
+			"listType": listType,
+		}),
+		map[string]string{
+			"workspaceId": workspaceId,
+			"tenantId":    "tenant-1",
+			"templateId":  templateId,
+		},
+	)
+
+	if err := handleRawEvent(context.Background(), msg, deps); err != nil {
+		t.Fatalf("handleRawEvent: %v", err)
+	}
+	if atomic.LoadInt32(&spy.calls) != 1 {
+		t.Fatalf("expected exactly 1 EventBridge publish, got %d", atomic.LoadInt32(&spy.calls))
+	}
+	return spy.Last()
+}
+
+func TestProducerSideClassification_BlacklistHigh(t *testing.T) {
+	tmpl := aiboxBlacklistTemplate("tpl-aibox", "org-pc")
+	stub := &stubTemplateRepo{templates: map[string]*ingestmod.MappingTemplate{"tpl-aibox": tmpl}}
+
+	got := runProducerClassification(t, "tpl-aibox", "org-pc", 3, stub)
+
+	if got.Severity != "high" {
+		t.Errorf("wire Severity = %q, want %q (listType=3 → blacklist-high)", got.Severity, "high")
+	}
+	if got.EventClass != "security" {
+		t.Errorf("wire EventClass = %q, want %q (listType=3 → blacklist-high)", got.EventClass, "security")
+	}
+}
+
+func TestProducerSideClassification_RedlistMedium(t *testing.T) {
+	tmpl := aiboxBlacklistTemplate("tpl-aibox", "org-pc")
+	stub := &stubTemplateRepo{templates: map[string]*ingestmod.MappingTemplate{"tpl-aibox": tmpl}}
+
+	got := runProducerClassification(t, "tpl-aibox", "org-pc", 2, stub)
+
+	if got.Severity != "medium" || got.EventClass != "security" {
+		t.Errorf("wire class/severity = %q/%q, want security/medium (listType=2)", got.EventClass, got.Severity)
+	}
+}
+
+func TestProducerSideClassification_WhitelistInOperator(t *testing.T) {
+	tmpl := aiboxBlacklistTemplate("tpl-aibox", "org-pc")
+	stub := &stubTemplateRepo{templates: map[string]*ingestmod.MappingTemplate{"tpl-aibox": tmpl}}
+
+	got := runProducerClassification(t, "tpl-aibox", "org-pc", 1, stub)
+
+	if got.Severity != "low" || got.EventClass != "info" {
+		t.Errorf("wire class/severity = %q/%q, want info/low (listType=1 via 'in' op)", got.EventClass, got.Severity)
+	}
+}
+
+func TestProducerSideClassification_NoRuleMatch_Defaults(t *testing.T) {
+	tmpl := aiboxBlacklistTemplate("tpl-aibox", "org-pc")
+	stub := &stubTemplateRepo{templates: map[string]*ingestmod.MappingTemplate{"tpl-aibox": tmpl}}
+
+	// listType=9 doesn't match any rule — defaults to unknown / none.
+	got := runProducerClassification(t, "tpl-aibox", "org-pc", 9, stub)
+
+	if got.Severity != "none" {
+		t.Errorf("wire Severity = %q, want %q (no rule match → default)", got.Severity, "none")
+	}
+	if got.EventClass != "unknown" {
+		t.Errorf("wire EventClass = %q, want %q (no rule match → default)", got.EventClass, "unknown")
+	}
+}
+
+func TestProducerSideClassification_NoTemplate_Defaults(t *testing.T) {
+	// Template lookup returns nil — Apply still runs with empty rules, so
+	// defaults (unknown / none) populate the wire payload.
+	stub := &stubTemplateRepo{templates: map[string]*ingestmod.MappingTemplate{}}
+
+	got := runProducerClassification(t, "tpl-missing", "org-pc", 3, stub)
+
+	if got.Severity != "none" || got.EventClass != "unknown" {
+		t.Errorf("wire class/severity = %q/%q, want unknown/none (template missing)", got.EventClass, got.Severity)
+	}
+}
+
+func TestProducerSideClassification_EmptyTemplateId_NoClassification(t *testing.T) {
+	// No templateId on the kafka header → applyTemplate skips entirely;
+	// Apply still runs with empty rules → defaults populate the wire payload.
+	t.Setenv("DEPLOYMENT_PROFILE", "appliance")
+
+	spy := &spyEventBridgePub{}
+	deps := minimalDeps(&stubEventDetailsRepo{})
+	deps.EventBridgePub = spy
+	deps.KlynxTargetChecker = &stubKlynxTargetChecker{has: true}
+
+	msg := kafkaMsg(
+		canonicalEventWithPayload("evt-no-tpl", "org-pc", map[string]any{"listType": 3}),
+		map[string]string{
+			"workspaceId": "org-pc",
+			"tenantId":    "tenant-1",
+			// no templateId header
+		},
+	)
+	if err := handleRawEvent(context.Background(), msg, deps); err != nil {
+		t.Fatalf("handleRawEvent: %v", err)
+	}
+	if atomic.LoadInt32(&spy.calls) != 1 {
+		t.Fatalf("expected 1 publish, got %d", atomic.LoadInt32(&spy.calls))
+	}
+	got := spy.Last()
+	if got.Severity != "none" || got.EventClass != "unknown" {
+		t.Errorf("wire class/severity = %q/%q, want unknown/none (no templateId)", got.EventClass, got.Severity)
 	}
 }

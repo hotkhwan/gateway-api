@@ -14,6 +14,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/gateways/linegw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/telegw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/webhookgw"
+	"github.com/hotkhwan/gateway-api/internal/services/classification"
 	"github.com/hotkhwan/gateway-api/internal/services/templatematcher"
 	"github.com/hotkhwan/gateway-api/models/authzmod"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
@@ -90,9 +91,13 @@ func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, ra
 		return
 	}
 
-	// Step 1: Evaluate classificationRules to set eventClass/eventSeverity
-	// Always apply defaults (unknown/none) even when no rules exist
-	applyClassificationRules(event, tmpl.ClassificationRules)
+	// Step 1: Evaluate classificationRules to set eventClass/eventSeverity.
+	// Always apply defaults (unknown/none) even when no rules exist.
+	// Idempotent: when the producer-side normalizer already classified, this
+	// re-application is a no-op for first-match-wins (the shared evaluator
+	// guarantees both sides resolve paths identically — see
+	// internal/services/classification and contract §5A.3).
+	classification.Apply(event, tmpl.ClassificationRules)
 	log.Debug().
 		Str("eventClass", event.EventClass).
 		Str("eventSeverity", event.EventSeverity).
@@ -113,7 +118,7 @@ func dispatchToTargets(ctx context.Context, event *ingestmod.NormalizedEvent, ra
 
 	for _, tdt := range tmpl.DeliveryTargets {
 		// Step 2: Evaluate payload filter
-		if !matchesFilter(event.Payload, tdt.Filter) {
+		if !classification.Matches(event.Payload, tdt.Filter) {
 			log.Debug().
 				Str("targetId", tdt.TargetId).
 				Msg("[delivery] payload filter not matched — skip")

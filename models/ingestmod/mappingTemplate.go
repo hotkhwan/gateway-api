@@ -14,8 +14,14 @@ type DLQConfig struct {
 
 // PayloadCondition — one filter predicate applied to a normalized event field.
 // Only "eq" and "in" operators are supported for now.
+//
+// Field path resolution (see internal/services/classification and
+// klynx-api/docs/contracts/template-classification-rules.md §5A.3):
+//   - "payload.<key>"  recommended convention; resolves to event.Payload[<key>]
+//   - "<key>"          legacy bare path; also resolves to event.Payload[<key>]
+//   - "source.*" / "event.*" / "meta.*" are reserved roots rejected at PATCH-time
 type PayloadCondition struct {
-	Field    string   `json:"field"    bson:"field"`    // e.g. "payload.listType"
+	Field    string   `json:"field"    bson:"field"`    // e.g. "payload.listType" or "listType"
 	Operator string   `json:"operator" bson:"operator"` // "eq" | "in"
 	Values   []string `json:"values"   bson:"values"`   // list of raw values to match
 }
