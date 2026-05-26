@@ -12,7 +12,7 @@ import (
 //
 // Introduced by the Wide slice (delivery-topic-unification) so the v2
 // delivery consumer can subscribe to gw.events.normalized.v1 directly
-// without refactoring applyClassificationRules / renderContext / DLQ insert
+// without refactoring classification.Apply / renderContext / DLQ insert
 // / match bag builders. Pure data transform; no I/O.
 //
 // Field mapping (eventschema.NormalizedEvent → ingestmod.NormalizedEvent):

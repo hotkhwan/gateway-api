@@ -34,12 +34,19 @@ type NormalizedEvent struct {
 	// MappingTemplate. Canonical vocab: high | medium | low | info | none
 	// (pass-through — producer may emit any string; klynx FE Phase 2 maps
 	// unknown to "none" gray badge). Carried on the wire so klynx consumer
-	// projects to event_refs.severity without re-running classification
-	// rules. Empty when no rule matched OR rule emitted "none".
+	// projects to event_refs.severity without re-running classification rules.
+	//
+	// Defaults to "none" when no rule matches (set by classification.Apply
+	// in the normalizer producer hot path — see
+	// internal/kafka/normalizedcons/consumer.go step 6a). The omitempty tag
+	// is retained for backwards-compatibility with pre-Phase-1.0 wire bytes
+	// only — post-Phase-1.0 every emitted event carries a non-empty value.
 	Severity string `json:"severity,omitempty"`
 	// EventClass is admin-classified category per ClassificationRule.
 	// Free-form (admin-configurable). Phase 2 dashboard donut groups by
-	// this field on the klynx side.
+	// this field on the klynx side. Defaults to "unknown" when no rule
+	// matches (same producer hot path as Severity above); omitempty retained
+	// for backwards-compatibility with pre-Phase-1.0 wire bytes only.
 	EventClass string `json:"eventClass,omitempty"`
 
 	// --- Device identity (grouped) ---

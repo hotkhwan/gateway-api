@@ -7,7 +7,6 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/eventschema"
 	"github.com/hotkhwan/gateway-api/internal/geoboundary"
 	"github.com/hotkhwan/gateway-api/internal/repo/dlqrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/ingestrepo"
 	"github.com/hotkhwan/gateway-api/models/authzmod"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/rs/zerolog"
@@ -17,6 +16,18 @@ import (
 // *ingestdetailsrepo.EventDetailsRepo satisfies this interface.
 type eventDetailsRepoI interface {
 	Upsert(ctx context.Context, event *ingestmod.NormalizedEvent) error
+}
+
+// templateRepoI is the MappingTemplateRepo subset used by the normalizer
+// consumer. *ingestrepo.MappingTemplateRepo satisfies this interface.
+// Introduced for Phase 1.0 so producer-side classification can be regression-
+// tested against a stubbed template without spinning up Mongo. The production
+// matcher (ingestsvc.NewTemplateMatcher) still requires the concrete repo,
+// so applyTemplate falls back to "no field mapping" when given a stub —
+// classification still runs because it only needs the ClassificationRules
+// slice on the returned *ingestmod.MappingTemplate.
+type templateRepoI interface {
+	FindById(ctx context.Context, orgId, templateId string) (*ingestmod.MappingTemplate, error)
 }
 
 // EntitlementChecker gates ingest based on workspace quota.
@@ -78,7 +89,7 @@ type DeviceMgmtResolver interface {
 // ConsumerDeps holds all dependencies injected into the normalizer consumer.
 type ConsumerDeps struct {
 	EventDetailsRepo eventDetailsRepoI // *ingestdetailsrepo.EventDetailsRepo satisfies this
-	TemplateRepo     *ingestrepo.MappingTemplateRepo
+	TemplateRepo     templateRepoI    // *ingestrepo.MappingTemplateRepo satisfies this
 	DLQRepo          *dlqrepo.DLQRepo
 	GeoCfg           GeoConfig
 	Logger           zerolog.Logger
