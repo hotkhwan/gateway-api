@@ -171,6 +171,27 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 		resolvedEventType = aibox.ResolveEventType(code, resolvedEventType)
 	}
 
+	// 5c) Carry people-counting region geometry into the normalized payload.
+	// The mapping template flattens/renames most raw fields and DROPS the
+	// region geometry (regionNames / regionRois) — but the people-counting
+	// detail view needs them to draw the ROI polygons + crossing direction.
+	// Pass them through verbatim from the raw payload under their generic keys
+	// when present and not already produced by the template, so they survive
+	// into event_details + the normalized wire event. Presence-gated, so
+	// non-region source families are unaffected. See klynx-api
+	// docs/contracts/edge-ai-events-pipeline-migration.md §2 (region note).
+	if normalizedFields == nil {
+		normalizedFields = map[string]any{}
+	}
+	for _, k := range []string{"regionNames", "regionRois"} {
+		if _, exists := normalizedFields[k]; exists {
+			continue
+		}
+		if v, ok := canonical.Payload[k]; ok && v != nil {
+			normalizedFields[k] = v
+		}
+	}
+
 	// 6) Build NormalizedEvent
 	now := time.Now().UTC()
 	evtCategory, evtAction := splitEventType(resolvedEventType)
@@ -181,13 +202,13 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 		EventCategory: evtCategory,
 		EventAction:   evtAction,
 		OccurredAt:    canonical.OccurredAt,
-		Source:      canonical.Source,
-		Location:    canonical.Location,
-		Geo:         geo,
-		GeoCell:     geoCell,
-		ByAdminArea: byArea,
-		Payload:     normalizedFields,
-		BinaryRefs:  binaryRefs,
+		Source:        canonical.Source,
+		Location:      canonical.Location,
+		Geo:           geo,
+		GeoCell:       geoCell,
+		ByAdminArea:   byArea,
+		Payload:       normalizedFields,
+		BinaryRefs:    binaryRefs,
 		Meta: ingestmod.NormalizationMeta{
 			SchemaVersion: "v1",
 			TraceId:       traceId,
@@ -625,4 +646,3 @@ func buildBridgeEvent(
 
 	return bridgeEvt
 }
-
