@@ -13,6 +13,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/eventschema"
 	"github.com/hotkhwan/gateway-api/internal/gateways/webhookgw"
 	"github.com/hotkhwan/gateway-api/internal/mqtt/alertmsg"
+	"github.com/hotkhwan/gateway-api/internal/services/classifysvc"
 	"github.com/hotkhwan/gateway-api/internal/sourcemapping/aibox"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
@@ -321,6 +322,24 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 
 	if klynxOrgID == "" {
 		klynxOrgID = workspaceId // fallback: use workspaceId as routing key
+	}
+
+	// Stamp severity/eventClass on the canonical (producer) path so klynx
+	// consumers (/intDash, /biDash) receive them — Layer C of
+	// klynx-api/docs/contracts/event-severity-forwarding.md. Until now
+	// classification ran only on the delivery path (deliverycons), so
+	// gw.events.normalized.v1 always shipped an empty severity. Template
+	// ClassificationRules win; a watchlist default (blacklist→high, redlist→
+	// medium) fills severity when no rule set it. Rule-match-only (no forced
+	// unknown/none defaults) keeps the wire compact — klynx maps ""→none.
+	// See docs/plan/severity-normalize-path-classification.md.
+	if templateId != "" {
+		if tmpl, err := deps.TemplateRepo.FindById(ctx, workspaceId, templateId); err == nil && tmpl != nil {
+			classifysvc.ApplyClassificationRules(event, tmpl.ClassificationRules, false)
+		}
+	}
+	if event.EventSeverity == "" {
+		event.EventSeverity = classifysvc.WatchlistSeverityDefault(event.Payload)
 	}
 
 	// Build the canonical bridge event from the stored NormalizedEvent.
