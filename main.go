@@ -73,10 +73,9 @@ func main() {
 	flag.Parse()
 	envFile := fmt.Sprintf(".env.%s", *env)
 
-	// ✅ โหลด env ก่อน logger.Init()
+	// โหลด env file ถ้ามี — ไม่มีก็ข้ามไป ใช้ env จาก OS/k8s แทน (bare image / 12-factor)
 	if err := godotenv.Load(envFile); err != nil {
-		fmt.Printf("❌ Failed to load env file: %s\n", err)
-		os.Exit(1)
+		fmt.Printf("⚠️  No env file %s (%v) — fallback to OS/k8s environment variables\n", envFile, err)
 	}
 
 	basePath := os.Getenv("BASE_PATH")
