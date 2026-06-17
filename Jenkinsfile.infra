@@ -1,0 +1,87 @@
+// Jenkinsfile.infra
+// CI: build main -> regis.pointit.co.th/infra/gw-api:<version>
+// - แยกจาก Jenkinsfile เดิม; tag = version จาก version.go
+// - Go: build เปล่าได้ ไม่ต้องมี env ตอน build (main.go env-optional -> รัน bare ได้, ฉีด env ทาง k8s)
+// - ไม่มี stage GitOps/update-manifest
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: buildah
+    image: quay.io/buildah/stable:v1.42.2
+    command: ['cat']
+    tty: true
+    securityContext:
+      privileged: true
+  - name: jnlp
+    image: jenkins/inbound-agent:3301.v4363ddcca_4e7-1
+'''
+        }
+    }
+
+    environment {
+        REGISTRY_URL     = 'regis.pointit.co.th'
+        IMAGE_NAME       = 'infra/gw-api'
+        DOCKERFILE       = 'Dockerfile'                 // root Dockerfile (Go multi-stage)
+        REGISTRY_CRED_ID = 'pointit-registry-login'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps { checkout scm }   // job config ล็อก branch = main
+        }
+
+        stage('Read Version') {
+            steps {
+                container('jnlp') {
+                    script {
+                        env.IMAGE_TAG = sh(
+                            script: $/grep -E 'var Version' version.go | sed -E 's/.*"([^"]+)".*/\1/'/$,
+                            returnStdout: true
+                        ).trim()
+                        if (!env.IMAGE_TAG) { error('อ่าน version จาก version.go ไม่ได้') }
+                        echo "--> build & push: ${REGISTRY_URL}/${IMAGE_NAME}:${env.IMAGE_TAG}"
+                    }
+                }
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                container('buildah') {
+                    sh """
+                        buildah bud --storage-driver=overlay \
+                            -t ${REGISTRY_URL}/${IMAGE_NAME}:${env.IMAGE_TAG} \
+                            -f ${DOCKERFILE} .
+                    """
+                }
+            }
+        }
+
+        stage('Login & Push') {
+            steps {
+                container('buildah') {
+                    withCredentials([usernamePassword(credentialsId: "${REGISTRY_CRED_ID}", usernameVariable: 'REGISTRY_USER', passwordVariable: 'REGISTRY_PASS')]) {
+                        sh """
+                            buildah login --storage-driver=overlay -u \$REGISTRY_USER -p \$REGISTRY_PASS ${REGISTRY_URL}
+                            buildah push --storage-driver=overlay --tls-verify=false ${REGISTRY_URL}/${IMAGE_NAME}:${env.IMAGE_TAG}
+                            buildah logout ${REGISTRY_URL}
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            container('buildah') {
+                sh "buildah rmi --storage-driver=overlay ${REGISTRY_URL}/${IMAGE_NAME}:${env.IMAGE_TAG} || true"
+            }
+        }
+    }
+}
