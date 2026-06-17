@@ -2,6 +2,8 @@
 .env*
 
 main
+# compiled binary
+gateway-api
 # air (local dev tool)
 air
 bin/air
