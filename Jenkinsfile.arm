@@ -1,26 +1,53 @@
 // Jenkinsfile.arm — build & push the arm64 image to Harbor (NO deploy).
 //
+// Runs on the Jenkins Kubernetes cloud (same pattern as Jenkinsfile.infra): an ephemeral
+// pod with a privileged buildah container. The cluster is amd64, so arm64 is CROSS-built
+// via QEMU user-static emulation, registered on the node by the tonistiigi/binfmt init
+// container. (Emulated builds are slower than native — swap to a real arm64 node later.)
+//
 // Requirements on the Jenkins side:
-//   - An arm64 agent labelled below (params.BUILD_NODE) with podman/buildah installed.
-//   - A username/password credential (REGISTRY_CREDENTIALS_ID) with push rights to the registry.
+//   - A Kubernetes cloud configured (already used by Jenkinsfile.infra).
+//   - A username/password credential 'pointit-registry-login' with push rights to the registry.
 //
 // Produces: regis.pointit.co.th/infra/gw-api-arm:<version>   (tag = version.go patch + 1, e.g. 3.16.0 -> 3.16.1)
 
 pipeline {
-  agent { label params.BUILD_NODE }
+  agent {
+    kubernetes {
+      yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  initContainers:
+  - name: binfmt
+    image: tonistiigi/binfmt:latest
+    args: ['--install', 'arm64']
+    securityContext:
+      privileged: true
+  containers:
+  - name: buildah
+    image: quay.io/buildah/stable:v1.42.2
+    command: ['cat']
+    tty: true
+    securityContext:
+      privileged: true
+  - name: jnlp
+    image: jenkins/inbound-agent:3301.v4363ddcca_4e7-1
+'''
+    }
+  }
 
   parameters {
-    string(name: 'BUILD_NODE', defaultValue: 'arm64', description: 'Jenkins agent label — must be arm64 with podman.')
     string(name: 'IMAGE_TAG',  defaultValue: '',      description: 'Exact tag to push (no bump). Empty = derive from version.go and increment patch +1.')
     booleanParam(name: 'PUSH_LATEST', defaultValue: false, description: 'Also tag & push :latest')
   }
 
   environment {
-    REGISTRY                = 'regis.pointit.co.th'
-    IMAGE                   = "regis.pointit.co.th/infra/gw-api-arm"
-    DOCKERFILE              = 'Dockerfile.arm'
-    PLATFORM                = 'linux/arm64'
-    REGISTRY_CREDENTIALS_ID = 'regis-pointit-credentials'   // <-- Jenkins username/password credential ID
+    REGISTRY         = 'regis.pointit.co.th'
+    IMAGE            = "regis.pointit.co.th/infra/gw-api-arm"
+    DOCKERFILE       = 'Dockerfile.arm'
+    PLATFORM         = 'linux/arm64'
+    REGISTRY_CRED_ID = 'pointit-registry-login'   // <-- existing Jenkins username/password credential
   }
 
   options { disableConcurrentBuilds() }
@@ -30,47 +57,49 @@ pipeline {
 
     stage('Resolve tag') {
       steps {
-        script {
-          if (params.IMAGE_TAG?.trim()) {
-            env.TAG = params.IMAGE_TAG.trim()
-            echo "Using explicit tag ${IMAGE}:${env.TAG}"
-          } else {
-            def src = sh(returnStdout: true, script: '''
-              awk -F'"' '/Version[[:space:]]*=/{print $2; exit}' version.go
-            ''').trim()
-            if (!src) { error 'Could not resolve version from version.go (pass IMAGE_TAG).' }
-            // increment the last dot-separated segment: 3.16.0 -> 3.16.1
-            def parts = src.tokenize('.')
-            int last = parts.size() - 1
-            parts[last] = ((parts[last] as int) + 1).toString()
-            env.TAG = parts.join('.')
-            echo "version.go ${src} -> arm tag ${IMAGE}:${env.TAG}"
+        container('jnlp') {
+          script {
+            if (params.IMAGE_TAG?.trim()) {
+              env.TAG = params.IMAGE_TAG.trim()
+              echo "Using explicit tag ${IMAGE}:${env.TAG}"
+            } else {
+              def src = sh(returnStdout: true, script: '''
+                awk -F'"' '/Version[[:space:]]*=/{print $2; exit}' version.go
+              ''').trim()
+              if (!src) { error 'Could not resolve version from version.go (pass IMAGE_TAG).' }
+              // increment the last dot-separated segment: 3.16.0 -> 3.16.1
+              def parts = src.tokenize('.')
+              int last = parts.size() - 1
+              parts[last] = ((parts[last] as int) + 1).toString()
+              env.TAG = parts.join('.')
+              echo "version.go ${src} -> arm tag ${IMAGE}:${env.TAG}"
+            }
           }
-        }
-      }
-    }
-
-    stage('Registry login') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: env.REGISTRY_CREDENTIALS_ID,
-                                           usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
-          sh 'echo "$REG_PASS" | podman login "$REGISTRY" -u "$REG_USER" --password-stdin'
         }
       }
     }
 
     stage('Build') {
       steps {
-        sh 'podman build --platform "$PLATFORM" -f "$DOCKERFILE" -t "$IMAGE:$TAG" .'
+        container('buildah') {
+          sh 'buildah bud --storage-driver=overlay --platform "$PLATFORM" -f "$DOCKERFILE" -t "$IMAGE:$TAG" .'
+        }
       }
     }
 
     stage('Push') {
       steps {
-        sh 'podman push "$IMAGE:$TAG"'
-        script {
-          if (params.PUSH_LATEST) {
-            sh 'podman tag "$IMAGE:$TAG" "$IMAGE:latest" && podman push "$IMAGE:latest"'
+        container('buildah') {
+          withCredentials([usernamePassword(credentialsId: env.REGISTRY_CRED_ID,
+                                             usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
+            sh 'buildah login --storage-driver=overlay -u "$REG_USER" -p "$REG_PASS" "$REGISTRY"'
+            sh 'buildah push --storage-driver=overlay --tls-verify=false "$IMAGE:$TAG"'
+            script {
+              if (params.PUSH_LATEST) {
+                sh 'buildah tag "$IMAGE:$TAG" "$IMAGE:latest" && buildah push --storage-driver=overlay --tls-verify=false "$IMAGE:latest"'
+              }
+            }
+            sh 'buildah logout "$REGISTRY" || true'
           }
         }
       }
@@ -78,7 +107,6 @@ pipeline {
   }
 
   post {
-    always  { sh 'podman logout "$REGISTRY" || true' }
     success { echo "Pushed ${IMAGE}:${env.TAG}" }
   }
 }
