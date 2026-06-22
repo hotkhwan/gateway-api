@@ -23,7 +23,7 @@ pipeline {
     REGISTRY_CREDENTIALS_ID = 'regis-pointit-credentials'   // <-- Jenkins username/password credential ID
   }
 
-  options { timestamps(); disableConcurrentBuilds() }
+  options { disableConcurrentBuilds() }
 
   stages {
     stage('Checkout') { steps { checkout scm } }
