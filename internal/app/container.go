@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/hotkhwan/gateway-api/config"
 	"github.com/hotkhwan/gateway-api/controllers/adminapi"
@@ -25,54 +26,55 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/eventbridge"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authgw"
 	"github.com/hotkhwan/gateway-api/internal/gateways/authzgw"
-	"github.com/hotkhwan/gateway-api/internal/mqtt/alertmsg"
-	"github.com/hotkhwan/gateway-api/internal/repo/aiconfigrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/aisuggestauditrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/bindingrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/configdraftrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/ingesttmplrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/msgtmplrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/workspacerepo"
-	"github.com/hotkhwan/gateway-api/internal/services/alertdetectorsvc"
-	"github.com/hotkhwan/gateway-api/internal/services/bindingsvc"
-	"github.com/hotkhwan/gateway-api/internal/services/entitlementsvc"
-	"github.com/hotkhwan/gateway-api/internal/services/ingesttmplsvc"
-	"github.com/hotkhwan/gateway-api/internal/services/msgtmplsvc"
-	"github.com/hotkhwan/gateway-api/internal/services/workspacesvc"
+	"github.com/hotkhwan/gateway-api/internal/grpc/eventservice"
 	"github.com/hotkhwan/gateway-api/internal/kafka/deliverycons"
 	"github.com/hotkhwan/gateway-api/internal/kafka/normalizedcons"
 	"github.com/hotkhwan/gateway-api/internal/logger"
+	"github.com/hotkhwan/gateway-api/internal/metrics/eps"
+	"github.com/hotkhwan/gateway-api/internal/mqtt/alertmsg"
+	"github.com/hotkhwan/gateway-api/internal/repo/aiconfigrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/aisuggestauditrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/bindingrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/configdraftrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicemgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/devicerepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/dlqrepo"
-	"github.com/hotkhwan/gateway-api/internal/repo/kctrlregistryrepo"
-	"github.com/hotkhwan/gateway-api/internal/grpc/eventservice"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestdetailsrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestmgmtrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/ingestrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/ingesttmplrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/kctrlregistryrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/msgtmplrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/rejectedpayloadpatternrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/sourceprofilerepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/targetrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/unknownpayloadreviewrepo"
+	"github.com/hotkhwan/gateway-api/internal/repo/workspacerepo"
 	"github.com/hotkhwan/gateway-api/internal/services/aiconfigdraftsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/aimappingsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/alertdetectorsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/authzsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/bindingsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicemgmtsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/devicesvc"
 	"github.com/hotkhwan/gateway-api/internal/services/dlqsvc"
-	"github.com/hotkhwan/gateway-api/internal/services/kctrlregistrysvc"
+	"github.com/hotkhwan/gateway-api/internal/services/entitlementsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/ingeststatsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/ingestsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/ingesttmplsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/kctrlregistrysvc"
 	"github.com/hotkhwan/gateway-api/internal/services/licensesvc"
 	"github.com/hotkhwan/gateway-api/internal/services/mappingsuggestionsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/msgtmplsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/rejectedpayloadpatternsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/sourceprofilesvc"
 	"github.com/hotkhwan/gateway-api/internal/services/subscriptionsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/targetsvc"
 	"github.com/hotkhwan/gateway-api/internal/services/templatesvc"
 	"github.com/hotkhwan/gateway-api/internal/services/unknownpayloadreviewsvc"
+	"github.com/hotkhwan/gateway-api/internal/services/workspacesvc"
 )
 
 // ============================================================
@@ -90,11 +92,15 @@ type Container struct {
 	// ===== Entitlement domain (phibek-scoped) =====
 	EntitlementService *entitlementsvc.EntitlementService
 
+	// ===== License-EPS soft metric (observe-only; nil when disabled) =====
+	EPSRecorder *eps.Recorder
+	EPSServer   *eps.Server
+
 	// ===== Workspace domain (phibek-scoped) =====
-	WorkspaceService              *workspacesvc.WorkspaceService
-	WorkspaceMemberService        *workspacesvc.WorkspaceMemberService
-	WorkspaceController           *workspaceapi.WorkspaceController
-	WorkspaceMemberController     *workspaceapi.WorkspaceMemberController
+	WorkspaceService               *workspacesvc.WorkspaceService
+	WorkspaceMemberService         *workspacesvc.WorkspaceMemberService
+	WorkspaceController            *workspaceapi.WorkspaceController
+	WorkspaceMemberController      *workspaceapi.WorkspaceMemberController
 	WorkspaceEntitlementController *workspaceapi.WorkspaceEntitlementController
 
 	// ===== Authz domain =====
@@ -243,6 +249,7 @@ func NewContainer() *Container {
 	c.buildWorkspaceResources()
 	c.buildTemplate()
 	c.buildBulk()
+	c.buildEPS()
 	c.buildNormalizer()
 	c.buildDLQ()
 	c.buildDeliveryConsumer()
@@ -590,7 +597,13 @@ func (c *Container) buildNormalizer() {
 
 	var ebPub normalizedcons.EventBridgePublisher
 	if profile == "appliance" {
-		ebPub = eventbridge.NewKafkaEventBridgePublisher()
+		// Inject the EPS recorder only when enabled; a true nil interface keeps
+		// the publish path metric-free (avoids the nil-pointer-in-interface trap).
+		var epsRec eventbridge.EPSRecorder
+		if c.EPSRecorder != nil {
+			epsRec = c.EPSRecorder
+		}
+		ebPub = eventbridge.NewKafkaEventBridgePublisher(epsRec)
 	}
 
 	tgtRepo := targetrepo.NewTargetRepo()
@@ -605,11 +618,16 @@ func (c *Container) buildNormalizer() {
 	}
 
 	c.NormalizerDeps = normalizedcons.ConsumerDeps{
-		EventDetailsRepo:   ingestdetailsrepo.NewEventDetailsRepo(),
-		TemplateRepo:       ingestrepo.NewMappingTemplateRepo(),
-		DLQRepo:            dlqrepo.NewDLQRepo(),
-		GeoCfg:             normalizedcons.DefaultGeoConfig(),
-		S3BucketKey:        func() string { if v := os.Getenv("S3_BUCKET_EVENTS"); v != "" { return v }; return "canonical" }(),
+		EventDetailsRepo: ingestdetailsrepo.NewEventDetailsRepo(),
+		TemplateRepo:     ingestrepo.NewMappingTemplateRepo(),
+		DLQRepo:          dlqrepo.NewDLQRepo(),
+		GeoCfg:           normalizedcons.DefaultGeoConfig(),
+		S3BucketKey: func() string {
+			if v := os.Getenv("S3_BUCKET_EVENTS"); v != "" {
+				return v
+			}
+			return "canonical"
+		}(),
 		Logger:             logger.WithMeta("normalizer", "consumer"),
 		EntitlementSvc:     entitlementSvc,
 		IngestAuthzGw:      ingestAuthzGw,
@@ -641,6 +659,74 @@ func (a *workspaceTenantAdapter) GetTenantIDForWorkspace(ctx context.Context, wo
 		return "", err
 	}
 	return ws.TenantID, nil
+}
+
+// ============================================================
+// buildEPS — license-EPS soft metric (observe-only Prometheus export)
+// ============================================================
+
+// epsLimitAdapter adapts entitlementsvc to eps.LimitResolver: the licensed
+// maxEventsPerSecond already arrives via klynx.entitlement.snapshot.v1 and is
+// cached in Redis, so the collector reuses it instead of a fresh klynx pull.
+type epsLimitAdapter struct {
+	svc *entitlementsvc.EntitlementService
+}
+
+func (a *epsLimitAdapter) MaxEventsPerSecond(ctx context.Context, workspaceID string) (int, error) {
+	ent, err := a.svc.GetWorkspaceEntitlement(ctx, workspaceID)
+	if err != nil {
+		return 0, err
+	}
+	return ent.MaxEventsPerSecond, nil
+}
+
+// epsCustomerAdapter adapts workspacerepo to eps.CustomerResolver: the
+// per-customer metric label is the workspace's owning tenant.
+type epsCustomerAdapter struct {
+	repo *workspacerepo.WorkspaceRepo
+}
+
+func (a *epsCustomerAdapter) CustomerForWorkspace(ctx context.Context, workspaceID string) (string, error) {
+	ws, err := a.repo.FindByWorkspaceID(ctx, workspaceID)
+	if err != nil {
+		return "", err
+	}
+	return ws.TenantID, nil
+}
+
+// buildEPS wires the license-EPS recorder, collector, and internal /metrics
+// listener. Gated behind LICENSE_EPS_METRIC_ENABLED (default off, per the
+// rollback plan): when disabled, EPSRecorder/EPSServer stay nil and the
+// publish path does no metric work. Must run before buildNormalizer so the
+// recorder can be injected into the EventBridge publisher.
+func (c *Container) buildEPS() {
+	if os.Getenv("LICENSE_EPS_METRIC_ENABLED") != "true" {
+		return
+	}
+
+	rec := eps.NewRecorder()
+
+	var limits eps.LimitResolver
+	if c.EntitlementService != nil {
+		limits = eps.NewCachedLimitResolver(&epsLimitAdapter{svc: c.EntitlementService}, time.Minute)
+	}
+	customers := eps.NewCachedCustomerResolver(&epsCustomerAdapter{repo: workspacerepo.NewWorkspaceRepo()}, 5*time.Minute)
+
+	collector := eps.NewCollector(rec, limits, customers)
+
+	addr := os.Getenv("METRICS_ADDR")
+	if addr == "" {
+		addr = ":9091"
+	}
+	srv, err := eps.NewServer(addr, collector)
+	if err != nil {
+		bootLog := logger.Boot("eps", "buildEPS")
+		bootLog.Error().Err(err).Msg("license-eps metrics server init failed — metric disabled")
+		return
+	}
+
+	c.EPSRecorder = rec
+	c.EPSServer = srv
 }
 
 func (c *Container) buildEntitlement() {

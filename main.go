@@ -10,8 +10,8 @@ import (
 	"time"
 
 	appcontainer "github.com/hotkhwan/gateway-api/internal/app"
-	"github.com/hotkhwan/gateway-api/internal/grpc/workspacegrpc"
 	"github.com/hotkhwan/gateway-api/internal/configruntime"
+	"github.com/hotkhwan/gateway-api/internal/grpc/workspacegrpc"
 	"github.com/hotkhwan/gateway-api/internal/repo/authzrepo"
 	"github.com/hotkhwan/gateway-api/internal/repo/optionsrepo"
 	_ "github.com/hotkhwan/gateway-api/internal/repo/subscriprepo"
@@ -282,6 +282,17 @@ func main() {
 
 	// Start entitlement consumer — syncs klynx.entitlement.snapshot.v1 into Redis TTL cache
 	go entitlementcons.StartEntitlementConsumer(container.EntitlementService)
+
+	// Start license-EPS soft metric (observe-only) — roller + internal /metrics
+	// listener. Nil unless LICENSE_EPS_METRIC_ENABLED=true. The listener binds a
+	// dedicated internal port (METRICS_ADDR), never the public BASE_PATH/istio
+	// route, so per-workspace labeled series stay on the in-cluster scrape path.
+	if container.EPSRecorder != nil {
+		container.EPSRecorder.Start()
+	}
+	if container.EPSServer != nil {
+		container.EPSServer.Start()
+	}
 
 	// Start org lifecycle consumers — provision/suspend EVENTS workspace on klynx org events
 	orglifecyclecons.StartOrgLifecycleConsumers(container.WorkspaceService)
