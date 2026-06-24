@@ -27,8 +27,9 @@ const maxDahuaPicBytes = 700 * 1024
 // We reassemble the binary blob, slice each range, and keep only well-formed
 // JPEGs — so a wrong-offset slice degrades to "no image", never garbage.
 //
-// Order: scene (full frame, index 0) → vehicle crop → object/plate crop, so the
-// consumer convention "pictureList_0 = full, pictureList_1 = crop" holds.
+// Order: full scene (pictureList_0) → the event's body crop (pictureList_1), so
+// the consumer convention "pictureList_0 = full, pictureList_1 = crop" holds —
+// VehicleBody for a vehicle event, HumanImage for a person event, etc.
 // Returns nil when nothing valid is found.
 func dahuaPictureBase64List(contentType string, body []byte, rawBody map[string]any) []any {
 	blob := concatMultipartBinary(contentType, body)
@@ -40,15 +41,80 @@ func dahuaPictureBase64List(contentType string, body []byte, rawBody map[string]
 		return nil
 	}
 
-	descriptors := []map[string]any{
-		imageDesc(data, "SceneImage"),              // [0] full scene
-		imageDesc(asMap(data["Vehicle"]), "Image"), // [1] vehicle crop
-		imageDesc(asMap(data["Object"]), "Image"),  // [2] plate / object crop
+	// Preferred shape: Events[0].Data.Image is a Type-tagged array
+	// (SceneImage + VehicleBody / HumanImage / …) — pick scene + the body crop.
+	if descs := selectDahuaImages(data); len(descs) > 0 {
+		return encodeImageDescs(blob, descs)
 	}
 
+	// Fallback (legacy firmware): nested SceneImage / Vehicle.Image / Object.Image keys.
+	return encodeImageDescs(blob, []map[string]any{
+		imageDesc(data, "SceneImage"),
+		imageDesc(asMap(data["Vehicle"]), "Image"),
+		imageDesc(asMap(data["Object"]), "Image"),
+	})
+}
+
+// selectDahuaImages picks [SceneImage, bodyCrop] from the Events[0].Data.Image
+// array. The scene goes first (full frame); the crop is the Type matching the
+// detected subject (VehicleBody / HumanImage / FaceImage / NonMotor*), falling
+// back to the first non-scene image. Returns nil when the array is absent.
+func selectDahuaImages(data map[string]any) []map[string]any {
+	arr, ok := data["Image"].([]any)
+	if !ok || len(arr) == 0 {
+		return nil
+	}
+	var scene, body, firstOther map[string]any
+	for _, it := range arr {
+		m := asMap(it)
+		if m == nil {
+			continue
+		}
+		switch t := asStr(m["Type"]); {
+		case t == "SceneImage":
+			if scene == nil {
+				scene = m
+			}
+		case isBodyImageType(t):
+			if body == nil {
+				body = m
+			}
+		default:
+			if firstOther == nil {
+				firstOther = m
+			}
+		}
+	}
+	if body == nil {
+		body = firstOther
+	}
+	var out []map[string]any
+	if scene != nil {
+		out = append(out, scene) // pictureList_0 = full scene
+	}
+	if body != nil {
+		out = append(out, body) // pictureList_1 = body crop
+	}
+	return out
+}
+
+// isBodyImageType reports whether a Dahua Image.Type is the detected-subject crop
+// (as opposed to the scene or a sub-detail like a plate).
+func isBodyImageType(t string) bool {
+	switch t {
+	case "VehicleBody", "HumanImage", "HumanBody", "FaceImage", "NonMotorBody", "NonMotorImage", "NonMotor":
+		return true
+	}
+	return false
+}
+
+// encodeImageDescs slices each {Offset,Length} descriptor out of the binary blob,
+// validates it is a JPEG, and returns the base64 list. The cumulative size cap
+// keeps the raw.events message under the Kafka limit (earlier descriptors win).
+func encodeImageDescs(blob []byte, descs []map[string]any) []any {
 	var out []any
 	used := 0
-	for _, img := range descriptors {
+	for _, img := range descs {
 		if img == nil {
 			continue
 		}
@@ -58,7 +124,7 @@ func dahuaPictureBase64List(contentType string, body []byte, rawBody map[string]
 			continue
 		}
 		if used+length > maxDahuaPicBytes {
-			continue // skip this one (likely the large scene), keep smaller ones
+			continue
 		}
 		chunk := blob[off : off+length]
 		if !looksJPEG(chunk) {
@@ -126,6 +192,11 @@ func imageDesc(obj map[string]any, key string) map[string]any {
 func asMap(v any) map[string]any {
 	m, _ := v.(map[string]any)
 	return m
+}
+
+func asStr(v any) string {
+	s, _ := v.(string)
+	return s
 }
 
 // looseInt coerces a JSON-decoded number (float64) or int to int; -1 otherwise.

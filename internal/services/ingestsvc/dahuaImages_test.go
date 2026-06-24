@@ -124,6 +124,62 @@ func TestDahuaPictureBase64List_sizeCapDropsLargeScene(t *testing.T) {
 	}
 }
 
+// metaImageArray builds an Events[0].Data.Image array (Type-tagged) for a
+// scene + body crop laid out contiguously in the blob.
+func metaImageArray(bodyType string, lenScene, lenBody int) string {
+	return fmt.Sprintf(`{"Events":[{"Data":{"Image":[`+
+		`{"Type":"SceneImage","Offset":0,"Length":%d,"Width":1920,"Height":1080},`+
+		`{"Type":"%s","Offset":%d,"Length":%d,"Width":512,"Height":476}]}}]}`,
+		lenScene, bodyType, lenScene, lenBody)
+}
+
+func TestDahuaPictureBase64List_imageArray_vehicle(t *testing.T) {
+	scn, veh := jpeg("SCN", 200), jpeg("VEH", 130)
+	blob := bytes.Join([][]byte{scn, veh}, nil)
+	meta := metaImageArray("VehicleBody", len(scn), len(veh))
+	ct, body := dahuaMultipart(t, meta, blob)
+	var raw map[string]any
+	_ = json.Unmarshal([]byte(meta), &raw)
+
+	got := decodePics(t, dahuaPictureBase64List(ct, body, raw))
+	if len(got) != 2 || !bytes.Equal(got[0], scn) || !bytes.Equal(got[1], veh) {
+		t.Fatalf("want [scene, vehicleBody], got %d boxes", len(got))
+	}
+}
+
+func TestDahuaPictureBase64List_imageArray_human(t *testing.T) {
+	scn, hum := jpeg("SCN", 220), jpeg("HUM", 105)
+	blob := bytes.Join([][]byte{scn, hum}, nil)
+	meta := metaImageArray("HumanImage", len(scn), len(hum))
+	ct, body := dahuaMultipart(t, meta, blob)
+	var raw map[string]any
+	_ = json.Unmarshal([]byte(meta), &raw)
+
+	got := decodePics(t, dahuaPictureBase64List(ct, body, raw))
+	if len(got) != 2 || !bytes.Equal(got[0], scn) || !bytes.Equal(got[1], hum) {
+		t.Fatalf("want [scene, humanImage], got %d boxes", len(got))
+	}
+}
+
+func TestDahuaPictureBase64List_imageArray_picksBodyOverOtherCrop(t *testing.T) {
+	scn, plate, veh := jpeg("SCN", 100), jpeg("PLT", 20), jpeg("VEH", 80)
+	blob := bytes.Join([][]byte{scn, plate, veh}, nil)
+	// Order in array: scene, a non-body crop (Plate), then the body crop.
+	meta := fmt.Sprintf(`{"Events":[{"Data":{"Image":[`+
+		`{"Type":"SceneImage","Offset":0,"Length":%d},`+
+		`{"Type":"PlateImage","Offset":%d,"Length":%d},`+
+		`{"Type":"VehicleBody","Offset":%d,"Length":%d}]}}]}`,
+		len(scn), len(scn), len(plate), len(scn)+len(plate), len(veh))
+	ct, body := dahuaMultipart(t, meta, blob)
+	var raw map[string]any
+	_ = json.Unmarshal([]byte(meta), &raw)
+
+	got := decodePics(t, dahuaPictureBase64List(ct, body, raw))
+	if len(got) != 2 || !bytes.Equal(got[0], scn) || !bytes.Equal(got[1], veh) {
+		t.Fatalf("want [scene, vehicleBody] (plate skipped), got %d boxes", len(got))
+	}
+}
+
 func TestDahuaPictureBase64List_noEventsReturnsNil(t *testing.T) {
 	ct, body := dahuaMultipart(t, `{"Ack":true}`, jpeg("X", 50))
 	var raw map[string]any
