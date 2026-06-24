@@ -54,20 +54,28 @@ sparse. Corrected below:
 
 All `required: false` — most fields are routinely null/blank per frame; never drop the event.
 
-## Not coverable by template (need code — `internal/sourcemapping/dahua`, deferred)
+## Images / `binaryRefs` — IMPLEMENTED in code (gw-api ≥ 3.26.0)
 
-These match AIBOX richness but cannot come from a flat path mapping:
+The JPEGs are embedded in the multipart binary part(s), indexed by byte offset in
+the metadata: `SceneImage{Offset,Length}`, `Vehicle.Image{Offset,Length}`,
+`Object.Image{Offset,Length}`. At ingest, `internal/services/ingestsvc/dahuaImages.go`
+reassembles the binary blob, slices each JPEG (validating the SOI marker), and
+attaches them base64-encoded under `pictureBase64List` — the **same field AIBOX
+uses**. The normalizer's existing `extractBinaries` (normalizedcons) then uploads
+each to S3 (`{ws}/events/{eventId}/pictureList_N.jpg`, bucket = `S3_BUCKET`) and
+emits `binaryRefs[]` (role `capture`) on the normalized event — identical shape to
+AIBOX, zero new S3 code.
+
+- Order: vehicle → object/plate → scene. Cumulative cap `maxDahuaPicBytes` (700 KB
+  raw) keeps the raw.events message under the Kafka limit (scene dropped first).
+- Reuses the S3 bucket already configured for AIBOX — no extra deploy config.
+
+## Still template-only / deferred
 
 - **`pictureCoordinates`** (AIBOX-style `{x1,y1,x2,y2,width,height}`): Dahua gives
   raw pixel boxes — `Object.BoundingBox` `[866,2291,1161,2506]`,
-  `Vehicle.BoundingBox` `[230,659,1954,3552]` — that must be normalized into the
-  AIBOX object shape in code.
-- **`binaryRefs`** (the images — *"image ยังไม่มี"*): the JPEGs are embedded in the
-  344 KB multipart by byte offset, described in the payload:
-  `SceneImage{Offset:0,Length:233444}`, `Vehicle.Image{Offset:233444,Length:181243}`,
-  `Object.Image{Offset:414687,Length:8670}`. Producing `binaryRefs` means slicing
-  those byte ranges → S3 → ref descriptors (mirrors AIBOX `pictureList_*.jpg`). This
-  is the deferred snapshot phase (plan §F).
+  `Vehicle.BoundingBox` `[230,659,1954,3552]` — normalizing into the AIBOX object
+  shape is a separate (optional) code step, not yet done.
 
 ## Notes / limits
 - **Single-event:** maps `Events[0]` only. Dahua may batch `Events: [...]`; multi-event fan-out is a separate decision (plan §B.3).

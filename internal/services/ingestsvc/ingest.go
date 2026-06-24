@@ -397,6 +397,13 @@ func (s *IngestService) Ingest(
 	//     device extraction, fingerprint, template match) sees clean JSON
 	//     instead of a multi-hundred-KB binary blob. Falls back to the original
 	//     body if the multipart can't be parsed.
+	// Keep the raw Dahua multipart so we can extract its embedded JPEG snapshots
+	// into binaryRefs after the metadata is parsed — `body` is replaced just below.
+	var dahuaMultipartBody []byte
+	if sourceFamily == "dahua" && isMultipartContentType(contentType) {
+		dahuaMultipartBody = body
+	}
+
 	if isMultipartContentType(contentType) {
 		if normalized, ok := normalizeMultipart(contentType, body); ok {
 			s.logger.Debug().
@@ -449,6 +456,17 @@ func (s *IngestService) Ingest(
 	rawBody, err := decodeRawBody(body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode raw body: %w", err)
+	}
+
+	// 7b) Dahua snapshots → pictureBase64List. Compute now (read-only) but do NOT
+	//     mutate rawBody yet: adding a key before BuildFingerprint/match would change
+	//     the fingerprint and break template matching. The list is injected into the
+	//     canonical payload AFTER matching (in processTemplateMappedEvent), where the
+	//     normalizer's existing S3 path (extractBinaries) turns it into binaryRefs —
+	//     no new S3 code, mirroring AIBOX. Best-effort: a parse miss yields no images.
+	var dahuaPictureList []any
+	if len(dahuaMultipartBody) > 0 {
+		dahuaPictureList = dahuaPictureBase64List(contentType, dahuaMultipartBody, rawBody)
 	}
 
 	// 8) Build deterministic fingerprint: sorted key paths + normalized value types
@@ -511,6 +529,7 @@ func (s *IngestService) Ingest(
 			policy.TenantId, orgId, sourceFamily, eventType,
 			eventId, receivedAt,
 			rawBody, tmpl, deviceRef, enrichment,
+			dahuaPictureList,
 		); err != nil {
 			return nil, err
 		}
@@ -545,6 +564,7 @@ func (s *IngestService) Ingest(
 				policy.TenantId, orgId, sourceFamily, eventType,
 				eventId, receivedAt,
 				rawBody, autoTmpl, deviceRef, enrichment,
+				dahuaPictureList,
 			); err != nil {
 				return nil, err
 			}
@@ -614,6 +634,7 @@ func (s *IngestService) processTemplateMappedEvent(
 	tmpl *ingestmod.MappingTemplate,
 	deviceRef *ingestmod.DeviceIdentity,
 	enrichment *ingestmod.DeviceManagement,
+	pictureList []any,
 ) error {
 	// 1) Apply field mappings (to extract lat/lng and occurredAt only)
 	mapped, missingRequired := s.tmplMatcher.ApplyMappings(rawBody, tmpl.Mappings)
@@ -687,6 +708,13 @@ func (s *IngestService) processTemplateMappedEvent(
 		deviceId = deviceRef.ID
 		deviceType = deviceRef.Type
 	}
+	// Attach extracted snapshots (e.g. Dahua) under the AIBOX field name so the
+	// normalizer's extractBinaries uploads them to S3 + emits binaryRefs. Done
+	// here (post-match) so it never affects the fingerprint/template match above.
+	if len(pictureList) > 0 {
+		rawBody["pictureBase64List"] = pictureList
+	}
+
 	canonical := &ingestmod.CanonicalEvent{
 		EventId:      eventId,
 		TenantId:     tenantId,
