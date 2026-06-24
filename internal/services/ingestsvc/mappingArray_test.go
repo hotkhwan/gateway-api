@@ -99,3 +99,26 @@ func TestApplyMappings_DahuaArrayPaths(t *testing.T) {
 		t.Fatalf("missing: got %v want [missingThing]", missing)
 	}
 }
+
+func TestPlausibleEventTime(t *testing.T) {
+	ref := time.Date(2026, 6, 24, 12, 0, 0, 0, time.UTC)
+	cases := []struct {
+		name string
+		t    time.Time
+		want bool
+	}{
+		{"same", ref, true},
+		{"1h ago", ref.Add(-time.Hour), true},
+		{"47h ago", ref.Add(-47 * time.Hour), true},
+		{"49h ago (too old)", ref.Add(-49 * time.Hour), false},
+		{"30m ahead", ref.Add(30 * time.Minute), true},
+		{"2h ahead (clock-ahead)", ref.Add(2 * time.Hour), false},
+		{"camera clock months off", time.Date(2026, 2, 18, 14, 55, 0, 0, time.UTC), false},
+		{"zero", time.Time{}, false},
+	}
+	for _, c := range cases {
+		if got := plausibleEventTime(c.t, ref); got != c.want {
+			t.Errorf("%s: got %v want %v", c.name, got, c.want)
+		}
+	}
+}
