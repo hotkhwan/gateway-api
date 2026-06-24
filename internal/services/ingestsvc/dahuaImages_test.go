@@ -74,7 +74,7 @@ func TestDahuaPictureBase64List_extractsInOrder(t *testing.T) {
 	}
 	pics := dahuaPictureBase64List(ct, body, raw)
 	got := decodePics(t, pics)
-	want := [][]byte{veh, obj, scn} // vehicle → object → scene
+	want := [][]byte{scn, veh, obj} // scene (full) → vehicle → object
 	if len(got) != 3 {
 		t.Fatalf("want 3 pics, got %d", len(got))
 	}
@@ -102,11 +102,11 @@ func TestDahuaPictureBase64List_skipsNonJPEGandOutOfBounds(t *testing.T) {
 
 	pics := dahuaPictureBase64List(ct, body, raw)
 	got := decodePics(t, pics)
-	if len(got) != 2 { // vehicle + scene; object skipped (OOB)
+	if len(got) != 2 { // scene + vehicle; object skipped (OOB)
 		t.Fatalf("want 2 pics, got %d", len(got))
 	}
-	if !bytes.Equal(got[0], veh) || !bytes.Equal(got[1], scn) {
-		t.Errorf("expected vehicle then scene")
+	if !bytes.Equal(got[0], scn) || !bytes.Equal(got[1], veh) {
+		t.Errorf("expected scene (full) then vehicle")
 	}
 }
 

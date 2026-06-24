@@ -12,7 +12,8 @@ import (
 // maxDahuaPicBytes caps the cumulative RAW snapshot bytes carried as base64 in
 // one event, so the raw.events Kafka message stays well under the broker max
 // (base64 ≈ 4/3 × raw; 700 KB raw ≈ 0.93 MB base64). Images past the cap are
-// dropped (vehicle + plate are added before the larger scene frame).
+// dropped; the full scene is added first so it (pictureList_0) is kept and the
+// later crops drop instead if a frame is unusually large.
 const maxDahuaPicBytes = 700 * 1024
 
 // dahuaPictureBase64List extracts the embedded JPEG snapshots from a Dahua
@@ -26,7 +27,8 @@ const maxDahuaPicBytes = 700 * 1024
 // We reassemble the binary blob, slice each range, and keep only well-formed
 // JPEGs — so a wrong-offset slice degrades to "no image", never garbage.
 //
-// Order: vehicle (subject) → object/plate (detail) → scene (context).
+// Order: scene (full frame, index 0) → vehicle crop → object/plate crop, so the
+// consumer convention "pictureList_0 = full, pictureList_1 = crop" holds.
 // Returns nil when nothing valid is found.
 func dahuaPictureBase64List(contentType string, body []byte, rawBody map[string]any) []any {
 	blob := concatMultipartBinary(contentType, body)
@@ -39,9 +41,9 @@ func dahuaPictureBase64List(contentType string, body []byte, rawBody map[string]
 	}
 
 	descriptors := []map[string]any{
-		imageDesc(asMap(data["Vehicle"]), "Image"), // vehicle crop
-		imageDesc(asMap(data["Object"]), "Image"),  // plate / object crop
-		imageDesc(data, "SceneImage"),              // full scene
+		imageDesc(data, "SceneImage"),              // [0] full scene
+		imageDesc(asMap(data["Vehicle"]), "Image"), // [1] vehicle crop
+		imageDesc(asMap(data["Object"]), "Image"),  // [2] plate / object crop
 	}
 
 	var out []any
