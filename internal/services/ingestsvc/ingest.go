@@ -573,6 +573,23 @@ func (s *IngestService) Ingest(
 	return &IngestResult{EventId: eventId, ReceivedAt: receivedAt, Pending: true}, nil
 }
 
+// occurredAtMaxPast / occurredAtMaxFuture bound how far a device-reported event
+// time may sit from the gateway receive time before it is treated as clock skew.
+// Past is generous (buffered/retried uploads); future is tight (clock-ahead).
+const (
+	occurredAtMaxPast   = 48 * time.Hour
+	occurredAtMaxFuture = 1 * time.Hour
+)
+
+// plausibleEventTime reports whether a device-reported event time t is close
+// enough to the gateway receive time ref to be trusted as occurredAt.
+func plausibleEventTime(t, ref time.Time) bool {
+	if t.IsZero() {
+		return false
+	}
+	return t.After(ref.Add(-occurredAtMaxPast)) && t.Before(ref.Add(occurredAtMaxFuture))
+}
+
 // processTemplateMappedEvent applies a matched mapping template to rawBody
 // and publishes a CanonicalEvent to raw.events.
 // The Normalizer consumer handles writing to event_details + S3.
@@ -603,11 +620,24 @@ func (s *IngestService) processTemplateMappedEvent(
 	latF, _ := lat.(float64)
 	lngF, _ := lng.(float64)
 
-	// 3) Resolve occurredAt from mapped fields (fallback: receivedAt)
+	// 3) Resolve occurredAt from mapped fields (fallback: receivedAt).
+	//    Guard against skewed device clocks (e.g. Dahua RealUTC on a camera whose
+	//    NTP is months off): a mapped time too far from receivedAt is implausible,
+	//    so fall back to receivedAt rather than emit a wrong event time.
 	occurredAt := receivedAt
 	if ts, ok := getNestedValue(mapped, "occurredAt"); ok {
 		if t, ok2 := ts.(time.Time); ok2 {
-			occurredAt = t
+			if plausibleEventTime(t, receivedAt) {
+				occurredAt = t
+			} else {
+				s.logger.Warn().
+					Str("orgId", orgId).
+					Str("eventId", eventId).
+					Str("templateId", tmpl.TemplateId).
+					Time("mappedOccurredAt", t).
+					Time("receivedAt", receivedAt).
+					Msg("[TemplateMapped] implausible occurredAt (device clock skew) — using receivedAt")
+			}
 		}
 	}
 
