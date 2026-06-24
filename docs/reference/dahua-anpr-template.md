@@ -57,30 +57,31 @@ All `required: false` — most fields are routinely null/blank per frame; never 
 ## Images / `binaryRefs` — IMPLEMENTED in code (gw-api ≥ 3.26.0)
 
 The JPEGs are embedded in the multipart binary part(s), indexed by byte offset.
-The metadata describes them in a Type-tagged `Events[0].Data.Image[]` array, e.g.
-for a vehicle event:
+`internal/services/ingestsvc/dahuaImages.go` reassembles the binary blob and picks
+**two** images — the full scene (`pictureList_0`) + the detected body crop
+(`pictureList_1`). Dahua firmwares describe the images in **three different
+shapes**, all handled (verified against real `HumanTrait` / `TrafficJunction`
+payloads, 2026-06-24):
 
-```json
-"Image": [
-  { "Type": "SceneImage",  "Offset": 0,      "Length": 119229, "Width": 1920, "Height": 1080 },
-  { "Type": "VehicleBody", "Offset": 119229, "Length": 130999, "Width": 512,  "Height": 476  }
-]
-```
+| shape | scene | crop |
+|---|---|---|
+| **direct keys** (HumanTrait/FaceTrait) | `Data.SceneImage` | `Data.HumanImage` / `FaceImage` / `VehicleBodyImage` |
+| **Type-tagged `Data.Image[]`** | entry `Type:"SceneImage"` | entry `Type:"VehicleBody"` / `HumanImage` / … |
+| **nested legacy** (older ANPR) | `Data.SceneImage` | `Data.Vehicle.Image` / `Object.Image` |
 
-At ingest, `internal/services/ingestsvc/dahuaImages.go` reassembles the binary
-blob, picks **two** images — `SceneImage` (full, `pictureList_0`) + the detected
-body crop (`pictureList_1`): `VehicleBody` for a vehicle, `HumanImage` for a
-person, `FaceImage` for a face, `NonMotor*` for a bike — slices each JPEG
-(validating the SOI marker), and attaches them base64-encoded under
-`pictureBase64List` — the **same field AIBOX uses**. The normalizer's existing
-`extractBinaries` (normalizedcons) then uploads each to S3
-(`{ws}/events/{eventId}/pictureList_N.jpg`, bucket = `S3_BUCKET`) and emits
-`binaryRefs[]` (role `capture`) — identical shape to AIBOX, zero new S3 code.
+Verified `HumanTrait` layout (contiguous in the blob): `SceneImage [0:194706]`,
+`HumanImage [194706:289951]`, `FaceSceneImage [289951:484774]`, `FaceImage
+[484774:538674]` — we take `SceneImage` + `HumanImage` (`HumanImage` preferred
+over `FaceImage` for a person event).
 
-- Falls back to the legacy nested `SceneImage` / `Vehicle.Image` / `Object.Image`
-  keys when no `Image[]` array is present.
+Each JPEG is SOI-validated, then attached base64 under `pictureBase64List` — the
+**same field AIBOX uses**. The normalizer's existing `extractBinaries`
+(normalizedcons) uploads each to S3 (`{ws}/events/{eventId}/pictureList_N.jpg`,
+bucket = `S3_BUCKET`) and emits `binaryRefs[]` (role `capture`) — identical shape
+to AIBOX, zero new S3 code.
+
 - Cumulative cap `maxDahuaPicBytes` (700 KB raw) keeps the raw.events message
-  under the Kafka limit (earlier descriptors win — scene first).
+  under the Kafka limit (scene added first, kept; crop drops if a frame is huge).
 - Reuses the S3 bucket already configured for AIBOX — no extra deploy config.
 
 ## `pictureCoordinates` — IMPLEMENTED in code (gw-api ≥ 3.28.0)
