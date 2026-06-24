@@ -603,7 +603,15 @@ func buildBridgeEvent(
 			bridgeEvt.Payload = ea
 		}
 	} else {
-		bridgeEvt.Payload = map[string]any{}
+		// No "eventAttribute" sub-key (e.g. a Dahua/ANPR template mapping flat
+		// fields like plate/vehicleColor) — forward the full normalized payload
+		// instead of dropping it (this is what event_details already stores).
+		// Copy so the pictureCoordinates write below never aliases event.Payload.
+		cp := make(map[string]any, len(event.Payload))
+		for k, v := range event.Payload {
+			cp[k] = v
+		}
+		bridgeEvt.Payload = cp
 	}
 	// pictureCoordinates: prefer normalized payload, fall back to raw canonical payload.
 	if coords, ok := event.Payload["pictureCoordinates"]; ok {
