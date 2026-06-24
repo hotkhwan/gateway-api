@@ -13,24 +13,20 @@ import (
 // one event, so the raw.events Kafka message stays well under the broker max
 // (base64 ≈ 4/3 × raw; 700 KB raw ≈ 0.93 MB base64). Images past the cap are
 // dropped; the full scene is added first so it (pictureList_0) is kept and the
-// later crops drop instead if a frame is unusually large.
+// later crop drops instead if a frame is unusually large.
 const maxDahuaPicBytes = 700 * 1024
 
 // dahuaPictureBase64List extracts the embedded JPEG snapshots from a Dahua
-// multipart event and returns them base64-encoded, ready to drop into the event
-// payload under "pictureBase64List" (the same field AIBOX uses) so the existing
-// normalizer S3 path (extractBinaries) uploads them and emits binaryRefs.
+// multipart event and returns them base64-encoded for the event payload's
+// "pictureBase64List" (the same field AIBOX uses), so the existing normalizer
+// S3 path (extractBinaries) uploads them and emits binaryRefs.
 //
-// Dahua concatenates the snapshots into the multipart's binary part(s); each
-// image's byte range is described in the metadata under
-// Events[0].Data.{Vehicle.Image, Object.Image, SceneImage}.{Offset,Length}.
-// We reassemble the binary blob, slice each range, and keep only well-formed
-// JPEGs — so a wrong-offset slice degrades to "no image", never garbage.
-//
-// Order: full scene (pictureList_0) → the event's body crop (pictureList_1), so
-// the consumer convention "pictureList_0 = full, pictureList_1 = crop" holds —
-// VehicleBody for a vehicle event, HumanImage for a person event, etc.
-// Returns nil when nothing valid is found.
+// Two images are produced — the full scene (pictureList_0) and the detected
+// subject crop (pictureList_1): VehicleBody for a vehicle, HumanImage for a
+// person, FaceImage for a face. Each image's byte range is described in the
+// metadata; we reassemble the binary blob, slice each range, and keep only
+// well-formed JPEGs — so a wrong-offset slice degrades to "no image", never
+// garbage. Returns nil when nothing valid is found.
 func dahuaPictureBase64List(contentType string, body []byte, rawBody map[string]any) []any {
 	blob := concatMultipartBinary(contentType, body)
 	if len(blob) == 0 {
@@ -40,30 +36,47 @@ func dahuaPictureBase64List(contentType string, body []byte, rawBody map[string]
 	if data == nil {
 		return nil
 	}
-
-	// Preferred shape: Events[0].Data.Image is a Type-tagged array
-	// (SceneImage + VehicleBody / HumanImage / …) — pick scene + the body crop.
-	if descs := selectDahuaImages(data); len(descs) > 0 {
-		return encodeImageDescs(blob, descs)
-	}
-
-	// Fallback (legacy firmware): nested SceneImage / Vehicle.Image / Object.Image keys.
-	return encodeImageDescs(blob, []map[string]any{
-		imageDesc(data, "SceneImage"),
-		imageDesc(asMap(data["Vehicle"]), "Image"),
-		imageDesc(asMap(data["Object"]), "Image"),
-	})
+	return encodeImageDescs(blob, dahuaImageDescriptors(data))
 }
 
-// selectDahuaImages picks [SceneImage, bodyCrop] from the Events[0].Data.Image
-// array. The scene goes first (full frame); the crop is the Type matching the
-// detected subject (VehicleBody / HumanImage / FaceImage / NonMotor*), falling
-// back to the first non-scene image. Returns nil when the array is absent.
-func selectDahuaImages(data map[string]any) []map[string]any {
-	arr, ok := data["Image"].([]any)
-	if !ok || len(arr) == 0 {
-		return nil
+// dahuaImageDescriptors returns up to two image descriptors — full scene then
+// subject body crop — handling the several shapes Dahua firmwares emit:
+//   - Type-tagged Image[] array   (SceneImage + VehicleBody / HumanImage / …)
+//   - direct keys                 (SceneImage + HumanImage / FaceImage / VehicleBodyImage / …)
+//   - nested legacy keys          (SceneImage + Vehicle.Image / Object.Image)
+func dahuaImageDescriptors(data map[string]any) []map[string]any {
+	// 1) Type-tagged Image[] array.
+	if arr, ok := data["Image"].([]any); ok && len(arr) > 0 {
+		return selectFromImageArray(arr)
 	}
+
+	// 2) Direct keys (HumanTrait / FaceTrait / TrafficJunction firmwares), then
+	//    nested legacy keys. HumanImage is preferred over FaceImage so a
+	//    pedestrian event shows the person, not just the face.
+	scene := imageMap(data["SceneImage"])
+	if scene == nil {
+		scene = imageMap(data["FaceSceneImage"])
+	}
+	crop := firstImageMap(data, "HumanImage", "FaceImage", "VehicleBodyImage", "VehicleImage", "NonMotorImage")
+	if crop == nil {
+		crop = firstNestedImage(data, "Vehicle", "Object", "Human", "NonMotor")
+	}
+
+	var out []map[string]any
+	if scene != nil {
+		out = append(out, scene)
+	}
+	if crop != nil {
+		out = append(out, crop)
+	}
+	return out
+}
+
+// selectFromImageArray picks [SceneImage, bodyCrop] from a Type-tagged Image[]
+// array. The scene goes first; the crop is the Type matching the detected subject
+// (VehicleBody / HumanImage / FaceImage / NonMotor*), falling back to the first
+// non-scene image.
+func selectFromImageArray(arr []any) []map[string]any {
 	var scene, body, firstOther map[string]any
 	for _, it := range arr {
 		m := asMap(it)
@@ -90,16 +103,15 @@ func selectDahuaImages(data map[string]any) []map[string]any {
 	}
 	var out []map[string]any
 	if scene != nil {
-		out = append(out, scene) // pictureList_0 = full scene
+		out = append(out, scene)
 	}
 	if body != nil {
-		out = append(out, body) // pictureList_1 = body crop
+		out = append(out, body)
 	}
 	return out
 }
 
-// isBodyImageType reports whether a Dahua Image.Type is the detected-subject crop
-// (as opposed to the scene or a sub-detail like a plate).
+// isBodyImageType reports whether a Dahua Image.Type is the detected-subject crop.
 func isBodyImageType(t string) bool {
 	switch t {
 	case "VehicleBody", "HumanImage", "HumanBody", "FaceImage", "NonMotorBody", "NonMotorImage", "NonMotor":
@@ -181,12 +193,39 @@ func dahuaEventData(rawBody map[string]any) map[string]any {
 	return asMap(ev["Data"])
 }
 
-// imageDesc returns obj[key] as a map (an {Offset,Length,...} image descriptor).
-func imageDesc(obj map[string]any, key string) map[string]any {
-	if obj == nil {
+// imageMap returns v as an image descriptor map (carrying Offset/Length), or nil
+// — so non-image objects (e.g. HumanAttributes) under the same Data are ignored.
+func imageMap(v any) map[string]any {
+	m := asMap(v)
+	if m == nil {
 		return nil
 	}
-	return asMap(obj[key])
+	_, hasOff := m["Offset"]
+	_, hasLen := m["Length"]
+	if !hasOff && !hasLen {
+		return nil
+	}
+	return m
+}
+
+// firstImageMap returns the first of keys whose value is an image descriptor.
+func firstImageMap(data map[string]any, keys ...string) map[string]any {
+	for _, k := range keys {
+		if m := imageMap(data[k]); m != nil {
+			return m
+		}
+	}
+	return nil
+}
+
+// firstNestedImage returns the first groups[i].Image that is an image descriptor.
+func firstNestedImage(data map[string]any, groups ...string) map[string]any {
+	for _, g := range groups {
+		if m := imageMap(asMap(data[g])["Image"]); m != nil {
+			return m
+		}
+	}
+	return nil
 }
 
 func asMap(v any) map[string]any {
