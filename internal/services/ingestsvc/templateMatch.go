@@ -213,20 +213,39 @@ func (m *TemplateMatcher) ApplyMappings(rawBody map[string]any, mappings []inges
 // ============================================================
 
 // getNestedValue resolves a dotted path (e.g. "gps.lat") inside obj.
+//
+// A numeric segment indexes into a JSON array ([]any) — so vendor payloads that
+// nest fields under an array (e.g. Dahua "Events.0.Data.TrafficCar.VehicleColor")
+// are mappable. Returns (nil, false) on any missing key, out-of-range index, or
+// type mismatch.
 func getNestedValue(obj map[string]any, path string) (any, bool) {
-	parts := strings.SplitN(path, ".", 2)
-	val, ok := obj[parts[0]]
-	if !ok {
+	return resolvePath(obj, path)
+}
+
+// resolvePath walks cur by the dotted path, descending through both maps
+// (string keys) and slices (numeric indices).
+func resolvePath(cur any, path string) (any, bool) {
+	if path == "" {
+		return cur, true
+	}
+	head, rest, _ := strings.Cut(path, ".")
+
+	switch node := cur.(type) {
+	case map[string]any:
+		v, ok := node[head]
+		if !ok {
+			return nil, false
+		}
+		return resolvePath(v, rest)
+	case []any:
+		idx, err := strconv.Atoi(head)
+		if err != nil || idx < 0 || idx >= len(node) {
+			return nil, false
+		}
+		return resolvePath(node[idx], rest)
+	default:
 		return nil, false
 	}
-	if len(parts) == 1 {
-		return val, true
-	}
-	child, ok := val.(map[string]any)
-	if !ok {
-		return nil, false
-	}
-	return getNestedValue(child, parts[1])
 }
 
 // setNestedValue sets a dotted path inside obj, creating intermediate maps as needed.
