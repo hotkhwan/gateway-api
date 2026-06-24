@@ -129,7 +129,9 @@ func PictureCoordinates(payload map[string]any) []any {
 	}
 	w, h := sceneDims(data)
 	var out []any
-	for _, group := range []string{"Vehicle", "Object"} {
+	// Box locations across event types: vehicle/plate (TrafficJunction),
+	// person (HumanTrait → HumanAttributes), face (FaceAttributes).
+	for _, group := range []string{"Vehicle", "Object", "HumanAttributes", "FaceAttributes", "Human", "Face"} {
 		if box := normalizedBox(asMap(data[group])["BoundingBox"], w, h); box != nil {
 			out = append(out, box)
 		}
