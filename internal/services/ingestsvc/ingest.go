@@ -390,6 +390,24 @@ func (s *IngestService) Ingest(
 		return nil, ErrSourceFamilyComingSoon
 	}
 
+	// 2b) Multipart normalization (e.g. Dahua multipart/x-mixed-replace):
+	//     extract the text/JSON metadata into a single JSON object and reduce
+	//     snapshot images to descriptors, so every downstream step (size check,
+	//     device extraction, fingerprint, template match) sees clean JSON
+	//     instead of a multi-hundred-KB binary blob. Falls back to the original
+	//     body if the multipart can't be parsed.
+	if isMultipartContentType(contentType) {
+		if normalized, ok := normalizeMultipart(contentType, body); ok {
+			s.logger.Debug().
+				Str("orgId", orgId).
+				Str("sourceFamily", sourceFamily).
+				Int("rawBytes", len(body)).
+				Int("metadataBytes", len(normalized)).
+				Msg("[Ingest] multipart normalized to metadata JSON")
+			body = normalized
+		}
+	}
+
 	// 3) Resolve org policy (includes subscription limits)
 	policy, err := s.resolveOrgPolicy(ctx, orgId)
 	if err != nil {
