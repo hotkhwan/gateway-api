@@ -7,7 +7,8 @@ gateway-api
 # air (local dev tool)
 air
 bin/air
-dahua/
+# root-level scratch dir only — must not shadow internal/sourcemapping/dahua
+/dahua/
 tmp/
 certs/
 
