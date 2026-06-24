@@ -139,6 +139,39 @@ func TestDahuaImages_sizeCap(t *testing.T) {
 	}
 }
 
+// Vehicle: the car-body crop must win over the license-plate crop, even when the
+// plate appears first / in a different shape than the body.
+func TestDahuaImages_vehicleBodyBeatsPlate(t *testing.T) {
+	scn, plate, veh := jpeg("SCN", 200), jpeg("PLT", 30), jpeg("VEH", 130)
+	blob := bytes.Join([][]byte{scn, plate, veh}, nil)
+	// Plate is in the Image[] array (Type "Plate"); the body is the nested
+	// Vehicle.Image — the code must still prefer the body.
+	meta := fmt.Sprintf(`{"Events":[{"Code":"TrafficJunction","Data":{`+
+		`"Image":[{"Type":"SceneImage","Offset":0,"Length":%d},`+
+		`{"Type":"Plate","Offset":%d,"Length":%d}],`+
+		`"Object":{"ObjectType":"Plate","Image":{"Offset":%d,"Length":%d}},`+
+		`"Vehicle":{"Image":{"Offset":%d,"Length":%d}}}}]}`,
+		len(scn), len(scn), len(plate), len(scn), len(plate), len(scn)+len(plate), len(veh))
+	got := run(t, meta, blob)
+	if len(got) != 2 || !bytes.Equal(got[0], scn) || !bytes.Equal(got[1], veh) {
+		t.Fatalf("want [scene, vehicleBody], got %d images (plate must not win)", len(got))
+	}
+}
+
+// When only a plate crop exists (no body), it is used as the last resort.
+func TestDahuaImages_plateLastResort(t *testing.T) {
+	scn, plate := jpeg("SCN", 200), jpeg("PLT", 30)
+	blob := bytes.Join([][]byte{scn, plate}, nil)
+	meta := fmt.Sprintf(`{"Events":[{"Data":{`+
+		`"SceneImage":{"Offset":0,"Length":%d},`+
+		`"Object":{"ObjectType":"Plate","Image":{"Offset":%d,"Length":%d}}}}]}`,
+		len(scn), len(scn), len(plate))
+	got := run(t, meta, blob)
+	if len(got) != 2 || !bytes.Equal(got[1], plate) {
+		t.Fatalf("want [scene, plate] as last resort, got %d images", len(got))
+	}
+}
+
 func TestDahuaImages_noEventsReturnsNil(t *testing.T) {
 	ct, body := dahuaMultipart(t, `{"Ack":true}`, jpeg("X", 50))
 	var raw map[string]any
