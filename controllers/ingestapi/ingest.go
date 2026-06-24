@@ -44,9 +44,9 @@ type realtimeBindingGetter interface {
 
 type IngestController struct {
 	service    ingestSvcI
-	alertDisp  alertDispatcherI       // nil = fast alert disabled
-	alertDet   alertDetectorI         // nil = fast alert disabled
-	bindingSvc realtimeBindingGetter  // nil = realtime binding dispatch disabled
+	alertDisp  alertDispatcherI      // nil = fast alert disabled
+	alertDet   alertDetectorI        // nil = fast alert disabled
+	bindingSvc realtimeBindingGetter // nil = realtime binding dispatch disabled
 }
 
 func NewIngestController(svc ingestSvcI) *IngestController {
@@ -100,7 +100,11 @@ func (ctrl *IngestController) Ingest(c fiber.Ctx) error {
 		return httputil.FailBadRequest(c, "sourceFamily is required")
 	}
 
-	body := c.Body()
+	// Use the raw body (not c.Body()) — Fiber auto-decompresses on
+	// Content-Encoding and, on failure, replaces the body with the error string
+	// "zlib: invalid header". Dahua sends multipart with a spurious deflate
+	// header, so we decode defensively in readIngestBody instead.
+	body := readIngestBody(c)
 	sourceIp := c.IP()
 	contentType := c.Get("Content-Type", "application/json")
 
