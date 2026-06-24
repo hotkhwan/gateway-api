@@ -190,6 +190,10 @@ type Container struct {
 	// Per klynx-api/docs/contracts/camera-gw-managed-overlay.md §8.
 	CameraOverlayInboundController *adminapi.CameraOverlayInboundController
 
+	// Per-camera device-identity provisioning (camID Phase 1).
+	// Per klynx-api/docs/contracts/dahua-camera-event-ingest.md §5.2.
+	DeviceIdentityController *adminapi.DeviceIdentityController
+
 	// ===== Klynx kcontrol registry (Phase A — receiving side) =====
 	// Per klynx-api/docs/contracts/kcontrol-gw-managed-registry.md §4 + §5.
 	// Service powers both the admin REST handlers and the kctrlsubmsg MQTT
@@ -353,6 +357,7 @@ func (c *Container) buildDeviceManagement() {
 	c.DeviceMgmtService = devicemgmtsvc.NewDeviceManagementService(repo)
 	c.DeviceMgmtController = ingestapi.NewDeviceManagementController(c.DeviceMgmtService)
 	c.CameraOverlayInboundController = adminapi.NewCameraOverlayInboundController(c.DeviceMgmtService)
+	c.DeviceIdentityController = adminapi.NewDeviceIdentityController(c.DeviceMgmtService)
 }
 
 // buildKctrlRegistry wires the kctrl_registry surface — receives klynx-api

@@ -360,6 +360,7 @@ func (s *IngestService) Ingest(
 	ctx context.Context,
 	orgId string,
 	sourceFamily string,
+	camID string,
 	sourceIp string,
 	contentType string,
 	body []byte,
@@ -457,7 +458,17 @@ func (s *IngestService) Ingest(
 	//    BEFORE template matching so user-defined matchAll/matchAny can reference
 	//    canonical fields (source.deviceId, source.deviceType, ...) that match what
 	//    the UI displays — instead of vendor-specific raw fields (channelId vs deviceId).
-	candidates, _, _ := s.extractDeviceCandidates(body)
+	//    When camID is on the path (/events/{org}/{family}/{camID}) it is the
+	//    authoritative per-camera identity: resolve device_management by
+	//    (sourceFamily, entityType="camera", entityId=camID) and skip the weak
+	//    payload-derived auto-register. Otherwise fall back to candidate
+	//    extraction from the payload (legacy un-cammed cameras).
+	var candidates []ingestmod.DeviceIdentity
+	if camID != "" {
+		candidates = []ingestmod.DeviceIdentity{{Type: "camera", ID: camID}}
+	} else {
+		candidates, _, _ = s.extractDeviceCandidates(body)
+	}
 	enrichment, deviceRef := s.resolveDeviceEnrichment(ctx, policy.TenantId, orgId, sourceFamily, candidates)
 
 	// 10) Build match bag = rawBody + canonical "source.*" — passed to template matcher.
@@ -480,8 +491,10 @@ func (s *IngestService) Ingest(
 			eventType = sourceFamily
 		}
 
-		// Auto-create/merge device_management record (conservative, non-blocking)
-		if deviceRef != nil && s.deviceMgmtSvc != nil {
+		// Auto-create/merge device_management record (conservative, non-blocking).
+		// Skipped on the camID path — that identity is pre-provisioned and the
+		// payload-derived (channel-keyed) record would be a weak duplicate.
+		if camID == "" && deviceRef != nil && s.deviceMgmtSvc != nil {
 			s.deviceMgmtSvc.AutoUpsertFromEvent(ctx, policy.TenantId, orgId, sourceFamily, deviceRef, buildAutoUpsertHints(sourceFamily, rawBody))
 		}
 

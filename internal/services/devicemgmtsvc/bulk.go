@@ -345,6 +345,86 @@ func (s *DeviceManagementService) AutoUpsertFromEvent(
 	publishDevicesChanged(ctx, existing, "update")
 }
 
+// ProvisionByCamID pre-creates / ensures the device_management identity for a
+// camera registered in klynx, keyed by (sourceFamily, entityType="camera",
+// entityId=camID) with DeviceId=camID. This lets the per-camera ingest path
+// (/events/{org}/{family}/{camID}) resolve and attribute events deterministically
+// for vendors (Dahua) whose payloads carry no unique device id. Idempotent;
+// emits gw.devices.changed.v1 so the klynx projection joins by camId.
+//
+// Provision is authoritative for the identity: it always sets DeviceId=camID
+// and overlays any non-empty hints (name/site/lat/lng), unlike the conservative
+// fill-if-empty AutoUpsertFromEvent.
+func (s *DeviceManagementService) ProvisionByCamID(
+	ctx context.Context,
+	tenantId, workspaceId, sourceFamily, camID string,
+	hints ingestmod.AutoUpsertHints,
+) (*ingestmod.DeviceManagement, error) {
+	if tenantId == "" || workspaceId == "" || sourceFamily == "" || camID == "" {
+		return nil, fmt.Errorf("device provision: tenantId, workspaceId, sourceFamily and camId are required")
+	}
+
+	now := time.Now().UTC()
+	existing, _ := s.repo.FindByEntity(ctx, tenantId, workspaceId, sourceFamily, "camera", camID)
+
+	if existing == nil {
+		rec := &ingestmod.DeviceManagement{
+			DeviceMgmtId: uuid.NewString(),
+			TenantId:     tenantId,
+			WorkspaceId:  workspaceId,
+			SourceFamily: sourceFamily,
+			EntityType:   "camera",
+			EntityId:     camID,
+			DeviceId:     camID, // canonical alias = camId (klynx join key)
+			SerialNo:     hints.SerialNo,
+			Name:         hints.Name,
+			Description:  hints.Description,
+			Lat:          hints.Lat,
+			Lng:          hints.Lng,
+			Site:         hints.Site,
+			Zone:         hints.Zone,
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		}
+		if err := s.repo.Insert(ctx, rec); err != nil {
+			return nil, fmt.Errorf("device provision insert: %w", err)
+		}
+		publishDevicesChanged(ctx, rec, "create")
+		return rec, nil
+	}
+
+	// Ensure identity + overlay provided hints (authoritative).
+	existing.DeviceId = camID
+	if hints.SerialNo != "" {
+		existing.SerialNo = hints.SerialNo
+	}
+	if hints.Name != "" {
+		existing.Name = hints.Name
+	}
+	if hints.Description != "" {
+		existing.Description = hints.Description
+	}
+	if hints.Lat != 0 {
+		existing.Lat = hints.Lat
+	}
+	if hints.Lng != 0 {
+		existing.Lng = hints.Lng
+	}
+	if hints.Site != "" {
+		existing.Site = hints.Site
+	}
+	if hints.Zone != "" {
+		existing.Zone = hints.Zone
+	}
+	existing.UpdatedAt = now
+	if _, err := s.repo.UpsertByBusinessKey(ctx, existing); err != nil {
+		return nil, fmt.Errorf("device provision upsert: %w", err)
+	}
+	cachedevicemgmt.Invalidate(ctx, tenantId, workspaceId, sourceFamily, "camera", camID)
+	publishDevicesChanged(ctx, existing, "update")
+	return existing, nil
+}
+
 // parseHeader maps column names to their index positions.
 func parseHeader(row []string) map[string]int {
 	idx := map[string]int{

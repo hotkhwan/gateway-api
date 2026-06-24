@@ -23,5 +23,12 @@ func RegisterAdminDeviceManagementRoutes(router fiber.Router, c *app.Container) 
 			rc.All("/:gwDeviceMgmtId", middleware.AllowMethods("PATCH"))
 			rc.Patch("/:gwDeviceMgmtId", c.CameraOverlayInboundController.Apply)
 		})
+
+		// Per-camera device-identity provisioning (camID Phase 1) —
+		// klynx-api pre-creates the identity before a camera uploads.
+		if c.DeviceIdentityController != nil {
+			r.All("/identities", middleware.AllowMethods("POST"))
+			r.Post("/identities", c.DeviceIdentityController.Provision)
+		}
 	})
 }

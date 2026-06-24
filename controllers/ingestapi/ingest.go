@@ -20,7 +20,7 @@ import (
 // ingestSvcI is the service subset used by IngestController.
 // *ingestsvc.IngestService satisfies this interface.
 type ingestSvcI interface {
-	Ingest(ctx context.Context, orgId, sourceFamily, sourceIp, contentType string, body []byte) (*ingestsvc.IngestResult, error)
+	Ingest(ctx context.Context, orgId, sourceFamily, camID, sourceIp, contentType string, body []byte) (*ingestsvc.IngestResult, error)
 }
 
 // alertDispatcherI is the dispatcher subset used by IngestController.
@@ -100,6 +100,10 @@ func (ctrl *IngestController) Ingest(c fiber.Ctx) error {
 		return httputil.FailBadRequest(c, "sourceFamily is required")
 	}
 
+	// Optional per-camera segment: /events/:orgId/:sourceFamily/:camID.
+	// Empty when the camera posts to the legacy un-cammed path.
+	camID := strings.TrimSpace(c.Params("camID"))
+
 	// Use the raw body (not c.Body()) — Fiber auto-decompresses on
 	// Content-Encoding and, on failure, replaces the body with the error string
 	// "zlib: invalid header". Dahua sends multipart with a spurious deflate
@@ -163,7 +167,7 @@ func (ctrl *IngestController) Ingest(c fiber.Ctx) error {
 		}
 	}
 
-	result, err := ctrl.service.Ingest(ctx, orgId, sourceFamily, sourceIp, contentType, body)
+	result, err := ctrl.service.Ingest(ctx, orgId, sourceFamily, camID, sourceIp, contentType, body)
 	if err != nil {
 		switch {
 		case errors.Is(err, ingestsvc.ErrSourceFamilyLocked):

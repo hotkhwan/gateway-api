@@ -13,9 +13,13 @@ import (
 )
 
 // RegisterIngestEventsRoutes — hot path, no JWT, no audit
-// POST /events/:orgId/:sourceFamily
+// POST /events/:orgId/:sourceFamily          (legacy, un-cammed)
+// POST /events/:orgId/:sourceFamily/:camID   (per-camera attribution)
 func RegisterIngestEventsRoutes(app fiber.Router, c *app.Container) {
 	app.Post("/events/:orgId/:sourceFamily", c.IngestController.Ingest)
+	// Per-camera ingest: a camera's EventAutoUpload posts to its own camID path so
+	// events attribute deterministically (Dahua payloads carry no unique id).
+	app.Post("/events/:orgId/:sourceFamily/:camID", c.IngestController.Ingest)
 }
 
 func RegisterIngestRoutes(router fiber.Router, c *app.Container) {
