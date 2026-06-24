@@ -63,6 +63,26 @@ func TestPictureCoordinates(t *testing.T) {
 	}
 }
 
+func TestPictureCoordinates_human(t *testing.T) {
+	// HumanTrait carries the person box under HumanAttributes.BoundingBox.
+	payload := map[string]any{"Events": []any{map[string]any{"Data": map[string]any{
+		"SceneImage":      map[string]any{"Width": float64(1920), "Height": float64(1080)},
+		"HumanAttributes": map[string]any{"BoundingBox": []any{float64(175), float64(1926), float64(1570), float64(8185)}},
+	}}}}
+	coords := PictureCoordinates(payload)
+	if len(coords) != 1 {
+		t.Fatalf("want 1 human box, got %d", len(coords))
+	}
+	b := coords[0].(map[string]any)
+	// 175/8192 ≈ 0.0214 ; 8185/8192 ≈ 0.999 (clamped ≤ 1).
+	if x1 := b["x1"].(float64); x1 < 0.020 || x1 > 0.023 {
+		t.Errorf("human x1 = %v, want ≈0.0214", x1)
+	}
+	if y2 := b["y2"].(float64); y2 < 0 || y2 > 1 {
+		t.Errorf("human y2 = %v not in [0,1]", y2)
+	}
+}
+
 func TestPictureCoordinates_emptyWhenNoBox(t *testing.T) {
 	if c := PictureCoordinates(map[string]any{"Ack": true}); c != nil {
 		t.Errorf("want nil for non-Dahua payload, got %v", c)
