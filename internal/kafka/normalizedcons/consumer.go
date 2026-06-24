@@ -124,6 +124,15 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 			if canonical.Source.DeviceMgmtId == "" {
 				canonical.Source.DeviceMgmtId = dm.DeviceMgmtId
 			}
+			// Backfill the human-readable device name + description so consumers
+			// (e.g. the "recent events" list) show the camera's mapped name instead
+			// of its raw deviceId UUID.
+			if canonical.Source.DeviceName == "" && dm.Name != "" {
+				canonical.Source.DeviceName = dm.Name
+			}
+			if canonical.Source.DeviceDescription == "" && dm.Description != "" {
+				canonical.Source.DeviceDescription = dm.Description
+			}
 			// Backfill canonical.Location when the event carries no coordinates.
 			// This lets reverseGeocode and geoCell use the registered device position.
 			if canonical.Location.Lat == 0 && canonical.Location.Lng == 0 {
