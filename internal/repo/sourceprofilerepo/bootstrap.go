@@ -54,6 +54,44 @@ func seedDefaultProfiles(ctx context.Context) error {
 			return err
 		}
 	}
+	if err := reconcileStaleComingSoon(ctx); err != nil {
+		return err
+	}
+
 	log.Info().Int("count", len(defaultProfiles)).Msg("[SourceProfile] default profiles seeded")
+	return nil
+}
+
+// reconcileStaleComingSoon promotes existing profiles whose shipped default is
+// now "active" but which still carry a stale "comingSoon" mode from an older
+// seed (e.g. dahua, seeded comingSoon before its integration shipped).
+//
+// seedDefaultProfiles uses $setOnInsert and therefore cannot fix an
+// already-seeded doc — so just deploying the new binary would otherwise leave
+// dahua stuck on comingSoon. This forward-migration makes "deploy the new
+// version" sufficient: it is idempotent (once promoted, no comingSoon docs
+// match) and only touches docs at the old comingSoon default — any other
+// operator value (active/mock) is left untouched.
+func reconcileStaleComingSoon(ctx context.Context) error {
+	for _, p := range defaultProfiles {
+		if p.Mode != "active" {
+			continue // families still shipped as comingSoon (e.g. hikvision) stay as-is
+		}
+		res, err := stomongo.UpdateMany(
+			ctx,
+			colSourceProfiles,
+			bson.M{"sourceFamily": p.SourceFamily, "mode": "comingSoon"},
+			bson.M{"mode": "active"}, // nowSet() stamps updatedAt
+		)
+		if err != nil {
+			return err
+		}
+		if res != nil && res.ModifiedCount > 0 {
+			log.Info().
+				Str("sourceFamily", p.SourceFamily).
+				Int64("promoted", res.ModifiedCount).
+				Msg("[SourceProfile] promoted stale comingSoon -> active")
+		}
+	}
 	return nil
 }
