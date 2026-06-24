@@ -23,11 +23,13 @@ import (
 
 // stubIngestSvc always returns a successful, non-pending IngestResult.
 type stubIngestSvc struct {
-	result *ingestsvc.IngestResult
-	err    error
+	result   *ingestsvc.IngestResult
+	err      error
+	gotCamID string // captured from the last call for assertions
 }
 
-func (s *stubIngestSvc) Ingest(_ context.Context, _, _, _, _ string, _ []byte) (*ingestsvc.IngestResult, error) {
+func (s *stubIngestSvc) Ingest(_ context.Context, _, _, camID, _, _ string, _ []byte) (*ingestsvc.IngestResult, error) {
+	s.gotCamID = camID
 	if s.err != nil {
 		return nil, s.err
 	}
@@ -50,7 +52,7 @@ func (s *spyDispatcher) Dispatch(_ alertdispatcher.FastAlertEnvelope) bool {
 // stubAlertDet always returns HasAlert=false so Path A detection never fires.
 type stubAlertDet struct{}
 
-func (s *stubAlertDet) HasAlert(_ map[string]any) bool        { return false }
+func (s *stubAlertDet) HasAlert(_ map[string]any) bool          { return false }
 func (s *stubAlertDet) Extract(_ map[string]any) map[string]any { return nil }
 
 // stubBindingGetter returns a fixed (bindings, hit) pair.
@@ -84,6 +86,7 @@ func newIngestApp(
 		ctrl.SetBindingService(bsvc)
 	}
 	app.Post("/events/:orgId/:sourceFamily", ctrl.Ingest)
+	app.Post("/events/:orgId/:sourceFamily/:camID", ctrl.Ingest)
 	return app
 }
 
@@ -190,9 +193,9 @@ func TestRealtimeDispatch_MultipleBindings_OnlyMatchingDispatched(t *testing.T) 
 
 	spy := &spyDispatcher{}
 	bindings := []ingestmod.TemplateDeliveryBinding{
-		{ID: "b1", MatchFields: map[string]any{"type": "fire"}, Enabled: true},   // matches
-		{ID: "b2", MatchFields: map[string]any{"type": "flood"}, Enabled: true},  // no match
-		{ID: "b3", MatchFields: nil, Enabled: true},                              // wildcard — matches
+		{ID: "b1", MatchFields: map[string]any{"type": "fire"}, Enabled: true},  // matches
+		{ID: "b2", MatchFields: map[string]any{"type": "flood"}, Enabled: true}, // no match
+		{ID: "b3", MatchFields: nil, Enabled: true},                             // wildcard — matches
 	}
 	bsvc := &stubBindingGetter{bindings: bindings, hit: true}
 
@@ -345,5 +348,31 @@ func TestIngest_Success_202(t *testing.T) {
 	resp, _ := app.Test(req)
 	if resp.StatusCode != fiber.StatusAccepted {
 		t.Errorf("want 202, got %d", resp.StatusCode)
+	}
+}
+
+func TestIngest_CamIDPath_PassesCamID(t *testing.T) {
+	svc := &stubIngestSvc{}
+	app := newIngestApp(svc, nil, nil, nil)
+	req := httptest.NewRequest("POST", "/events/org-1/dahua/cam-42", jsonBody(map[string]any{"x": 1}))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	if resp.StatusCode != fiber.StatusAccepted {
+		t.Fatalf("want 202, got %d", resp.StatusCode)
+	}
+	if svc.gotCamID != "cam-42" {
+		t.Fatalf("camID not threaded from path: got %q want cam-42", svc.gotCamID)
+	}
+}
+
+func TestIngest_LegacyPath_EmptyCamID(t *testing.T) {
+	svc := &stubIngestSvc{}
+	app := newIngestApp(svc, nil, nil, nil)
+	resp, _ := app.Test(makeIngestReq("org-1", "dahua", map[string]any{"x": 1}))
+	if resp.StatusCode != fiber.StatusAccepted {
+		t.Fatalf("want 202, got %d", resp.StatusCode)
+	}
+	if svc.gotCamID != "" {
+		t.Fatalf("legacy path must have empty camID, got %q", svc.gotCamID)
 	}
 }
