@@ -70,12 +70,21 @@ AIBOX, zero new S3 code.
   raw) keeps the raw.events message under the Kafka limit (scene dropped first).
 - Reuses the S3 bucket already configured for AIBOX — no extra deploy config.
 
-## Still template-only / deferred
+## `pictureCoordinates` — IMPLEMENTED in code (gw-api ≥ 3.28.0)
 
-- **`pictureCoordinates`** (AIBOX-style `{x1,y1,x2,y2,width,height}`): Dahua gives
-  raw pixel boxes — `Object.BoundingBox` `[866,2291,1161,2506]`,
-  `Vehicle.BoundingBox` `[230,659,1954,3552]` — normalizing into the AIBOX object
-  shape is a separate (optional) code step, not yet done.
+AIBOX-style detection boxes are derived in the normalizer (`sourcemapping/dahua.
+PictureCoordinates`) from the raw `Vehicle.BoundingBox` / `Object.BoundingBox`.
+Dahua boxes are on a 0..8191 grid → normalized to `[0,1]`; `width`/`height` come
+from `SceneImage`. Emitted on the normalized payload as:
+
+```json
+"pictureCoordinates": [
+  { "width": 1920, "height": 1080, "x1": 0.028, "y1": 0.080, "x2": 0.238, "y2": 0.434 }
+]
+```
+
+Vehicle box first, then object/plate box. Presence-gated; never overrides a
+template-produced value.
 
 ## Notes / limits
 - **Single-event:** maps `Events[0]` only. Dahua may batch `Events: [...]`; multi-event fan-out is a separate decision (plan §B.3).

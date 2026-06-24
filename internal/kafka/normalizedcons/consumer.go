@@ -199,6 +199,18 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 		}
 	}
 
+	// 5d) Dahua: derive AIBOX-style pictureCoordinates from the detection
+	// BoundingBoxes (vehicle/object) — the flat template mapping can't compute
+	// the per-element normalization. Presence-gated; never overrides a value the
+	// template already produced. See sourcemapping/dahua.
+	if canonical.SourceFamily == "dahua" {
+		if _, exists := normalizedFields["pictureCoordinates"]; !exists {
+			if coords := dahua.PictureCoordinates(canonical.Payload); len(coords) > 0 {
+				normalizedFields["pictureCoordinates"] = coords
+			}
+		}
+	}
+
 	// 6) Build NormalizedEvent
 	now := time.Now().UTC()
 	evtCategory, evtAction := splitEventType(resolvedEventType)

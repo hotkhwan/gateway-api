@@ -34,3 +34,42 @@ func TestEventTypeFromPayload(t *testing.T) {
 		}
 	}
 }
+
+func TestPictureCoordinates(t *testing.T) {
+	// Real-shape payload: vehicle + object boxes on the 0..8191 grid, scene 1920x1080.
+	payload := map[string]any{"Events": []any{map[string]any{"Data": map[string]any{
+		"SceneImage": map[string]any{"Width": float64(1920), "Height": float64(1080)},
+		"Vehicle":    map[string]any{"BoundingBox": []any{float64(230), float64(659), float64(1954), float64(3552)}},
+		"Object":     map[string]any{"BoundingBox": []any{float64(866), float64(2291), float64(1161), float64(2506)}},
+	}}}}
+
+	coords := PictureCoordinates(payload)
+	if len(coords) != 2 {
+		t.Fatalf("want 2 boxes (vehicle, object), got %d", len(coords))
+	}
+	veh, _ := coords[0].(map[string]any)
+	if veh["width"].(float64) != 1920 || veh["height"].(float64) != 1080 {
+		t.Errorf("scene dims wrong: %v", veh)
+	}
+	// 230/8192 ≈ 0.0281 ; values must be normalized into [0,1].
+	for _, k := range []string{"x1", "y1", "x2", "y2"} {
+		v := veh[k].(float64)
+		if v < 0 || v > 1 {
+			t.Errorf("vehicle %s=%v not in [0,1]", k, v)
+		}
+	}
+	if got := veh["x1"].(float64); got < 0.027 || got > 0.029 {
+		t.Errorf("vehicle x1 = %v, want ≈0.0281 (230/8192)", got)
+	}
+}
+
+func TestPictureCoordinates_emptyWhenNoBox(t *testing.T) {
+	if c := PictureCoordinates(map[string]any{"Ack": true}); c != nil {
+		t.Errorf("want nil for non-Dahua payload, got %v", c)
+	}
+	// Event with no detection boxes → nil.
+	p := map[string]any{"Events": []any{map[string]any{"Data": map[string]any{"Name": "VehicleDetect"}}}}
+	if c := PictureCoordinates(p); c != nil {
+		t.Errorf("want nil when no BoundingBox, got %v", c)
+	}
+}
