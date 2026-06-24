@@ -26,7 +26,7 @@ func init() {
 var defaultProfiles = []ingestmod.SourceProfile{
 	{SourceFamily: "AIBOX", DisplayName: "AIBOX Edge AI", Mode: "active"},
 	{SourceFamily: "PVS", DisplayName: "PVS Security", Mode: "active"},
-	{SourceFamily: "dahua", DisplayName: "Dahua", Mode: "comingSoon"},
+	{SourceFamily: "dahua", DisplayName: "Dahua", Mode: "active"},
 	{SourceFamily: "hikvision", DisplayName: "Hikvision", Mode: "comingSoon"},
 	{SourceFamily: "mock", DisplayName: "Mock (testing)", Mode: "mock"},
 }
