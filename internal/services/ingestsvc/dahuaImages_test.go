@@ -38,14 +38,6 @@ func dahuaMultipart(t *testing.T, meta string, blob []byte) (string, []byte) {
 	return "multipart/x-mixed-replace; boundary=" + w.Boundary(), buf.Bytes()
 }
 
-func metaFor(lenV, lenO, lenS int) string {
-	return fmt.Sprintf(`{"Events":[{"Code":"TrafficJunction","Data":{`+
-		`"Vehicle":{"Image":{"Offset":0,"Length":%d}},`+
-		`"Object":{"Image":{"Offset":%d,"Length":%d}},`+
-		`"SceneImage":{"Offset":%d,"Length":%d}}}]}`,
-		lenV, lenV, lenO, lenV+lenO, lenS)
-}
-
 func decodePics(t *testing.T, pics []any) [][]byte {
 	t.Helper()
 	out := make([][]byte, 0, len(pics))
@@ -63,128 +55,109 @@ func decodePics(t *testing.T, pics []any) [][]byte {
 	return out
 }
 
-func TestDahuaPictureBase64List_extractsInOrder(t *testing.T) {
-	veh, obj, scn := jpeg("VEH", 120), jpeg("OBJ", 40), jpeg("SCN", 300)
-	blob := bytes.Join([][]byte{veh, obj, scn}, nil)
-	ct, body := dahuaMultipart(t, metaFor(len(veh), len(obj), len(scn)), blob)
-
+func run(t *testing.T, meta string, blob []byte) [][]byte {
+	t.Helper()
+	ct, body := dahuaMultipart(t, meta, blob)
 	var raw map[string]any
-	if err := json.Unmarshal([]byte(metaFor(len(veh), len(obj), len(scn))), &raw); err != nil {
+	if err := json.Unmarshal([]byte(meta), &raw); err != nil {
 		t.Fatal(err)
 	}
-	pics := dahuaPictureBase64List(ct, body, raw)
-	got := decodePics(t, pics)
-	want := [][]byte{scn, veh, obj} // scene (full) → vehicle → object
-	if len(got) != 3 {
-		t.Fatalf("want 3 pics, got %d", len(got))
-	}
-	for i := range want {
-		if !bytes.Equal(got[i], want[i]) {
-			t.Errorf("pic %d mismatch", i)
-		}
+	return decodePics(t, dahuaPictureBase64List(ct, body, raw))
+}
+
+// --- HumanTrait: direct keys SceneImage + HumanImage (+ FaceImage) -----------
+func TestDahuaImages_humanDirectKeys(t *testing.T) {
+	scn, hum, fac := jpeg("SCN", 300), jpeg("HUM", 120), jpeg("FAC", 40)
+	blob := bytes.Join([][]byte{scn, hum, fac}, nil)
+	// HumanImage is preferred over FaceImage for a person event.
+	meta := fmt.Sprintf(`{"Events":[{"Code":"HumanTrait","Data":{`+
+		`"SceneImage":{"Offset":0,"Length":%d,"Width":1920,"Height":1080},`+
+		`"HumanImage":{"Offset":%d,"Length":%d},`+
+		`"FaceImage":{"Offset":%d,"Length":%d},`+
+		`"HumanAttributes":{"age":3}}}]}`,
+		len(scn), len(scn), len(hum), len(scn)+len(hum), len(fac))
+	got := run(t, meta, blob)
+	if len(got) != 2 || !bytes.Equal(got[0], scn) || !bytes.Equal(got[1], hum) {
+		t.Fatalf("want [scene, human], got %d images", len(got))
 	}
 }
 
-func TestDahuaPictureBase64List_skipsNonJPEGandOutOfBounds(t *testing.T) {
-	veh := jpeg("VEH", 80)
-	obj := []byte("NOTJPEGDATA-NOFFD8-HEADER!!") // no SOI → skipped
-	scn := jpeg("SCN", 100)
-	blob := bytes.Join([][]byte{veh, obj, scn}, nil)
-	// Object length deliberately overruns the blob → out-of-bounds, skipped.
-	meta := fmt.Sprintf(`{"Events":[{"Code":"x","Data":{`+
-		`"Vehicle":{"Image":{"Offset":0,"Length":%d}},`+
-		`"Object":{"Image":{"Offset":%d,"Length":99999}},`+
-		`"SceneImage":{"Offset":%d,"Length":%d}}}]}`,
-		len(veh), len(veh), len(veh)+len(obj), len(scn))
-	ct, body := dahuaMultipart(t, meta, blob)
-	var raw map[string]any
-	_ = json.Unmarshal([]byte(meta), &raw)
-
-	pics := dahuaPictureBase64List(ct, body, raw)
-	got := decodePics(t, pics)
-	if len(got) != 2 { // scene + vehicle; object skipped (OOB)
-		t.Fatalf("want 2 pics, got %d", len(got))
-	}
-	if !bytes.Equal(got[0], scn) || !bytes.Equal(got[1], veh) {
-		t.Errorf("expected scene (full) then vehicle")
-	}
-}
-
-func TestDahuaPictureBase64List_sizeCapDropsLargeScene(t *testing.T) {
-	veh, obj := jpeg("VEH", 100), jpeg("OBJ", 50)
-	scn := jpeg("SCN", maxDahuaPicBytes+10) // over the cap → dropped
-	blob := bytes.Join([][]byte{veh, obj, scn}, nil)
-	ct, body := dahuaMultipart(t, metaFor(len(veh), len(obj), len(scn)), blob)
-	var raw map[string]any
-	_ = json.Unmarshal([]byte(metaFor(len(veh), len(obj), len(scn))), &raw)
-
-	pics := dahuaPictureBase64List(ct, body, raw)
-	if len(pics) != 2 { // vehicle + object kept, scene dropped
-		t.Fatalf("want 2 pics (scene dropped), got %d", len(pics))
-	}
-}
-
-// metaImageArray builds an Events[0].Data.Image array (Type-tagged) for a
-// scene + body crop laid out contiguously in the blob.
-func metaImageArray(bodyType string, lenScene, lenBody int) string {
-	return fmt.Sprintf(`{"Events":[{"Data":{"Image":[`+
-		`{"Type":"SceneImage","Offset":0,"Length":%d,"Width":1920,"Height":1080},`+
-		`{"Type":"%s","Offset":%d,"Length":%d,"Width":512,"Height":476}]}}]}`,
-		lenScene, bodyType, lenScene, lenBody)
-}
-
-func TestDahuaPictureBase64List_imageArray_vehicle(t *testing.T) {
+// --- Vehicle: nested legacy SceneImage + Vehicle.Image -----------------------
+func TestDahuaImages_vehicleNestedLegacy(t *testing.T) {
 	scn, veh := jpeg("SCN", 200), jpeg("VEH", 130)
 	blob := bytes.Join([][]byte{scn, veh}, nil)
-	meta := metaImageArray("VehicleBody", len(scn), len(veh))
-	ct, body := dahuaMultipart(t, meta, blob)
-	var raw map[string]any
-	_ = json.Unmarshal([]byte(meta), &raw)
-
-	got := decodePics(t, dahuaPictureBase64List(ct, body, raw))
+	meta := fmt.Sprintf(`{"Events":[{"Code":"TrafficJunction","Data":{`+
+		`"SceneImage":{"Offset":0,"Length":%d},`+
+		`"Vehicle":{"Image":{"Offset":%d,"Length":%d}},`+
+		`"Object":{"Image":{"Offset":0,"Length":0}}}}]}`,
+		len(scn), len(scn), len(veh))
+	got := run(t, meta, blob)
 	if len(got) != 2 || !bytes.Equal(got[0], scn) || !bytes.Equal(got[1], veh) {
-		t.Fatalf("want [scene, vehicleBody], got %d boxes", len(got))
+		t.Fatalf("want [scene, vehicle], got %d images", len(got))
 	}
 }
 
-func TestDahuaPictureBase64List_imageArray_human(t *testing.T) {
-	scn, hum := jpeg("SCN", 220), jpeg("HUM", 105)
-	blob := bytes.Join([][]byte{scn, hum}, nil)
-	meta := metaImageArray("HumanImage", len(scn), len(hum))
-	ct, body := dahuaMultipart(t, meta, blob)
-	var raw map[string]any
-	_ = json.Unmarshal([]byte(meta), &raw)
-
-	got := decodePics(t, dahuaPictureBase64List(ct, body, raw))
-	if len(got) != 2 || !bytes.Equal(got[0], scn) || !bytes.Equal(got[1], hum) {
-		t.Fatalf("want [scene, humanImage], got %d boxes", len(got))
-	}
-}
-
-func TestDahuaPictureBase64List_imageArray_picksBodyOverOtherCrop(t *testing.T) {
-	scn, plate, veh := jpeg("SCN", 100), jpeg("PLT", 20), jpeg("VEH", 80)
-	blob := bytes.Join([][]byte{scn, plate, veh}, nil)
-	// Order in array: scene, a non-body crop (Plate), then the body crop.
+// --- Type-tagged Image[] array ----------------------------------------------
+func TestDahuaImages_imageArrayVehicle(t *testing.T) {
+	scn, veh := jpeg("SCN", 200), jpeg("VEH", 130)
+	blob := bytes.Join([][]byte{scn, veh}, nil)
 	meta := fmt.Sprintf(`{"Events":[{"Data":{"Image":[`+
 		`{"Type":"SceneImage","Offset":0,"Length":%d},`+
-		`{"Type":"PlateImage","Offset":%d,"Length":%d},`+
 		`{"Type":"VehicleBody","Offset":%d,"Length":%d}]}}]}`,
-		len(scn), len(scn), len(plate), len(scn)+len(plate), len(veh))
-	ct, body := dahuaMultipart(t, meta, blob)
-	var raw map[string]any
-	_ = json.Unmarshal([]byte(meta), &raw)
-
-	got := decodePics(t, dahuaPictureBase64List(ct, body, raw))
+		len(scn), len(scn), len(veh))
+	got := run(t, meta, blob)
 	if len(got) != 2 || !bytes.Equal(got[0], scn) || !bytes.Equal(got[1], veh) {
-		t.Fatalf("want [scene, vehicleBody] (plate skipped), got %d boxes", len(got))
+		t.Fatalf("want [scene, vehicleBody], got %d images", len(got))
 	}
 }
 
-func TestDahuaPictureBase64List_noEventsReturnsNil(t *testing.T) {
+func TestDahuaImages_imageArrayHuman(t *testing.T) {
+	scn, hum := jpeg("SCN", 220), jpeg("HUM", 105)
+	blob := bytes.Join([][]byte{scn, hum}, nil)
+	meta := fmt.Sprintf(`{"Events":[{"Data":{"Image":[`+
+		`{"Type":"SceneImage","Offset":0,"Length":%d},`+
+		`{"Type":"HumanImage","Offset":%d,"Length":%d}]}}]}`,
+		len(scn), len(scn), len(hum))
+	got := run(t, meta, blob)
+	if len(got) != 2 || !bytes.Equal(got[0], scn) || !bytes.Equal(got[1], hum) {
+		t.Fatalf("want [scene, humanImage], got %d images", len(got))
+	}
+}
+
+// --- size cap drops the crop when the scene alone is huge -------------------
+func TestDahuaImages_sizeCap(t *testing.T) {
+	scn := jpeg("SCN", maxDahuaPicBytes-50)
+	hum := jpeg("HUM", 200) // would push over the cap → dropped
+	blob := bytes.Join([][]byte{scn, hum}, nil)
+	meta := fmt.Sprintf(`{"Events":[{"Data":{`+
+		`"SceneImage":{"Offset":0,"Length":%d},`+
+		`"HumanImage":{"Offset":%d,"Length":%d}}}]}`,
+		len(scn), len(scn), len(hum))
+	got := run(t, meta, blob)
+	if len(got) != 1 || !bytes.Equal(got[0], scn) {
+		t.Fatalf("want [scene] only (crop over cap), got %d images", len(got))
+	}
+}
+
+func TestDahuaImages_noEventsReturnsNil(t *testing.T) {
 	ct, body := dahuaMultipart(t, `{"Ack":true}`, jpeg("X", 50))
 	var raw map[string]any
 	_ = json.Unmarshal([]byte(`{"Ack":true}`), &raw)
 	if pics := dahuaPictureBase64List(ct, body, raw); pics != nil {
 		t.Fatalf("want nil, got %d pics", len(pics))
+	}
+}
+
+func TestDahuaImages_skipsNonJPEG(t *testing.T) {
+	scn := []byte("NOT-A-JPEG-NO-SOI-MARKER!!") // no FFD8
+	hum := jpeg("HUM", 80)
+	blob := bytes.Join([][]byte{scn, hum}, nil)
+	meta := fmt.Sprintf(`{"Events":[{"Data":{`+
+		`"SceneImage":{"Offset":0,"Length":%d},`+
+		`"HumanImage":{"Offset":%d,"Length":%d}}}]}`,
+		len(scn), len(scn), len(hum))
+	got := run(t, meta, blob)
+	if len(got) != 1 || !bytes.Equal(got[0], hum) {
+		t.Fatalf("want [human] only (scene not JPEG), got %d images", len(got))
 	}
 }
