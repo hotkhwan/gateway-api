@@ -15,6 +15,7 @@ import (
 	"github.com/hotkhwan/gateway-api/internal/mqtt/alertmsg"
 	"github.com/hotkhwan/gateway-api/internal/services/classifysvc"
 	"github.com/hotkhwan/gateway-api/internal/sourcemapping/aibox"
+	"github.com/hotkhwan/gateway-api/internal/sourcemapping/dahua"
 	"github.com/hotkhwan/gateway-api/models/ingestmod"
 	"github.com/hotkhwan/gateway-api/utils/traceutil"
 	"github.com/segmentio/kafka-go"
@@ -170,6 +171,11 @@ func handleRawEvent(ctx context.Context, m kafka.Message, deps ConsumerDeps) err
 	if canonical.SourceFamily == "AIBOX" {
 		code := aibox.AlarmTypeFromPayload(canonical.Payload)
 		resolvedEventType = aibox.ResolveEventType(code, resolvedEventType)
+	} else if canonical.SourceFamily == "dahua" {
+		// Dahua shares the AIBOX taxonomy: derive {category}.{action} from the
+		// raw event (Events[0].Data.Name / detected-object group) instead of the
+		// static template eventType. See sourcemapping/dahua.
+		resolvedEventType = dahua.EventTypeFromPayload(canonical.Payload, resolvedEventType)
 	}
 
 	// 5c) Carry people-counting region geometry into the normalized payload.
