@@ -87,19 +87,64 @@ func (s *DeviceManagementService) Resolve(ctx context.Context, tenantId, orgId, 
 
 // publishDevicesChanged fires a non-blocking Kafka publish to gw.devices.changed.v1.
 // Non-fatal: errors are logged only.
+//
+// Wire schema matches klynx-api's `eventbridge.DeviceChangedEvent` consumer
+// (dahua-camera-event-ingest.md §6.1): the join field is `remoteDeviceId`
+// (= deviceId = camId), `changeType` is the past-tense enum, and `orgId`/
+// `gwWorkspaceId` both carry the workspace. The legacy {entityId, action,
+// workspaceId} shape left the consumer's RemoteDeviceID empty so SyncFromGW
+// early-returned — no projection, no metadata enrichment.
 func publishDevicesChanged(_ context.Context, d *ingestmod.DeviceManagement, action string) {
 	topic := config.TopicEnv("KAFKA_TOPIC_GW_DEVICES", "gw.devices.changed.v1")
-	payload, _ := json.Marshal(map[string]any{
-		"deviceMgmtId": d.DeviceMgmtId,
-		"workspaceId":  d.WorkspaceId,
-		"tenantId":     d.TenantId,
-		"sourceFamily": d.SourceFamily,
-		"entityType":   d.EntityType,
-		"entityId":     d.EntityId,
-		"action":       action,
-	})
-	headers := map[string]string{"workspaceId": d.WorkspaceId, "action": action}
+	changeType := mapChangeType(action)
+	payload, _ := json.Marshal(devicesChangedPayload(d, changeType))
+	headers := map[string]string{"workspaceId": d.WorkspaceId, "changeType": changeType}
 	go func() {
 		_ = config.SendToKafkaWithCtx(context.Background(), topic, d.WorkspaceId, payload, headers)
 	}()
+}
+
+// devicesChangedPayload builds the gw.devices.changed.v1 wire payload that the
+// klynx-api `eventbridge.DeviceChangedEvent` consumer decodes. Pure + testable.
+func devicesChangedPayload(d *ingestmod.DeviceManagement, changeType string) map[string]any {
+	// Join key: prefer the canonical DeviceId (= camId for provisioned cameras);
+	// fall back to entityId for reactive channel-keyed records that carry no alias.
+	remoteDeviceId := d.DeviceId
+	if remoteDeviceId == "" {
+		remoteDeviceId = d.EntityId
+	}
+	return map[string]any{
+		"eventId":        uuid.NewString(),
+		"syncOrigin":     "gw",
+		"orgId":          d.WorkspaceId, // klynx camera.orgId == gw workspaceId
+		"gwWorkspaceId":  d.WorkspaceId,
+		"remoteDeviceId": remoteDeviceId,
+		"deviceId":       d.DeviceId,
+		"deviceMgmtId":   d.DeviceMgmtId,
+		"tenantId":       d.TenantId,
+		"sourceFamily":   d.SourceFamily,
+		"entityType":     d.EntityType,
+		"entityId":       d.EntityId,
+		"changeType":     changeType,
+		"name":           d.Name,
+		"lat":            d.Lat,
+		"lng":            d.Lng,
+		"status":         true,
+		"occurredAt":     time.Now().UTC(),
+	}
+}
+
+// mapChangeType maps the internal action verb to the klynx-api DeviceChangedEvent
+// changeType enum (created | updated | deleted).
+func mapChangeType(action string) string {
+	switch action {
+	case "create", "created":
+		return "created"
+	case "update", "updated":
+		return "updated"
+	case "delete", "deleted":
+		return "deleted"
+	default:
+		return action
+	}
 }
