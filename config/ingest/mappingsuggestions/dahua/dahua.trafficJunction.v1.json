@@ -1,0 +1,37 @@
+{
+  "id": "dahua.trafficJunction.v1",
+  "sourceFamily": "dahua",
+  "displayName": "Dahua Default",
+  "matchRule": {
+    "type": "all",
+    "rules": [
+      { "field": "Events", "operator": "exists", "value": true }
+    ]
+  },
+  "fieldMappings": [
+    { "sourceField": "Events.0.Code",                              "targetField": "eventCode" },
+    { "sourceField": "Events.0.Data.Name",                         "targetField": "eventName" },
+    { "sourceField": "Events.0.Data.Class",                        "targetField": "objectClass" },
+    { "sourceField": "Events.0.Data.Object.ObjectType",            "targetField": "objectType" },
+    { "sourceField": "Events.0.Data.TrafficCar.PlateNumber",       "targetField": "plate" },
+    { "sourceField": "Events.0.Data.TrafficCar.PlateColor",        "targetField": "plateColor" },
+    { "sourceField": "Events.0.Data.TrafficCar.PlateType",         "targetField": "plateType" },
+    { "sourceField": "Events.0.Data.Vehicle.Category",             "targetField": "vehicleType" },
+    { "sourceField": "Events.0.Data.Vehicle.Text",                 "targetField": "vehicleBrand" },
+    { "sourceField": "Events.0.Data.TrafficCar.VehicleColor",      "targetField": "vehicleColor" },
+    { "sourceField": "Events.0.Data.TrafficCar.VehicleSize",       "targetField": "vehicleSize" },
+    { "sourceField": "Events.0.Data.Vehicle.Action",              "targetField": "vehicleAction" },
+    { "sourceField": "Events.0.Data.TrafficCar.Direction",         "targetField": "direction" },
+    { "sourceField": "Events.0.Data.TrafficCar.DrivingDirection.0", "targetField": "drivingDirection" },
+    { "sourceField": "Events.0.Data.TrafficCar.Speed",             "targetField": "speed" },
+    { "sourceField": "Events.0.Data.TrafficCar.UpperSpeedLimit",   "targetField": "speedLimit" },
+    { "sourceField": "Events.0.Data.TrafficCar.PhysicalLane",      "targetField": "lane" },
+    { "sourceField": "Events.0.Data.Vehicle.MainSeat.DriverCalling", "targetField": "driverCalling" },
+    { "sourceField": "Events.0.Data.Vehicle.MainSeat.DriverSmoking", "targetField": "driverSmoking" },
+    { "sourceField": "Events.0.Data.Vehicle.MainSeat.SafeBelt",    "targetField": "safeBelt" },
+    { "sourceField": "Events.0.Data.CategoryConfidence",           "targetField": "detectConfidence" },
+    { "sourceField": "Events.0.Data.TrafficCar.MachineName",       "targetField": "machineName" },
+    { "sourceField": "Events.0.Data.TrafficCar.ViolationCode",     "targetField": "violationCode" },
+    { "sourceField": "Events.0.Data.TrafficCar.ViolationDesc",     "targetField": "violationDesc" }
+  ]
+}

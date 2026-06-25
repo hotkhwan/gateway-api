@@ -113,3 +113,14 @@ Workspace `02f05fa8-…` template `Dahua default (catch-all)`
 `updateOne` + cache-clear is in `docs/reference/dahua-template-apply.js`.
 Template mappings are re-read per ingest; clear `source:profile:dahua` after the
 write to drop any cached profile.
+
+## Bootstrap — auto-template on fresh installs (gw-api ≥ 3.33.0)
+
+A fresh workspace no longer needs the template created by hand. The embedded
+suggestion `config/ingest/mappingsuggestions/dahua/dahua.trafficJunction.v1.json`
+(matchRule: `Events exists`, 24 field mappings) is auto-applied: the **first**
+Dahua event for a workspace with no template triggers `tryAutoApplySuggestion`,
+which persists a per-workspace template `auto:dahua.trafficJunction.v1`. Taxonomy /
+binaryRefs / pictureCoordinates come from code, so the flow is complete without a
+manual `mapping_templates` insert. The manual `dahua-template-apply.js` remains for
+overriding/extending the mappings.
