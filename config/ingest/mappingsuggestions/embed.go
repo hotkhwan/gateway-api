@@ -5,5 +5,5 @@ import "embed"
 
 // FS holds all JSON suggestion files embedded at compile time.
 //
-//go:embed AIBOX PVS
+//go:embed AIBOX PVS dahua
 var FS embed.FS
