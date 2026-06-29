@@ -232,7 +232,6 @@ func MessageHandler(_ mqtt.Client, msg mqtt.Message) {
 		}
 	}
 
-
 	if err := kafka.PublishEventTo(ctx, kafkaTopic, key, out, headers); err != nil {
 		log.Error().
 			Err(err).
@@ -242,6 +241,13 @@ func MessageHandler(_ mqtt.Client, msg mqtt.Message) {
 			Msg("❌ Kafka publish failed")
 		return
 	}
+	log.Info().
+		Str("mqttTopic", mqttTopic).
+		Str("kafkaTopic", kafkaTopic).
+		Str("hwId", hwID).
+		Str("orgId", strOrEmpty(out["orgId"])).
+		Int("payloadBytes", len(payload)).
+		Msg("kctrlsubmsg forwarded MQTT message to Kafka")
 
 	// Health forwards run every device-tick — keep info-log noise low.
 	if kind == "health" {

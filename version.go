@@ -3,4 +3,4 @@ package main
 
 // Version is the current application version.
 // Update this value on each release before committing.
-var Version = "3.34.0"
+var Version = "3.34.1"
