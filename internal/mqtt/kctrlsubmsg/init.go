@@ -129,7 +129,11 @@ func InitMQTT() {
 			}
 			if token := c.SubscribeMultiple(topics, MessageHandler); token.Wait() && token.Error() != nil {
 				log.Error().Err(token.Error()).Msg("❌ Failed to subscribe to MQTT topics (kctrlsubmsg)")
+				return
 			}
+			log.Info().
+				Int("topicCount", len(topics)).
+				Msg("kctrlsubmsg ready: subscribed to K-Control MQTT topics")
 		}
 		opts.OnConnectionLost = func(c mqtt.Client, err error) {
 			log.Warn().Err(err).Msg("⚠️ MQTT connection lost (kctrlsubmsg)")
