@@ -219,6 +219,47 @@ func (s *DeviceManagementService) ApplyKlynxOverlay(
 	return updated, ifMatchStatus, nil
 }
 
+// Deregister soft-tombstones a gw-managed device_management record on behalf
+// of a klynx-initiated camera delete, per
+// klynx-api/docs/contracts/device-camera-domain.md §5.10.
+//
+// This never hard-deletes the row: AutoUpsertFromEvent clears deregisteredAt
+// (revive) if the physical device sends another matching ingest event, which
+// is intentional self-healing, not a bug. Idempotent — calling it again on an
+// already-deregistered record just re-sets the same field and re-publishes.
+func (s *DeviceManagementService) Deregister(ctx context.Context, tenantId, workspaceId, deviceMgmtId string) (*ingestmod.DeviceManagement, error) {
+	ctx, end, log := traceutil.StartLite(ctx, "gateway.devicemgmtsvc", "Deregister", "devicemgmtsvc", "Deregister")
+	defer end()
+
+	if _, err := s.repo.FindById(ctx, tenantId, workspaceId, deviceMgmtId); err != nil {
+		return nil, err
+	}
+
+	now := time.Now().UTC()
+	setFields := bson.M{
+		"deregisteredAt": now,
+		"updatedAt":      now,
+	}
+	if err := s.repo.Update(ctx, tenantId, workspaceId, deviceMgmtId, setFields); err != nil {
+		return nil, err
+	}
+
+	updated, err := s.repo.FindById(ctx, tenantId, workspaceId, deviceMgmtId)
+	if err != nil {
+		return nil, err
+	}
+
+	cachedevicemgmt.Invalidate(ctx, tenantId, workspaceId, updated.SourceFamily, updated.EntityType, updated.EntityId)
+	publishDevicesChanged(ctx, updated, "delete")
+
+	log.Info().
+		Str("deviceMgmtId", deviceMgmtId).
+		Str("workspaceId", workspaceId).
+		Msg("gw-managed device deregistered (soft tombstone)")
+
+	return updated, nil
+}
+
 // classifyIfMatch implements the replay-only If-Match observability per §8.7.
 // Returns "absent" when caller did not provide the header; "matched" when the
 // supplied hash equals the current document's hash; "mismatched" otherwise.
@@ -262,10 +303,10 @@ func canonicalHash(accepted map[string]any) (string, error) {
 	return hex.EncodeToString(sum[:]), nil
 }
 
-func isAccepted(k string) bool      { _, ok := acceptedOverlayFields[k]; return ok }
-func isNotAccepted(k string) bool   { _, ok := rejectNotAcceptedFields[k]; return ok }
-func isReadonly(k string) bool      { _, ok := rejectReadonlyFields[k]; return ok }
-func isMetadataOnly(k string) bool  { _, ok := metadataOnlyFields[k]; return ok }
+func isAccepted(k string) bool     { _, ok := acceptedOverlayFields[k]; return ok }
+func isNotAccepted(k string) bool  { _, ok := rejectNotAcceptedFields[k]; return ok }
+func isReadonly(k string) bool     { _, ok := rejectReadonlyFields[k]; return ok }
+func isMetadataOnly(k string) bool { _, ok := metadataOnlyFields[k]; return ok }
 
 // validateAcceptedField enforces type contracts on accepted-field values.
 // Per §8.3: absent = no change; "" = set empty (string fields); null = 400.

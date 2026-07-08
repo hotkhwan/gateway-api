@@ -105,13 +105,14 @@ func (r *DeviceManagementRepo) UpsertByBusinessKey(ctx context.Context, d *inges
 	}
 
 	setFields := bson.M{
-		"deviceId":    d.DeviceId,
-		"name":        d.Name,
-		"description": d.Description,
-		"lat":         d.Lat,
-		"lng":         d.Lng,
-		"site":        d.Site,
-		"zone":        d.Zone,
+		"deviceId":       d.DeviceId,
+		"name":           d.Name,
+		"description":    d.Description,
+		"lat":            d.Lat,
+		"lng":            d.Lng,
+		"site":           d.Site,
+		"zone":           d.Zone,
+		"deregisteredAt": d.DeregisteredAt,
 	}
 	onInsert := bson.M{
 		"deviceMgmtId": d.DeviceMgmtId,

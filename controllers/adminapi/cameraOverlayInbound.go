@@ -21,6 +21,10 @@ type cameraOverlaySvc interface {
 		body map[string]any,
 		ifMatch string,
 	) (*ingestmod.DeviceManagement, devicemgmtsvc.IfMatchStatus, error)
+	Deregister(
+		ctx context.Context,
+		tenantId, workspaceId, deviceMgmtId string,
+	) (*ingestmod.DeviceManagement, error)
 }
 
 // CameraOverlayInboundController serves PATCH /admin/device-management/cameras/{gwDeviceMgmtId}
@@ -103,4 +107,42 @@ func (ctrl *CameraOverlayInboundController) Apply(c fiber.Ctx) error {
 	c.Set("X-If-Match-Status", string(status))
 
 	return httputil.Ok(c, updated, "device updated")
+}
+
+// Delete godoc
+// @Summary      Klynx-initiated camera deregister
+// @Description  Soft-tombstone a gw-managed device_management record on behalf of a klynx camera delete. Never a hard delete — AutoUpsertFromEvent revives the record on the next matching ingest event. Companion to klynx-api/docs/contracts/device-camera-domain.md §5.10. Idempotent: already-deregistered or already-absent both return success.
+// @Tags         Admin.DeviceManagement
+// @Produce      json
+// @Param        gwDeviceMgmtId path string true "device_management.deviceMgmtId UUID"
+// @Param        X-Active-Workspace header string true "gw workspace id"
+// @Success      204
+// @Failure      401 {object} gmod.ApiErrorResponse
+// @Failure      403 {object} gmod.ApiErrorResponse
+// @Failure      404 {object} gmod.ApiErrorResponse
+// @Failure      500 {object} gmod.ApiErrorResponse
+// @Router       /admin/device-management/cameras/{gwDeviceMgmtId} [delete]
+// @Security     BearerAuth
+func (ctrl *CameraOverlayInboundController) Delete(c fiber.Ctx) error {
+	ctx, end, log := traceutil.StartLite(c, "gateway.adminapi", "CameraOverlayInbound.Delete", "adminapi", "Delete")
+	defer end()
+
+	tenantId, _ := c.Locals("tenantId").(string)
+	workspaceId, _ := c.Locals("activeWorkspace").(string)
+	if workspaceId == "" {
+		workspaceId = string(c.Request().Header.Peek("X-Active-Workspace"))
+	}
+	gwDeviceMgmtId := c.Params("gwDeviceMgmtId")
+
+	_, err := ctrl.svc.Deregister(ctx, tenantId, workspaceId, gwDeviceMgmtId)
+	if err != nil {
+		if errors.Is(err, devicemgmtsvc.ErrNotFound) {
+			// Idempotent: caller (klynx-api) treats 404 as already-gone success.
+			return httputil.Fail(c, fiber.StatusNotFound, "DEVICE_NOT_FOUND", "device not found")
+		}
+		log.Error().Err(err).Msg("Deregister failed")
+		return httputil.FailInternal(c, "internal error")
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
 }

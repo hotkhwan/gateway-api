@@ -335,6 +335,17 @@ func (s *DeviceManagementService) AutoUpsertFromEvent(
 		changed = true
 	}
 
+	// Revive: a deregistered record (per device-camera-domain.md §5.10) is
+	// never hard-deleted, so a live device sending another ingest event finds
+	// it here and clears the tombstone — even if every hint field already
+	// matched (which would otherwise leave `changed` false and skip the
+	// write entirely). Documented, intentional self-healing.
+	revived := existing.DeregisteredAt != nil
+	if revived {
+		existing.DeregisteredAt = nil
+		changed = true
+	}
+
 	if !changed {
 		return
 	}

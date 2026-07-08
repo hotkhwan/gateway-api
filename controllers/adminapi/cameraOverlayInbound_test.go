@@ -21,12 +21,16 @@ type fakeOverlaySvc struct {
 	status  devicemgmtsvc.IfMatchStatus
 	err     error
 
-	lastTenant      string
-	lastWorkspace   string
-	lastDeviceMgmt  string
-	lastBody        map[string]any
-	lastIfMatch     string
-	called          int
+	lastTenant     string
+	lastWorkspace  string
+	lastDeviceMgmt string
+	lastBody       map[string]any
+	lastIfMatch    string
+	called         int
+
+	deregisterUpdated *ingestmod.DeviceManagement
+	deregisterErr     error
+	deregisterCalled  int
 }
 
 func (s *fakeOverlaySvc) ApplyKlynxOverlay(
@@ -44,10 +48,22 @@ func (s *fakeOverlaySvc) ApplyKlynxOverlay(
 	return s.updated, s.status, s.err
 }
 
+func (s *fakeOverlaySvc) Deregister(
+	_ context.Context,
+	tenantId, workspaceId, deviceMgmtId string,
+) (*ingestmod.DeviceManagement, error) {
+	s.deregisterCalled++
+	s.lastTenant = tenantId
+	s.lastWorkspace = workspaceId
+	s.lastDeviceMgmt = deviceMgmtId
+	return s.deregisterUpdated, s.deregisterErr
+}
+
 func newOverlayApp(svc *fakeOverlaySvc) *fiber.App {
 	app := fiber.New()
 	ctrl := &CameraOverlayInboundController{svc: svc}
 	app.Patch("/admin/device-management/cameras/:gwDeviceMgmtId", ctrl.Apply)
+	app.Delete("/admin/device-management/cameras/:gwDeviceMgmtId", ctrl.Delete)
 	return app
 }
 
@@ -273,6 +289,60 @@ func TestOverlay_Apply_InternalError_Returns500(t *testing.T) {
 	req := httptest.NewRequest("PATCH", "/admin/device-management/cameras/dm-1",
 		patchBody(t, map[string]any{"name": "x"}))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Active-Workspace", "ws-1")
+
+	resp, _ := app.Test(req)
+	if resp.StatusCode != 500 {
+		t.Fatalf("status: got %d want 500", resp.StatusCode)
+	}
+}
+
+func TestOverlay_Delete_Success_Returns204(t *testing.T) {
+	svc := &fakeOverlaySvc{
+		deregisterUpdated: &ingestmod.DeviceManagement{DeviceMgmtId: "dm-1", WorkspaceId: "ws-1"},
+	}
+	app := newOverlayApp(svc)
+
+	req := httptest.NewRequest("DELETE", "/admin/device-management/cameras/dm-1", nil)
+	req.Header.Set("X-Active-Workspace", "ws-1")
+
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 204 {
+		t.Fatalf("status: got %d want 204", resp.StatusCode)
+	}
+	if svc.deregisterCalled != 1 {
+		t.Errorf("Deregister called %d times, want 1", svc.deregisterCalled)
+	}
+	if svc.lastWorkspace != "ws-1" || svc.lastDeviceMgmt != "dm-1" {
+		t.Errorf("Deregister args: got workspace=%q deviceMgmt=%q", svc.lastWorkspace, svc.lastDeviceMgmt)
+	}
+}
+
+func TestOverlay_Delete_NotFound_Returns404(t *testing.T) {
+	svc := &fakeOverlaySvc{deregisterErr: devicemgmtsvc.ErrNotFound}
+	app := newOverlayApp(svc)
+
+	req := httptest.NewRequest("DELETE", "/admin/device-management/cameras/dm-missing", nil)
+	req.Header.Set("X-Active-Workspace", "ws-1")
+
+	resp, _ := app.Test(req)
+	if resp.StatusCode != 404 {
+		t.Fatalf("status: got %d want 404", resp.StatusCode)
+	}
+	body := decode(t, resp.Body)
+	if body["code"] != "DEVICE_NOT_FOUND" {
+		t.Errorf("code: got %v want DEVICE_NOT_FOUND", body["code"])
+	}
+}
+
+func TestOverlay_Delete_InternalError_Returns500(t *testing.T) {
+	svc := &fakeOverlaySvc{deregisterErr: errors.New("boom")}
+	app := newOverlayApp(svc)
+
+	req := httptest.NewRequest("DELETE", "/admin/device-management/cameras/dm-1", nil)
 	req.Header.Set("X-Active-Workspace", "ws-1")
 
 	resp, _ := app.Test(req)
